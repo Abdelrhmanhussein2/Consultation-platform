@@ -1,0 +1,37 @@
+services:
+
+  postgres:
+    image: postgres:15
+    container_name: consultation_db
+    env_file: .env
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - consultation_network
+
+  backend:
+    build:
+      context: ../
+      dockerfile: DockerFile
+    container_name: consultation_backend
+    environment:
+      DATABASE_URL: postgresql://postgres:consultation123@postgres:5432/consultation_db
+      SECRET_KEY: IfYouChangeItYouAreGuy
+      ACCESS_TOKEN_EXPIRE_MINUTES: "1440"
+    ports:
+      - "5000:5000"
+    volumes:
+      - ../:/app
+    networks:
+      - consultation_network
+    depends_on:
+      - postgres
+
+networks:
+  consultation_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
