@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from helpers.database import engine, Base
 from routes.api import api_router
+from helpers.neo4j_db import init_neo4j_db, neo4j_db
 
 # Optionally create database tables (useful for local development if tables don't exist)
 try:
@@ -27,6 +28,16 @@ app.add_middleware(
 
 # Include central MVC router
 app.include_router(api_router)
+
+@app.on_event("startup")
+def startup_event():
+    # Initialize Neo4j constraints
+    init_neo4j_db()
+
+@app.on_event("shutdown")
+def shutdown_event():
+    # Close Neo4j driver
+    neo4j_db.close()
 
 @app.get("/")
 def root():
