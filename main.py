@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from models.database import engine, Base
+from helpers.database import engine, Base
 from routes.api import api_router
 
 # Optionally create database tables (useful for local development if tables don't exist)

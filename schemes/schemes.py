@@ -2,7 +2,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional
 from datetime import datetime
 from decimal import Decimal
-from models.enums import (
+from helpers.enums import (
     UserRole, VerificationStatus, AppointmentStatus, ActorRole,
     RatingStatus, NotificationType, InvoiceType, InvoiceStatus
 )

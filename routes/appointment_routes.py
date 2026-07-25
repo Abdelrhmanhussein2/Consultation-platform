@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from models.database import get_db
+from helpers.database import get_db
 from models import User
 from schemes import AppointmentCreate, AppointmentCancel, AppointmentOut, RatingCreate, RatingOut
 from controllers import AppointmentController, RatingController

@@ -3,7 +3,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from models.database import get_db
+from helpers.database import get_db
 from services import UserService
 from services.auth_utils import verify_access_token
 from models import User
