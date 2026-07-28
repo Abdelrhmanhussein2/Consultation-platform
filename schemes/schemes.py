@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
-from typing import Optional
+import uuid
+from typing import Optional, Literal
 from datetime import datetime
 from decimal import Decimal
 from helpers.enums import (
@@ -13,16 +14,55 @@ from helpers.enums import (
 class UserCreate(BaseModel):
     full_name: str = Field(..., max_length=150)
     email: EmailStr
-    password: str = Field(..., min_length=6)
+    password: str = Field(..., min_length=8)
     phone: Optional[str] = Field(None, max_length=20)
-    role: UserRole = UserRole.user
+
+    @field_validator('password')
+    @classmethod
+    def validate_password_strength(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not any(c.isupper() for c in v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not any(c.islower() for c in v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not any(c.isdigit() for c in v):
+            raise ValueError('Password must contain at least one digit')
+        special_chars = set("!@#$%^&*()_+-=[]{}|;':\",./<>?~`")
+        if not any(c in special_chars for c in v):
+            raise ValueError('Password must contain at least one special character')
+        return v
+
+class ConsultantRegister(BaseModel):
+    full_name: str = Field(..., max_length=150)
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    phone: str = Field(..., max_length=20)
+    bio: Optional[str] = None
+    main_specialization_id: Optional[int] = None
+
+    @field_validator('password')
+    @classmethod
+    def validate_password_strength(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not any(c.isupper() for c in v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not any(c.islower() for c in v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not any(c.isdigit() for c in v):
+            raise ValueError('Password must contain at least one digit')
+        special_chars = set("!@#$%^&*()_+-=[]{}|;':\",./<>?~`")
+        if not any(c in special_chars for c in v):
+            raise ValueError('Password must contain at least one special character')
+        return v
 
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
 class UserOut(BaseModel):
-    id: str
+    id: uuid.UUID
     full_name: str
     email: str
     phone: Optional[str]
@@ -36,11 +76,39 @@ class UserOut(BaseModel):
 
 class Token(BaseModel):
     access_token: str
-    token_type: str
+    refresh_token: str
+    token_type: str = "bearer"
 
 class TokenData(BaseModel):
-    user_id: Optional[str] = None
+    user_id: Optional[uuid.UUID] = None
     role: Optional[UserRole] = None
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+class LogoutRequest(BaseModel):
+    refresh_token: str
+
+class ConsultantApplicationAction(BaseModel):
+    action: Literal["approve", "reject"]
+    rejection_reason: Optional[str] = None
+
+    @field_validator('rejection_reason')
+    @classmethod
+    def check_rejection_reason(cls, v: Optional[str], info) -> Optional[str]:
+        action = info.data.get('action')
+        if action == "reject" and (not v or not v.strip()):
+            raise ValueError('Rejection reason is required when rejecting a consultant application')
+        return v
+
+class ConsultantApplicationStatus(BaseModel):
+    status: VerificationStatus
+    rejection_reason: Optional[str]
+    reviewed_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
 
 
 # =====================================================================
@@ -51,8 +119,8 @@ class ConsultantProfileCreate(BaseModel):
     main_specialization_id: Optional[int] = None
 
 class ConsultantProfileOut(BaseModel):
-    id: str
-    user_id: str
+    id: uuid.UUID
+    user_id: uuid.UUID
     bio: Optional[str]
     main_specialization_id: Optional[int]
     verification_status: VerificationStatus
@@ -76,13 +144,13 @@ class CredentialReview(BaseModel):
     rejection_reason: Optional[str] = None
 
 class CredentialOut(BaseModel):
-    id: str
-    consultant_id: str
+    id: uuid.UUID
+    consultant_id: uuid.UUID
     specialization_id: int
     document_url: str
     status: VerificationStatus
     submitted_at: datetime
-    reviewed_by: Optional[str]
+    reviewed_by: Optional[uuid.UUID]
     reviewed_at: Optional[datetime]
     rejection_reason: Optional[str]
 
@@ -104,8 +172,8 @@ class ServiceExpansionReview(BaseModel):
     rejection_reason: Optional[str] = None
 
 class ServiceExpansionRequestOut(BaseModel):
-    id: str
-    consultant_id: str
+    id: uuid.UUID
+    consultant_id: uuid.UUID
     requested_specialization_id: Optional[int]
     service_name: str
     service_description: Optional[str]
@@ -130,15 +198,15 @@ class ConsultantServiceCreate(BaseModel):
     expansion_request_id: Optional[str] = None
 
 class ConsultantServiceOut(BaseModel):
-    id: str
-    consultant_id: str
+    id: uuid.UUID
+    consultant_id: uuid.UUID
     specialization_id: Optional[int]
     name: str
     description: Optional[str]
     price: Decimal
     duration_minutes: int
     is_out_of_specialization: bool
-    expansion_request_id: Optional[str]
+    expansion_request_id: Optional[uuid.UUID]
     is_active: bool
 
     class Config:
@@ -159,10 +227,10 @@ class AppointmentCancel(BaseModel):
     reason: str
 
 class AppointmentOut(BaseModel):
-    id: str
-    consultant_id: str
-    user_id: str
-    service_id: Optional[str]
+    id: uuid.UUID
+    consultant_id: uuid.UUID
+    user_id: uuid.UUID
+    service_id: Optional[uuid.UUID]
     scheduled_at: datetime
     duration_minutes: int
     status: AppointmentStatus
@@ -196,10 +264,10 @@ class RatingReview(BaseModel):
     low_rating_reason: Optional[str] = None
 
 class RatingOut(BaseModel):
-    id: str
-    appointment_id: str
-    consultant_id: str
-    user_id: str
+    id: uuid.UUID
+    appointment_id: uuid.UUID
+    consultant_id: uuid.UUID
+    user_id: uuid.UUID
     stars: int
     comment: Optional[str]
     status: RatingStatus
@@ -214,13 +282,13 @@ class RatingOut(BaseModel):
 # NOTIFICATIONS
 # =====================================================================
 class NotificationOut(BaseModel):
-    id: str
-    user_id: str
+    id: uuid.UUID
+    user_id: uuid.UUID
     type: NotificationType
     title: str
     message: str
     related_entity_type: Optional[str]
-    related_entity_id: Optional[str]
+    related_entity_id: Optional[uuid.UUID]
     is_read: bool
     created_at: datetime
 
@@ -232,11 +300,11 @@ class NotificationOut(BaseModel):
 # INVOICES
 # =====================================================================
 class InvoiceOut(BaseModel):
-    id: str
+    id: uuid.UUID
     invoice_number: str
     type: InvoiceType
-    appointment_id: Optional[str]
-    issued_to_user_id: Optional[str]
+    appointment_id: Optional[uuid.UUID]
+    issued_to_user_id: Optional[uuid.UUID]
     amount: Decimal
     tax_amount: Decimal
     total_amount: Decimal

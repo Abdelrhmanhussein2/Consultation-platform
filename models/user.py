@@ -22,6 +22,7 @@ class User(Base):
     # Relationships
     profile = relationship("ConsultantProfile", back_populates="user", uselist=False, foreign_keys="ConsultantProfile.user_id")
     reviewed_profiles = relationship("ConsultantProfile", back_populates="reviewer", foreign_keys="ConsultantProfile.reviewed_by")
+    refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     reviewed_credentials = relationship("ConsultantCredential", back_populates="reviewer", foreign_keys="ConsultantCredential.reviewed_by")
     reviewed_expansions = relationship("ServiceExpansionRequest", back_populates="reviewer", foreign_keys="ServiceExpansionRequest.reviewed_by")
     appointments = relationship("Appointment", back_populates="user")

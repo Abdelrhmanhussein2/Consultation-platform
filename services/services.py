@@ -23,13 +23,13 @@ class UserService:
         return db.query(User).filter(User.id == user_id).first()
 
     @staticmethod
-    def create_user(db: Session, user_in) -> User:
+    def create_user(db: Session, user_in, role: UserRole = UserRole.user) -> User:
         db_user = User(
             full_name=user_in.full_name,
             email=user_in.email,
             phone=user_in.phone,
             password_hash=hash_password(user_in.password),
-            role=user_in.role
+            role=role
         )
         db.add(db_user)
         db.commit()
@@ -234,7 +234,7 @@ class AppointmentService:
         actor_role = ActorRole.user
         if role == UserRole.consultant:
             actor_role = ActorRole.consultant
-        elif role == UserRole.admin:
+        elif role in (UserRole.admin, UserRole.super_admin):
             actor_role = ActorRole.admin
 
         # Insert cancellation -> Postgres trigger will automatically enforce the 24h validation, 

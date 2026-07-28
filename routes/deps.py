@@ -4,13 +4,23 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from helpers.database import get_db
+from helpers.redis_client import get_redis
+from helpers.enums import UserRole, VerificationStatus
 from services import UserService
 from services.auth_utils import verify_access_token
+from services.token_service import TokenService
 from models import User
+import redis
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/users/login")
+# Point oauth2 schema to the central login endpoint
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
+def get_current_token_payload(
+    token: str = Depends(oauth2_scheme), redis_client: redis.Redis = Depends(get_redis)
+) -> dict:
+    """
+    Validates the bearer access token format and checks if it is blacklisted in Redis.
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -19,6 +29,24 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     payload = verify_access_token(token)
     if payload is None:
         raise credentials_exception
+    
+    jti = payload.get("jti")
+    if not jti or TokenService.is_jti_blacklisted(redis_client, jti):
+        raise credentials_exception
+        
+    return payload
+
+def get_current_user(
+    payload: dict = Depends(get_current_token_payload), db: Session = Depends(get_db)
+) -> User:
+    """
+    Retrieves the User model corresponding to the validated token sub.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     user_id_str: str = payload.get("sub")
     if user_id_str is None:
         raise credentials_exception
@@ -31,3 +59,41 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if user is None:
         raise credentials_exception
     return user
+
+def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
+    """
+    Guards routes to ensure the current authenticated user is active.
+    """
+    if not current_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is inactive"
+        )
+    return current_user
+
+class RoleChecker:
+    """
+    FastAPI dependency factory class to authorize specific user roles.
+    """
+    def __init__(self, allowed_roles: list[UserRole]):
+        self.allowed_roles = allowed_roles
+
+    def __call__(self, current_user: User = Depends(get_current_active_user)) -> User:
+        if current_user.role not in self.allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Operation not permitted for this role"
+            )
+        # Additional constraint: Consultants must be approved to access consultant operations
+        if current_user.role == UserRole.consultant:
+            if not current_user.profile or current_user.profile.verification_status != VerificationStatus.approved:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Consultant profile is pending approval or has been rejected"
+                )
+        return current_user
+
+# Predefined role dependencies
+require_super_admin = RoleChecker([UserRole.super_admin])
+require_consultant = RoleChecker([UserRole.consultant])
+require_user = RoleChecker([UserRole.user])

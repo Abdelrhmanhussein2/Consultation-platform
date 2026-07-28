@@ -65,3 +65,8 @@ postgres_data/
 neo4j_data/
 neo4j_import/
 neo4j_plugins/
+
+# Environment files
+.env
+Docker/.env
+

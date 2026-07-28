@@ -15,3 +15,5 @@ from models.rating import Rating
 from models.notification import Notification
 from models.invoice import Invoice
 from models.admin_action_log import AdminActionLog
+from models.refresh_token import RefreshToken
+

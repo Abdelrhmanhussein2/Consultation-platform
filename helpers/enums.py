@@ -4,6 +4,7 @@ class UserRole(str, enum.Enum):
     user = "user"
     admin = "admin"
     consultant = "consultant"
+    super_admin = "super_admin"
 
 class VerificationStatus(str, enum.Enum):
     pending = "pending"
@@ -36,6 +37,7 @@ class NotificationType(str, enum.Enum):
     service_request_status_update = "service_request_status_update"
     rating_pending_review = "rating_pending_review"
     rating_status_update = "rating_status_update"
+    consultant_application_reviewed = "consultant_application_reviewed"
     general = "general"
 
 class InvoiceType(str, enum.Enum):

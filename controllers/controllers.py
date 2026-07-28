@@ -8,36 +8,7 @@ from schemes import (
     AppointmentCreate, AppointmentCancel, RatingCreate
 )
 from services import UserService, ConsultantService, AppointmentService, RatingService
-from services.auth_utils import verify_password, create_access_token
 from models import UserRole, User
-
-class UserController:
-    @staticmethod
-    def register(db: Session, user_in: UserCreate):
-        existing_user = UserService.get_user_by_email(db, user_in.email)
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered"
-            )
-        return UserService.create_user(db, user_in)
-
-    @staticmethod
-    def login(db: Session, login_in: UserLogin):
-        db_user = UserService.get_user_by_email(db, login_in.email)
-        if not db_user or not verify_password(login_in.password, db_user.password_hash):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password"
-            )
-        if not db_user.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User account is inactive"
-            )
-        
-        access_token = create_access_token(data={"sub": str(db_user.id), "role": db_user.role.value})
-        return {"access_token": access_token, "token_type": "bearer"}
 
 
 class ConsultantController:
@@ -82,7 +53,7 @@ class ConsultantController:
 
     @staticmethod
     def review_credential(db: Session, current_user: User, credential_id: str, review_in: CredentialReview):
-        if current_user.role != UserRole.admin:
+        if current_user.role not in (UserRole.admin, UserRole.super_admin):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Only administrators can review credentials"

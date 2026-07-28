@@ -1,5 +1,7 @@
 from schemes.schemes import (
     UserCreate, UserLogin, UserOut, Token, TokenData,
+    ConsultantRegister, RefreshRequest, LogoutRequest,
+    ConsultantApplicationAction, ConsultantApplicationStatus,
     ConsultantProfileCreate, ConsultantProfileOut,
     CredentialCreate, CredentialReview, CredentialOut,
     ServiceExpansionRequestCreate, ServiceExpansionReview, ServiceExpansionRequestOut,
