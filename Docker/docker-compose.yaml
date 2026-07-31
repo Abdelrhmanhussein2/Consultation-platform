@@ -36,6 +36,17 @@ services:
     networks:
       - consultation_network
 
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: consultation_vector
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - consultation_network
+
   backend:
     build:
       context: ../
@@ -49,6 +60,8 @@ services:
       NEO4J_USERNAME: neo4j
       NEO4J_PASSWORD: supersecretpassword2026
       REDIS_URL: redis://consultation_redis:6379/0
+      QDRANT_HOST: consultation_vector
+      QDRANT_PORT: 6333
     ports:
       - "5000:5000"
     volumes:
@@ -59,6 +72,7 @@ services:
       - postgres
       - neo4j
       - redis
+      - qdrant
 
 networks:
   consultation_network:
@@ -70,3 +84,4 @@ volumes:
   neo4j_import:
   neo4j_plugins:
   redis_data:
+  qdrant_data:

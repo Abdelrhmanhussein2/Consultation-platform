@@ -40,6 +40,20 @@ class LegalController:
                 items=items
             )
             
+            # 2.5 Index structure in Qdrant
+            try:
+                from services.vector_index_service import VectorIndexService
+                VectorIndexService.index_law(
+                    law_id=law_id,
+                    title=title,
+                    version_id=version_id,
+                    articles=articles,
+                    paragraphs=paragraphs,
+                    items=items
+                )
+            except Exception as e:
+                print(f"Warning: Could not index law structure in Qdrant: {e}")
+            
             # 3. Handle version replacement links (REPLACES_VERSION)
             try:
                 # Find the version immediately preceding the newly uploaded one by effective date
@@ -153,6 +167,13 @@ class LegalController:
             if citations:
                 LegalGraphService.create_citations_batch(citations)
                 
+            # 3.5 Index judgment in Qdrant
+            try:
+                from services.vector_index_service import VectorIndexService
+                VectorIndexService.index_judgment(judgment)
+            except Exception as e:
+                print(f"Warning: Could not index judgment in Qdrant: {e}")
+                
             return {
                 "message": f"Judgment '{judgment['title']}' uploaded and citations linked successfully.",
                 "ruling_id": judgment["ruling_id"],
@@ -227,3 +248,8 @@ class LegalController:
     @staticmethod
     def get_citations(target_id: str):
         return LegalGraphService.get_judgments_citing_target(target_id)
+
+    @staticmethod
+    def search(query: str, limit: int = 5):
+        from services.hybrid_search_service import HybridSearchService
+        return HybridSearchService.search(query, limit)

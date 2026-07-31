@@ -19,6 +19,16 @@ class Settings(BaseSettings):
     NEO4J_USERNAME: str = "neo4j"
     NEO4J_PASSWORD: str = "supersecretpassword2026"
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    # Qdrant settings
+    QDRANT_HOST: str = "localhost"
+    QDRANT_PORT: int = 6333
+    QDRANT_API_KEY: str = ""
+
+    # Embedding and Generative AI settings
+    COHERE_API_KEY: str = ""
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.3-70b-specdec"
+
+    model_config = SettingsConfigDict(env_file="Docker/.env", extra="ignore")
 
 settings = Settings()

@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from helpers.database import engine, Base
 from routes.api import api_router
 from helpers.neo4j_db import init_neo4j_db, neo4j_db
+from helpers.qdrant_client import qdrant_db
 from helpers.limiter import limiter
 from helpers.redis_client import redis_client
 from slowapi import _rate_limit_exceeded_handler
@@ -41,6 +42,9 @@ app.include_router(api_router)
 def startup_event():
     # Initialize Neo4j constraints
     init_neo4j_db()
+    
+    # Initialize Qdrant collection
+    qdrant_db.init_collection()
     
     # Verify Redis connectivity
     try:

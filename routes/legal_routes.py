@@ -98,3 +98,16 @@ def get_citations(
     current_user: User = Depends(get_current_user)
 ):
     return LegalController.get_citations(target_id)
+
+@router.get("/search")
+def search(
+    query: str,
+    limit: int = 5,
+    current_user: User = Depends(get_current_user)
+):
+    if not query.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Query parameter cannot be empty"
+        )
+    return LegalController.search(query, limit)

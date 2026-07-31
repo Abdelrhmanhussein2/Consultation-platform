@@ -137,8 +137,10 @@ class DocxParserService:
                 # 4. Multiline logic: if no structure matches, append text to the current open node
                 if current_paragraph:
                     current_paragraph["text"] += "\n" + line
-                else:
+                elif current_article:
+                    # Guard: only append if we are inside an article (skip preamble text)
                     current_article["text"] += "\n" + line
+                # else: preamble text before first article — safely ignored
                     
         return {
             "articles": articles,

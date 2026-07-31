@@ -5,3 +5,10 @@ from services.docx_parser_service import DocxParserService
 from services.token_service import TokenService
 from services.notification_service import NotificationService
 from services.super_admin_service import SuperAdminService
+from services.embeddings_service import EmbeddingsService
+from services.vector_index_service import VectorIndexService
+from services.hybrid_search_service import HybridSearchService
+from services.llm_service import LLMService
+
+
+
