@@ -1,160 +1,358 @@
 import uuid
+from decimal import Decimal
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
 from schemes import (
     UserCreate, UserLogin, ConsultantProfileCreate, CredentialCreate,
-    CredentialReview, ServiceExpansionRequestCreate, ConsultantServiceCreate,
-    AppointmentCreate, AppointmentCancel, RatingCreate
+    CredentialReview, ServiceExpansionRequestCreate, ServiceExpansionReviewAction,
+    ConsultantServiceCreate, ConsultantServiceUpdate,
+    AppointmentCreate, AppointmentCancel, PaymentSimulate, RatingCreate,
 )
-from services import UserService, ConsultantService, AppointmentService, RatingService
+from services import (
+    UserService, ConsultantService, ServiceExpansionService,
+    AppointmentService, RatingService,
+)
 from models import UserRole, User
 
 
+# =====================================================================
+# CONSULTANT CONTROLLER
+# =====================================================================
 class ConsultantController:
+
+    # ── Public operations (no role restriction) ──────────────────────
+
+    @staticmethod
+    def get_public_profile(db: Session, profile_id: str) -> dict:
+        """Returns the full public profile of an approved consultant."""
+        try:
+            profile_uuid = uuid.UUID(profile_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid profile ID format",
+            )
+        profile = ConsultantService.get_public_profile(db, profile_uuid)
+        if not profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Consultant profile not found or not yet approved",
+            )
+        return profile
+
+    @staticmethod
+    def list_consultants(
+        db: Session,
+        specialization_id: int | None,
+        service_name: str | None,
+        min_price: Decimal | None,
+        max_price: Decimal | None,
+        min_rating: float | None,
+        page: int,
+        limit: int,
+    ) -> list[dict]:
+        """Lists all approved consultants with optional filters."""
+        return ConsultantService.list_consultants(
+            db,
+            specialization_id=specialization_id,
+            service_name=service_name,
+            min_price=min_price,
+            max_price=max_price,
+            min_rating=min_rating,
+            page=page,
+            limit=limit,
+        )
+
+    @staticmethod
+    def get_consultant_services_public(db: Session, profile_id: str):
+        """Returns all active services for a consultant — visible to all."""
+        try:
+            profile_uuid = uuid.UUID(profile_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid profile ID format",
+            )
+        return ConsultantService.get_active_services(db, profile_uuid)
+
+    # ── Authenticated consultant operations ──────────────────────────
+
     @staticmethod
     def get_profile(db: Session, current_user: User):
-        if current_user.role != UserRole.consultant:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is not a consultant"
-            )
+        """Returns the logged-in consultant's own profile."""
+        _require_consultant(current_user)
         profile = ConsultantService.get_profile_by_user_id(db, current_user.id)
         if not profile:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Consultant profile not found"
+                detail="Consultant profile not found",
             )
         return profile
 
     @staticmethod
     def update_profile(db: Session, current_user: User, profile_in: ConsultantProfileCreate):
-        if current_user.role != UserRole.consultant:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is not a consultant"
-            )
+        """Updates the logged-in consultant's profile bio and specialization."""
+        _require_consultant(current_user)
         return ConsultantService.update_profile(db, current_user.id, profile_in)
 
     @staticmethod
     def submit_credential(db: Session, current_user: User, cred_in: CredentialCreate):
-        if current_user.role != UserRole.consultant:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is not a consultant"
-            )
-        profile = ConsultantService.get_profile_by_user_id(db, current_user.id)
-        if not profile:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Consultant profile not found"
-            )
-        return ConsultantService.submit_credential(db, profile.id, cred_in.specialization_id, cred_in.document_url)
+        """Submits a specialization credential for admin review."""
+        _require_consultant(current_user)
+        profile = _get_profile_or_404(db, current_user)
+        return ConsultantService.submit_credential(
+            db, profile.id, cred_in.specialization_id, cred_in.document_url
+        )
 
     @staticmethod
-    def review_credential(db: Session, current_user: User, credential_id: str, review_in: CredentialReview):
-        if current_user.role not in (UserRole.admin, UserRole.super_admin):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only administrators can review credentials"
-            )
+    def review_credential(
+        db: Session, current_user: User, credential_id: str, review_in: CredentialReview
+    ):
+        """Admin reviews a credential submission."""
+        _require_admin(current_user)
         try:
             cred_uuid = uuid.UUID(credential_id)
-            return ConsultantService.review_credential(db, cred_uuid, current_user.id, review_in.status, review_in.rejection_reason)
-        except ValueError as e:
+        except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=str(e)
+                detail="Invalid credential ID format",
             )
+        try:
+            return ConsultantService.review_credential(
+                db, cred_uuid, current_user.id, review_in.status, review_in.rejection_reason
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     @staticmethod
-    def submit_service_expansion(db: Session, current_user: User, request_in: ServiceExpansionRequestCreate):
-        if current_user.role != UserRole.consultant:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is not a consultant"
-            )
-        profile = ConsultantService.get_profile_by_user_id(db, current_user.id)
-        if not profile:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Consultant profile not found"
-            )
+    def submit_service_expansion(
+        db: Session, current_user: User, request_in: ServiceExpansionRequestCreate
+    ):
+        """Submits a service expansion request (out-of-specialization service)."""
+        _require_consultant(current_user)
+        profile = _get_profile_or_404(db, current_user)
         return ConsultantService.submit_service_expansion(db, profile.id, request_in)
 
     @staticmethod
+    def get_my_services(db: Session, current_user: User):
+        """Returns all (active + inactive) services for the logged-in consultant."""
+        _require_consultant(current_user)
+        profile = _get_profile_or_404(db, current_user)
+        return ConsultantService.get_services(db, profile.id)
+
+    @staticmethod
     def add_service(db: Session, current_user: User, service_in: ConsultantServiceCreate):
-        if current_user.role != UserRole.consultant:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is not a consultant"
-            )
-        profile = ConsultantService.get_profile_by_user_id(db, current_user.id)
-        if not profile:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Consultant profile not found"
-            )
+        """Adds a new service to the consultant's profile."""
+        _require_consultant(current_user)
+        profile = _get_profile_or_404(db, current_user)
         try:
             return ConsultantService.add_service(db, profile.id, service_in)
         except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
+    def update_service(
+        db: Session, current_user: User, service_id: str, update_in: ConsultantServiceUpdate
+    ):
+        """Updates name, description, price or duration of an existing service."""
+        _require_consultant(current_user)
+        profile = _get_profile_or_404(db, current_user)
+        try:
+            service_uuid = uuid.UUID(service_id)
+            return ConsultantService.update_service(db, profile.id, service_uuid, update_in)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
+    def toggle_service(db: Session, current_user: User, service_id: str):
+        """Toggles a service between active and inactive."""
+        _require_consultant(current_user)
+        profile = _get_profile_or_404(db, current_user)
+        try:
+            service_uuid = uuid.UUID(service_id)
+            return ConsultantService.toggle_service(db, profile.id, service_uuid)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+# =====================================================================
+# SERVICE EXPANSION CONTROLLER  (admin review)
+# =====================================================================
+class ServiceExpansionController:
+
+    @staticmethod
+    def list_pending(db: Session, current_user: User):
+        """Lists all pending service expansion requests for admin review."""
+        _require_admin(current_user)
+        return ServiceExpansionService.list_pending(db)
+
+    @staticmethod
+    def review_request(
+        db: Session,
+        current_user: User,
+        request_id: str,
+        action_in: ServiceExpansionReviewAction,
+    ):
+        """Approves or rejects a service expansion request."""
+        _require_admin(current_user)
+        try:
+            req_uuid = uuid.UUID(request_id)
+        except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=str(e)
+                detail="Invalid request ID format",
             )
+        try:
+            return ServiceExpansionService.review(
+                db,
+                req_uuid,
+                current_user.id,
+                action_in.action,
+                action_in.rejection_reason,
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
+# =====================================================================
+# APPOINTMENT CONTROLLER
+# =====================================================================
 class AppointmentController:
+
     @staticmethod
     def book_appointment(db: Session, current_user: User, appt_in: AppointmentCreate):
+        """Books an appointment. Only regular users (clients) can book."""
         if current_user.role != UserRole.user:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only clients can book appointments"
+                detail="Only clients can book appointments",
             )
         try:
             return AppointmentService.book_appointment(db, current_user.id, appt_in)
         except ValueError as e:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=str(e)
-            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     @staticmethod
-    def cancel_appointment(db: Session, current_user: User, appointment_id: str, cancel_in: AppointmentCancel):
-        try:
-            appt_uuid = uuid.UUID(appointment_id)
-            return AppointmentService.cancel_appointment(db, current_user.id, appt_uuid, cancel_in.reason, current_user.role)
-        except ValueError as e:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=str(e)
-            )
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=str(e).split('\n')[0]
-            )
-
-
-class RatingController:
-    @staticmethod
-    def rate_appointment(db: Session, current_user: User, appointment_id: str, rating_in: RatingCreate):
+    def pay_appointment(
+        db: Session, current_user: User, appointment_id: str, payment_in: PaymentSimulate
+    ):
+        """Simulates payment for a pending appointment, confirming it."""
         if current_user.role != UserRole.user:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only clients can rate appointments"
+                detail="Only clients can pay for appointments",
             )
         try:
             appt_uuid = uuid.UUID(appointment_id)
-            return RatingService.rate_appointment(db, current_user.id, appt_uuid, rating_in.stars, rating_in.comment, rating_in.low_rating_reason)
+            return AppointmentService.confirm_payment(
+                db, appt_uuid, current_user.id, payment_in.payment_method
+            )
         except ValueError as e:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=str(e)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
+    def cancel_appointment(
+        db: Session, current_user: User, appointment_id: str, cancel_in: AppointmentCancel
+    ):
+        """Cancels an appointment. Users are blocked within 24h of scheduled time."""
+        try:
+            appt_uuid = uuid.UUID(appointment_id)
+            return AppointmentService.cancel_appointment(
+                db, current_user.id, appt_uuid, cancel_in.reason, current_user.role
             )
-        except Exception as e:
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
+    def get_my_appointments(db: Session, current_user: User, page: int, limit: int):
+        """Returns the logged-in user's appointments (client view)."""
+        if current_user.role != UserRole.user:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=str(e).split('\n')[0]
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only clients can view their appointments here",
             )
+        return AppointmentService.get_user_appointments(
+            db, current_user.id, page=page, limit=limit
+        )
+
+    @staticmethod
+    def get_consultant_appointments(
+        db: Session, current_user: User, page: int, limit: int
+    ):
+        """Returns the logged-in consultant's incoming appointments."""
+        _require_consultant(current_user)
+        profile = ConsultantService.get_profile_by_user_id(db, current_user.id)
+        if not profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Consultant profile not found",
+            )
+        return AppointmentService.get_consultant_appointments(
+            db, profile.id, page=page, limit=limit
+        )
+
+
+# =====================================================================
+# RATING CONTROLLER
+# =====================================================================
+class RatingController:
+
+    @staticmethod
+    def rate_appointment(
+        db: Session, current_user: User, appointment_id: str, rating_in: RatingCreate
+    ):
+        """Submits a rating for a completed appointment. Only clients can rate."""
+        if current_user.role != UserRole.user:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only clients can rate appointments",
+            )
+        try:
+            appt_uuid = uuid.UUID(appointment_id)
+            return RatingService.rate_appointment(
+                db,
+                current_user.id,
+                appt_uuid,
+                rating_in.stars,
+                rating_in.comment,
+                rating_in.low_rating_reason,
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+# =====================================================================
+# PRIVATE HELPERS
+# =====================================================================
+CONSULTANT_ROLES = {UserRole.consultant, UserRole.platform_consultant}
+ADMIN_ROLES = {UserRole.admin, UserRole.super_admin}
+
+
+def _require_consultant(user: User):
+    """Raises 403 if the user is not a consultant or platform_consultant."""
+    if user.role not in CONSULTANT_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only consultants can perform this action",
+        )
+
+
+def _require_admin(user: User):
+    """Raises 403 if the user is not an admin or super_admin."""
+    if user.role not in ADMIN_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can perform this action",
+        )
+
+
+def _get_profile_or_404(db, user: User):
+    """Fetches the consultant's profile or raises 404."""
+    profile = ConsultantService.get_profile_by_user_id(db, user.id)
+    if not profile:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Consultant profile not found",
+        )
+    return profile

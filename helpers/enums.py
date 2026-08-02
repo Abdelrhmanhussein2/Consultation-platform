@@ -4,6 +4,7 @@ class UserRole(str, enum.Enum):
     user = "user"
     admin = "admin"
     consultant = "consultant"
+    platform_consultant = "platform_consultant"  # Consultant with approved out-of-specialization services
     super_admin = "super_admin"
 
 class VerificationStatus(str, enum.Enum):

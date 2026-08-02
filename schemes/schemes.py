@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
 import uuid
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from datetime import datetime
 from decimal import Decimal
 from helpers.enums import (
@@ -28,7 +28,7 @@ class UserCreate(BaseModel):
             raise ValueError('Password must contain at least one lowercase letter')
         if not any(c.isdigit() for c in v):
             raise ValueError('Password must contain at least one digit')
-        special_chars = set("!@#$%^&*()_+-=[]{}|;':\",./<>?~`")
+        special_chars = set("!@#$%&*()_+-=[]{}|;':\",.//<>?~`")
         if not any(c in special_chars for c in v):
             raise ValueError('Password must contain at least one special character')
         return v
@@ -52,7 +52,7 @@ class ConsultantRegister(BaseModel):
             raise ValueError('Password must contain at least one lowercase letter')
         if not any(c.isdigit() for c in v):
             raise ValueError('Password must contain at least one digit')
-        special_chars = set("!@#$%^&*()_+-=[]{}|;':\",./<>?~`")
+        special_chars = set("!@#$%&*()_+-=[]{}|;':\",.//<>?~`")
         if not any(c in special_chars for c in v):
             raise ValueError('Password must contain at least one special character')
         return v
@@ -110,6 +110,17 @@ class ConsultantApplicationStatus(BaseModel):
         from_attributes = True
 
 
+# =====================================================================
+# SPECIALIZATIONS
+# =====================================================================
+class SpecializationOut(BaseModel):
+    id: int
+    name: str
+    description: Optional[str]
+
+    class Config:
+        from_attributes = True
+
 
 # =====================================================================
 # CONSULTANT PROFILES
@@ -127,6 +138,48 @@ class ConsultantProfileOut(BaseModel):
     rejection_reason: Optional[str]
     average_rating: Decimal
     ratings_count: int
+
+    class Config:
+        from_attributes = True
+
+class ConsultantServiceSummary(BaseModel):
+    """Lightweight service info used inside public consultant profiles."""
+    id: uuid.UUID
+    name: str
+    description: Optional[str]
+    price: Decimal
+    duration_minutes: int
+    specialization_id: Optional[int]
+
+    class Config:
+        from_attributes = True
+
+class ConsultantPublicProfileOut(BaseModel):
+    """Full public-facing consultant profile — visible to all authenticated users."""
+    id: uuid.UUID
+    full_name: str
+    bio: Optional[str]
+    main_specialization_id: Optional[int]
+    specialization_name: Optional[str]
+    average_rating: Decimal
+    ratings_count: int
+    role: UserRole
+    services: List[ConsultantServiceSummary] = []
+
+    class Config:
+        from_attributes = True
+
+class ConsultantListItemOut(BaseModel):
+    """Compact consultant card used in the listing/browse page."""
+    profile_id: uuid.UUID
+    full_name: str
+    bio: Optional[str]
+    main_specialization_id: Optional[int]
+    specialization_name: Optional[str]
+    average_rating: Decimal
+    ratings_count: int
+    role: UserRole
+    services_count: int
 
     class Config:
         from_attributes = True
@@ -171,6 +224,19 @@ class ServiceExpansionReview(BaseModel):
     status: VerificationStatus
     rejection_reason: Optional[str] = None
 
+class ServiceExpansionReviewAction(BaseModel):
+    """Admin action on a service expansion request."""
+    action: Literal["approve", "reject"]
+    rejection_reason: Optional[str] = None
+
+    @field_validator('rejection_reason')
+    @classmethod
+    def check_rejection_reason(cls, v: Optional[str], info) -> Optional[str]:
+        action = info.data.get('action')
+        if action == "reject" and (not v or not v.strip()):
+            raise ValueError('Rejection reason is required when rejecting an expansion request')
+        return v
+
 class ServiceExpansionRequestOut(BaseModel):
     id: uuid.UUID
     consultant_id: uuid.UUID
@@ -179,6 +245,9 @@ class ServiceExpansionRequestOut(BaseModel):
     service_description: Optional[str]
     proof_document_url: str
     status: VerificationStatus
+    rejection_reason: Optional[str]
+    reviewed_by: Optional[uuid.UUID]
+    reviewed_at: Optional[datetime]
     created_at: datetime
 
     class Config:
@@ -196,6 +265,13 @@ class ConsultantServiceCreate(BaseModel):
     duration_minutes: int = Field(60, ge=1)
     is_out_of_specialization: bool = False
     expansion_request_id: Optional[str] = None
+
+class ConsultantServiceUpdate(BaseModel):
+    """Partial update for an existing consultant service."""
+    name: Optional[str] = Field(None, max_length=200)
+    description: Optional[str] = None
+    price: Optional[Decimal] = Field(None, ge=0)
+    duration_minutes: Optional[int] = Field(None, ge=1)
 
 class ConsultantServiceOut(BaseModel):
     id: uuid.UUID
@@ -225,6 +301,10 @@ class AppointmentCreate(BaseModel):
 
 class AppointmentCancel(BaseModel):
     reason: str
+
+class PaymentSimulate(BaseModel):
+    """Simulates payment confirmation for a pending appointment."""
+    payment_method: Literal["card", "cash", "wallet"] = "card"
 
 class AppointmentOut(BaseModel):
     id: uuid.UUID
