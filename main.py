@@ -16,6 +16,24 @@ try:
 except Exception as e:
     print(f"Warning: Could not create tables on startup. Make sure database is running and credentials are correct. Error: {e}")
 
+# Migrate PostgreSQL enum types — safely add new values if they don't already exist
+try:
+    from sqlalchemy import text
+    with engine.connect() as _conn:
+        _conn.execute(text("COMMIT"))  # exit any implicit transaction
+        for _val in ("pending_approval", "pending_payment"):
+            _conn.execute(text(
+                f"ALTER TYPE appointment_status ADD VALUE IF NOT EXISTS '{_val}'"
+            ))
+        for _val in ("appointment_approved", "appointment_rescheduled", "payment_required"):
+            _conn.execute(text(
+                f"ALTER TYPE notification_type ADD VALUE IF NOT EXISTS '{_val}'"
+            ))
+    print("INFO: Enum migration completed successfully.")
+except Exception as e:
+    print(f"Warning: Enum migration failed (safe to ignore if using SQLite or first boot): {e}")
+
+
 app = FastAPI(
     title="Consultation Platform API",
     description="Decoupled MVC Backend for Consultation Booking and Management",

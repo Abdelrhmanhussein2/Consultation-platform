@@ -7,7 +7,7 @@ from schemes import (
     UserCreate, UserLogin, ConsultantProfileCreate, CredentialCreate,
     CredentialReview, ServiceExpansionRequestCreate, ServiceExpansionReviewAction,
     ConsultantServiceCreate, ConsultantServiceUpdate,
-    AppointmentCreate, AppointmentCancel, PaymentSimulate, RatingCreate,
+    AppointmentCreate, AppointmentCancel, AppointmentReschedule, PaymentSimulate, RatingCreate,
 )
 from services import (
     UserService, ConsultantService, ServiceExpansionService,
@@ -275,6 +275,40 @@ class AppointmentController:
         return AppointmentService.get_user_appointments(
             db, current_user.id, page=page, limit=limit
         )
+
+    @staticmethod
+    def approve_appointment(db: Session, current_user: User, appointment_id: str):
+        """Consultant approves a pending_approval appointment, moving it to pending_payment."""
+        _require_consultant(current_user)
+        profile = _get_profile_or_404(db, current_user)
+        try:
+            appt_uuid = uuid.UUID(appointment_id)
+            return AppointmentService.approve_appointment(db, profile.id, appt_uuid)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
+    def reschedule_appointment(
+        db: Session, current_user: User, appointment_id: str, reschedule_in: AppointmentReschedule
+    ):
+        """Reschedules a confirmed appointment. Consultants can always reschedule; clients are subject to 24h policy."""
+        profile = None
+        if current_user.role in {UserRole.consultant, UserRole.platform_consultant}:
+            profile = _get_profile_or_404(db, current_user)
+
+        try:
+            appt_uuid = uuid.UUID(appointment_id)
+            return AppointmentService.reschedule_appointment(
+                db,
+                requester_user_id=current_user.id,
+                consultant_profile_id=profile.id if profile else None,
+                appt_id=appt_uuid,
+                new_scheduled_at=reschedule_in.new_scheduled_at,
+                reason=reschedule_in.reason,
+                role=current_user.role,
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     @staticmethod
     def get_consultant_appointments(

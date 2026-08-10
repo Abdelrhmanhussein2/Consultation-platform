@@ -8,7 +8,13 @@ from helpers.database import SessionLocal
 from helpers.config import settings
 from helpers.enums import UserRole
 from models import User, Specialization
-from services.auth_utils import hash_password
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import importlib.util
+spec = importlib.util.spec_from_file_location("auth_utils", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "services", "auth_utils.py"))
+_auth = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(_auth)
+hash_password = _auth.hash_password
 
 def seed_super_admin():
     """

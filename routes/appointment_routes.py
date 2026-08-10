@@ -5,7 +5,7 @@ from typing import List
 from helpers.database import get_db
 from models import User
 from schemes import (
-    AppointmentCreate, AppointmentCancel, AppointmentOut,
+    AppointmentCreate, AppointmentCancel, AppointmentReschedule, AppointmentOut,
     PaymentSimulate, InvoiceOut,
     RatingCreate, RatingOut,
 )
@@ -143,4 +143,45 @@ def get_consultant_appointments(
     """
     return AppointmentController.get_consultant_appointments(
         db, current_user, page=page, limit=limit
+    )
+
+
+@router.post(
+    "/{appointment_id}/approve",
+    response_model=AppointmentOut,
+    summary="Approve a booking request (consultant only)",
+)
+def approve_appointment(
+    appointment_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_consultant),
+):
+    """
+    Consultant approves a pending booking request.
+    - Appointment status moves from `pending_approval` → `pending_payment`.
+    - The client receives a notification to complete payment.
+    - Only the assigned consultant can approve their own appointments.
+    """
+    return AppointmentController.approve_appointment(db, current_user, appointment_id)
+
+
+@router.post(
+    "/{appointment_id}/reschedule",
+    response_model=AppointmentOut,
+    summary="Reschedule a confirmed appointment",
+)
+def reschedule_appointment(
+    appointment_id: str,
+    reschedule_in: AppointmentReschedule,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Reschedules a confirmed (paid) appointment to a new time.
+    - **Consultants**: Can reschedule at any time (they cannot cancel paid appointments).
+    - **Clients**: Can reschedule only if more than 24h remain before the session.
+    - The other party is automatically notified of the change.
+    """
+    return AppointmentController.reschedule_appointment(
+        db, current_user, appointment_id, reschedule_in
     )

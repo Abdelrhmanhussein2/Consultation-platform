@@ -302,6 +302,11 @@ class AppointmentCreate(BaseModel):
 class AppointmentCancel(BaseModel):
     reason: str
 
+class AppointmentReschedule(BaseModel):
+    """Request body for rescheduling an appointment to a new time slot."""
+    new_scheduled_at: datetime
+    reason: Optional[str] = None
+
 class PaymentSimulate(BaseModel):
     """Simulates payment confirmation for a pending appointment."""
     payment_method: Literal["card", "cash", "wallet"] = "card"

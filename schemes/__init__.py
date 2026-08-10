@@ -22,7 +22,7 @@ from schemes.schemes import (
     ConsultantServiceCreate, ConsultantServiceUpdate, ConsultantServiceOut,
 
     # Appointments
-    AppointmentCreate, AppointmentCancel, PaymentSimulate, AppointmentOut,
+    AppointmentCreate, AppointmentCancel, AppointmentReschedule, PaymentSimulate, AppointmentOut,
 
     # Ratings
     RatingCreate, RatingReview, RatingOut,

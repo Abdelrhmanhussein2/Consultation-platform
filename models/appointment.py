@@ -15,7 +15,7 @@ class Appointment(Base):
     service_id = Column(UUID(as_uuid=True), ForeignKey("consultant_services.id"), nullable=True)
     scheduled_at = Column(DateTime(timezone=True), nullable=False)
     duration_minutes = Column(Integer, nullable=False, default=60)
-    status = Column(PG_ENUM(AppointmentStatus, name="appointment_status", inherit_schema=True), nullable=False, default=AppointmentStatus.pending)
+    status = Column(PG_ENUM(AppointmentStatus, name="appointment_status", inherit_schema=True), nullable=False, default=AppointmentStatus.pending_approval)
     created_by_role = Column(PG_ENUM(ActorRole, name="actor_role", inherit_schema=True), nullable=False)
     price = Column(Numeric(10, 2), nullable=True)
     notes = Column(Text, nullable=True)

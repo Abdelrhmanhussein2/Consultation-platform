@@ -13,11 +13,12 @@ class VerificationStatus(str, enum.Enum):
     rejected = "rejected"
 
 class AppointmentStatus(str, enum.Enum):
-    pending = "pending"
-    confirmed = "confirmed"
-    completed = "completed"
-    cancelled_by_user = "cancelled_by_user"
-    cancelled_by_consultant = "cancelled_by_consultant"
+    pending_approval = "pending_approval"   # Waiting for consultant to accept
+    pending_payment  = "pending_payment"    # Consultant approved — waiting for client payment
+    confirmed        = "confirmed"          # Paid & confirmed
+    completed        = "completed"          # Session done
+    cancelled_by_user        = "cancelled_by_user"
+    cancelled_by_consultant  = "cancelled_by_consultant"
     no_show = "no_show"
 
 class ActorRole(str, enum.Enum):
@@ -31,15 +32,19 @@ class RatingStatus(str, enum.Enum):
     rejected = "rejected"
 
 class NotificationType(str, enum.Enum):
-    appointment_booked = "appointment_booked"
-    appointment_cancelled = "appointment_cancelled"
-    appointment_reminder = "appointment_reminder"
-    credential_status_update = "credential_status_update"
+    appointment_booked           = "appointment_booked"
+    appointment_approved         = "appointment_approved"
+    appointment_cancelled        = "appointment_cancelled"
+    appointment_reminder         = "appointment_reminder"
+    appointment_rescheduled      = "appointment_rescheduled"
+    payment_required             = "payment_required"
+    credential_status_update     = "credential_status_update"
     service_request_status_update = "service_request_status_update"
-    rating_pending_review = "rating_pending_review"
-    rating_status_update = "rating_status_update"
+    rating_pending_review        = "rating_pending_review"
+    rating_status_update         = "rating_status_update"
     consultant_application_reviewed = "consultant_application_reviewed"
     general = "general"
+
 
 class InvoiceType(str, enum.Enum):
     client_invoice = "client_invoice"

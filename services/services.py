@@ -6,7 +6,7 @@ from sqlalchemy import and_, or_, func
 
 from models import (
     User, Specialization, ConsultantProfile, ConsultantCredential,
-    ServiceExpansionRequest, ConsultantService, Appointment,
+    ServiceExpansionRequest, ConsultantService as ConsultantServiceModel, Appointment,
     AppointmentCancellation, Rating, Notification, Invoice, AdminActionLog,
     UserRole, VerificationStatus, AppointmentStatus, ActorRole, RatingStatus,
     NotificationType, InvoiceType, InvoiceStatus
@@ -260,32 +260,32 @@ class ConsultantService:
     # ── Service management ───────────────────────────────────────────
 
     @staticmethod
-    def get_services(db: Session, consultant_id: uuid.UUID) -> list[ConsultantService]:
+    def get_services(db: Session, consultant_id: uuid.UUID) -> list[ConsultantServiceModel]:
         """Returns all services (active and inactive) for a consultant profile."""
         return (
-            db.query(ConsultantService)
-            .filter(ConsultantService.consultant_id == consultant_id)
-            .order_by(ConsultantService.created_at.desc())
+            db.query(ConsultantServiceModel)
+            .filter(ConsultantServiceModel.consultant_id == consultant_id)
+            .order_by(ConsultantServiceModel.created_at.desc())
             .all()
         )
 
     @staticmethod
-    def get_active_services(db: Session, consultant_id: uuid.UUID) -> list[ConsultantService]:
+    def get_active_services(db: Session, consultant_id: uuid.UUID) -> list[ConsultantServiceModel]:
         """Returns only active services for a given consultant profile."""
         return (
-            db.query(ConsultantService)
+            db.query(ConsultantServiceModel)
             .filter(
                 and_(
-                    ConsultantService.consultant_id == consultant_id,
-                    ConsultantService.is_active == True,
+                    ConsultantServiceModel.consultant_id == consultant_id,
+                    ConsultantServiceModel.is_active == True,
                 )
             )
-            .order_by(ConsultantService.created_at.desc())
+            .order_by(ConsultantServiceModel.created_at.desc())
             .all()
         )
 
     @staticmethod
-    def add_service(db: Session, consultant_id: uuid.UUID, service_in) -> ConsultantService:
+    def add_service(db: Session, consultant_id: uuid.UUID, service_in) -> ConsultantServiceModel:
         """
         Adds a new service for a consultant.
         Out-of-specialization services require a valid approved expansion request ID.
@@ -309,7 +309,7 @@ class ConsultantService:
             if not exp_req:
                 raise ValueError("Approved service expansion request not found for this ID")
 
-        db_service = ConsultantService(
+        db_service = ConsultantServiceModel(
             consultant_id=consultant_id,
             specialization_id=service_in.specialization_id,
             name=service_in.name,
@@ -331,12 +331,12 @@ class ConsultantService:
     @staticmethod
     def update_service(
         db: Session, consultant_id: uuid.UUID, service_id: uuid.UUID, update_in
-    ) -> ConsultantService:
+    ) -> ConsultantServiceModel:
         """Updates editable fields on an existing service."""
-        service = db.query(ConsultantService).filter(
+        service = db.query(ConsultantServiceModel).filter(
             and_(
-                ConsultantService.id == service_id,
-                ConsultantService.consultant_id == consultant_id,
+                ConsultantServiceModel.id == service_id,
+                ConsultantServiceModel.consultant_id == consultant_id,
             )
         ).first()
         if not service:
@@ -358,12 +358,12 @@ class ConsultantService:
     @staticmethod
     def toggle_service(
         db: Session, consultant_id: uuid.UUID, service_id: uuid.UUID
-    ) -> ConsultantService:
+    ) -> ConsultantServiceModel:
         """Toggles a service between active and inactive."""
-        service = db.query(ConsultantService).filter(
+        service = db.query(ConsultantServiceModel).filter(
             and_(
-                ConsultantService.id == service_id,
-                ConsultantService.consultant_id == consultant_id,
+                ConsultantServiceModel.id == service_id,
+                ConsultantServiceModel.consultant_id == consultant_id,
             )
         ).first()
         if not service:
@@ -478,7 +478,8 @@ class AppointmentService:
     @staticmethod
     def book_appointment(db: Session, client_id: uuid.UUID, appt_in) -> Appointment:
         """
-        Books an appointment for a client. Appointment starts as `pending` (unpaid).
+        Books an appointment for a client.
+        Appointment starts as `pending_approval` — consultant must approve before payment.
         Service price is captured at booking time.
         """
         consultant_uuid = (
@@ -507,11 +508,11 @@ class AppointmentService:
                 if isinstance(appt_in.service_id, str)
                 else appt_in.service_id
             )
-            service = db.query(ConsultantService).filter(
+            service = db.query(ConsultantServiceModel).filter(
                 and_(
-                    ConsultantService.id == service_uuid,
-                    ConsultantService.consultant_id == consultant_uuid,
-                    ConsultantService.is_active == True,
+                    ConsultantServiceModel.id == service_uuid,
+                    ConsultantServiceModel.consultant_id == consultant_uuid,
+                    ConsultantServiceModel.is_active == True,
                 )
             ).first()
             if not service:
@@ -525,7 +526,7 @@ class AppointmentService:
             service_id=uuid.UUID(appt_in.service_id) if appt_in.service_id else None,
             scheduled_at=appt_in.scheduled_at,
             duration_minutes=duration,
-            status=AppointmentStatus.pending,
+            status=AppointmentStatus.pending_approval,
             created_by_role=ActorRole.user,
             price=price,
             notes=appt_in.notes,
@@ -534,14 +535,15 @@ class AppointmentService:
         db.commit()
         db.refresh(appointment)
 
-        # Notify consultant
+        # Notify consultant — awaiting their approval
         db.add(Notification(
             user_id=consultant.user_id,
             type=NotificationType.appointment_booked,
-            title="حجز موعد جديد",
+            title="طلب حجز موعد جديد",
             message=(
-                f"قام أحد العملاء بحجز موعد جديد معك بتاريخ "
-                f"{appt_in.scheduled_at.strftime('%Y-%m-%d %H:%M')}"
+                f"قام أحد العملاء بطلب حجز موعد معك بتاريخ "
+                f"{appt_in.scheduled_at.strftime('%Y-%m-%d %H:%M')}. "
+                f"يرجى مراجعة الطلب والموافقة عليه."
             ),
             related_entity_type="appointment",
             related_entity_id=appointment.id,
@@ -551,12 +553,56 @@ class AppointmentService:
         return appointment
 
     @staticmethod
+    def approve_appointment(
+        db: Session, consultant_profile_id: uuid.UUID, appointment_id: uuid.UUID
+    ) -> Appointment:
+        """
+        Consultant approves a pending_approval appointment.
+        Status moves to `pending_payment` and the client is notified to pay.
+        """
+        appt = db.query(Appointment).filter(
+            and_(
+                Appointment.id == appointment_id,
+                Appointment.consultant_id == consultant_profile_id,
+            )
+        ).first()
+        if not appt:
+            raise ValueError("Appointment not found or does not belong to you")
+        if appt.status != AppointmentStatus.pending_approval:
+            raise ValueError(
+                f"Cannot approve an appointment with status '{appt.status.value}'. "
+                "Only appointments awaiting approval can be approved."
+            )
+
+        appt.status = AppointmentStatus.pending_payment
+        db.commit()
+        db.refresh(appt)
+
+        # Notify client — payment is now required
+        db.add(Notification(
+            user_id=appt.user_id,
+            type=NotificationType.payment_required,
+            title="تمت الموافقة على موعدك — يرجى الدفع",
+            message=(
+                f"وافق المستشار على طلب الحجز بتاريخ "
+                f"{appt.scheduled_at.strftime('%Y-%m-%d %H:%M')}. "
+                f"يرجى إتمام الدفع لتأكيد الموعد."
+            ),
+            related_entity_type="appointment",
+            related_entity_id=appt.id,
+        ))
+        db.commit()
+
+        return appt
+
+    @staticmethod
     def confirm_payment(
         db: Session, appointment_id: uuid.UUID, user_id: uuid.UUID, payment_method: str
     ) -> Invoice:
         """
         Simulates payment: marks appointment as `confirmed` and creates a paid invoice.
-        Only the appointment owner can pay, and only if status is `pending`.
+        Only the appointment owner can pay, and only if status is `pending_payment`
+        (i.e., consultant has already approved the booking).
         """
         appointment = db.query(Appointment).filter(
             and_(
@@ -566,9 +612,10 @@ class AppointmentService:
         ).first()
         if not appointment:
             raise ValueError("Appointment not found or does not belong to you")
-        if appointment.status != AppointmentStatus.pending:
+        if appointment.status != AppointmentStatus.pending_payment:
             raise ValueError(
-                f"Cannot pay for appointment with status '{appointment.status.value}'"
+                f"Cannot pay for appointment with status '{appointment.status.value}'. "
+                "The consultant must approve your booking before payment."
             )
 
         # Mark appointment as confirmed
@@ -639,28 +686,51 @@ class AppointmentService:
     ) -> AppointmentCancellation:
         """
         Cancels an appointment.
-        Users cannot cancel within 24 hours of the scheduled time.
-        Admins and consultants can always cancel.
+        - Users cannot cancel within 24 hours of the scheduled time.
+        - Consultants CANNOT cancel an appointment after it has been paid (confirmed).
+          They must use reschedule instead.
+        - Admins can always cancel.
         """
         appt = db.query(Appointment).filter(Appointment.id == appt_id).first()
         if not appt:
             raise ValueError("Appointment not found")
+
+        is_consultant = role in (UserRole.consultant, UserRole.platform_consultant)
+        is_admin = role in (UserRole.admin, UserRole.super_admin)
+
+        # Block consultant from cancelling a paid (confirmed) appointment
+        if is_consultant and appt.status == AppointmentStatus.confirmed:
+            raise ValueError(
+                "لا يمكن إلغاء موعد مدفوع. يمكنك تأجيل الموعد لوقت آخر بدلاً من ذلك."
+            )
 
         # Enforce 24h cancellation cutoff for regular users
         if role == UserRole.user:
             cutoff = appt.scheduled_at - timedelta(
                 hours=AppointmentService.CANCELLATION_CUTOFF_HOURS
             )
-            if datetime.now(timezone.utc) >= cutoff:
+            now = datetime.now(timezone.utc)
+            # Handle timezone-naive datetimes returned by SQLite / tests
+            if appt.scheduled_at.tzinfo is None:
+                now = datetime.utcnow()
+            if now >= cutoff:
                 raise ValueError(
                     "Cannot cancel an appointment within 24 hours of its scheduled time"
                 )
 
         actor_role = ActorRole.user
-        if role in (UserRole.consultant, UserRole.platform_consultant):
+        if is_consultant:
             actor_role = ActorRole.consultant
-        elif role in (UserRole.admin, UserRole.super_admin):
+        elif is_admin:
             actor_role = ActorRole.admin
+
+        # Update appointment status to reflect who cancelled
+        if actor_role == ActorRole.user:
+            appt.status = AppointmentStatus.cancelled_by_user
+        elif actor_role == ActorRole.consultant:
+            appt.status = AppointmentStatus.cancelled_by_consultant
+        # admin cancellations keep the appointment status as-is or can be set to either
+        db.commit()
 
         cancellation = AppointmentCancellation(
             appointment_id=appt_id,
@@ -673,6 +743,87 @@ class AppointmentService:
         db.commit()
         db.refresh(cancellation)
         return cancellation
+
+    @staticmethod
+    def reschedule_appointment(
+        db: Session,
+        requester_user_id: uuid.UUID,
+        consultant_profile_id: uuid.UUID,
+        appt_id: uuid.UUID,
+        new_scheduled_at,
+        reason: str | None,
+        role: UserRole,
+    ) -> Appointment:
+        """
+        Reschedules a confirmed appointment to a new time.
+        - Consultants can reschedule any confirmed appointment assigned to them.
+        - Clients can reschedule if more than 24h remain before the scheduled time.
+        - Notifies the other party about the change.
+        """
+        appt = db.query(Appointment).filter(Appointment.id == appt_id).first()
+        if not appt:
+            raise ValueError("Appointment not found")
+
+        if appt.status != AppointmentStatus.confirmed:
+            raise ValueError(
+                f"Only confirmed (paid) appointments can be rescheduled. "
+                f"Current status: '{appt.status.value}'."
+            )
+
+        is_consultant = role in (UserRole.consultant, UserRole.platform_consultant)
+
+        # Validate ownership
+        if is_consultant and appt.consultant_id != consultant_profile_id:
+            raise ValueError("This appointment does not belong to you")
+        if role == UserRole.user and appt.user_id != requester_user_id:
+            raise ValueError("This appointment does not belong to you")
+
+        # Enforce 24h reschedule cutoff for regular users
+        if role == UserRole.user:
+            cutoff = appt.scheduled_at - timedelta(
+                hours=AppointmentService.CANCELLATION_CUTOFF_HOURS
+            )
+            now = datetime.now(timezone.utc)
+            # Handle timezone-naive datetimes returned by SQLite / tests
+            if appt.scheduled_at.tzinfo is None:
+                now = datetime.utcnow()
+            if now >= cutoff:
+                raise ValueError(
+                    "Cannot reschedule an appointment within 24 hours of its scheduled time"
+                )
+
+        old_time = appt.scheduled_at
+        appt.scheduled_at = new_scheduled_at
+        db.commit()
+        db.refresh(appt)
+
+        # Notify the OTHER party
+        notify_user_id = appt.user_id if is_consultant else None
+        if not is_consultant:
+            # Notify the consultant
+            consultant = db.query(ConsultantProfile).filter(
+                ConsultantProfile.id == appt.consultant_id
+            ).first()
+            notify_user_id = consultant.user_id if consultant else None
+
+        if notify_user_id:
+            requester_label = "المستشار" if is_consultant else "العميل"
+            db.add(Notification(
+                user_id=notify_user_id,
+                type=NotificationType.appointment_rescheduled,
+                title="تم تأجيل موعدك",
+                message=(
+                    f"قام {requester_label} بتأجيل الموعد من "
+                    f"{old_time.strftime('%Y-%m-%d %H:%M')} إلى "
+                    f"{new_scheduled_at.strftime('%Y-%m-%d %H:%M')}."
+                    + (f" السبب: {reason}" if reason else "")
+                ),
+                related_entity_type="appointment",
+                related_entity_id=appt.id,
+            ))
+            db.commit()
+
+        return appt
 
 
 # =====================================================================
