@@ -11,7 +11,7 @@ from schemes import (
     CredentialCreate, CredentialReview, CredentialOut,
     ServiceExpansionRequestCreate, ServiceExpansionRequestOut,
     ConsultantServiceCreate, ConsultantServiceUpdate, ConsultantServiceOut,
-    ConsultantApplicationStatus,
+    ConsultantApplicationStatus, ClientSummaryOut,
 )
 from controllers import ConsultantController
 from routes.deps import get_current_active_user, require_consultant, require_super_admin
@@ -147,6 +147,24 @@ def update_my_profile(
 ):
     """Updates the consultant's bio or main specialization (approved consultants only)."""
     return ConsultantController.update_profile(db, current_user, profile_in)
+
+
+@router.get(
+    "/me/clients",
+    response_model=List[ClientSummaryOut],
+    summary="Get my clients list with details and stats",
+)
+def get_my_clients(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_consultant),
+):
+    """
+    Returns a paginated list of clients who have booked appointments with the logged-in consultant.
+    Includes count of sessions, cancellation rates, total money spent, and last/next appointment times.
+    """
+    return ConsultantController.get_clients(db, current_user, page=page, limit=limit)
 
 
 @router.get(

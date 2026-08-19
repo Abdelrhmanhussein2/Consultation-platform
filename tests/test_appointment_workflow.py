@@ -431,3 +431,89 @@ class TestRescheduleAppointment:
                 reason=None,
                 role=UserRole.user,
             )
+
+
+class TestConsultantFeaturesAndSessions:
+    def test_consultant_cannot_book_self(self, db):
+        # Create a consultant
+        consultant_user, profile = _make_consultant_user(db, email="c1@test.com")
+        appt_in = _ApptIn(profile.id)
+        with pytest.raises(ValueError, match="لا يمكن للمستشار حجز موعد مع نفسه"):
+            AppointmentService.book_appointment(db, consultant_user.id, appt_in)
+
+    def test_consultant_can_book_another_consultant(self, db):
+        # Create two consultants
+        c1_user, p1 = _make_consultant_user(db, email="c1@test.com")
+        c2_user, p2 = _make_consultant_user(db, email="c2@test.com")
+        
+        appt_in = _ApptIn(p2.id)
+        appt = AppointmentService.book_appointment(db, c1_user.id, appt_in)
+        assert appt.status == AppointmentStatus.pending_approval
+        assert appt.user_id == c1_user.id
+        assert appt.consultant_id == p2.id
+
+    @patch("services.daily_service.DailyService.create_room")
+    def test_payment_creates_daily_room(self, mock_create_room, db):
+        mock_create_room.return_value = {
+            "room_name": "consultation-test",
+            "room_url": "https://mock.daily.co/consultation-test",
+            "expires_at": datetime.now(timezone.utc)
+        }
+        
+        client = _make_user()
+        db.add(client)
+        db.flush()
+        _, profile = _make_consultant_user(db)
+        svc = _make_service(db, profile.id)
+        appt_in = _ApptIn(profile.id, svc.id)
+        appt = AppointmentService.book_appointment(db, client.id, appt_in)
+        AppointmentService.approve_appointment(db, profile.id, appt.id)
+        
+        AppointmentService.confirm_payment(db, appt.id, client.id, "card")
+        db.refresh(appt)
+        
+        assert appt.status == AppointmentStatus.confirmed
+        assert appt.session_room_name == "consultation-test"
+        assert appt.session_room_url == "https://mock.daily.co/consultation-test"
+        
+        # Check that session link ready notifications were generated
+        notifs = db.query(Notification).filter(Notification.type == NotificationType.session_link_ready).all()
+        assert len(notifs) >= 2
+
+    def test_get_consultant_clients(self, db):
+        from services.services import ConsultantService as ConsultantServiceClass
+        
+        client1 = _make_user(email="client1@test.com")
+        client2 = _make_user(email="client2@test.com")
+        db.add(client1)
+        db.add(client2)
+        db.flush()
+        
+        _, profile = _make_consultant_user(db)
+        svc = _make_service(db, profile.id)
+        
+        # Book and complete appointment for client1
+        appt1 = AppointmentService.book_appointment(db, client1.id, _ApptIn(profile.id, svc.id))
+        AppointmentService.approve_appointment(db, profile.id, appt1.id)
+        AppointmentService.confirm_payment(db, appt1.id, client1.id, "card")
+        
+        appt1.status = AppointmentStatus.completed
+        db.commit()
+        
+        # Book confirmed appointment for client2
+        appt2 = AppointmentService.book_appointment(db, client2.id, _ApptIn(profile.id, svc.id))
+        AppointmentService.approve_appointment(db, profile.id, appt2.id)
+        AppointmentService.confirm_payment(db, appt2.id, client2.id, "wallet")
+        
+        clients = ConsultantServiceClass.get_clients(db, profile.id)
+        
+        assert len(clients) == 2
+        # Verify stats
+        c1_stat = next(c for c in clients if c["user_id"] == client1.id)
+        c2_stat = next(c for c in clients if c["user_id"] == client2.id)
+        
+        assert c1_stat["total_sessions"] == 1
+        assert c1_stat["completed_sessions"] == 1
+        assert c2_stat["total_sessions"] == 1
+        assert c2_stat["completed_sessions"] == 0
+

@@ -25,7 +25,7 @@ try:
             _conn.execute(text(
                 f"ALTER TYPE appointment_status ADD VALUE IF NOT EXISTS '{_val}'"
             ))
-        for _val in ("appointment_approved", "appointment_rescheduled", "payment_required"):
+        for _val in ("appointment_approved", "appointment_rescheduled", "payment_required", "session_link_ready", "session_started", "session_ended"):
             _conn.execute(text(
                 f"ALTER TYPE notification_type ADD VALUE IF NOT EXISTS '{_val}'"
             ))

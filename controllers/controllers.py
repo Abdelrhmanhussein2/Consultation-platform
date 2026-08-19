@@ -175,6 +175,13 @@ class ConsultantController:
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
+    @staticmethod
+    def get_clients(db: Session, current_user: User, page: int, limit: int):
+        """Retrieves aggregated client lists for the logged-in consultant."""
+        _require_consultant(current_user)
+        profile = _get_profile_or_404(db, current_user)
+        return ConsultantService.get_clients(db, profile.id, page=page, limit=limit)
+
 
 # =====================================================================
 # SERVICE EXPANSION CONTROLLER  (admin review)
@@ -222,11 +229,12 @@ class AppointmentController:
 
     @staticmethod
     def book_appointment(db: Session, current_user: User, appt_in: AppointmentCreate):
-        """Books an appointment. Only regular users (clients) can book."""
-        if current_user.role != UserRole.user:
+        """Books an appointment. Clients and consultants can book."""
+        BOOKABLE_ROLES = {UserRole.user, UserRole.consultant, UserRole.platform_consultant}
+        if current_user.role not in BOOKABLE_ROLES:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only clients can book appointments",
+                detail="Only clients and consultants can book appointments",
             )
         try:
             return AppointmentService.book_appointment(db, current_user.id, appt_in)

@@ -1,5 +1,6 @@
 from services.auth_utils import hash_password, verify_password
 from services.services import UserService, ConsultantService, ServiceExpansionService, AppointmentService, RatingService
+from services.daily_service import DailyService
 from services.legal_graph_service import LegalGraphService
 from services.docx_parser_service import DocxParserService
 from services.token_service import TokenService

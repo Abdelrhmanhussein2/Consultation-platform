@@ -43,7 +43,10 @@ class NotificationType(str, enum.Enum):
     rating_pending_review        = "rating_pending_review"
     rating_status_update         = "rating_status_update"
     consultant_application_reviewed = "consultant_application_reviewed"
-    general = "general"
+    session_link_ready           = "session_link_ready"
+    session_started              = "session_started"
+    session_ended                = "session_ended"
+    general                      = "general"
 
 
 class InvoiceType(str, enum.Enum):

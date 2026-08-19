@@ -392,6 +392,60 @@ class ConsultantService:
         db.refresh(request)
         return request
 
+    @staticmethod
+    def get_clients(db: Session, consultant_id: uuid.UUID, page: int = 1, limit: int = 20) -> list[dict]:
+        """
+        Retrieves a paginated list of clients who booked appointments with the consultant,
+        including aggregated statistics per client.
+        """
+        from sqlalchemy import case
+        now = datetime.now(timezone.utc)
+        
+        query = (
+            db.query(
+                User.id.label("user_id"),
+                User.full_name.label("full_name"),
+                User.email.label("email"),
+                User.phone.label("phone"),
+                func.count(Appointment.id).label("total_sessions"),
+                func.sum(case((Appointment.status == AppointmentStatus.completed, 1), else_=0)).label("completed_sessions"),
+                func.sum(case((Appointment.status.in_([AppointmentStatus.cancelled_by_user, AppointmentStatus.cancelled_by_consultant]), 1), else_=0)).label("cancelled_sessions"),
+                func.coalesce(func.sum(Invoice.total_amount), Decimal("0.00")).label("total_paid"),
+                func.avg(Rating.stars).label("average_rating_given"),
+                func.max(case((Appointment.scheduled_at < now, Appointment.scheduled_at), else_=None)).label("last_appointment_at"),
+                func.min(case((Appointment.scheduled_at >= now, Appointment.scheduled_at), else_=None)).label("next_appointment_at"),
+                func.min(Appointment.scheduled_at).label("first_session_at")
+            )
+            .join(Appointment, Appointment.user_id == User.id)
+            .outerjoin(Rating, Rating.appointment_id == Appointment.id)
+            .outerjoin(Invoice, and_(Invoice.appointment_id == Appointment.id, Invoice.status == InvoiceStatus.paid))
+            .filter(Appointment.consultant_id == consultant_id)
+            .group_by(User.id, User.full_name, User.email, User.phone)
+            .order_by(func.max(Appointment.scheduled_at).desc())
+            .offset((page - 1) * limit)
+            .limit(limit)
+        )
+        
+        results = query.all()
+        
+        clients_list = []
+        for r in results:
+            clients_list.append({
+                "user_id": r.user_id,
+                "full_name": r.full_name,
+                "email": r.email,
+                "phone": r.phone,
+                "total_sessions": r.total_sessions,
+                "completed_sessions": r.completed_sessions,
+                "cancelled_sessions": r.cancelled_sessions,
+                "total_paid": r.total_paid,
+                "average_rating_given": r.average_rating_given,
+                "last_appointment_at": r.last_appointment_at,
+                "next_appointment_at": r.next_appointment_at,
+                "first_session_at": r.first_session_at,
+            })
+        return clients_list
+
 
 # =====================================================================
 # SERVICE EXPANSION SERVICE  (admin review + role upgrade)
@@ -497,6 +551,9 @@ class AppointmentService:
         ).first()
         if not consultant:
             raise ValueError("Consultant is not approved or profile does not exist")
+
+        if consultant.user_id == client_id:
+            raise ValueError("لا يمكن للمستشار حجز موعد مع نفسه")
 
         # Resolve service and price
         price = Decimal("0.00")
@@ -621,6 +678,42 @@ class AppointmentService:
         # Mark appointment as confirmed
         appointment.status = AppointmentStatus.confirmed
         db.commit()
+
+        # Create Daily.co session room
+        try:
+            from services.daily_service import DailyService
+            duration = appointment.duration_minutes or 60
+            room_info = DailyService.create_room(str(appointment.id), duration)
+            appointment.session_room_name = room_info.get("room_name")
+            appointment.session_room_url = room_info.get("room_url")
+            db.commit()
+
+            # Send notification to client
+            db.add(Notification(
+                user_id=appointment.user_id,
+                type=NotificationType.session_link_ready,
+                title="رابط جلسة الاستشارة جاهز",
+                message=f"تم تأكيد الحجز وإنشاء غرفة المحادثة للفيديو. يمكنك الانضمام عبر الرابط: {appointment.session_room_url}",
+                related_entity_type="appointment",
+                related_entity_id=appointment.id,
+            ))
+            
+            # Send notification to consultant
+            consultant = db.query(ConsultantProfile).filter(ConsultantProfile.id == appointment.consultant_id).first()
+            if consultant:
+                db.add(Notification(
+                    user_id=consultant.user_id,
+                    type=NotificationType.session_link_ready,
+                    title="رابط جلسة الاستشارة جاهز",
+                    message=f"تم سداد قيمة الاستشارة وإنشاء غرفة المحادثة للفيديو. يمكنك الانضمام عبر الرابط: {appointment.session_room_url}",
+                    related_entity_type="appointment",
+                    related_entity_id=appointment.id,
+                ))
+            db.commit()
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to initialize Daily.co room: {str(e)}")
 
         now = datetime.now(timezone.utc)
         invoice_number = f"INV-{now.strftime('%Y%m%d')}-{str(appointment_id)[:8].upper()}"

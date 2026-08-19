@@ -5,6 +5,7 @@ from routes.consultant_routes import router as consultant_router
 from routes.super_admin_routes import router as super_admin_router
 from routes.appointment_routes import router as appointment_router
 from routes.legal_routes import router as legal_router
+from routes.session_routes import router as session_router
 
 api_router = APIRouter(prefix="/api")
 
@@ -15,3 +16,4 @@ api_router.include_router(consultant_router)
 api_router.include_router(super_admin_router)
 api_router.include_router(appointment_router)
 api_router.include_router(legal_router)
+api_router.include_router(session_router)

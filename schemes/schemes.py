@@ -403,3 +403,28 @@ class InvoiceOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# =====================================================================
+# SESSIONS & CLIENT SUMMARIES
+# =====================================================================
+class SessionJoinOut(BaseModel):
+    room_url: str
+    token: str
+    expires_at: datetime
+    appointment_id: uuid.UUID
+
+class ClientSummaryOut(BaseModel):
+    user_id: uuid.UUID
+    full_name: str
+    email: EmailStr
+    phone: Optional[str]
+    total_sessions: int
+    completed_sessions: int
+    cancelled_sessions: int
+    total_paid: Decimal
+    average_rating_given: Optional[float]
+    last_appointment_at: Optional[datetime]
+    next_appointment_at: Optional[datetime]
+    first_session_at: Optional[datetime]
+

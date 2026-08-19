@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "llama-3.3-70b-specdec"
 
+    DAILY_API_KEY: str = ""
+
     model_config = SettingsConfigDict(env_file="Docker/.env", extra="ignore")
 
 settings = Settings()

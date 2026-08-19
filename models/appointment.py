@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, DateTime, Integer, Numeric, ForeignKey, Text, func
+from sqlalchemy import Column, DateTime, Integer, Numeric, ForeignKey, Text, String, func
 from sqlalchemy.dialects.postgresql import UUID, ENUM as PG_ENUM
 from sqlalchemy.orm import relationship
 
@@ -19,6 +19,9 @@ class Appointment(Base):
     created_by_role = Column(PG_ENUM(ActorRole, name="actor_role", inherit_schema=True), nullable=False)
     price = Column(Numeric(10, 2), nullable=True)
     notes = Column(Text, nullable=True)
+    session_room_name = Column(String(100), nullable=True)
+    session_room_url = Column(String(300), nullable=True)
+    session_started_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
