@@ -4,16 +4,46 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
 from schemes import (
-    UserCreate, UserLogin, ConsultantProfileCreate, CredentialCreate,
+    UserCreate, UserProfileUpdate, ChangePasswordRequest, UserLogin, ConsultantProfileCreate, CredentialCreate,
     CredentialReview, ServiceExpansionRequestCreate, ServiceExpansionReviewAction,
     ConsultantServiceCreate, ConsultantServiceUpdate,
     AppointmentCreate, AppointmentCancel, AppointmentReschedule, PaymentSimulate, RatingCreate,
 )
 from services import (
     UserService, ConsultantService, ServiceExpansionService,
-    AppointmentService, RatingService,
+    AppointmentService, RatingService, NotificationService, InvoiceService,
+    SpecializationService,
 )
 from models import UserRole, User
+
+
+# =====================================================================
+# USER CONTROLLER
+# =====================================================================
+class UserController:
+
+    @staticmethod
+    def get_profile(current_user: User):
+        """Returns the logged-in user profile."""
+        return current_user
+
+    @staticmethod
+    def update_profile(db: Session, current_user: User, update_in: UserProfileUpdate):
+        """Updates user profile information and settings."""
+        try:
+            return UserService.update_profile(db, current_user, update_in)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
+    def change_password(db: Session, current_user: User, pass_in: ChangePasswordRequest):
+        """Changes the current user password securely."""
+        try:
+            return UserService.change_password(
+                db, current_user, pass_in.current_password, pass_in.new_password
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 # =====================================================================
@@ -362,6 +392,83 @@ class RatingController:
             )
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+# =====================================================================
+# NOTIFICATION CONTROLLER
+# =====================================================================
+class NotificationController:
+
+    @staticmethod
+    def get_my_notifications(
+        db: Session, current_user: User, is_read: bool | None, page: int, limit: int
+    ):
+        """Retrieves paginated notifications for the logged-in user."""
+        return NotificationService.get_user_notifications(
+            db, current_user.id, is_read=is_read, page=page, limit=limit
+        )
+
+    @staticmethod
+    def get_unread_count(db: Session, current_user: User):
+        """Returns the total number of unread notifications."""
+        count = NotificationService.get_unread_count(db, current_user.id)
+        return {"unread_count": count}
+
+    @staticmethod
+    def mark_as_read(db: Session, current_user: User, notification_id: str):
+        """Marks a single notification as read."""
+        try:
+            notif_uuid = uuid.UUID(notification_id)
+            return NotificationService.mark_as_read(db, current_user.id, notif_uuid)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
+    def mark_all_as_read(db: Session, current_user: User):
+        """Marks all unread notifications for the user as read."""
+        updated_count = NotificationService.mark_all_as_read(db, current_user.id)
+        return {
+            "message": f"تم تمييز {updated_count} إشعار كمقروء بنجاح",
+            "updated_count": updated_count,
+        }
+
+
+# =====================================================================
+# INVOICE CONTROLLER
+# =====================================================================
+class InvoiceController:
+
+    @staticmethod
+    def get_my_invoices(
+        db: Session, current_user: User, status_filter, page: int, limit: int
+    ):
+        """Retrieves paginated invoices for the logged-in user."""
+        return InvoiceService.get_user_invoices(
+            db, current_user.id, status=status_filter, page=page, limit=limit
+        )
+
+    @staticmethod
+    def get_invoice_detail(db: Session, current_user: User, invoice_id: str):
+        """Retrieves detailed information for a specific invoice."""
+        try:
+            inv_uuid = uuid.UUID(invoice_id)
+            is_admin = current_user.role in ADMIN_ROLES
+            return InvoiceService.get_invoice_by_id(
+                db, current_user.id, inv_uuid, is_admin=is_admin
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+# =====================================================================
+# SPECIALIZATION CONTROLLER
+# =====================================================================
+class SpecializationController:
+
+    @staticmethod
+    def list_specializations(db: Session):
+        """Returns all platform specializations."""
+        return SpecializationService.get_all(db)
 
 
 # =====================================================================

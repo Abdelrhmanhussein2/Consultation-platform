@@ -4,7 +4,7 @@ from sqlalchemy.dialects.postgresql import UUID, ENUM as PG_ENUM
 from sqlalchemy.orm import relationship
 
 from helpers.database import Base
-from helpers.enums import UserRole
+from helpers.enums import UserRole, EntityType, BusinessSector
 
 class User(Base):
     __tablename__ = "users"
@@ -15,6 +15,13 @@ class User(Base):
     phone = Column(String(20), nullable=True)
     password_hash = Column(Text, nullable=False)
     role = Column(PG_ENUM(UserRole, name="user_role", inherit_schema=True), nullable=False, default=UserRole.user)
+    entity_type = Column(PG_ENUM(EntityType, name="entity_type", inherit_schema=True), nullable=False, default=EntityType.individual)
+    company_name = Column(String(200), nullable=True)
+    tax_number = Column(String(50), nullable=True)
+    sector = Column(PG_ENUM(BusinessSector, name="business_sector", inherit_schema=True), nullable=True)
+    language = Column(String(5), nullable=False, default="ar")
+    email_notifications = Column(Boolean, nullable=False, default=True)
+    appointment_reminders = Column(Boolean, nullable=False, default=True)
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
@@ -32,3 +39,5 @@ class User(Base):
     notifications = relationship("Notification", back_populates="user")
     invoices = relationship("Invoice", back_populates="user")
     admin_action_logs = relationship("AdminActionLog", back_populates="admin")
+    sent_messages = relationship("ChatMessage", back_populates="sender", foreign_keys="ChatMessage.sender_id")
+    received_messages = relationship("ChatMessage", back_populates="receiver", foreign_keys="ChatMessage.receiver_id")

@@ -31,6 +31,6 @@ class Settings(BaseSettings):
 
     DAILY_API_KEY: str = ""
 
-    model_config = SettingsConfigDict(env_file="Docker/.env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=("Docker/.env", ".env"), extra="ignore")
 
 settings = Settings()

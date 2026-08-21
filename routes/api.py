@@ -6,6 +6,10 @@ from routes.super_admin_routes import router as super_admin_router
 from routes.appointment_routes import router as appointment_router
 from routes.legal_routes import router as legal_router
 from routes.session_routes import router as session_router
+from routes.notification_routes import router as notification_router
+from routes.invoice_routes import router as invoice_router
+from routes.specialization_routes import router as specialization_router
+from routes.chat_routes import router as chat_router
 
 api_router = APIRouter(prefix="/api")
 
@@ -17,3 +21,7 @@ api_router.include_router(super_admin_router)
 api_router.include_router(appointment_router)
 api_router.include_router(legal_router)
 api_router.include_router(session_router)
+api_router.include_router(notification_router)
+api_router.include_router(invoice_router)
+api_router.include_router(specialization_router)
+api_router.include_router(chat_router)

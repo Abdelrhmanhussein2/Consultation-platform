@@ -60,3 +60,19 @@ class InvoiceStatus(str, enum.Enum):
     paid = "paid"
     cancelled = "cancelled"
     refunded = "refunded"
+
+
+class EntityType(str, enum.Enum):
+    individual = "individual"      # أفراد
+    company = "company"            # شركات ومؤسسات
+    researcher = "researcher"      # باحثون وأكاديميون
+
+
+class BusinessSector(str, enum.Enum):
+    banking = "banking"            # القطاع البنكي
+    commercial = "commercial"      # القطاع التجاري
+    industrial = "industrial"      # القطاع الصناعي
+    agricultural = "agricultural"  # القطاع الزراعي
+    services = "services"          # قطاع الخدمات
+    contracting = "contracting"    # قطاع المقاولات
+    other = "other"                # أخرى

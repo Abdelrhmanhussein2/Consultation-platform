@@ -1,6 +1,6 @@
 from schemes.schemes import (
     # Users & Auth
-    UserCreate, UserLogin, UserOut, Token, TokenData,
+    UserCreate, UserProfileUpdate, ChangePasswordRequest, UserLogin, UserOut, Token, TokenData,
     ConsultantRegister, RefreshRequest, LogoutRequest,
     ConsultantApplicationAction, ConsultantApplicationStatus,
 
@@ -28,5 +28,11 @@ from schemes.schemes import (
     RatingCreate, RatingReview, RatingOut,
 
     # Notifications & Invoices
-    NotificationOut, InvoiceOut,
+    NotificationOut, UnreadCountOut, NotificationBulkReadOut, InvoiceOut,
+
+    # Chat Messages
+    ChatMessageCreate, ChatMessageOut, ChatReadResponse,
+
+    # Sessions & Client Summaries
+    SessionJoinOut, ClientSummaryOut,
 )

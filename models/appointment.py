@@ -31,3 +31,4 @@ class Appointment(Base):
     cancellation = relationship("AppointmentCancellation", back_populates="appointment", uselist=False)
     rating = relationship("Rating", back_populates="appointment", uselist=False)
     invoices = relationship("Invoice", back_populates="appointment")
+    chat_messages = relationship("ChatMessage", back_populates="appointment", cascade="all, delete-orphan")

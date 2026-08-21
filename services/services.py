@@ -11,7 +11,8 @@ from models import (
     UserRole, VerificationStatus, AppointmentStatus, ActorRole, RatingStatus,
     NotificationType, InvoiceType, InvoiceStatus
 )
-from services.auth_utils import hash_password
+from helpers.enums import EntityType, BusinessSector
+from services.auth_utils import hash_password, verify_password
 
 
 # =====================================================================
@@ -33,7 +34,11 @@ class UserService:
             email=user_in.email,
             phone=user_in.phone,
             password_hash=hash_password(user_in.password),
-            role=role
+            role=role,
+            entity_type=getattr(user_in, "entity_type", None) or EntityType.individual,
+            company_name=getattr(user_in, "company_name", None),
+            tax_number=getattr(user_in, "tax_number", None),
+            sector=getattr(user_in, "sector", None),
         )
         db.add(db_user)
         db.commit()
@@ -46,6 +51,43 @@ class UserService:
             db.commit()
 
         return db_user
+
+    @staticmethod
+    def update_profile(db: Session, user: User, update_in) -> User:
+        if update_in.full_name is not None:
+            user.full_name = update_in.full_name
+        if update_in.phone is not None:
+            user.phone = update_in.phone
+        if update_in.entity_type is not None:
+            user.entity_type = update_in.entity_type
+        if update_in.company_name is not None:
+            user.company_name = update_in.company_name
+        if update_in.tax_number is not None:
+            user.tax_number = update_in.tax_number
+        if update_in.sector is not None:
+            user.sector = update_in.sector
+        if update_in.language is not None:
+            user.language = update_in.language
+        if update_in.email_notifications is not None:
+            user.email_notifications = update_in.email_notifications
+        if update_in.appointment_reminders is not None:
+            user.appointment_reminders = update_in.appointment_reminders
+
+        db.commit()
+        db.refresh(user)
+        return user
+
+    @staticmethod
+    def change_password(db: Session, user: User, current_password: str, new_password: str) -> dict:
+        if not verify_password(current_password, user.password_hash):
+            raise ValueError("كلمة المرور الحالية غير صحيحة")
+
+        if current_password == new_password:
+            raise ValueError("كلمة المرور الجديدة يجب أن تكون مختلفة عن كلمة المرور الحالية")
+
+        user.password_hash = hash_password(new_password)
+        db.commit()
+        return {"message": "تم تغيير كلمة المرور بنجاح"}
 
 
 # =====================================================================
@@ -950,3 +992,59 @@ class RatingService:
         db.commit()
         db.refresh(rating)
         return rating
+
+
+# =====================================================================
+# INVOICE SERVICE
+# =====================================================================
+class InvoiceService:
+
+    @staticmethod
+    def get_user_invoices(
+        db: Session,
+        user_id: uuid.UUID,
+        status: InvoiceStatus | None = None,
+        page: int = 1,
+        limit: int = 20,
+    ) -> list[Invoice]:
+        """
+        Retrieves paginated invoices issued to a specific user, newest first.
+        """
+        query = db.query(Invoice).filter(Invoice.issued_to_user_id == user_id)
+        if status is not None:
+            query = query.filter(Invoice.status == status)
+
+        offset = (page - 1) * limit
+        return query.order_by(Invoice.created_at.desc()).offset(offset).limit(limit).all()
+
+    @staticmethod
+    def get_invoice_by_id(
+        db: Session,
+        user_id: uuid.UUID,
+        invoice_id: uuid.UUID,
+        is_admin: bool = False,
+    ) -> Invoice:
+        """
+        Retrieves a single invoice by ID. Regular users can only access their own invoices.
+        """
+        query = db.query(Invoice).filter(Invoice.id == invoice_id)
+        if not is_admin:
+            query = query.filter(Invoice.issued_to_user_id == user_id)
+
+        invoice = query.first()
+        if not invoice:
+            raise ValueError("الفاتورة غير موجودة أو ليس لديك صلاحية للوصول إليها")
+        return invoice
+
+
+# =====================================================================
+# SPECIALIZATION SERVICE
+# =====================================================================
+class SpecializationService:
+
+    @staticmethod
+    def get_all(db: Session) -> list[Specialization]:
+        """
+        Returns all available specializations ordered by name.
+        """
+        return db.query(Specialization).order_by(Specialization.name.asc()).all()

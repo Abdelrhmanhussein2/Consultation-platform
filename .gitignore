@@ -70,3 +70,7 @@ neo4j_plugins/
 .env
 Docker/.env
 
+# Local documentation & roadmaps
+PROJECT_ROADMAP.md
+postman_collection_phase1_phase2.json
+test_phase1_phase2_automated.py

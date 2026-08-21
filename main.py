@@ -29,7 +29,45 @@ try:
             _conn.execute(text(
                 f"ALTER TYPE notification_type ADD VALUE IF NOT EXISTS '{_val}'"
             ))
-    print("INFO: Enum migration completed successfully.")
+        # Ensure new enums and user classification columns exist on Postgres
+        _conn.execute(text("""
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'entity_type') THEN
+                    CREATE TYPE entity_type AS ENUM ('individual', 'company', 'researcher');
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'business_sector') THEN
+                    CREATE TYPE business_sector AS ENUM ('banking', 'commercial', 'industrial', 'agricultural', 'services', 'contracting', 'other');
+                END IF;
+            END $$;
+        """))
+        _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS entity_type entity_type DEFAULT 'individual'"))
+        _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS company_name VARCHAR(200)"))
+        _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS tax_number VARCHAR(50)"))
+        _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS sector business_sector"))
+        _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS language VARCHAR(5) DEFAULT 'ar'"))
+        _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_notifications BOOLEAN DEFAULT TRUE"))
+        _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS appointment_reminders BOOLEAN DEFAULT TRUE"))
+        
+        # Ensure session columns exist on appointments
+        _conn.execute(text("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS session_room_name VARCHAR(100)"))
+        _conn.execute(text("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS session_room_url VARCHAR(300)"))
+        _conn.execute(text("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS session_started_at TIMESTAMP WITH TIME ZONE"))
+        
+        # Ensure chat_messages table exists
+        _conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS chat_messages (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                appointment_id UUID NOT NULL REFERENCES appointments(id) ON DELETE CASCADE,
+                sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                receiver_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                message_text TEXT,
+                attachment_url VARCHAR(500),
+                is_read BOOLEAN NOT NULL DEFAULT FALSE,
+                created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+            );
+        """))
+    print("INFO: Enum and schema migration completed successfully.")
 except Exception as e:
     print(f"Warning: Enum migration failed (safe to ignore if using SQLite or first boot): {e}")
 
@@ -55,6 +93,10 @@ app.add_middleware(
 
 # Include central MVC router
 app.include_router(api_router)
+
+# Register root WebSocket endpoint for convenience
+from routes.chat_routes import websocket_chat_endpoint
+app.websocket("/ws/chat/{appointment_id}")(websocket_chat_endpoint)
 
 @app.on_event("startup")
 def startup_event():

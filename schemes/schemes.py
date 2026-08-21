@@ -5,7 +5,8 @@ from datetime import datetime
 from decimal import Decimal
 from helpers.enums import (
     UserRole, VerificationStatus, AppointmentStatus, ActorRole,
-    RatingStatus, NotificationType, InvoiceType, InvoiceStatus
+    RatingStatus, NotificationType, InvoiceType, InvoiceStatus,
+    EntityType, BusinessSector
 )
 
 # =====================================================================
@@ -16,6 +17,10 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8)
     phone: Optional[str] = Field(None, max_length=20)
+    entity_type: Optional[EntityType] = EntityType.individual
+    company_name: Optional[str] = Field(None, max_length=200)
+    tax_number: Optional[str] = Field(None, max_length=50)
+    sector: Optional[BusinessSector] = None
 
     @field_validator('password')
     @classmethod
@@ -61,12 +66,50 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+class UserProfileUpdate(BaseModel):
+    full_name: Optional[str] = Field(None, max_length=150)
+    phone: Optional[str] = Field(None, max_length=20)
+    entity_type: Optional[EntityType] = None
+    company_name: Optional[str] = Field(None, max_length=200)
+    tax_number: Optional[str] = Field(None, max_length=50)
+    sector: Optional[BusinessSector] = None
+    language: Optional[str] = Field(None, pattern="^(ar|en)$")
+    email_notifications: Optional[bool] = None
+    appointment_reminders: Optional[bool] = None
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=8)
+
+    @field_validator('new_password')
+    @classmethod
+    def validate_new_password_strength(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not any(c.isupper() for c in v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not any(c.islower() for c in v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not any(c.isdigit() for c in v):
+            raise ValueError('Password must contain at least one digit')
+        special_chars = set("!@#$%&*()_+-=[]{}|;':\",.//<>?~`")
+        if not any(c in special_chars for c in v):
+            raise ValueError('Password must contain at least one special character')
+        return v
+
 class UserOut(BaseModel):
     id: uuid.UUID
     full_name: str
     email: str
     phone: Optional[str]
     role: UserRole
+    entity_type: Optional[EntityType] = EntityType.individual
+    company_name: Optional[str] = None
+    tax_number: Optional[str] = None
+    sector: Optional[BusinessSector] = None
+    language: str = "ar"
+    email_notifications: bool = True
+    appointment_reminders: bool = True
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -380,6 +423,13 @@ class NotificationOut(BaseModel):
     class Config:
         from_attributes = True
 
+class UnreadCountOut(BaseModel):
+    unread_count: int
+
+class NotificationBulkReadOut(BaseModel):
+    message: str
+    updated_count: int
+
 
 # =====================================================================
 # INVOICES
@@ -427,4 +477,30 @@ class ClientSummaryOut(BaseModel):
     last_appointment_at: Optional[datetime]
     next_appointment_at: Optional[datetime]
     first_session_at: Optional[datetime]
+
+
+# =====================================================================
+# CHAT MESSAGES
+# =====================================================================
+class ChatMessageCreate(BaseModel):
+    message_text: Optional[str] = None
+    attachment_url: Optional[str] = Field(None, max_length=500)
+
+class ChatMessageOut(BaseModel):
+    id: uuid.UUID
+    appointment_id: uuid.UUID
+    sender_id: uuid.UUID
+    receiver_id: uuid.UUID
+    message_text: Optional[str]
+    attachment_url: Optional[str]
+    is_read: bool
+    created_at: datetime
+    sender_name: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class ChatReadResponse(BaseModel):
+    message: str
+    marked_read_count: int
 

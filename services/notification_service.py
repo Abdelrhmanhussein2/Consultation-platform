@@ -73,3 +73,58 @@ class NotificationService:
             title="تحديث حالة الأوراق والمستندات",
             message=f"تم {status_str} أوراق التخصص الخاصة بك.{reason_msg}"
         )
+
+    @staticmethod
+    def get_user_notifications(
+        db: Session,
+        user_id: uuid.UUID,
+        is_read: bool = None,
+        page: int = 1,
+        limit: int = 20,
+    ) -> list[Notification]:
+        """
+        Retrieves paginated notifications for a user, newest first, with optional is_read filtering.
+        """
+        query = db.query(Notification).filter(Notification.user_id == user_id)
+        if is_read is not None:
+            query = query.filter(Notification.is_read == is_read)
+        offset = (page - 1) * limit
+        return query.order_by(Notification.created_at.desc()).offset(offset).limit(limit).all()
+
+    @staticmethod
+    def get_unread_count(db: Session, user_id: uuid.UUID) -> int:
+        """
+        Returns the count of unread notifications for a user.
+        """
+        return db.query(Notification).filter(
+            Notification.user_id == user_id,
+            Notification.is_read == False,
+        ).count()
+
+    @staticmethod
+    def mark_as_read(db: Session, user_id: uuid.UUID, notification_id: uuid.UUID) -> Notification:
+        """
+        Marks a specific notification as read.
+        """
+        notif = db.query(Notification).filter(
+            Notification.id == notification_id,
+            Notification.user_id == user_id,
+        ).first()
+        if not notif:
+            raise ValueError("Notification not found or does not belong to you")
+        notif.is_read = True
+        db.commit()
+        db.refresh(notif)
+        return notif
+
+    @staticmethod
+    def mark_all_as_read(db: Session, user_id: uuid.UUID) -> int:
+        """
+        Marks all unread notifications as read for a user and returns the updated count.
+        """
+        updated = db.query(Notification).filter(
+            Notification.user_id == user_id,
+            Notification.is_read == False,
+        ).update({"is_read": True})
+        db.commit()
+        return updated
