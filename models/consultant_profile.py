@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, DateTime, Integer, Numeric, ForeignKey, Text, func
+from sqlalchemy import Column, DateTime, Integer, Numeric, ForeignKey, Text, String, func
 from sqlalchemy.dialects.postgresql import UUID, ENUM as PG_ENUM
 from sqlalchemy.orm import relationship
 
@@ -19,6 +19,12 @@ class ConsultantProfile(Base):
     reviewed_at = Column(DateTime(timezone=True), nullable=True)
     average_rating = Column(Numeric(3, 2), nullable=False, default=0)
     ratings_count = Column(Integer, nullable=False, default=0)
+    
+    # Google OAuth fields
+    google_access_token = Column(String(500), nullable=True)
+    google_refresh_token = Column(String(500), nullable=True)
+    google_token_expiry = Column(DateTime(timezone=True), nullable=True)
+
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
@@ -32,3 +38,4 @@ class ConsultantProfile(Base):
     services = relationship("ConsultantService", back_populates="consultant")
     appointments = relationship("Appointment", back_populates="consultant")
     ratings = relationship("Rating", back_populates="consultant")
+    availabilities = relationship("ConsultantAvailability", back_populates="consultant", cascade="all, delete-orphan")

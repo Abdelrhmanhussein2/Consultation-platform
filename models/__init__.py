@@ -17,4 +17,5 @@ from models.invoice import Invoice
 from models.admin_action_log import AdminActionLog
 from models.refresh_token import RefreshToken
 from models.chat_message import ChatMessage
+from models.consultant_availability import ConsultantAvailability
 

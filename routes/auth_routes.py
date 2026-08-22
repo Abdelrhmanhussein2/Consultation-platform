@@ -1,6 +1,6 @@
 import uuid
 import redis
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request, status, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from helpers.database import get_db
@@ -8,7 +8,8 @@ from helpers.redis_client import get_redis
 from helpers.limiter import limiter
 from helpers.config import settings
 from schemes import (
-    UserCreate, ConsultantRegister, UserLogin, Token, RefreshRequest, LogoutRequest
+    UserCreate, ConsultantRegister, UserLogin, Token, RefreshRequest, LogoutRequest,
+    ForgotPasswordRequest, ResetPasswordRequest
 )
 from controllers.auth_controller import AuthController
 from routes.deps import get_current_token_payload
@@ -82,3 +83,41 @@ def logout_all(
     user_id_str = payload.get("sub")
     user_uuid = uuid.UUID(user_id_str)
     return AuthController.logout_all(db, user_uuid, payload, redis_client)
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+@limiter.limit("5/minute")
+def forgot_password(
+    request: Request,
+    forgot_in: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis)
+):
+    """
+    Initiates the forgot password workflow by sending a secure reset link via SMTP.
+    """
+    return AuthController.forgot_password(
+        db=db,
+        redis_client=redis_client,
+        email=forgot_in.email,
+        redirect_url=forgot_in.redirect_url,
+        background_tasks=background_tasks
+    )
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+@limiter.limit("5/minute")
+def reset_password(
+    request: Request,
+    reset_in: ResetPasswordRequest,
+    db: Session = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis)
+):
+    """
+    Resets the password of the user using the token provided in the link.
+    """
+    return AuthController.reset_password(
+        db=db,
+        redis_client=redis_client,
+        token=reset_in.token,
+        new_password=reset_in.new_password
+    )

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date, time
 from decimal import Decimal
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_, func
@@ -9,7 +9,7 @@ from models import (
     ServiceExpansionRequest, ConsultantService as ConsultantServiceModel, Appointment,
     AppointmentCancellation, Rating, Notification, Invoice, AdminActionLog,
     UserRole, VerificationStatus, AppointmentStatus, ActorRole, RatingStatus,
-    NotificationType, InvoiceType, InvoiceStatus
+    NotificationType, InvoiceType, InvoiceStatus, ConsultantAvailability
 )
 from helpers.enums import EntityType, BusinessSector
 from services.auth_utils import hash_password, verify_password
@@ -89,11 +89,117 @@ class UserService:
         db.commit()
         return {"message": "تم تغيير كلمة المرور بنجاح"}
 
+    @staticmethod
+    def reset_password_by_id(db: Session, user_id: uuid.UUID, new_password: str) -> dict:
+        user = UserService.get_user_by_id(db, user_id)
+        if not user:
+            raise ValueError("المستخدم غير موجود")
+
+        user.password_hash = hash_password(new_password)
+        db.commit()
+        return {"message": "تم إعادة تعيين كلمة المرور بنجاح"}
+
 
 # =====================================================================
 # CONSULTANT SERVICE
 # =====================================================================
 class ConsultantService:
+
+    # ── Availability calendar operations ─────────────────────────────
+
+    @staticmethod
+    def set_availability(db: Session, consultant_id: uuid.UUID, availabilities_in) -> list[ConsultantAvailability]:
+        # First, delete existing availability records
+        db.query(ConsultantAvailability).filter(ConsultantAvailability.consultant_id == consultant_id).delete()
+        
+        db_availabilities = []
+        for av in availabilities_in:
+            # Convert start_time string (HH:MM) to time object
+            start_t = datetime.strptime(av.start_time, "%H:%M").time()
+            
+            db_av = ConsultantAvailability(
+                consultant_id=consultant_id,
+                day_of_week=av.day_of_week,
+                start_time=start_t,
+                is_active=True
+            )
+            db.add(db_av)
+            db_availabilities.append(db_av)
+            
+        db.commit()
+        return db_availabilities
+
+    @staticmethod
+    def get_availabilities(db: Session, consultant_id: uuid.UUID) -> list[ConsultantAvailability]:
+        return db.query(ConsultantAvailability).filter(
+            ConsultantAvailability.consultant_id == consultant_id,
+            ConsultantAvailability.is_active == True
+        ).order_by(ConsultantAvailability.day_of_week, ConsultantAvailability.start_time).all()
+
+    @staticmethod
+    def get_available_slots(
+        db: Session,
+        consultant_id: uuid.UUID,
+        start_date: date,
+        end_date: date,
+        duration_minutes: int = 60
+    ) -> list[dict]:
+        availabilities = db.query(ConsultantAvailability).filter(
+            ConsultantAvailability.consultant_id == consultant_id,
+            ConsultantAvailability.is_active == True
+        ).all()
+        
+        avail_by_day = {}
+        for av in availabilities:
+            avail_by_day.setdefault(av.day_of_week, []).append(av)
+            
+        start_dt = datetime.combine(start_date, time.min).replace(tzinfo=timezone.utc)
+        end_dt = datetime.combine(end_date, time.max).replace(tzinfo=timezone.utc)
+        
+        appointments = db.query(Appointment).filter(
+            Appointment.consultant_id == consultant_id,
+            Appointment.status.in_([
+                AppointmentStatus.pending_approval,
+                AppointmentStatus.pending_payment,
+                AppointmentStatus.confirmed
+            ]),
+            Appointment.scheduled_at >= start_dt,
+            Appointment.scheduled_at <= end_dt
+        ).all()
+        
+        busy_intervals = []
+        for appt in appointments:
+            appt_start = appt.scheduled_at
+            if appt_start.tzinfo is None:
+                appt_start = appt_start.replace(tzinfo=timezone.utc)
+            appt_end = appt_start + timedelta(minutes=appt.duration_minutes)
+            busy_intervals.append((appt_start, appt_end))
+            
+        available_slots = []
+        current_date = start_date
+        while current_date <= end_date:
+            dow = current_date.weekday()
+            day_avails = avail_by_day.get(dow, [])
+            for av in day_avails:
+                start_slot_dt = datetime.combine(current_date, av.start_time).replace(tzinfo=timezone.utc)
+                slot_end = start_slot_dt + timedelta(minutes=duration_minutes)
+                
+                has_overlap = False
+                for b_start, b_end in busy_intervals:
+                    if max(start_slot_dt, b_start) < min(slot_end, b_end):
+                        has_overlap = True
+                        break
+                        
+                if not has_overlap:
+                    available_slots.append({
+                        "start_time": start_slot_dt,
+                        "end_time": slot_end
+                    })
+                    
+            current_date += timedelta(days=1)
+            
+        available_slots.sort(key=lambda s: s["start_time"])
+        return available_slots
 
     # ── Profile read operations ──────────────────────────────────────
 
@@ -619,6 +725,57 @@ class AppointmentService:
             price = service.price
             duration = service.duration_minutes
 
+        # Verify the selected scheduled_at is within consultant's availability if they have any defined
+        appt_start_dt = appt_in.scheduled_at
+        if appt_start_dt.tzinfo is None:
+            appt_start_dt = appt_start_dt.replace(tzinfo=timezone.utc)
+        appt_duration = timedelta(minutes=duration)
+        appt_end_dt = appt_start_dt + appt_duration
+
+        has_any_availability = db.query(ConsultantAvailability).filter(
+            and_(
+                ConsultantAvailability.consultant_id == consultant_uuid,
+                ConsultantAvailability.is_active == True
+            )
+        ).first() is not None
+
+        if has_any_availability:
+            appt_date = appt_in.scheduled_at.date()
+            appt_time = appt_in.scheduled_at.time()
+            dow = appt_date.weekday()
+
+            is_available = db.query(ConsultantAvailability).filter(
+                and_(
+                    ConsultantAvailability.consultant_id == consultant_uuid,
+                    ConsultantAvailability.day_of_week == dow,
+                    ConsultantAvailability.start_time == appt_time,
+                    ConsultantAvailability.is_active == True
+                )
+            ).first() is not None
+
+            if not is_available:
+                raise ValueError("الموعد المطلوب خارج ساعات عمل المستشار المحددة")
+
+        # Verify that there are no overlapping appointments
+        overlap_appt = db.query(Appointment).filter(
+            and_(
+                Appointment.consultant_id == consultant_uuid,
+                Appointment.status.in_([
+                    AppointmentStatus.pending_approval,
+                    AppointmentStatus.pending_payment,
+                    AppointmentStatus.confirmed
+                ])
+            )
+        ).all()
+
+        for existing in overlap_appt:
+            ex_start = existing.scheduled_at
+            if ex_start.tzinfo is None:
+                ex_start = ex_start.replace(tzinfo=timezone.utc)
+            ex_end = ex_start + timedelta(minutes=existing.duration_minutes)
+            if max(ex_start, appt_start_dt) < min(ex_end, appt_end_dt):
+                raise ValueError("الموعد المطلوب يتعارض مع حجز آخر للمستشار")
+
         appointment = Appointment(
             consultant_id=consultant_uuid,
             user_id=client_id,
@@ -756,6 +913,15 @@ class AppointmentService:
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"Failed to initialize Daily.co room: {str(e)}")
+
+        # Create Google Calendar event (with Meet Link override if google calendar is connected)
+        try:
+            from services.google_calendar_service import GoogleCalendarService
+            GoogleCalendarService.create_calendar_event(db, appointment.id)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to create Google Calendar event for appointment {appointment.id}: {str(e)}")
 
         now = datetime.now(timezone.utc)
         invoice_number = f"INV-{now.strftime('%Y%m%d')}-{str(appointment_id)[:8].upper()}"

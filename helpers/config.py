@@ -31,6 +31,23 @@ class Settings(BaseSettings):
 
     DAILY_API_KEY: str = ""
 
+    # SMTP Settings
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = "noreply@platform.com"
+    SMTP_FROM_NAME: str = "Consultation Platform"
+    SMTP_TLS: bool = True
+    SMTP_SSL: bool = False
+    FRONTEND_CLIENT_RESET_URL: str = "http://localhost:3000/reset-password"
+    FRONTEND_CONSULTANT_RESET_URL: str = "http://localhost:3001/reset-password"
+
+    # Google OAuth settings
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/consultants/auth/google/callback"
+
     model_config = SettingsConfigDict(env_file=("Docker/.env", ".env"), extra="ignore")
 
 settings = Settings()

@@ -97,6 +97,30 @@ class ChangePasswordRequest(BaseModel):
             raise ValueError('Password must contain at least one special character')
         return v
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+    redirect_url: Optional[str] = None
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=8)
+
+    @field_validator('new_password')
+    @classmethod
+    def validate_new_password_strength(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not any(c.isupper() for c in v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not any(c.islower() for c in v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not any(c.isdigit() for c in v):
+            raise ValueError('Password must contain at least one digit')
+        special_chars = set("!@#$%&*()_+-=[]{}|;':\",.//<>?~`")
+        if not any(c in special_chars for c in v):
+            raise ValueError('Password must contain at least one special character')
+        return v
+
 class UserOut(BaseModel):
     id: uuid.UUID
     full_name: str
@@ -503,4 +527,28 @@ class ChatMessageOut(BaseModel):
 class ChatReadResponse(BaseModel):
     message: str
     marked_read_count: int
+
+
+# =====================================================================
+# CONSULTANT AVAILABILITY
+# =====================================================================
+from datetime import time
+
+class ConsultantAvailabilityCreate(BaseModel):
+    day_of_week: int = Field(..., ge=0, le=6, description="0 = Monday, 6 = Sunday")
+    start_time: str = Field(..., pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$", description="Start time formatted as HH:MM")
+
+class ConsultantAvailabilityOut(BaseModel):
+    id: uuid.UUID
+    consultant_id: uuid.UUID
+    day_of_week: int
+    start_time: time
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+class AvailableSlotOut(BaseModel):
+    start_time: datetime
+    end_time: datetime
 

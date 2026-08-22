@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from helpers.database import get_db
 from models import User
+from datetime import date
 from schemes import (
     ConsultantProfileCreate, ConsultantProfileOut,
     ConsultantPublicProfileOut, ConsultantListItemOut,
@@ -12,6 +13,7 @@ from schemes import (
     ServiceExpansionRequestCreate, ServiceExpansionRequestOut,
     ConsultantServiceCreate, ConsultantServiceUpdate, ConsultantServiceOut,
     ConsultantApplicationStatus, ClientSummaryOut,
+    ConsultantAvailabilityCreate, ConsultantAvailabilityOut, AvailableSlotOut
 )
 from controllers import ConsultantController
 from routes.deps import get_current_active_user, require_consultant, require_super_admin
@@ -225,6 +227,112 @@ def toggle_service(
 ):
     """Activates or deactivates a service."""
     return ConsultantController.toggle_service(db, current_user, service_id)
+
+
+@router.post(
+    "/me/expansion-requests/{request_id}/credentials",
+    response_model=CredentialOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload credential for a specific service expansion request",
+)
+def upload_expansion_credential(
+    request_id: str,
+    cred_in: CredentialCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_consultant),
+):
+    """
+    Uploads qualification credentials specifically tied to a pending service expansion request.
+    """
+    try:
+        req_uuid = uuid.UUID(request_id)
+        return ConsultantController.upload_expansion_credential(db, current_user, req_uuid, cred_in)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.put(
+    "/me/availability",
+    response_model=List[ConsultantAvailabilityOut],
+    summary="Save weekly availability settings",
+)
+def set_availability(
+    availabilities_in: List[ConsultantAvailabilityCreate],
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_consultant),
+):
+    """
+    Sets the weekly availability schedule for the logged-in consultant.
+    Replaces any existing settings.
+    """
+    return ConsultantController.set_availability(db, current_user, availabilities_in)
+
+@router.get(
+    "/me/availability",
+    response_model=List[ConsultantAvailabilityOut],
+    summary="Retrieve own availability settings",
+)
+def get_availabilities(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_consultant),
+):
+    """
+    Retrieves the logged-in consultant's own weekly availability settings.
+    """
+    return ConsultantController.get_availabilities(db, current_user)
+
+@router.get(
+    "/{id}/available-slots",
+    response_model=List[AvailableSlotOut],
+    summary="Query free availability slots of a consultant",
+)
+def get_available_slots(
+    id: str,
+    start_date: date = Query(..., description="Query start date (YYYY-MM-DD)"),
+    end_date: date = Query(..., description="Query end date (YYYY-MM-DD)"),
+    duration_minutes: int = Query(60, ge=1, le=480, description="Slot duration in minutes"),
+    db: Session = Depends(get_db),
+):
+    """
+    Retrieves a list of available (free) slots for a specific consultant within a date range.
+    Automatically excludes already booked or pending appointments.
+    """
+    return ConsultantController.get_available_slots(
+        db,
+        profile_id=id,
+        start_date=start_date,
+        end_date=end_date,
+        duration_minutes=duration_minutes
+    )
+
+
+@router.get(
+    "/auth/google/url",
+    summary="Get Google OAuth authorization URL",
+)
+def get_google_auth_url(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_consultant),
+):
+    """
+    Generates and returns the Google OAuth consent page URL.
+    The consultant should navigate to this URL to link their Google Calendar.
+    """
+    return ConsultantController.get_google_auth_url(db, current_user)
+
+
+@router.get(
+    "/auth/google/callback",
+    summary="Google OAuth callback handler",
+)
+def google_auth_callback(
+    code: str,
+    state: str,
+    db: Session = Depends(get_db),
+):
+    """
+    OAuth redirect callback. Google redirects here with authorization code and state (profile UUID).
+    """
+    return ConsultantController.google_auth_callback(db, code, state)
 
 
 @router.post(

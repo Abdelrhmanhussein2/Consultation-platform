@@ -22,6 +22,7 @@ class Appointment(Base):
     session_room_name = Column(String(100), nullable=True)
     session_room_url = Column(String(300), nullable=True)
     session_started_at = Column(DateTime(timezone=True), nullable=True)
+    google_event_id = Column(String(200), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 

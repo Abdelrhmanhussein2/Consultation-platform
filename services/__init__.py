@@ -14,6 +14,8 @@ from services.vector_index_service import VectorIndexService
 from services.hybrid_search_service import HybridSearchService
 from services.llm_service import LLMService
 from services.chat_service import ChatService
+from services.email_service import EmailService
+from services.google_calendar_service import GoogleCalendarService
 
 
 

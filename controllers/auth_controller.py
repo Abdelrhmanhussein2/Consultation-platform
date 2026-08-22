@@ -1,12 +1,13 @@
 import uuid
+import secrets
 from datetime import datetime, timezone, timedelta
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from helpers.config import settings
 from helpers.enums import UserRole, VerificationStatus
 from schemes import UserCreate, ConsultantRegister, UserLogin
-from services import UserService
+from services import UserService, EmailService
 from services.auth_utils import (
     verify_password, create_access_token, create_refresh_token,
     verify_refresh_token
@@ -195,3 +196,80 @@ class AuthController:
                 
         TokenService.revoke_all_user_tokens(db, user_uuid)
         return {"detail": "Successfully logged out from all devices"}
+
+    @staticmethod
+    def forgot_password(
+        db: Session,
+        redis_client,
+        email: str,
+        redirect_url: str | None,
+        background_tasks: BackgroundTasks
+    ) -> dict:
+        """
+        Generates password reset token, stores it in Redis, and sends email via SMTP.
+        """
+        user = UserService.get_user_by_email(db, email)
+        
+        # If user does not exist, return a generic success message to prevent user enumeration
+        success_msg = {"message": "إذا كان البريد الإلكتروني مسجلاً لدينا، فقد تم إرسال رابط استعادة كلمة المرور إليه."}
+        if not user:
+            return success_msg
+
+        token = secrets.token_urlsafe(32)
+        # Store in Redis with 15 minutes TTL
+        redis_client.set(f"password_reset:{token}", str(user.id), ex=900)
+
+        # Determine reset link base URL
+        base_url = redirect_url if redirect_url else (
+            settings.FRONTEND_CONSULTANT_RESET_URL
+            if user.role in (UserRole.consultant, UserRole.platform_consultant)
+            else settings.FRONTEND_CLIENT_RESET_URL
+        )
+        
+        if "?" in base_url:
+            reset_link = f"{base_url}&token={token}"
+        else:
+            reset_link = f"{base_url}?token={token}"
+
+        # Send email asynchronously
+        background_tasks.add_task(
+            EmailService.send_password_reset_email,
+            to_email=user.email,
+            name=user.full_name,
+            reset_link=reset_link,
+            lang=user.language or "ar"
+        )
+
+        return success_msg
+
+    @staticmethod
+    def reset_password(db: Session, redis_client, token: str, new_password: str) -> dict:
+        """
+        Verifies the reset token and resets the user's password.
+        """
+        user_id_str = redis_client.get(f"password_reset:{token}")
+        if not user_id_str:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="رابط إعادة تعيين كلمة المرور غير صالح أو منتهي الصلاحية"
+            )
+
+        try:
+            user_uuid = uuid.UUID(user_id_str)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="رابط إعادة تعيين كلمة المرور غير صالح أو منتهي الصلاحية"
+            )
+
+        try:
+            UserService.reset_password_by_id(db, user_uuid, new_password)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+
+        # Delete token after successful password reset to prevent replay attacks
+        redis_client.delete(f"password_reset:{token}")
+        return {"message": "تم إعادة تعيين كلمة المرور بنجاح"}

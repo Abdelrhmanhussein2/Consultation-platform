@@ -1,7 +1,7 @@
 from schemes.schemes import (
     # Users & Auth
     UserCreate, UserProfileUpdate, ChangePasswordRequest, UserLogin, UserOut, Token, TokenData,
-    ConsultantRegister, RefreshRequest, LogoutRequest,
+    ConsultantRegister, RefreshRequest, LogoutRequest, ForgotPasswordRequest, ResetPasswordRequest,
     ConsultantApplicationAction, ConsultantApplicationStatus,
 
     # Specializations
@@ -35,4 +35,7 @@ from schemes.schemes import (
 
     # Sessions & Client Summaries
     SessionJoinOut, ClientSummaryOut,
+
+    # Consultant Availability
+    ConsultantAvailabilityCreate, ConsultantAvailabilityOut, AvailableSlotOut,
 )

@@ -1,5 +1,6 @@
 import uuid
 from decimal import Decimal
+from datetime import date
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
@@ -8,11 +9,12 @@ from schemes import (
     CredentialReview, ServiceExpansionRequestCreate, ServiceExpansionReviewAction,
     ConsultantServiceCreate, ConsultantServiceUpdate,
     AppointmentCreate, AppointmentCancel, AppointmentReschedule, PaymentSimulate, RatingCreate,
+    ConsultantAvailabilityCreate
 )
 from services import (
     UserService, ConsultantService, ServiceExpansionService,
     AppointmentService, RatingService, NotificationService, InvoiceService,
-    SpecializationService,
+    SpecializationService, GoogleCalendarService,
 )
 from models import UserRole, User
 
@@ -211,6 +213,65 @@ class ConsultantController:
         _require_consultant(current_user)
         profile = _get_profile_or_404(db, current_user)
         return ConsultantService.get_clients(db, profile.id, page=page, limit=limit)
+
+    @staticmethod
+    def set_availability(db: Session, current_user: User, availabilities_in: list[ConsultantAvailabilityCreate]):
+        """Sets the weekly availability schedule for the logged-in consultant."""
+        _require_consultant(current_user)
+        profile = _get_profile_or_404(db, current_user)
+        try:
+            return ConsultantService.set_availability(db, profile.id, availabilities_in)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
+    def get_availabilities(db: Session, current_user: User):
+        """Retrieves the weekly availability schedule of the logged-in consultant."""
+        _require_consultant(current_user)
+        profile = _get_profile_or_404(db, current_user)
+        return ConsultantService.get_availabilities(db, profile.id)
+
+    @staticmethod
+    def get_available_slots(db: Session, profile_id: str, start_date: date, end_date: date, duration_minutes: int):
+        """Calculates free availability slots for a consultant within a date range."""
+        try:
+            profile_uuid = uuid.UUID(profile_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid profile ID format",
+            )
+        return ConsultantService.get_available_slots(
+            db,
+            consultant_id=profile_uuid,
+            start_date=start_date,
+            end_date=end_date,
+            duration_minutes=duration_minutes
+        )
+
+    @staticmethod
+    def get_google_auth_url(db: Session, current_user: User) -> dict:
+        """Generates Google OAuth URL for the consultant to link their account."""
+        _require_consultant(current_user)
+        profile = _get_profile_or_404(db, current_user)
+        url = GoogleCalendarService.get_auth_url(state=str(profile.id))
+        return {"url": url}
+
+    @staticmethod
+    def google_auth_callback(db: Session, code: str, state: str) -> dict:
+        """Callback endpoint for Google OAuth authorization code exchange."""
+        try:
+            profile_uuid = uuid.UUID(state)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid state parameter"
+            )
+        try:
+            GoogleCalendarService.exchange_code_for_tokens(db, profile_uuid, code)
+            return {"message": "تم ربط حساب Google وتقويم المواعيد بنجاح!"}
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 # =====================================================================
