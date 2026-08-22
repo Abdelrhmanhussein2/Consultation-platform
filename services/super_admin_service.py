@@ -5,7 +5,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 from models import (
     User, ConsultantProfile, UserRole, VerificationStatus,
-    Appointment, AppointmentStatus, Notification
+    Appointment, AppointmentStatus, Notification, SystemPolicy
 )
 from helpers.enums import EntityType, NotificationAudience, NotificationType
 from services.notification_service import NotificationService
@@ -324,3 +324,123 @@ class SuperAdminService:
             "token": token,
             "expires_at": expires_at
         }
+
+    @staticmethod
+    def get_pending_users(db: Session) -> List[User]:
+        """
+        Retrieves all standard user accounts with pending verification status.
+        """
+        return db.query(User).filter(
+            User.role == UserRole.user,
+            User.verification_status == VerificationStatus.pending
+        ).all()
+
+    @staticmethod
+    def approve_user(db: Session, user_id: uuid.UUID, super_admin_id: uuid.UUID) -> User:
+        """
+        Approves a pending standard user or consultant account.
+        """
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise ValueError("User not found")
+        
+        user.verification_status = VerificationStatus.approved
+        
+        # If the user is a consultant, also approve their profile
+        if user.role == UserRole.consultant and user.profile:
+            user.profile.verification_status = VerificationStatus.approved
+            user.profile.reviewed_by = super_admin_id
+            user.profile.reviewed_at = datetime.now(timezone.utc)
+            user.profile.rejection_reason = None
+            
+        db.commit()
+        db.refresh(user)
+        
+        # Send notification
+        try:
+            NotificationService.send_application_approved(db, user_id)
+        except Exception:
+            pass  # Don't fail if notifications fail in tests
+            
+        return user
+
+    @staticmethod
+    def reject_user(
+        db: Session, user_id: uuid.UUID, super_admin_id: uuid.UUID, rejection_reason: str
+    ) -> User:
+        """
+        Rejects a pending standard user or consultant account with a reason.
+        """
+        if not rejection_reason or not rejection_reason.strip():
+            raise ValueError("Rejection reason is required")
+            
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise ValueError("User not found")
+            
+        user.verification_status = VerificationStatus.rejected
+        
+        # If the user is a consultant, also reject their profile
+        if user.role == UserRole.consultant and user.profile:
+            user.profile.verification_status = VerificationStatus.rejected
+            user.profile.rejection_reason = rejection_reason
+            user.profile.reviewed_by = super_admin_id
+            user.profile.reviewed_at = datetime.now(timezone.utc)
+            
+        db.commit()
+        db.refresh(user)
+        
+        # Send notification
+        try:
+            NotificationService.send_application_rejected(db, user_id, rejection_reason)
+        except Exception:
+            pass  # Don't fail if notifications fail in tests
+            
+        return user
+
+    @staticmethod
+    def create_system_policy(db: Session, title: str, policy_type: str, version: str, content: str) -> SystemPolicy:
+        """
+        Creates a new version of a policy type and sets it active, deactivating all others of the same type.
+        """
+        if not title or not title.strip():
+            raise ValueError("Title is required")
+        if not policy_type or not policy_type.strip():
+            raise ValueError("Policy type is required")
+        if not version or not version.strip():
+            raise ValueError("Version is required")
+        if not content or not content.strip():
+            raise ValueError("Content is required")
+
+        # Deactivate existing active policies of the same type
+        db.query(SystemPolicy).filter(
+            SystemPolicy.policy_type == policy_type,
+            SystemPolicy.is_active == True
+        ).update({"is_active": False})
+        
+        # Create new active policy
+        policy = SystemPolicy(
+            title=title,
+            policy_type=policy_type,
+            version=version,
+            content=content,
+            is_active=True
+        )
+        db.add(policy)
+        db.commit()
+        db.refresh(policy)
+        return policy
+
+    @staticmethod
+    def list_system_policies(db: Session) -> List[SystemPolicy]:
+        """
+        Lists all system policies.
+        """
+        return db.query(SystemPolicy).order_by(SystemPolicy.policy_type, SystemPolicy.created_at.desc()).all()
+
+    @staticmethod
+    def get_active_policies(db: Session) -> List[SystemPolicy]:
+        """
+        Gets all current active system policies.
+        """
+        return db.query(SystemPolicy).filter(SystemPolicy.is_active == True).order_by(SystemPolicy.policy_type).all()

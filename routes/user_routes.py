@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, UploadFile, File
 from sqlalchemy.orm import Session
 from helpers.database import get_db
 from models import User
@@ -41,3 +41,22 @@ def change_password(
     Requires the correct current password and validates the new password strength.
     """
     return UserController.change_password(db, current_user, pass_in)
+
+@router.post("/me/avatar", response_model=UserOut, status_code=status.HTTP_200_OK, summary="Upload user profile picture")
+async def upload_avatar(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Uploads an avatar image file and updates the authenticated user's profile picture.
+    Accepts standard image formats (JPEG, PNG, WEBP, GIF) up to 5MB.
+    """
+    file_bytes = await file.read()
+    return UserController.upload_avatar(
+        db=db,
+        current_user=current_user,
+        file_bytes=file_bytes,
+        filename=file.filename,
+        content_type=file.content_type
+    )

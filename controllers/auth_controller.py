@@ -18,7 +18,7 @@ class AuthController:
     @staticmethod
     def register_user(db: Session, user_in: UserCreate):
         """
-        Registers a standard client user and returns access and refresh tokens.
+        Registers a standard client user and returns a pending review message.
         """
         existing_user = UserService.get_user_by_email(db, user_in.email)
         if existing_user:
@@ -28,20 +28,16 @@ class AuthController:
             )
         
         # User is created with UserRole.user explicitly
-        db_user = UserService.create_user(db, user_in, role=UserRole.user)
-        
-        # Generate tokens
-        access_token = create_access_token(data={"sub": str(db_user.id), "role": db_user.role.value})
-        refresh_token = create_refresh_token(data={"sub": str(db_user.id)})
-        
-        # Store refresh token
-        expires_at = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-        TokenService.store_refresh_token(db, db_user.id, refresh_token, expires_at)
+        try:
+            db_user = UserService.create_user(db, user_in, role=UserRole.user)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
         
         return {
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "token_type": "bearer"
+            "message": "تم تسجيل طلب الانضمام بنجاح وهو قيد المراجعة حالياً من قبل الإدارة."
         }
 
     @staticmethod
@@ -57,7 +53,13 @@ class AuthController:
             )
         
         # Create user with role=consultant
-        db_user = UserService.create_user(db, consultant_in, role=UserRole.consultant)
+        try:
+            db_user = UserService.create_user(db, consultant_in, role=UserRole.consultant)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
         
         # Update additional fields of consultant profile
         profile = db_user.profile
@@ -66,6 +68,12 @@ class AuthController:
                 profile.bio = consultant_in.bio
             if consultant_in.main_specialization_id is not None:
                 profile.main_specialization_id = consultant_in.main_specialization_id
+            if consultant_in.activity_type:
+                profile.activity_type = consultant_in.activity_type
+            if consultant_in.years_of_experience is not None:
+                profile.years_of_experience = consultant_in.years_of_experience
+            if consultant_in.certificates_licenses:
+                profile.certificates_licenses = consultant_in.certificates_licenses
             db.commit()
             db.refresh(profile)
             
@@ -106,6 +114,18 @@ class AuthController:
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail=f"تم رفض طلب انضمامك كمستشار. السبب: {reason}"
+                    )
+        else:
+            if db_user.verification_status != VerificationStatus.approved:
+                if db_user.verification_status == VerificationStatus.pending:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="حسابك قيد المراجعة حالياً من قبل الإدارة."
+                    )
+                elif db_user.verification_status == VerificationStatus.rejected:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="تم رفض طلب انضمامك. يرجى التواصل مع الإدارة."
                     )
         
         access_token = create_access_token(data={"sub": str(db_user.id), "role": db_user.role.value})
@@ -219,12 +239,15 @@ class AuthController:
         # Store in Redis with 15 minutes TTL
         redis_client.set(f"password_reset:{token}", str(user.id), ex=900)
 
-        # Determine reset link base URL
-        base_url = redirect_url if redirect_url else (
-            settings.FRONTEND_CONSULTANT_RESET_URL
-            if user.role in (UserRole.consultant, UserRole.platform_consultant)
-            else settings.FRONTEND_CLIENT_RESET_URL
-        )
+        # Determine reset link base URL based on role
+        if redirect_url:
+            base_url = redirect_url
+        elif user.role in (UserRole.consultant, UserRole.platform_consultant):
+            base_url = settings.FRONTEND_CONSULTANT_RESET_URL
+        elif user.role in (UserRole.admin, UserRole.super_admin):
+            base_url = settings.FRONTEND_ADMIN_RESET_URL
+        else:
+            base_url = settings.FRONTEND_CLIENT_RESET_URL
         
         if "?" in base_url:
             reset_link = f"{base_url}&token={token}"

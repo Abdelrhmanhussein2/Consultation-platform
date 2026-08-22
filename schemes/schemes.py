@@ -7,7 +7,7 @@ from helpers.enums import (
     UserRole, VerificationStatus, AppointmentStatus, ActorRole,
     RatingStatus, NotificationType, InvoiceType, InvoiceStatus,
     EntityType, BusinessSector, TicketCategory, TicketPriority,
-    TicketStatus, NotificationAudience, AdminPermission
+    TicketStatus, NotificationAudience, AdminPermission, LegalForm
 )
 
 # =====================================================================
@@ -19,9 +19,19 @@ class UserCreate(BaseModel):
     password: str = Field(..., min_length=8)
     phone: Optional[str] = Field(None, max_length=20)
     entity_type: Optional[EntityType] = EntityType.individual
+    legal_form: Optional[LegalForm] = None
     company_name: Optional[str] = Field(None, max_length=200)
     tax_number: Optional[str] = Field(None, max_length=50)
     sector: Optional[BusinessSector] = None
+    commercial_register_url: Optional[str] = Field(None, max_length=500)
+    accepted_privacy_policy: bool = Field(..., description="Must accept privacy policy")
+
+    @field_validator('accepted_privacy_policy')
+    @classmethod
+    def validate_privacy_policy(cls, v: bool) -> bool:
+        if not v:
+            raise ValueError('يجب الموافقة على سياسة الخصوصية لإتمام عملية التسجيل')
+        return v
 
     @field_validator('password')
     @classmethod
@@ -44,8 +54,22 @@ class ConsultantRegister(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8)
     phone: str = Field(..., max_length=20)
+    title: Optional[str] = Field(None, max_length=50)
+    address: Optional[str] = Field(None, max_length=200)
+    company_name: Optional[str] = Field(None, max_length=200)
     bio: Optional[str] = None
     main_specialization_id: Optional[int] = None
+    activity_type: Optional[str] = Field(None, max_length=100)
+    years_of_experience: Optional[int] = None
+    certificates_licenses: Optional[str] = None
+    accepted_privacy_policy: bool = Field(..., description="Must accept privacy policy")
+
+    @field_validator('accepted_privacy_policy')
+    @classmethod
+    def validate_privacy_policy(cls, v: bool) -> bool:
+        if not v:
+            raise ValueError('يجب الموافقة على سياسة الخصوصية لإتمام عملية التسجيل')
+        return v
 
     @field_validator('password')
     @classmethod
@@ -69,7 +93,10 @@ class UserLogin(BaseModel):
 
 class UserProfileUpdate(BaseModel):
     full_name: Optional[str] = Field(None, max_length=150)
+    email: Optional[EmailStr] = None
     phone: Optional[str] = Field(None, max_length=20)
+    avatar_url: Optional[str] = Field(None, max_length=500)
+    url_slug: Optional[str] = Field(None, max_length=100)
     entity_type: Optional[EntityType] = None
     company_name: Optional[str] = Field(None, max_length=200)
     tax_number: Optional[str] = Field(None, max_length=50)
@@ -122,20 +149,59 @@ class ResetPasswordRequest(BaseModel):
             raise ValueError('Password must contain at least one special character')
         return v
 
+class UserPolicyAgreementOut(BaseModel):
+    policy_id: uuid.UUID
+    accepted_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class UserOut(BaseModel):
     id: uuid.UUID
     full_name: str
     email: str
     phone: Optional[str]
+    avatar_url: Optional[str] = None
+    url_slug: Optional[str] = None
     role: UserRole
     entity_type: Optional[EntityType] = EntityType.individual
+    legal_form: Optional[LegalForm] = None
     company_name: Optional[str] = None
     tax_number: Optional[str] = None
     sector: Optional[BusinessSector] = None
+    commercial_register_url: Optional[str] = None
+    title: Optional[str] = None
+    address: Optional[str] = None
     language: str = "ar"
     email_notifications: bool = True
     appointment_reminders: bool = True
     permissions: List[AdminPermission] = []
+    is_active: bool
+    verification_status: VerificationStatus
+    policy_agreements: List[UserPolicyAgreementOut] = []
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# =====================================================================
+# SYSTEM POLICIES
+# =====================================================================
+class SystemPolicyCreate(BaseModel):
+    title: str = Field(..., max_length=150)
+    policy_type: str = Field(..., max_length=50)
+    version: str = Field(..., max_length=50)
+    content: str
+
+class SystemPolicyOut(BaseModel):
+    id: uuid.UUID
+    title: str
+    policy_type: str
+    version: str
+    content: str
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -207,6 +273,9 @@ class ConsultantProfileOut(BaseModel):
     rejection_reason: Optional[str]
     average_rating: Decimal
     ratings_count: int
+    activity_type: Optional[str] = None
+    years_of_experience: Optional[int] = None
+    certificates_licenses: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -234,6 +303,9 @@ class ConsultantPublicProfileOut(BaseModel):
     ratings_count: int
     role: UserRole
     services: List[ConsultantServiceSummary] = []
+    activity_type: Optional[str] = None
+    years_of_experience: Optional[int] = None
+    certificates_licenses: Optional[str] = None
 
     class Config:
         from_attributes = True

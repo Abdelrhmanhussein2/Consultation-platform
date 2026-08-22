@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     SMTP_SSL: bool = False
     FRONTEND_CLIENT_RESET_URL: str = "http://localhost:3000/reset-password"
     FRONTEND_CONSULTANT_RESET_URL: str = "http://localhost:3001/reset-password"
+    FRONTEND_ADMIN_RESET_URL: str = "http://localhost:3000/reset-password"
 
     # Google OAuth settings
     GOOGLE_CLIENT_ID: str = ""

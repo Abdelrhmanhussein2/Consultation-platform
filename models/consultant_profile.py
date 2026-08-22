@@ -19,6 +19,9 @@ class ConsultantProfile(Base):
     reviewed_at = Column(DateTime(timezone=True), nullable=True)
     average_rating = Column(Numeric(3, 2), nullable=False, default=0)
     ratings_count = Column(Integer, nullable=False, default=0)
+    activity_type = Column(String(100), nullable=True)
+    years_of_experience = Column(Integer, nullable=True)
+    certificates_licenses = Column(Text, nullable=True)
     
     # Google OAuth fields
     google_access_token = Column(String(500), nullable=True)

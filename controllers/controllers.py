@@ -38,6 +38,63 @@ class UserController:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     @staticmethod
+    def upload_avatar(db: Session, current_user: User, file_bytes: bytes, filename: str, content_type: str):
+        """Uploads, validates and saves user avatar, then updates the user's profile."""
+        import os
+        import uuid
+        
+        # Validate content type is an image
+        if not content_type.startswith("image/"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="الملف المرفوع يجب أن يكون صورة فقط"
+            )
+            
+        # Limit file size (5 MB)
+        max_size = 5 * 1024 * 1024
+        if len(file_bytes) > max_size:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="حجم الصورة يجب أن لا يتجاوز 5 ميجابايت"
+            )
+            
+        # Get extension
+        _, ext = os.path.splitext(filename)
+        if not ext:
+            ext = ".png"
+            if "jpeg" in content_type:
+                ext = ".jpg"
+            elif "webp" in content_type:
+                ext = ".webp"
+                
+        ext = ext.lower()
+        if ext not in [".jpg", ".jpeg", ".png", ".webp", ".gif"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="صيغة الصورة غير مدعومة. الصيغ المسموحة هي: JPG, JPEG, PNG, WEBP, GIF"
+            )
+            
+        # Save to static/avatars/
+        new_filename = f"{uuid.uuid4().hex}{ext}"
+        filepath = os.path.join("static", "avatars", new_filename)
+        
+        try:
+            with open(filepath, "wb") as f:
+                f.write(file_bytes)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"فشل حفظ الصورة على الخادم: {e}"
+            )
+            
+        # Update user record
+        avatar_url = f"/static/avatars/{new_filename}"
+        current_user.avatar_url = avatar_url
+        db.commit()
+        db.refresh(current_user)
+        return current_user
+
+    @staticmethod
     def change_password(db: Session, current_user: User, pass_in: ChangePasswordRequest):
         """Changes the current user password securely."""
         try:

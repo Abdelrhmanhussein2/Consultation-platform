@@ -68,6 +68,20 @@ class EntityType(str, enum.Enum):
     researcher = "researcher"      # باحثون وأكاديميون
 
 
+class LegalForm(str, enum.Enum):
+    individual = "individual"              # فرد
+    sole_proprietorship = "sole_proprietorship"  # مؤسسة فردية
+    llc = "llc"                            # شركة ذات مسؤولية محدودة
+    private_joint_stock = "private_joint_stock"  # شركة مساهمة خاصة
+    public_joint_stock = "public_joint_stock"  # شركة مساهمة عامة
+    general_partnership = "general_partnership"  # شركة تضامن
+    limited_partnership = "limited_partnership"  # شركة توصية بسيطة
+    independent_entity = "independent_entity"  # هيئة مستقلة
+    researcher = "researcher"              # باحث / أكاديمي
+    association = "association"            # جمعيات
+    non_profit = "non_profit"              # غير ربحية
+
+
 class BusinessSector(str, enum.Enum):
     banking = "banking"            # القطاع البنكي
     commercial = "commercial"      # القطاع التجاري

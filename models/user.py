@@ -1,10 +1,10 @@
 import uuid
-from sqlalchemy import Column, String, Boolean, DateTime, Text, func, JSON
+from sqlalchemy import Column, String, Boolean, DateTime, Text, func, JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID, ENUM as PG_ENUM
 from sqlalchemy.orm import relationship
 
 from helpers.database import Base
-from helpers.enums import UserRole, EntityType, BusinessSector
+from helpers.enums import UserRole, EntityType, BusinessSector, LegalForm, VerificationStatus
 
 class User(Base):
     __tablename__ = "users"
@@ -16,12 +16,19 @@ class User(Base):
     password_hash = Column(Text, nullable=False)
     role = Column(PG_ENUM(UserRole, name="user_role", inherit_schema=True), nullable=False, default=UserRole.user)
     entity_type = Column(PG_ENUM(EntityType, name="entity_type", inherit_schema=True), nullable=False, default=EntityType.individual)
+    legal_form = Column(PG_ENUM(LegalForm, name="legal_form", inherit_schema=True), nullable=True)
     company_name = Column(String(200), nullable=True)
     tax_number = Column(String(50), nullable=True)
     sector = Column(PG_ENUM(BusinessSector, name="business_sector", inherit_schema=True), nullable=True)
     language = Column(String(5), nullable=False, default="ar")
     email_notifications = Column(Boolean, nullable=False, default=True)
     appointment_reminders = Column(Boolean, nullable=False, default=True)
+    avatar_url = Column(String(500), nullable=True)
+    url_slug = Column(String(100), unique=True, nullable=True)
+    commercial_register_url = Column(String(500), nullable=True)
+    title = Column(String(50), nullable=True)
+    address = Column(String(200), nullable=True)
+    verification_status = Column(PG_ENUM(VerificationStatus, name="verification_status", inherit_schema=True), nullable=False, default=VerificationStatus.pending)
     permissions = Column(JSON, nullable=True, default=list)
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
@@ -29,6 +36,7 @@ class User(Base):
 
     # Relationships
     profile = relationship("ConsultantProfile", back_populates="user", uselist=False, foreign_keys="ConsultantProfile.user_id")
+    policy_agreements = relationship("UserPolicyAgreement", back_populates="user", cascade="all, delete-orphan")
     reviewed_profiles = relationship("ConsultantProfile", back_populates="reviewer", foreign_keys="ConsultantProfile.reviewed_by")
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     reviewed_credentials = relationship("ConsultantCredential", back_populates="reviewer", foreign_keys="ConsultantCredential.reviewed_by")

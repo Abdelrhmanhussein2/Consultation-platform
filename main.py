@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
 
 from helpers.database import engine, Base
 from routes.api import api_router
@@ -59,6 +61,20 @@ try:
         _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS appointment_reminders BOOLEAN DEFAULT TRUE"))
         _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions JSONB DEFAULT '[]'"))
         
+        # Ensure avatar_url and url_slug exist on users table
+        _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500)"))
+        _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS url_slug VARCHAR(100)"))
+        _conn.execute(text("""
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'uq_users_url_slug'
+                ) THEN
+                    ALTER TABLE users ADD CONSTRAINT uq_users_url_slug UNIQUE (url_slug);
+                END IF;
+            END $$;
+        """))
+        
         # Ensure session columns exist on appointments
         _conn.execute(text("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS session_room_name VARCHAR(100)"))
         _conn.execute(text("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS session_room_url VARCHAR(300)"))
@@ -92,6 +108,10 @@ app = FastAPI(
     description="Decoupled MVC Backend for Consultation Booking and Management",
     version="1.0.0"
 )
+
+# Mount static files folder for file uploads like avatars
+os.makedirs("static/avatars", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Wire SlowAPI rate limiter
 app.state.limiter = limiter

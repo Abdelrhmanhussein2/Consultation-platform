@@ -155,3 +155,65 @@ class SuperAdminController:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(e)
             )
+
+    @staticmethod
+    def get_pending_users(db: Session):
+        """
+        Retrieves a list of all pending standard user applications.
+        """
+        return SuperAdminService.get_pending_users(db)
+
+    @staticmethod
+    def handle_user_action(
+        db: Session, user_id: str, action_in: ConsultantApplicationAction, super_admin_id: uuid.UUID
+    ):
+        """
+        Performs approval or rejection of a standard user or consultant account.
+        """
+        try:
+            user_uuid = uuid.UUID(user_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid user ID format"
+            )
+            
+        try:
+            if action_in.action == "approve":
+                return SuperAdminService.approve_user(db, user_uuid, super_admin_id)
+            elif action_in.action == "reject":
+                return SuperAdminService.reject_user(
+                    db, user_uuid, super_admin_id, action_in.rejection_reason
+                )
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+
+    @staticmethod
+    def create_system_policy(db: Session, title: str, policy_type: str, version: str, content: str):
+        """
+        Creates and activates a new system policy version.
+        """
+        try:
+            return SuperAdminService.create_system_policy(db, title, policy_type, version, content)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+
+    @staticmethod
+    def list_system_policies(db: Session):
+        """
+        Lists all system policies.
+        """
+        return SuperAdminService.list_system_policies(db)
+
+    @staticmethod
+    def get_active_policies(db: Session):
+        """
+        Gets all current active system policies.
+        """
+        return SuperAdminService.get_active_policies(db)

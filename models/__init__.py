@@ -1,7 +1,8 @@
 from helpers.database import Base, get_db, engine, SessionLocal
 from helpers.enums import (
     UserRole, VerificationStatus, AppointmentStatus, ActorRole,
-    RatingStatus, NotificationType, InvoiceType, InvoiceStatus
+    RatingStatus, NotificationType, InvoiceType, InvoiceStatus,
+    LegalForm
 )
 from models.user import User
 from models.specialization import Specialization
@@ -20,5 +21,7 @@ from models.chat_message import ChatMessage
 from models.consultant_availability import ConsultantAvailability
 from models.support_ticket import SupportTicket
 from models.ticket_reply import TicketReply
+from models.system_policy import SystemPolicy
+from models.user_policy_agreement import UserPolicyAgreement
 
 

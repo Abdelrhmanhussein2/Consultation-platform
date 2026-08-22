@@ -11,7 +11,7 @@ from models import (
     UserRole, VerificationStatus, AppointmentStatus, ActorRole, RatingStatus,
     NotificationType, InvoiceType, InvoiceStatus, ConsultantAvailability
 )
-from helpers.enums import EntityType, BusinessSector
+from helpers.enums import EntityType, BusinessSector, LegalForm
 from services.auth_utils import hash_password, verify_password
 
 
@@ -29,6 +29,19 @@ class UserService:
 
     @staticmethod
     def create_user(db: Session, user_in, role: UserRole = UserRole.user) -> User:
+        legal_form = getattr(user_in, "legal_form", None)
+        commercial_register_url = getattr(user_in, "commercial_register_url", None)
+
+        if legal_form is not None:
+            if legal_form not in [LegalForm.individual, LegalForm.independent_entity, LegalForm.researcher]:
+                if not commercial_register_url or not commercial_register_url.strip():
+                    raise ValueError("السجل التجاري مطلوب للصفة القانونية المحددة")
+
+        # Get active policies
+        from models.system_policy import SystemPolicy
+        from models.user_policy_agreement import UserPolicyAgreement
+        active_policies = db.query(SystemPolicy).filter(SystemPolicy.is_active == True).all()
+
         db_user = User(
             full_name=user_in.full_name,
             email=user_in.email,
@@ -36,17 +49,39 @@ class UserService:
             password_hash=hash_password(user_in.password),
             role=role,
             entity_type=getattr(user_in, "entity_type", None) or EntityType.individual,
+            legal_form=legal_form,
             company_name=getattr(user_in, "company_name", None),
             tax_number=getattr(user_in, "tax_number", None),
             sector=getattr(user_in, "sector", None),
+            commercial_register_url=commercial_register_url,
+            title=getattr(user_in, "title", None),
+            address=getattr(user_in, "address", None),
+            verification_status=VerificationStatus.pending
         )
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
 
+        # Create agreement logs for all active policies
+        for policy in active_policies:
+            agreement = UserPolicyAgreement(
+                user_id=db_user.id,
+                policy_id=policy.id
+            )
+            db.add(agreement)
+        db.commit()
+        db.refresh(db_user)
+
         # If registering as a consultant, automatically create their profile
         if db_user.role == UserRole.consultant:
-            profile = ConsultantProfile(user_id=db_user.id)
+            profile = ConsultantProfile(
+                user_id=db_user.id,
+                bio=getattr(user_in, "bio", None),
+                main_specialization_id=getattr(user_in, "main_specialization_id", None),
+                activity_type=getattr(user_in, "activity_type", None),
+                years_of_experience=getattr(user_in, "years_of_experience", None),
+                certificates_licenses=getattr(user_in, "certificates_licenses", None)
+            )
             db.add(profile)
             db.commit()
 
@@ -54,10 +89,29 @@ class UserService:
 
     @staticmethod
     def update_profile(db: Session, user: User, update_in) -> User:
+        import re
         if update_in.full_name is not None:
             user.full_name = update_in.full_name
+        if update_in.email is not None and update_in.email != user.email:
+            existing_email = db.query(User).filter(User.email == update_in.email).first()
+            if existing_email:
+                raise ValueError("البريد الإلكتروني مستخدم بالفعل من قبل حساب آخر")
+            user.email = update_in.email
         if update_in.phone is not None:
             user.phone = update_in.phone
+        if getattr(update_in, "avatar_url", None) is not None:
+            user.avatar_url = update_in.avatar_url
+        if getattr(update_in, "url_slug", None) is not None:
+            slug = update_in.url_slug.strip()
+            if slug == "":
+                user.url_slug = None
+            else:
+                if not re.match(r"^[a-zA-Z0-9\-_]+$", slug):
+                    raise ValueError("اسم الرابط (URL Slug) يجب أن يحتوي فقط على أحرف إنجليزية، أرقام، شرطة (-) أو شرطة سفلية (_)")
+                existing_slug = db.query(User).filter(User.url_slug == slug, User.id != user.id).first()
+                if existing_slug:
+                    raise ValueError("اسم الرابط (URL Slug) مستخدم بالفعل من قبل حساب آخر")
+                user.url_slug = slug
         if update_in.entity_type is not None:
             user.entity_type = update_in.entity_type
         if update_in.company_name is not None:

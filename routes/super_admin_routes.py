@@ -13,10 +13,12 @@ from schemes import (
     AdminSessionOut, AdminSessionJoinOut,
     TicketOut, TicketReplyOut, AdminTicketCreate,
     AdminTicketReplyCreate, AdminTicketUpdate,
-    AdminCreate, AdminUpdatePermissions
+    AdminCreate, AdminUpdatePermissions,
+    SystemPolicyOut, SystemPolicyCreate,
+    ChangePasswordRequest
 )
 from controllers.super_admin_controller import SuperAdminController
-from controllers import ServiceExpansionController, TicketController, AdminPermissionController
+from controllers import ServiceExpansionController, TicketController, AdminPermissionController, UserController
 from routes.deps import (
     require_super_admin, require_admin,
     require_perm_manage_users, require_perm_manage_consultants,
@@ -39,9 +41,9 @@ router = APIRouter(prefix="/super-admin", tags=["Super Administration"])
 )
 def get_pending_consultants(
     db: Session = Depends(get_db),
-    current_super_admin: User = Depends(require_super_admin),
+    current_admin: User = Depends(require_perm_manage_consultants),
 ):
-    """Lists all consultant profiles awaiting admin review."""
+    """Lists all consultant profiles awaiting admin review. Accessible by super_admin or admin with manage_consultants permission."""
     return SuperAdminController.get_pending_consultants(db)
 
 
@@ -54,11 +56,11 @@ def handle_consultant_action(
     user_id: str,
     action_in: ConsultantApplicationAction,
     db: Session = Depends(get_db),
-    current_super_admin: User = Depends(require_super_admin),
+    current_admin: User = Depends(require_perm_manage_consultants),
 ):
-    """Approves or rejects a consultant's application."""
+    """Approves or rejects a consultant's application. Accessible by super_admin or admin with manage_consultants permission."""
     return SuperAdminController.handle_consultant_action(
-        db, user_id, action_in, current_super_admin.id
+        db, user_id, action_in, current_admin.id
     )
 
 
@@ -407,3 +409,96 @@ def update_admin_permissions(
     """
     return AdminPermissionController.update_admin_permissions(db, admin_id, permissions_in)
 
+
+# ─────────────────────────────────────────────────────────────────────
+# USER REVIEW & PRIVACY POLICY MANAGEMENT (require_super_admin)
+# ─────────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/users/pending",
+    response_model=List[UserOut],
+    summary="List all pending standard user registration applications",
+)
+def get_pending_users(
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_users),
+):
+    """
+    Lists all standard client registration requests awaiting admin approval.
+    Accessible by super_admin or admin with manage_users permission.
+    """
+    return SuperAdminController.get_pending_users(db)
+
+
+@router.post(
+    "/users/{user_id}/action",
+    response_model=UserOut,
+    summary="Approve or reject a standard user or consultant application",
+)
+def handle_user_action(
+    user_id: str,
+    action_in: ConsultantApplicationAction,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_users),
+):
+    """
+    Approves or rejects a user account (standard client or consultant) by ID.
+    Accessible by super_admin or admin with manage_users permission.
+    """
+    return SuperAdminController.handle_user_action(
+        db, user_id, action_in, current_admin.id
+    )
+
+
+@router.post(
+    "/policies",
+    response_model=SystemPolicyOut,
+    summary="Create and activate a new system policy version",
+)
+def create_system_policy(
+    policy_in: SystemPolicyCreate,
+    db: Session = Depends(get_db),
+    current_super_admin: User = Depends(require_super_admin),
+):
+    """
+    Creates a new system policy version and marks it as active (deactivating all others of same type).
+    """
+    return SuperAdminController.create_system_policy(
+        db, policy_in.title, policy_in.policy_type, policy_in.version, policy_in.content
+    )
+
+
+@router.get(
+    "/policies",
+    response_model=List[SystemPolicyOut],
+    summary="List all versions of system policies",
+)
+def list_system_policies(
+    db: Session = Depends(get_db),
+    current_super_admin: User = Depends(require_super_admin),
+):
+    """
+    Returns a history of all system policies created on the platform.
+    """
+    return SuperAdminController.list_system_policies(db)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# ADMIN ACCOUNT SELF-MANAGEMENT
+# ─────────────────────────────────────────────────────────────────────
+
+@router.post(
+    "/me/change-password",
+    status_code=status.HTTP_200_OK,
+    summary="Change admin account password (requires current password)",
+)
+def admin_change_password(
+    pass_in: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    """
+    Allows an authenticated admin or super_admin to change their own password.
+    Requires the correct current password before accepting the new one.
+    """
+    return UserController.change_password(db, current_admin, pass_in)

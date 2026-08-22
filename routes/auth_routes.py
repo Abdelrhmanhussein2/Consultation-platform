@@ -1,7 +1,8 @@
 import uuid
 import redis
-from fastapi import APIRouter, Depends, Request, status, BackgroundTasks
+from fastapi import APIRouter, Depends, Request, status, BackgroundTasks, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
+from typing import List
 
 from helpers.database import get_db
 from helpers.redis_client import get_redis
@@ -9,9 +10,10 @@ from helpers.limiter import limiter
 from helpers.config import settings
 from schemes import (
     UserCreate, ConsultantRegister, UserLogin, Token, RefreshRequest, LogoutRequest,
-    ForgotPasswordRequest, ResetPasswordRequest
+    ForgotPasswordRequest, ResetPasswordRequest, SystemPolicyOut
 )
 from controllers.auth_controller import AuthController
+from controllers.super_admin_controller import SuperAdminController
 from routes.deps import get_current_token_payload
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -121,3 +123,81 @@ def reset_password(
         token=reset_in.token,
         new_password=reset_in.new_password
     )
+
+@router.post("/upload-commercial-register", status_code=status.HTTP_201_CREATED, summary="Upload commercial register document (Anonymous)")
+async def upload_commercial_register(
+    file: UploadFile = File(...)
+):
+    """
+    Publicly uploads a commercial register file (images or PDF) during registration.
+    Accepts JPG, JPEG, PNG, WEBP, and PDF up to 10MB.
+    """
+    import os
+    import uuid
+
+    # Validate content type
+    allowed_types = ["image/jpeg", "image/png", "image/webp", "application/pdf"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="الملف المرفوع يجب أن يكون صورة أو مستند PDF فقط"
+        )
+
+    # Limit file size (10 MB)
+    max_size = 10 * 1024 * 1024
+    file_bytes = await file.read()
+    if len(file_bytes) > max_size:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="حجم الملف يجب أن لا يتجاوز 10 ميجابايت"
+        )
+
+    # Validate and get extension
+    _, ext = os.path.splitext(file.filename)
+    if not ext:
+        ext = ".png"
+        if "jpeg" in file.content_type:
+            ext = ".jpg"
+        elif "pdf" in file.content_type:
+            ext = ".pdf"
+        elif "webp" in file.content_type:
+            ext = ".webp"
+
+    ext = ext.lower()
+    if ext not in [".jpg", ".jpeg", ".png", ".webp", ".pdf"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="صيغة الملف غير مدعومة. الصيغ المسموحة هي: JPG, JPEG, PNG, WEBP, PDF"
+        )
+
+    # Ensure output folder exists
+    os.makedirs("static/documents", exist_ok=True)
+
+    # Save file
+    new_filename = f"cr_{uuid.uuid4().hex}{ext}"
+    filepath = os.path.join("static", "documents", new_filename)
+
+    try:
+        with open(filepath, "wb") as f:
+            f.write(file_bytes)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"فشل حفظ الملف على الخادم: {e}"
+        )
+
+    # Return URL path
+    return {"url": f"/static/documents/{new_filename}"}
+
+@router.get(
+    "/policies/active",
+    response_model=List[SystemPolicyOut],
+    summary="Get all current active system policies",
+)
+def get_active_policies(
+    db: Session = Depends(get_db)
+):
+    """
+    Retrieves all current active system policies and their contents for display to users.
+    """
+    return SuperAdminController.get_active_policies(db)
