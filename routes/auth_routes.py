@@ -10,7 +10,8 @@ from helpers.limiter import limiter
 from helpers.config import settings
 from schemes import (
     UserCreate, ConsultantRegister, UserLogin, Token, RefreshRequest, LogoutRequest,
-    ForgotPasswordRequest, ResetPasswordRequest, SystemPolicyOut
+    ForgotPasswordRequest, ResetPasswordRequest, RequestPasswordOtpRequest,
+    VerifyPasswordOtpAndResetRequest, SystemPolicyOut
 )
 from controllers.auth_controller import AuthController
 from controllers.super_admin_controller import SuperAdminController
@@ -122,6 +123,44 @@ def reset_password(
         redis_client=redis_client,
         token=reset_in.token,
         new_password=reset_in.new_password
+    )
+
+@router.post("/password/request-otp", status_code=status.HTTP_200_OK, summary="Request 6-digit OTP code for password reset")
+@limiter.limit("5/minute")
+def request_password_otp(
+    request: Request,
+    otp_in: RequestPasswordOtpRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis)
+):
+    """
+    Sends a 6-digit OTP code to the provided email to reset password without needing the old password.
+    """
+    return AuthController.request_password_otp(
+        db=db,
+        redis_client=redis_client,
+        email=otp_in.email,
+        background_tasks=background_tasks
+    )
+
+@router.post("/password/verify-otp-and-reset", status_code=status.HTTP_200_OK, summary="Verify 6-digit OTP code and reset password")
+@limiter.limit("5/minute")
+def verify_password_otp_and_reset(
+    request: Request,
+    verify_in: VerifyPasswordOtpAndResetRequest,
+    db: Session = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis)
+):
+    """
+    Verifies the 6-digit OTP code and sets the new password for the account.
+    """
+    return AuthController.verify_password_otp_and_reset(
+        db=db,
+        redis_client=redis_client,
+        email=verify_in.email,
+        otp_code=verify_in.otp_code,
+        new_password=verify_in.new_password
     )
 
 @router.post("/upload-commercial-register", status_code=status.HTTP_201_CREATED, summary="Upload commercial register document (Anonymous)")

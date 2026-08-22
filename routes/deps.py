@@ -166,4 +166,8 @@ require_perm_view_analytics = PermissionChecker(AdminPermission.view_analytics)
 require_perm_reply_tickets = PermissionChecker(AdminPermission.reply_tickets)
 require_perm_manage_sessions = PermissionChecker(AdminPermission.manage_sessions)
 require_perm_send_notifications = PermissionChecker(AdminPermission.send_notifications)
+require_perm_manage_payouts = PermissionChecker(AdminPermission.manage_payouts)
+require_perm_manage_settings = PermissionChecker(AdminPermission.manage_settings)
+
+
 

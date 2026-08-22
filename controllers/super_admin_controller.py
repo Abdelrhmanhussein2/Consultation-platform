@@ -217,3 +217,63 @@ class SuperAdminController:
         Gets all current active system policies.
         """
         return SuperAdminService.get_active_policies(db)
+
+    # ── Payout Requests Management (Phase 2) ──────────────────────────
+
+    @staticmethod
+    def list_payouts(db: Session, status: str = None, limit: int = 50, offset: int = 0):
+        """Lists all consultant payout requests with optional status filter."""
+        from services.wallet_service import WalletService
+        from helpers.enums import PayoutStatus
+        status_enum = None
+        if status:
+            try:
+                status_enum = PayoutStatus(status)
+            except ValueError:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="حالة طلب السحب غير صحيحة")
+        return WalletService.admin_list_payouts(db, status=status_enum, limit=limit, offset=offset)
+
+    @staticmethod
+    def process_payout(db: Session, payout_id: str, current_user, action_in):
+        """Approves, transfers with receipt, or rejects a payout request."""
+        from services.wallet_service import WalletService
+        try:
+            payout_uuid = uuid.UUID(payout_id)
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="معرف طلب السحب غير صالح")
+
+        try:
+            return WalletService.admin_process_payout(
+                db=db,
+                payout_id=payout_uuid,
+                admin_user=current_user,
+                action=action_in.action,
+                transfer_reference=action_in.transfer_reference,
+                receipt_url=action_in.receipt_url,
+                admin_notes=action_in.admin_notes
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    # ── Credential Review (Specializations & Certificates) ──────────────
+
+    @staticmethod
+    def list_pending_credentials(db: Session):
+        """Lists all pending consultant certificate and specialization credentials."""
+        return ConsultantService.list_pending_credentials(db)
+
+    @staticmethod
+    def review_credential(db: Session, current_user: User, credential_id: str, review_in):
+        """Reviews and approves/rejects a consultant's credential."""
+        try:
+            cred_uuid = uuid.UUID(credential_id)
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid credential ID format")
+        try:
+            return ConsultantService.review_credential(
+                db, cred_uuid, current_user.id, review_in.status, review_in.rejection_reason
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+

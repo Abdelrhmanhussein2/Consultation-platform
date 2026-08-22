@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from models import ChatMessage, Appointment, ConsultantProfile, User, Notification
 from helpers.enums import NotificationType
+from helpers.encryption import encrypt_text, decrypt_text
 
 
 class ChatService:
@@ -45,22 +46,26 @@ class ChatService:
         sender: User,
         message_text: str | None = None,
         attachment_url: str | None = None,
-    ) -> ChatMessage:
+    ) -> dict:
         """
-        Saves a new chat message and triggers a notification for the receiver.
+        Saves a new chat message encrypted at rest and triggers a notification for the receiver.
         """
-        if not (message_text and message_text.strip()) and not (attachment_url and attachment_url.strip()):
+        raw_text = message_text.strip() if message_text else None
+        if not raw_text and not (attachment_url and attachment_url.strip()):
             raise ValueError("يجب إدخال نص الرسالة أو إرفاق ملف")
 
         appointment, receiver_id = ChatService._verify_appointment_access(
             db, appointment_id, sender.id
         )
 
+        # Encrypt message text before storing in database
+        encrypted_text = encrypt_text(raw_text) if raw_text else None
+
         chat_msg = ChatMessage(
             appointment_id=appointment_id,
             sender_id=sender.id,
             receiver_id=receiver_id,
-            message_text=message_text.strip() if message_text else None,
+            message_text=encrypted_text,
             attachment_url=attachment_url.strip() if attachment_url else None,
             is_read=False,
         )
@@ -70,9 +75,9 @@ class ChatService:
 
         # Notify the receiver in-app
         snippet = (
-            (message_text[:60] + "...")
-            if message_text and len(message_text) > 60
-            else (message_text or "مرفق جديد")
+            (raw_text[:60] + "...")
+            if raw_text and len(raw_text) > 60
+            else (raw_text or "مرفق جديد")
         )
         db.add(Notification(
             user_id=receiver_id,
@@ -84,7 +89,34 @@ class ChatService:
         ))
         db.commit()
 
-        return chat_msg
+        # Push real-time live notification alert to recipient (Phase 3)
+        try:
+            from services.live_notification_service import LiveNotificationService
+            LiveNotificationService.push_chat_message(
+                receiver_id=receiver_id,
+                appointment_id=appointment_id,
+                sender_id=sender.id,
+                sender_name=sender.full_name,
+                message_id=chat_msg.id,
+                message_text=raw_text or "مرفق جديد",
+                created_at=chat_msg.created_at
+            )
+        except Exception:
+            pass
+
+        # Return dict with plaintext for caller
+        return {
+            "id": chat_msg.id,
+            "appointment_id": chat_msg.appointment_id,
+            "sender_id": chat_msg.sender_id,
+            "sender_name": sender.full_name,
+            "receiver_id": chat_msg.receiver_id,
+            "message_text": raw_text,
+            "attachment_url": chat_msg.attachment_url,
+            "is_read": chat_msg.is_read,
+            "created_at": chat_msg.created_at,
+        }
+
 
     @staticmethod
     def get_messages(
@@ -95,7 +127,8 @@ class ChatService:
         limit: int = 50,
     ) -> list[dict]:
         """
-        Retrieves paginated chat history for an appointment, ordered chronologically.
+        Retrieves paginated chat history for an appointment, ordered chronologically,
+        with message text decrypted transparently for authorized users.
         """
         ChatService._verify_appointment_access(db, appointment_id, user_id)
 
@@ -112,13 +145,14 @@ class ChatService:
 
         result = []
         for m in messages:
+            decrypted_text = decrypt_text(m.message_text) if m.message_text else None
             result.append({
                 "id": m.id,
                 "appointment_id": m.appointment_id,
                 "sender_id": m.sender_id,
                 "sender_name": m.sender.full_name if m.sender else None,
                 "receiver_id": m.receiver_id,
-                "message_text": m.message_text,
+                "message_text": decrypted_text,
                 "attachment_url": m.attachment_url,
                 "is_read": m.is_read,
                 "created_at": m.created_at,

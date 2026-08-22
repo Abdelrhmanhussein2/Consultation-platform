@@ -274,7 +274,20 @@ class SuperAdminService:
             db.bulk_save_objects(notifications_to_add)
             db.commit()
 
+            # Dispatch real-time live WebSocket broadcast across target connected users (Phase 3)
+            try:
+                from services.live_notification_service import LiveNotificationService
+                aud_val = audience.value if hasattr(audience, "value") else str(audience)
+                LiveNotificationService.broadcast_announcement(
+                    audience=aud_val,
+                    title=title,
+                    message=message
+                )
+            except Exception:
+                pass
+
         return len(notifications_to_add)
+
 
     @staticmethod
     def admin_get_all_sessions(db: Session) -> list:

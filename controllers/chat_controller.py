@@ -18,24 +18,13 @@ class ChatController:
         """
         try:
             appt_uuid = uuid.UUID(appointment_id)
-            msg = ChatService.send_message(
+            return ChatService.send_message(
                 db=db,
                 appointment_id=appt_uuid,
                 sender=current_user,
                 message_text=msg_in.message_text,
                 attachment_url=msg_in.attachment_url,
             )
-            return {
-                "id": msg.id,
-                "appointment_id": msg.appointment_id,
-                "sender_id": msg.sender_id,
-                "sender_name": current_user.full_name,
-                "receiver_id": msg.receiver_id,
-                "message_text": msg.message_text,
-                "attachment_url": msg.attachment_url,
-                "is_read": msg.is_read,
-                "created_at": msg.created_at,
-            }
         except PermissionError as e:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
         except ValueError as e:

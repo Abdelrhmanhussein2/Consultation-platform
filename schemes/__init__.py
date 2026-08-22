@@ -2,6 +2,8 @@ from schemes.schemes import (
     # Users & Auth
     UserCreate, UserProfileUpdate, ChangePasswordRequest, UserLogin, UserOut, Token, TokenData,
     ConsultantRegister, RefreshRequest, LogoutRequest, ForgotPasswordRequest, ResetPasswordRequest,
+    EmailChangeRequest, EmailChangeVerify, RequestPasswordOtpRequest, VerifyPasswordOtpAndResetRequest,
+    VerifyMyPasswordOtpAndResetRequest,
     ConsultantApplicationAction, ConsultantApplicationStatus,
 
     # Specializations
@@ -54,4 +56,22 @@ from schemes.schemes import (
 
     # Admin RBAC Permissions
     AdminCreate, AdminUpdatePermissions,
+
+    # Consultant Bank Accounts & Payouts (Phase 2)
+    SupportedBankOut, ConsultantBankAccountCreate, ConsultantBankAccountUpdate,
+    ConsultantBankAccountOut, ConsultantWalletOut, PayoutRequestCreate,
+    PayoutRequestOut, AdminPayoutAction,
+
+    # System Policies
+    SystemPolicyOut, SystemPolicyCreate, UserPolicyAgreementOut,
+
+    # Platform Settings (Phase 4)
+    BrandSettingsSchema, SystemSettingsSchema, CompanySettingsSchema,
+    CurrencyItemSchema, CurrencySettingsSchema, ContractSettingsSchema,
+    SMTPSettingsSchema, BankTransferGatewaySchema, PayPalGatewaySchema,
+    StripeGatewaySchema, PaymentGatewaysSchema, AllPlatformSettingsOut,
+    PublicPaymentGatewayOut, PublicPlatformSettingsOut, TestEmailRequest,
+    TestEmailResponse,
 )
+
+

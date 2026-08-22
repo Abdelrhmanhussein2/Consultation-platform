@@ -42,3 +42,6 @@ class ConsultantProfile(Base):
     appointments = relationship("Appointment", back_populates="consultant")
     ratings = relationship("Rating", back_populates="consultant")
     availabilities = relationship("ConsultantAvailability", back_populates="consultant", cascade="all, delete-orphan")
+    bank_account = relationship("ConsultantBankAccount", uselist=False, back_populates="consultant", cascade="all, delete-orphan")
+    payout_requests = relationship("PayoutRequest", back_populates="consultant", cascade="all, delete-orphan")
+

@@ -28,7 +28,26 @@ class NotificationService:
         db.add(notification)
         db.commit()
         db.refresh(notification)
+
+        # Dispatch real-time live WebSocket notification (Phase 3)
+        try:
+            from services.live_notification_service import LiveNotificationService
+            LiveNotificationService.push_notification(
+                user_id=user_id,
+                title=title,
+                message=message,
+                notif_type=notification_type.value if hasattr(notification_type, "value") else str(notification_type),
+                notif_id=notification.id,
+                extra={
+                    "related_entity_type": related_entity_type,
+                    "related_entity_id": str(related_entity_id) if related_entity_id else None
+                }
+            )
+        except Exception:
+            pass
+
         return notification
+
 
     @staticmethod
     def send_application_approved(db: Session, user_id: uuid.UUID) -> Notification:
