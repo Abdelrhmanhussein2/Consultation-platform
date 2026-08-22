@@ -153,6 +153,169 @@ class UserService:
         db.commit()
         return {"message": "تم إعادة تعيين كلمة المرور بنجاح"}
 
+    @staticmethod
+    def request_email_change(
+        db: Session, user: User, new_email: str, current_password: str, redis_client, background_tasks=None
+    ) -> dict:
+        import random
+        from services.email_service import EmailService
+
+        if not verify_password(current_password, user.password_hash):
+            raise ValueError("كلمة المرور الحالية غير صحيحة")
+
+        new_email = str(new_email).strip().lower()
+        if new_email == user.email.lower():
+            raise ValueError("البريد الإلكتروني الجديد هو نفس البريد الحالي")
+
+        existing = db.query(User).filter(User.email == new_email).first()
+        if existing:
+            raise ValueError("البريد الإلكتروني الجديد مستخدم بالفعل من قبل حساب آخر")
+
+        otp_code = f"{random.randint(100000, 999999)}"
+        redis_key = f"email_change_otp:{user.id}:{new_email}"
+
+        if redis_client:
+            redis_client.setex(redis_key, 900, otp_code)
+
+        if background_tasks:
+            background_tasks.add_task(
+                EmailService.send_email_change_otp,
+                to_email=new_email,
+                name=user.full_name,
+                otp_code=otp_code,
+                lang=user.language or "ar"
+            )
+        else:
+            EmailService.send_email_change_otp(
+                to_email=new_email,
+                name=user.full_name,
+                otp_code=otp_code,
+                lang=user.language or "ar"
+            )
+
+        return {
+            "message": "تم إرسال رمز التحقق إلى بريدك الإلكتروني الجديد بنجاح",
+            "new_email": new_email
+        }
+
+    @staticmethod
+    def verify_email_change(
+        db: Session, user: User, new_email: str, otp_code: str, redis_client, background_tasks=None
+    ) -> dict:
+        from services.email_service import EmailService
+
+        new_email = str(new_email).strip().lower()
+        redis_key = f"email_change_otp:{user.id}:{new_email}"
+
+        saved_otp = None
+        if redis_client:
+            saved_otp = redis_client.get(redis_key)
+            if isinstance(saved_otp, bytes):
+                saved_otp = saved_otp.decode("utf-8")
+
+        if not saved_otp or saved_otp.strip() != otp_code.strip():
+            raise ValueError("رمز التحقق غير صحيح أو انتهت صلاحيته")
+
+        old_email = user.email
+        user.email = new_email
+        db.commit()
+        db.refresh(user)
+
+        if redis_client:
+            redis_client.delete(redis_key)
+
+        if background_tasks:
+            background_tasks.add_task(
+                EmailService.send_email_changed_security_alert,
+                to_old_email=old_email,
+                name=user.full_name,
+                new_email=new_email,
+                lang=user.language or "ar"
+            )
+        else:
+            EmailService.send_email_changed_security_alert(
+                to_old_email=old_email,
+                name=user.full_name,
+                new_email=new_email,
+                lang=user.language or "ar"
+            )
+
+        return {
+            "message": "تم تأكيد وتحديث البريد الإلكتروني بنجاح",
+            "email": new_email
+        }
+
+    @staticmethod
+    def request_password_otp(
+        db: Session, email: str, redis_client, background_tasks=None
+    ) -> dict:
+        import random
+        from services.email_service import EmailService
+
+        email = str(email).strip().lower()
+        user = db.query(User).filter(User.email == email).first()
+
+        if user:
+            otp_code = f"{random.randint(100000, 999999)}"
+            redis_key = f"pwd_reset_otp:{email}"
+            if redis_client:
+                redis_client.setex(redis_key, 600, otp_code)
+
+            if background_tasks:
+                background_tasks.add_task(
+                    EmailService.send_password_otp_email,
+                    to_email=email,
+                    name=user.full_name,
+                    otp_code=otp_code,
+                    lang=user.language or "ar"
+                )
+            else:
+                EmailService.send_password_otp_email(
+                    to_email=email,
+                    name=user.full_name,
+                    otp_code=otp_code,
+                    lang=user.language or "ar"
+                )
+
+        return {
+            "message": "إذا كان هذا البريد مسجلاً لدينا، فسيصلك رمز التحقق لإعادة تعيين كلمة المرور",
+            "email": email
+        }
+
+    @staticmethod
+    def verify_password_otp_and_reset(
+        db: Session, email: str, otp_code: str, new_password: str, redis_client
+    ) -> dict:
+        from models import RefreshToken
+        email = str(email).strip().lower()
+        redis_key = f"pwd_reset_otp:{email}"
+
+        saved_otp = None
+        if redis_client:
+            saved_otp = redis_client.get(redis_key)
+            if isinstance(saved_otp, bytes):
+                saved_otp = saved_otp.decode("utf-8")
+
+        if not saved_otp or saved_otp.strip() != otp_code.strip():
+            raise ValueError("رمز التحقق غير صحيح أو انتهت صلاحيته")
+
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            raise ValueError("المستخدم غير موجود")
+
+        user.password_hash = hash_password(new_password)
+
+        # Revoke all active refresh tokens for this user
+        db.query(RefreshToken).filter(RefreshToken.user_id == user.id).delete()
+        db.commit()
+
+        if redis_client:
+            redis_client.delete(redis_key)
+
+        return {
+            "message": "تم إعادة تعيين كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة"
+        }
+
 
 # =====================================================================
 # CONSULTANT SERVICE
@@ -386,13 +549,43 @@ class ConsultantService:
         ).first()
         if not profile:
             raise ValueError("Consultant profile not found")
-        if profile_in.bio is not None:
+        if getattr(profile_in, "bio", None) is not None:
             profile.bio = profile_in.bio
-        if profile_in.main_specialization_id is not None:
+        if getattr(profile_in, "activity_type", None) is not None:
+            profile.activity_type = profile_in.activity_type
+        if getattr(profile_in, "years_of_experience", None) is not None:
+            profile.years_of_experience = profile_in.years_of_experience
+        if getattr(profile_in, "certificates_licenses", None) is not None:
+            profile.certificates_licenses = profile_in.certificates_licenses
+
+        # If specialization changed or a new certificate document is uploaded, set to pending admin review
+        spec_changed = (
+            getattr(profile_in, "main_specialization_id", None) is not None
+            and profile_in.main_specialization_id != profile.main_specialization_id
+        )
+        has_new_doc = getattr(profile_in, "document_url", None) is not None and bool(str(profile_in.document_url).strip())
+
+        if spec_changed or has_new_doc:
+            target_spec = profile_in.main_specialization_id if spec_changed else profile.main_specialization_id
+            if target_spec is not None:
+                profile.main_specialization_id = target_spec
+            profile.verification_status = VerificationStatus.pending
+            profile.rejection_reason = None
+            if target_spec and has_new_doc:
+                cred = ConsultantCredential(
+                    consultant_id=profile.id,
+                    specialization_id=target_spec,
+                    document_url=profile_in.document_url,
+                    status=VerificationStatus.pending,
+                )
+                db.add(cred)
+        elif getattr(profile_in, "main_specialization_id", None) is not None:
             profile.main_specialization_id = profile_in.main_specialization_id
+
         db.commit()
         db.refresh(profile)
         return profile
+
 
     # ── Credential operations ────────────────────────────────────────
 
@@ -412,6 +605,12 @@ class ConsultantService:
         return credential
 
     @staticmethod
+    def list_pending_credentials(db: Session) -> list[ConsultantCredential]:
+        return db.query(ConsultantCredential).filter(
+            ConsultantCredential.status == VerificationStatus.pending
+        ).order_by(ConsultantCredential.submitted_at.desc()).all()
+
+    @staticmethod
     def review_credential(
         db: Session,
         credential_id: uuid.UUID,
@@ -419,6 +618,7 @@ class ConsultantService:
         status: VerificationStatus,
         rejection_reason: str = None,
     ) -> ConsultantCredential:
+
         credential = db.query(ConsultantCredential).filter(
             ConsultantCredential.id == credential_id
         ).first()

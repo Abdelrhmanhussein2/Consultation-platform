@@ -8,6 +8,7 @@ from models import User
 from schemes import (
     UserOut, ConsultantProfileOut, ConsultantApplicationAction,
     ServiceExpansionRequestOut, ServiceExpansionReviewAction,
+    CredentialOut, CredentialReview,
     UserStatsOut, AdminUserListOut, AdminAddUserRequest,
     AdminBroadcastNotification, BroadcastResultOut,
     AdminSessionOut, AdminSessionJoinOut,
@@ -15,19 +16,58 @@ from schemes import (
     AdminTicketReplyCreate, AdminTicketUpdate,
     AdminCreate, AdminUpdatePermissions,
     SystemPolicyOut, SystemPolicyCreate,
-    ChangePasswordRequest
+    ChangePasswordRequest, PayoutRequestOut, AdminPayoutAction,
+    BrandSettingsSchema, SystemSettingsSchema, CompanySettingsSchema,
+    CurrencySettingsSchema, ContractSettingsSchema, SMTPSettingsSchema,
+    PaymentGatewaysSchema, AllPlatformSettingsOut, TestEmailRequest,
+    TestEmailResponse
 )
 from controllers.super_admin_controller import SuperAdminController
+from controllers.platform_settings_controller import PlatformSettingsController
 from controllers import ServiceExpansionController, TicketController, AdminPermissionController, UserController
 from routes.deps import (
     require_super_admin, require_admin,
     require_perm_manage_users, require_perm_manage_consultants,
     require_perm_manage_admins, require_perm_view_analytics,
     require_perm_reply_tickets, require_perm_manage_sessions,
-    require_perm_send_notifications
+    require_perm_send_notifications, require_perm_manage_payouts,
+    require_perm_manage_settings
 )
 
 router = APIRouter(prefix="/super-admin", tags=["Super Administration"])
+
+
+# ─────────────────────────────────────────────────────────────────────
+# CONSULTANT CREDENTIAL MANAGEMENT (require_perm_manage_consultants)
+# ─────────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/credentials/pending",
+    response_model=List[CredentialOut],
+    summary="List all pending consultant credentials and specialization proofs",
+)
+def get_pending_credentials(
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_consultants),
+):
+    """Lists all consultant specialization and certificate documents awaiting admin review."""
+    return SuperAdminController.list_pending_credentials(db)
+
+
+@router.post(
+    "/credentials/{credential_id}/action",
+    response_model=CredentialOut,
+    summary="Approve or reject a consultant credential submission",
+)
+def review_credential(
+    credential_id: str,
+    review_in: CredentialReview,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_consultants),
+):
+    """Approves or rejects a consultant's qualification document/specialization change with notification."""
+    return SuperAdminController.review_credential(db, current_admin, credential_id, review_in)
+
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -484,6 +524,50 @@ def list_system_policies(
 
 
 # ─────────────────────────────────────────────────────────────────────
+# PAYOUT REQUESTS MANAGEMENT (require_perm_manage_payouts)
+# ─────────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/payouts",
+    response_model=List[PayoutRequestOut],
+    summary="List and filter all consultant payout requests",
+)
+def admin_list_payouts(
+    status: Optional[str] = Query(None, description="Filter by status: pending, approved, transferred, rejected, cancelled"),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_payouts),
+):
+    """
+    Lists all consultant payout requests with bank snapshots, amounts, and statuses.
+    Allows filtering by status.
+    """
+    return SuperAdminController.list_payouts(db, status=status, limit=limit, offset=offset)
+
+
+@router.post(
+    "/payouts/{payout_id}/action",
+    response_model=PayoutRequestOut,
+    summary="Process a payout request (approve, transfer, or reject)",
+)
+def admin_process_payout(
+    payout_id: str,
+    action_in: AdminPayoutAction,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_payouts),
+):
+    """
+    Processes a consultant's payout request:
+    - 'approve': Accepts the request and marks it ready for wire transfer.
+    - 'transfer': Marks the payout as transferred (requires transfer_reference or receipt_url).
+    - 'reject': Rejects the request with a mandatory explanation note.
+    Automatically sends an in-app notification to the consultant.
+    """
+    return SuperAdminController.process_payout(db, payout_id, current_admin, action_in)
+
+
+# ─────────────────────────────────────────────────────────────────────
 # ADMIN ACCOUNT SELF-MANAGEMENT
 # ─────────────────────────────────────────────────────────────────────
 
@@ -502,3 +586,172 @@ def admin_change_password(
     Requires the correct current password before accepting the new one.
     """
     return UserController.change_password(db, current_admin, pass_in)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# PLATFORM & SYSTEM SETTINGS ECOSYSTEM (PHASE 4)
+# ─────────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/settings",
+    response_model=AllPlatformSettingsOut,
+    summary="Get all platform settings with masked credentials",
+)
+def get_all_settings(
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_settings),
+):
+    """
+    Returns full platform settings across all 7 sections (brand, system, company,
+    currencies, contract prefixes, SMTP mailer, and payment gateways) with secret masking.
+    """
+    return PlatformSettingsController.get_admin_settings(db)
+
+
+@router.put(
+    "/settings/brand",
+    response_model=BrandSettingsSchema,
+    summary="Update brand settings (logos, titles, theme color)",
+)
+@router.patch(
+    "/settings/brand",
+    response_model=BrandSettingsSchema,
+    summary="Update brand settings (PATCH)",
+)
+def update_brand_settings(
+    brand_in: BrandSettingsSchema,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_settings),
+):
+    """Updates branding, logo URLs, favicon, default language/direction, and primary color."""
+    return PlatformSettingsController.update_section(db, "brand", brand_in.model_dump(), current_admin)
+
+
+@router.put(
+    "/settings/system",
+    response_model=SystemSettingsSchema,
+    summary="Update system display & date/time formatting settings",
+)
+@router.patch(
+    "/settings/system",
+    response_model=SystemSettingsSchema,
+    summary="Update system display & date/time formatting settings (PATCH)",
+)
+def update_system_settings(
+    system_in: SystemSettingsSchema,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_settings),
+):
+    """Updates time format, timezone, currency codes, symbol position, and number separators."""
+    return PlatformSettingsController.update_section(db, "system", system_in.model_dump(), current_admin)
+
+
+@router.put(
+    "/settings/company",
+    response_model=CompanySettingsSchema,
+    summary="Update company / platform legal & contact details",
+)
+@router.patch(
+    "/settings/company",
+    response_model=CompanySettingsSchema,
+    summary="Update company / platform legal & contact details (PATCH)",
+)
+def update_company_settings(
+    company_in: CompanySettingsSchema,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_settings),
+):
+    """Updates company commercial name, tax registration number, office address, and support contact."""
+    return PlatformSettingsController.update_section(db, "company", company_in.model_dump(), current_admin)
+
+
+@router.put(
+    "/settings/currency",
+    response_model=CurrencySettingsSchema,
+    summary="Update active currencies and exchange conversion rates",
+)
+@router.patch(
+    "/settings/currency",
+    response_model=CurrencySettingsSchema,
+    summary="Update active currencies and exchange conversion rates (PATCH)",
+)
+def update_currency_settings(
+    currency_in: CurrencySettingsSchema,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_settings),
+):
+    """Updates supported currencies (JOD, USD, etc.), default currency flag, and exchange rate multipliers."""
+    return PlatformSettingsController.update_section(db, "currency", currency_in.model_dump(), current_admin)
+
+
+@router.put(
+    "/settings/contract",
+    response_model=ContractSettingsSchema,
+    summary="Update contract & invoice formatting and number prefixes",
+)
+@router.patch(
+    "/settings/contract",
+    response_model=ContractSettingsSchema,
+    summary="Update contract & invoice formatting and number prefixes (PATCH)",
+)
+def update_contract_settings(
+    contract_in: ContractSettingsSchema,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_settings),
+):
+    """Updates contract prefix (#CON-), invoice prefix (#INV-), digit padding, and legal terms template."""
+    return PlatformSettingsController.update_section(db, "contract", contract_in.model_dump(), current_admin)
+
+
+@router.put(
+    "/settings/smtp",
+    response_model=SMTPSettingsSchema,
+    summary="Update SMTP email server configuration",
+)
+@router.patch(
+    "/settings/smtp",
+    response_model=SMTPSettingsSchema,
+    summary="Update SMTP email server configuration (PATCH)",
+)
+def update_smtp_settings(
+    smtp_in: SMTPSettingsSchema,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_settings),
+):
+    """Updates SMTP host, port, username, password, encryption protocol (TLS/SSL), and sender identity."""
+    return PlatformSettingsController.update_section(db, "smtp", smtp_in.model_dump(), current_admin)
+
+
+@router.put(
+    "/settings/gateways",
+    response_model=PaymentGatewaysSchema,
+    summary="Update payment gateway configurations (Bank Transfer, PayPal, Stripe)",
+)
+@router.patch(
+    "/settings/gateways",
+    response_model=PaymentGatewaysSchema,
+    summary="Update payment gateway configurations (PATCH)",
+)
+def update_payment_gateways(
+    gateways_in: PaymentGatewaysSchema,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_settings),
+):
+    """Updates payment methods: Bank Wire details, PayPal Sandbox/Live keys, and Stripe test/live credentials."""
+    return PlatformSettingsController.update_section(db, "gateways", gateways_in.model_dump(), current_admin)
+
+
+
+@router.post(
+    "/settings/email/test",
+    response_model=TestEmailResponse,
+    summary="Send a live test email using current SMTP configuration",
+)
+def send_test_email(
+    test_in: TestEmailRequest,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_settings),
+):
+    """Dispatches a diagnostic test email to verify SMTP host, port, credentials, and TLS handshake."""
+    return PlatformSettingsController.test_smtp_email(db, test_in.email, current_admin)
+

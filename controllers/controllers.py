@@ -14,7 +14,7 @@ from schemes import (
 from services import (
     UserService, ConsultantService, ServiceExpansionService,
     AppointmentService, RatingService, NotificationService, InvoiceService,
-    SpecializationService, GoogleCalendarService,
+    SpecializationService, GoogleCalendarService, WalletService
 )
 from models import UserRole, User
 
@@ -100,6 +100,63 @@ class UserController:
         try:
             return UserService.change_password(
                 db, current_user, pass_in.current_password, pass_in.new_password
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
+    def request_email_change(db: Session, current_user: User, req_in, redis_client, background_tasks=None):
+        """Initiates an email change request by sending an OTP to the new email."""
+        try:
+            return UserService.request_email_change(
+                db=db,
+                user=current_user,
+                new_email=req_in.new_email,
+                current_password=req_in.current_password,
+                redis_client=redis_client,
+                background_tasks=background_tasks
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
+    def verify_email_change(db: Session, current_user: User, verify_in, redis_client, background_tasks=None):
+        """Verifies the OTP and updates the user's email address."""
+        try:
+            return UserService.verify_email_change(
+                db=db,
+                user=current_user,
+                new_email=verify_in.new_email,
+                otp_code=verify_in.otp_code,
+                redis_client=redis_client,
+                background_tasks=background_tasks
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
+    def request_my_password_otp(db: Session, current_user: User, redis_client, background_tasks=None):
+        """Sends a password reset OTP to the currently logged in user's email."""
+        try:
+            return UserService.request_password_otp(
+                db=db,
+                email=current_user.email,
+                redis_client=redis_client,
+                background_tasks=background_tasks
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
+    def verify_my_password_otp_and_reset(db: Session, current_user: User, verify_in, redis_client):
+        """Verifies the OTP and resets the password for the currently logged in user."""
+        try:
+            return UserService.verify_password_otp_and_reset(
+                db=db,
+                email=current_user.email,
+                otp_code=verify_in.otp_code,
+                new_password=verify_in.new_password,
+                redis_client=redis_client
             )
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -329,6 +386,73 @@ class ConsultantController:
             return {"message": "تم ربط حساب Google وتقويم المواعيد بنجاح!"}
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    # ── Bank Account & Financial Wallet (Phase 2) ─────────────────────
+
+    @staticmethod
+    def get_bank_account(db: Session, current_user: User):
+        """Returns the masked bank account details of the authenticated consultant."""
+        _require_consultant(current_user)
+        profile = _get_profile_or_404(db, current_user)
+        acc = WalletService.get_bank_account(db, profile.id)
+        if not acc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="لم يتم تسجيل حساب بنكي بعد"
+            )
+        return acc
+
+    @staticmethod
+    def save_bank_account(db: Session, current_user: User, bank_in):
+        """Securely saves or updates consultant bank account with field-level encryption."""
+        _require_consultant(current_user)
+        profile = _get_profile_or_404(db, current_user)
+        try:
+            return WalletService.upsert_bank_account(db, profile.id, bank_in)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
+    def get_wallet(db: Session, current_user: User):
+        """Returns financial wallet balances and earnings summary for the consultant."""
+        _require_consultant(current_user)
+        profile = _get_profile_or_404(db, current_user)
+        try:
+            return WalletService.get_wallet_balance(db, profile.id)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
+    def request_payout(db: Session, current_user: User, payout_in):
+        """Submits a new payout withdrawal request from available balance."""
+        _require_consultant(current_user)
+        profile = _get_profile_or_404(db, current_user)
+        try:
+            return WalletService.create_payout_request(db, profile.id, payout_in.amount)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
+    def list_payouts(db: Session, current_user: User, limit: int = 50, offset: int = 0):
+        """Lists historical and pending payout requests for the logged-in consultant."""
+        _require_consultant(current_user)
+        profile = _get_profile_or_404(db, current_user)
+        return WalletService.list_consultant_payouts(db, profile.id, limit=limit, offset=offset)
+
+    @staticmethod
+    def cancel_payout(db: Session, current_user: User, payout_id: str):
+        """Cancels a pending payout request."""
+        _require_consultant(current_user)
+        profile = _get_profile_or_404(db, current_user)
+        try:
+            payout_uuid = uuid.UUID(payout_id)
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="معرف طلب السحب غير صالح")
+        try:
+            return WalletService.cancel_payout_request(db, profile.id, payout_uuid)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
 
 
 # =====================================================================

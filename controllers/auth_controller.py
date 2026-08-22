@@ -296,3 +296,46 @@ class AuthController:
         # Delete token after successful password reset to prevent replay attacks
         redis_client.delete(f"password_reset:{token}")
         return {"message": "تم إعادة تعيين كلمة المرور بنجاح"}
+
+    @staticmethod
+    def request_password_otp(
+        db: Session,
+        redis_client,
+        email: str,
+        background_tasks: BackgroundTasks
+    ) -> dict:
+        """
+        Generates a 6-digit OTP code, stores it in Redis, and sends email via SMTP.
+        """
+        try:
+            return UserService.request_password_otp(
+                db=db,
+                email=email,
+                redis_client=redis_client,
+                background_tasks=background_tasks
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
+    def verify_password_otp_and_reset(
+        db: Session,
+        redis_client,
+        email: str,
+        otp_code: str,
+        new_password: str
+    ) -> dict:
+        """
+        Verifies the 6-digit OTP code and resets the user's password.
+        """
+        try:
+            return UserService.verify_password_otp_and_reset(
+                db=db,
+                email=email,
+                otp_code=otp_code,
+                new_password=new_password,
+                redis_client=redis_client
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+

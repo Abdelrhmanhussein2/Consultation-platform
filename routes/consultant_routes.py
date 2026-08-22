@@ -13,7 +13,9 @@ from schemes import (
     ServiceExpansionRequestCreate, ServiceExpansionRequestOut,
     ConsultantServiceCreate, ConsultantServiceUpdate, ConsultantServiceOut,
     ConsultantApplicationStatus, ClientSummaryOut,
-    ConsultantAvailabilityCreate, ConsultantAvailabilityOut, AvailableSlotOut
+    ConsultantAvailabilityCreate, ConsultantAvailabilityOut, AvailableSlotOut,
+    SupportedBankOut, ConsultantBankAccountCreate, ConsultantBankAccountOut,
+    ConsultantWalletOut, PayoutRequestCreate, PayoutRequestOut
 )
 from controllers import ConsultantController
 from routes.deps import get_current_active_user, require_consultant, require_super_admin
@@ -140,15 +142,21 @@ def get_my_profile(
 @router.put(
     "/me/profile",
     response_model=ConsultantProfileOut,
-    summary="Update my consultant profile",
+    summary="Update my consultant profile (PUT)",
+)
+@router.patch(
+    "/me/profile",
+    response_model=ConsultantProfileOut,
+    summary="Update my consultant profile (PATCH)",
 )
 def update_my_profile(
     profile_in: ConsultantProfileCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_consultant),
 ):
-    """Updates the consultant's bio or main specialization (approved consultants only)."""
+    """Updates the consultant's bio or main specialization (supports both PUT and PATCH)."""
     return ConsultantController.update_profile(db, current_user, profile_in)
+
 
 
 @router.get(
@@ -203,7 +211,12 @@ def add_service(
 @router.put(
     "/me/services/{service_id}",
     response_model=ConsultantServiceOut,
-    summary="Update a service",
+    summary="Update a service (PUT)",
+)
+@router.patch(
+    "/me/services/{service_id}",
+    response_model=ConsultantServiceOut,
+    summary="Update a service (PATCH)",
 )
 def update_service(
     service_id: str,
@@ -253,7 +266,12 @@ def upload_expansion_credential(
 @router.put(
     "/me/availability",
     response_model=List[ConsultantAvailabilityOut],
-    summary="Save weekly availability settings",
+    summary="Save weekly availability settings (PUT)",
+)
+@router.patch(
+    "/me/availability",
+    response_model=List[ConsultantAvailabilityOut],
+    summary="Save weekly availability settings (PATCH)",
 )
 def set_availability(
     availabilities_in: List[ConsultantAvailabilityCreate],
@@ -265,6 +283,7 @@ def set_availability(
     Replaces any existing settings.
     """
     return ConsultantController.set_availability(db, current_user, availabilities_in)
+
 
 @router.get(
     "/me/availability",
@@ -367,6 +386,124 @@ def submit_service_expansion(
     is upgraded to 'platform_consultant'.
     """
     return ConsultantController.submit_service_expansion(db, current_user, request_in)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# BANK ACCOUNTS, WALLET & PAYOUTS (PHASE 2)
+# ─────────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/banks/supported",
+    response_model=List[SupportedBankOut],
+    summary="Get list of supported banks",
+)
+def get_supported_banks(
+    country: Optional[str] = Query(None, description="Filter by country code: EG, SA, AE, INT"),
+):
+    """Returns the list of supported financial institutions for consultant bank accounts."""
+    from services.wallet_service import WalletService
+    return WalletService.get_supported_banks(country=country)
+
+
+@router.get(
+    "/me/bank-account",
+    response_model=ConsultantBankAccountOut,
+    summary="Get consultant registered bank account",
+)
+def get_my_bank_account(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_consultant),
+):
+    """Returns the logged-in consultant's registered bank account with masked sensitive numbers."""
+    return ConsultantController.get_bank_account(db, current_user)
+
+
+@router.put(
+    "/me/bank-account",
+    response_model=ConsultantBankAccountOut,
+    summary="Register or update consultant bank account (PUT)",
+)
+@router.patch(
+    "/me/bank-account",
+    response_model=ConsultantBankAccountOut,
+    summary="Register or update consultant bank account (PATCH)",
+)
+def save_my_bank_account(
+    bank_in: ConsultantBankAccountCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_consultant),
+):
+
+    """
+    Saves or updates the consultant's bank account with AES-256 field-level encryption for
+    account number, IBAN, and SWIFT code.
+    """
+    return ConsultantController.save_bank_account(db, current_user, bank_in)
+
+
+@router.get(
+    "/me/wallet",
+    response_model=ConsultantWalletOut,
+    summary="Get consultant financial wallet balance",
+)
+def get_my_wallet(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_consultant),
+):
+    """
+    Returns real-time financial stats:
+    - Available balance eligible for withdrawal
+    - Pending escrow balance for upcoming sessions
+    - Total lifetime earnings
+    - Total withdrawn
+    - Pending payout requests in flight
+    """
+    return ConsultantController.get_wallet(db, current_user)
+
+
+@router.post(
+    "/me/payouts",
+    response_model=PayoutRequestOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Submit a new payout withdrawal request",
+)
+def request_payout(
+    payout_in: PayoutRequestCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_consultant),
+):
+    """Submits a payout request from the consultant's available balance."""
+    return ConsultantController.request_payout(db, current_user, payout_in)
+
+
+@router.get(
+    "/me/payouts",
+    response_model=List[PayoutRequestOut],
+    summary="List consultant payout requests",
+)
+def list_my_payouts(
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_consultant),
+):
+    """Lists historical and pending payout requests for the logged-in consultant."""
+    return ConsultantController.list_payouts(db, current_user, limit=limit, offset=offset)
+
+
+@router.delete(
+    "/me/payouts/{payout_id}",
+    response_model=PayoutRequestOut,
+    summary="Cancel a pending payout request",
+)
+def cancel_my_payout(
+    payout_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_consultant),
+):
+    """Cancels a pending payout request before it is processed by admin."""
+    return ConsultantController.cancel_payout(db, current_user, payout_id)
+
 
 
 # ─────────────────────────────────────────────────────────────────────

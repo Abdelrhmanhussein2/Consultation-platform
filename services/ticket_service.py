@@ -192,7 +192,22 @@ class TicketService:
             db.add(notif)
             db.commit()
 
+            # Push real-time live WebSocket notification (Phase 3)
+            try:
+                from services.live_notification_service import LiveNotificationService
+                LiveNotificationService.push_notification(
+                    user_id=ticket.submitted_by,
+                    title="رد جديد على تذكرتك الدعم الفني",
+                    message=f"قام الدعم الفني بالرد على تذكرتك: '{ticket.subject}'.",
+                    notif_type="support_ticket_reply",
+                    notif_id=notif.id,
+                    extra={"ticket_id": str(ticket.id), "ticket_subject": ticket.subject}
+                )
+            except Exception:
+                pass
+
         return reply
+
 
     @staticmethod
     def update_ticket_admin(db: Session, ticket_id: uuid.UUID, admin_id: uuid.UUID, update_in) -> SupportTicket:

@@ -46,6 +46,7 @@ class NotificationType(str, enum.Enum):
     session_link_ready           = "session_link_ready"
     session_started              = "session_started"
     session_ended                = "session_ended"
+    payout_status_updated        = "payout_status_updated"
     general                      = "general"
 
 
@@ -60,6 +61,15 @@ class InvoiceStatus(str, enum.Enum):
     paid = "paid"
     cancelled = "cancelled"
     refunded = "refunded"
+
+
+class PayoutStatus(str, enum.Enum):
+    pending = "pending"          # قيد المراجعة والتدقيق
+    approved = "approved"        # تمت الموافقة - بانتظار التحويل
+    transferred = "transferred"  # تم التحويل البنكي وإرفاق الإيصال
+    rejected = "rejected"        # تم الرفض مع ذكر السبب
+    cancelled = "cancelled"      # تم الإلغاء من قبل المستشار
+
 
 
 class EntityType(str, enum.Enum):
@@ -132,5 +142,8 @@ class AdminPermission(str, enum.Enum):
     reply_tickets = "reply_tickets"
     manage_sessions = "manage_sessions"
     send_notifications = "send_notifications"
+    manage_payouts = "manage_payouts"
+    manage_settings = "manage_settings"
+
 
 
