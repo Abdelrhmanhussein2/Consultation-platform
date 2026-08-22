@@ -38,4 +38,20 @@ from schemes.schemes import (
 
     # Consultant Availability
     ConsultantAvailabilityCreate, ConsultantAvailabilityOut, AvailableSlotOut,
+
+    # Admin User Stats & Lists
+    RoleCount, EntityTypeCount, UserStatsOut, AdminUserListOut, AdminAddUserRequest,
+
+    # Admin Broadcast Notification
+    AdminBroadcastNotification, BroadcastResultOut,
+
+    # Sessions (Admin)
+    AdminSessionOut, AdminSessionJoinOut,
+
+    # Tickets (Support Desk)
+    TicketCreate, TicketReplyCreate, TicketReplyOut, TicketOut,
+    AdminTicketCreate, AdminTicketReplyCreate, AdminTicketUpdate,
+
+    # Admin RBAC Permissions
+    AdminCreate, AdminUpdatePermissions,
 )

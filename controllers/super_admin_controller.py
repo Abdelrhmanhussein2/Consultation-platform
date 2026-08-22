@@ -1,8 +1,8 @@
 import uuid
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from schemes import ConsultantApplicationAction
-from helpers.enums import UserRole
+from schemes import ConsultantApplicationAction, AdminBroadcastNotification
+from helpers.enums import UserRole, EntityType, NotificationAudience, NotificationType
 from services.super_admin_service import SuperAdminService
 
 class SuperAdminController:
@@ -67,6 +67,89 @@ class SuperAdminController:
             
         try:
             return SuperAdminService.toggle_user_active(db, user_uuid, super_admin_id)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+
+    @staticmethod
+    def get_user_stats(db: Session):
+        """
+        Fetches user statistics breakdown.
+        """
+        return SuperAdminService.get_user_stats(db)
+
+    @staticmethod
+    def list_all_users_admin(
+        db: Session,
+        search: str = None,
+        role: UserRole = None,
+        entity_type: EntityType = None,
+        is_active: bool = None,
+        page: int = 1,
+        limit: int = 20
+    ):
+        """
+        Lists all users with advanced administrative search and filter parameters.
+        """
+        if page < 1:
+            page = 1
+        if limit < 1 or limit > 100:
+            limit = 20
+        return SuperAdminService.list_all_users_admin(
+            db, search, role, entity_type, is_active, page, limit
+        )
+
+    @staticmethod
+    def admin_add_user(db: Session, user_in):
+        """
+        Adds a new user or consultant directly as approved.
+        """
+        try:
+            return SuperAdminService.admin_add_user(db, user_in)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+
+    @staticmethod
+    def broadcast_notification(db: Session, broadcast_in: AdminBroadcastNotification):
+        """
+        Broadcasts notification to a target user audience.
+        """
+        sent_count = SuperAdminService.broadcast_notification(
+            db=db,
+            audience=broadcast_in.audience,
+            title=broadcast_in.title,
+            message=broadcast_in.message,
+            notification_type=broadcast_in.notification_type
+        )
+        return {"sent_to": sent_count}
+
+    @staticmethod
+    def admin_get_all_sessions(db: Session):
+        """
+        Fetches metadata for all live / finished video sessions.
+        """
+        return SuperAdminService.admin_get_all_sessions(db)
+
+    @staticmethod
+    def admin_join_session(db: Session, appointment_id: str, admin_user):
+        """
+        Generates an observer join token for administrators.
+        """
+        try:
+            appt_uuid = uuid.UUID(appointment_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid appointment ID format"
+            )
+            
+        try:
+            return SuperAdminService.admin_join_session(db, appt_uuid, admin_user)
         except ValueError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

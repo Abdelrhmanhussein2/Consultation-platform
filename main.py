@@ -39,6 +39,15 @@ try:
                 IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'business_sector') THEN
                     CREATE TYPE business_sector AS ENUM ('banking', 'commercial', 'industrial', 'agricultural', 'services', 'contracting', 'other');
                 END IF;
+                IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ticket_category') THEN
+                    CREATE TYPE ticket_category AS ENUM ('technical', 'billing', 'consultation', 'account', 'withdrawal', 'legal', 'other');
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ticket_priority') THEN
+                    CREATE TYPE ticket_priority AS ENUM ('low', 'medium', 'high');
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ticket_status') THEN
+                    CREATE TYPE ticket_status AS ENUM ('open', 'in_progress', 'resolved', 'closed');
+                END IF;
             END $$;
         """))
         _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS entity_type entity_type DEFAULT 'individual'"))
@@ -48,11 +57,17 @@ try:
         _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS language VARCHAR(5) DEFAULT 'ar'"))
         _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_notifications BOOLEAN DEFAULT TRUE"))
         _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS appointment_reminders BOOLEAN DEFAULT TRUE"))
+        _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions JSONB DEFAULT '[]'"))
         
         # Ensure session columns exist on appointments
         _conn.execute(text("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS session_room_name VARCHAR(100)"))
         _conn.execute(text("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS session_room_url VARCHAR(300)"))
         _conn.execute(text("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS session_started_at TIMESTAMP WITH TIME ZONE"))
+        
+        # Ensure Google OAuth columns exist on consultant_profiles
+        _conn.execute(text("ALTER TABLE consultant_profiles ADD COLUMN IF NOT EXISTS google_access_token VARCHAR(500)"))
+        _conn.execute(text("ALTER TABLE consultant_profiles ADD COLUMN IF NOT EXISTS google_refresh_token VARCHAR(500)"))
+        _conn.execute(text("ALTER TABLE consultant_profiles ADD COLUMN IF NOT EXISTS google_token_expiry TIMESTAMP WITH TIME ZONE"))
         
         # Ensure chat_messages table exists
         _conn.execute(text("""

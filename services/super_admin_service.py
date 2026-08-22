@@ -1,9 +1,16 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Optional
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
-from models import User, ConsultantProfile, UserRole, VerificationStatus
+from models import (
+    User, ConsultantProfile, UserRole, VerificationStatus,
+    Appointment, AppointmentStatus, Notification
+)
+from helpers.enums import EntityType, NotificationAudience, NotificationType
 from services.notification_service import NotificationService
+from services.auth_utils import hash_password
+from services.daily_service import DailyService
 
 class SuperAdminService:
     @staticmethod
@@ -94,3 +101,226 @@ class SuperAdminService:
         db.commit()
         db.refresh(user)
         return user
+
+    @staticmethod
+    def get_user_stats(db: Session) -> dict:
+        """
+        Calculates user counts breakdown by role and entity type.
+        """
+        total = db.query(User).count()
+        
+        # Group by role
+        role_counts = db.query(User.role, func.count(User.id)).group_by(User.role).all()
+        by_role = [{"role": r.value, "count": c} for r, c in role_counts]
+
+        # Group by entity type
+        entity_counts = db.query(User.entity_type, func.count(User.id)).group_by(User.entity_type).all()
+        by_entity_type = [{"entity_type": et.value, "count": c} for et, c in entity_counts]
+
+        return {
+            "total_users": total,
+            "by_role": by_role,
+            "by_entity_type": by_entity_type
+        }
+
+    @staticmethod
+    def list_all_users_admin(
+        db: Session,
+        search: Optional[str] = None,
+        role: Optional[UserRole] = None,
+        entity_type: Optional[EntityType] = None,
+        is_active: Optional[bool] = None,
+        page: int = 1,
+        limit: int = 20
+    ) -> List[dict]:
+        """
+        Retrieves users with advanced filtering, searching and left joins for consultant info.
+        """
+        query = db.query(
+            User.id,
+            User.full_name,
+            User.email,
+            User.phone,
+            User.role,
+            User.entity_type,
+            User.company_name,
+            User.tax_number,
+            User.sector,
+            User.is_active,
+            User.created_at,
+            ConsultantProfile.bio,
+            ConsultantProfile.verification_status
+        ).outerjoin(ConsultantProfile, User.id == ConsultantProfile.user_id)
+
+        if search:
+            search_pattern = f"%{search}%"
+            query = query.filter(
+                or_(
+                    User.full_name.ilike(search_pattern),
+                    User.email.ilike(search_pattern),
+                    User.phone.ilike(search_pattern)
+                )
+            )
+
+        if role:
+            query = query.filter(User.role == role)
+
+        if entity_type:
+            query = query.filter(User.entity_type == entity_type)
+
+        if is_active is not None:
+            query = query.filter(User.is_active == is_active)
+
+        offset = (page - 1) * limit
+        results = query.order_by(User.created_at.desc()).offset(offset).limit(limit).all()
+
+        users_list = []
+        for r in results:
+            users_list.append({
+                "id": r.id,
+                "full_name": r.full_name,
+                "email": r.email,
+                "phone": r.phone,
+                "role": r.role,
+                "entity_type": r.entity_type,
+                "company_name": r.company_name,
+                "tax_number": r.tax_number,
+                "sector": r.sector,
+                "is_active": r.is_active,
+                "created_at": r.created_at,
+                "bio": r.bio,
+                "verification_status": r.verification_status
+            })
+        return users_list
+
+    @staticmethod
+    def admin_add_user(db: Session, user_in) -> User:
+        """
+        Directly registers a user or consultant as approved.
+        """
+        if user_in.role in (UserRole.admin, UserRole.super_admin):
+            raise ValueError("Cannot register administrative roles through this endpoint. Use the admins endpoint.")
+
+        existing = db.query(User).filter(User.email == user_in.email).first()
+        if existing:
+            raise ValueError("Email already registered")
+
+        db_user = User(
+            full_name=user_in.full_name,
+            email=user_in.email,
+            phone=user_in.phone,
+            password_hash=hash_password(user_in.password),
+            role=user_in.role,
+            entity_type=user_in.entity_type or EntityType.individual,
+            company_name=user_in.company_name,
+            tax_number=user_in.tax_number,
+            sector=user_in.sector,
+        )
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+
+        # If adding a consultant, create approved profile directly
+        if db_user.role in (UserRole.consultant, UserRole.platform_consultant):
+            profile = ConsultantProfile(
+                user_id=db_user.id,
+                bio=user_in.bio,
+                main_specialization_id=user_in.main_specialization_id,
+                verification_status=VerificationStatus.approved
+            )
+            db.add(profile)
+            db.commit()
+            db.refresh(db_user)
+            
+        return db_user
+
+    @staticmethod
+    def broadcast_notification(
+        db: Session,
+        audience: NotificationAudience,
+        title: str,
+        message: str,
+        notification_type: NotificationType
+    ) -> int:
+        """
+        Sends notifications to target audience in bulk.
+        """
+        query = db.query(User).filter(User.is_active == True)
+
+        if audience == NotificationAudience.users_only:
+            query = query.filter(User.role == UserRole.user)
+        elif audience == NotificationAudience.consultants_only:
+            query = query.filter(User.role.in_([UserRole.consultant, UserRole.platform_consultant]))
+        elif audience == NotificationAudience.companies_only:
+            query = query.filter(User.entity_type == EntityType.company)
+        elif audience == NotificationAudience.researchers_only:
+            query = query.filter(User.entity_type == EntityType.researcher)
+        elif audience == NotificationAudience.admins_only:
+            query = query.filter(User.role.in_([UserRole.admin, UserRole.super_admin]))
+
+        target_users = query.all()
+
+        notifications_to_add = []
+        for u in target_users:
+            notif = Notification(
+                user_id=u.id,
+                type=notification_type,
+                title=title,
+                message=message
+            )
+            notifications_to_add.append(notif)
+            
+        if notifications_to_add:
+            db.bulk_save_objects(notifications_to_add)
+            db.commit()
+
+        return len(notifications_to_add)
+
+    @staticmethod
+    def admin_get_all_sessions(db: Session) -> list:
+        """
+        Returns all scheduled video sessions with client and consultant metadata.
+        """
+        appointments = db.query(Appointment).filter(
+            Appointment.status.in_([AppointmentStatus.confirmed, AppointmentStatus.completed])
+        ).order_by(Appointment.scheduled_at.desc()).all()
+
+        results = []
+        for appt in appointments:
+            results.append({
+                "appointment_id": appt.id,
+                "client_id": appt.user_id,
+                "client_name": appt.user.full_name,
+                "consultant_profile_id": appt.consultant_id,
+                "consultant_name": appt.consultant.user.full_name,
+                "scheduled_at": appt.scheduled_at,
+                "duration_minutes": appt.duration_minutes,
+                "status": appt.status,
+                "session_room_name": appt.session_room_name,
+                "session_room_url": appt.session_room_url,
+                "created_at": appt.created_at,
+            })
+        return results
+
+    @staticmethod
+    def admin_join_session(db: Session, appointment_id: uuid.UUID, admin_user: User) -> dict:
+        """
+        Creates a meeting token for the administrator to join a live video session as an observer.
+        """
+        appt = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+        if not appt:
+            raise ValueError("Appointment not found")
+        if not appt.session_room_url or not appt.session_room_name:
+            raise ValueError("Video session room has not been initialized for this appointment")
+            
+        token = DailyService.generate_meeting_token(
+            room_name=appt.session_room_name,
+            user_name=f"[Admin] {admin_user.full_name}",
+            is_owner=False  # Observer
+        )
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=2)
+        return {
+            "room_url": appt.session_room_url,
+            "token": token,
+            "expires_at": expires_at
+        }

@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Boolean, DateTime, Text, func
+from sqlalchemy import Column, String, Boolean, DateTime, Text, func, JSON
 from sqlalchemy.dialects.postgresql import UUID, ENUM as PG_ENUM
 from sqlalchemy.orm import relationship
 
@@ -22,6 +22,7 @@ class User(Base):
     language = Column(String(5), nullable=False, default="ar")
     email_notifications = Column(Boolean, nullable=False, default=True)
     appointment_reminders = Column(Boolean, nullable=False, default=True)
+    permissions = Column(JSON, nullable=True, default=list)
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())

@@ -6,7 +6,8 @@ from decimal import Decimal
 from helpers.enums import (
     UserRole, VerificationStatus, AppointmentStatus, ActorRole,
     RatingStatus, NotificationType, InvoiceType, InvoiceStatus,
-    EntityType, BusinessSector
+    EntityType, BusinessSector, TicketCategory, TicketPriority,
+    TicketStatus, NotificationAudience, AdminPermission
 )
 
 # =====================================================================
@@ -134,6 +135,7 @@ class UserOut(BaseModel):
     language: str = "ar"
     email_notifications: bool = True
     appointment_reminders: bool = True
+    permissions: List[AdminPermission] = []
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -551,4 +553,200 @@ class ConsultantAvailabilityOut(BaseModel):
 class AvailableSlotOut(BaseModel):
     start_time: datetime
     end_time: datetime
+
+
+# =====================================================================
+# ADMIN USER STATS & LIST
+# =====================================================================
+class RoleCount(BaseModel):
+    role: UserRole
+    count: int
+
+class EntityTypeCount(BaseModel):
+    entity_type: EntityType
+    count: int
+
+class UserStatsOut(BaseModel):
+    total_users: int
+    by_role: List[RoleCount]
+    by_entity_type: List[EntityTypeCount]
+
+class AdminUserListOut(BaseModel):
+    id: uuid.UUID
+    full_name: str
+    email: str
+    phone: Optional[str]
+    role: UserRole
+    entity_type: EntityType
+    company_name: Optional[str]
+    tax_number: Optional[str]
+    sector: Optional[BusinessSector]
+    is_active: bool
+    created_at: datetime
+    bio: Optional[str] = None
+    verification_status: Optional[VerificationStatus] = None
+
+    class Config:
+        from_attributes = True
+
+class AdminAddUserRequest(BaseModel):
+    full_name: str = Field(..., max_length=150)
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    phone: Optional[str] = Field(None, max_length=20)
+    role: UserRole = UserRole.user
+    entity_type: Optional[EntityType] = EntityType.individual
+    company_name: Optional[str] = Field(None, max_length=200)
+    tax_number: Optional[str] = Field(None, max_length=50)
+    sector: Optional[BusinessSector] = None
+    bio: Optional[str] = None
+    main_specialization_id: Optional[int] = None
+
+    @field_validator('password')
+    @classmethod
+    def validate_password_strength(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not any(c.isupper() for c in v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not any(c.islower() for c in v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not any(c.isdigit() for c in v):
+            raise ValueError('Password must contain at least one digit')
+        special_chars = set("!@#$%&*()_+-=[]{}|;':\",.//<>?~`")
+        if not any(c in special_chars for c in v):
+            raise ValueError('Password must contain at least one special character')
+        return v
+
+# =====================================================================
+# ADMIN BROADCAST NOTIFICATION
+# =====================================================================
+class AdminBroadcastNotification(BaseModel):
+    audience: NotificationAudience
+    title: str = Field(..., max_length=200)
+    message: str = Field(...)
+    notification_type: NotificationType = NotificationType.general
+
+class BroadcastResultOut(BaseModel):
+    sent_to: int
+
+# =====================================================================
+# SESSIONS (ADMIN)
+# =====================================================================
+class AdminSessionOut(BaseModel):
+    appointment_id: uuid.UUID
+    client_id: uuid.UUID
+    client_name: str
+    consultant_profile_id: uuid.UUID
+    consultant_name: str
+    scheduled_at: datetime
+    duration_minutes: int
+    status: AppointmentStatus
+    session_room_name: Optional[str]
+    session_room_url: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class AdminSessionJoinOut(BaseModel):
+    room_url: str
+    token: str
+    expires_at: datetime
+
+# =====================================================================
+# TICKETS (SUPPORT DESK)
+# =====================================================================
+class TicketCreate(BaseModel):
+    subject: str = Field(..., max_length=200)
+    description: str
+    category: TicketCategory = TicketCategory.other
+
+class TicketReplyCreate(BaseModel):
+    message: str
+
+class TicketReplyOut(BaseModel):
+    id: uuid.UUID
+    ticket_id: uuid.UUID
+    author_id: uuid.UUID
+    author_name: str
+    author_role: UserRole
+    message: str
+    is_internal: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class TicketOut(BaseModel):
+    id: uuid.UUID
+    submitted_by: uuid.UUID
+    submitter_name: str
+    assigned_to: Optional[uuid.UUID]
+    assignee_name: Optional[str]
+    subject: str
+    description: str
+    category: TicketCategory
+    priority: TicketPriority
+    status: TicketStatus
+    closed_at: Optional[datetime]
+    created_at: datetime
+    updated_at: datetime
+    replies: List[TicketReplyOut] = []
+
+    class Config:
+        from_attributes = True
+
+# =====================================================================
+# ADMIN TICKETS
+# =====================================================================
+class AdminTicketCreate(BaseModel):
+    submitted_by: uuid.UUID
+    subject: str = Field(..., max_length=200)
+    description: str
+    category: TicketCategory = TicketCategory.other
+    priority: TicketPriority = TicketPriority.medium
+    assigned_to: Optional[uuid.UUID] = None
+
+class AdminTicketReplyCreate(BaseModel):
+    message: str
+    is_internal: bool = False
+
+class AdminTicketUpdate(BaseModel):
+    priority: Optional[TicketPriority] = None
+    status: Optional[TicketStatus] = None
+    internal_note: Optional[str] = None
+    assigned_to: Optional[uuid.UUID] = None
+
+
+# =====================================================================
+# ADMIN RBAC PERMISSIONS MANAGEMENT
+# =====================================================================
+class AdminCreate(BaseModel):
+    full_name: str = Field(..., max_length=150)
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    phone: Optional[str] = Field(None, max_length=20)
+    permissions: List[AdminPermission] = []
+
+    @field_validator('password')
+    @classmethod
+    def validate_password_strength(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not any(c.isupper() for c in v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not any(c.islower() for c in v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not any(c.isdigit() for c in v):
+            raise ValueError('Password must contain at least one digit')
+        special_chars = set("!@#$%&*()_+-=[]{}|;':\",.//<>?~`")
+        if not any(c in special_chars for c in v):
+            raise ValueError('Password must contain at least one special character')
+        return v
+
+class AdminUpdatePermissions(BaseModel):
+    permissions: List[AdminPermission]
+
+
 

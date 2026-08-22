@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from helpers.database import get_db
 from helpers.redis_client import get_redis
-from helpers.enums import UserRole, VerificationStatus
+from helpers.enums import UserRole, VerificationStatus, AdminPermission
 from services import UserService
 from services.auth_utils import verify_access_token
 from services.token_service import TokenService
@@ -127,3 +127,43 @@ require_admin = RoleChecker([UserRole.admin, UserRole.super_admin])
 
 # Allows super_admin only
 require_super_admin = RoleChecker([UserRole.super_admin])
+
+
+class PermissionChecker:
+    """
+    Dependency to verify granular permissions for Admin users.
+    Super Admins bypass all permission checks.
+    """
+    def __init__(self, permission: AdminPermission):
+        self.permission = permission
+
+    def __call__(self, current_user: User = Depends(get_current_active_user)) -> User:
+        # Super admin has all permissions
+        if current_user.role == UserRole.super_admin:
+            return current_user
+
+        if current_user.role == UserRole.admin:
+            perms = current_user.permissions or []
+            if self.permission.value in perms:
+                return current_user
+            
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Missing required permission: {self.permission.value}"
+            )
+
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Operation not permitted for this role"
+        )
+
+
+# Predefined granular permission dependencies
+require_perm_manage_users = PermissionChecker(AdminPermission.manage_users)
+require_perm_manage_consultants = PermissionChecker(AdminPermission.manage_consultants)
+require_perm_manage_admins = PermissionChecker(AdminPermission.manage_admins)
+require_perm_view_analytics = PermissionChecker(AdminPermission.view_analytics)
+require_perm_reply_tickets = PermissionChecker(AdminPermission.reply_tickets)
+require_perm_manage_sessions = PermissionChecker(AdminPermission.manage_sessions)
+require_perm_send_notifications = PermissionChecker(AdminPermission.send_notifications)
+
