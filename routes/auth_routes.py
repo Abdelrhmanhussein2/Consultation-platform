@@ -19,11 +19,11 @@ from routes.deps import get_current_token_payload
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-@router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
+@router.post("/register", status_code=status.HTTP_201_CREATED)
 @limiter.limit(settings.RATE_LIMIT_REGISTER)
 def register_user(request: Request, user_in: UserCreate, db: Session = Depends(get_db)):
     """
-    Registers a standard client user. Returns access and refresh tokens.
+    Registers a standard client user. Returns confirmation message.
     """
     return AuthController.register_user(db, user_in)
 

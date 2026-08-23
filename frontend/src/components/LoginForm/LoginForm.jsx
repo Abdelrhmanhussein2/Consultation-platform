@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import './LoginForm.css';
 
-export default function LoginForm({ openPolicy }) {
+export default function LoginForm({ openPolicy, navigate }) {
+  const { login: authLogin } = useAuth();
   const [activeTab, setActiveTab] = useState('user'); // 'user' or 'admin'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -53,22 +55,16 @@ export default function LoginForm({ openPolicy }) {
       const data = await response.json();
 
       if (response.ok) {
-        // Decode JWT token natively to verify user role
-        const parseJwt = (token) => {
-          try {
-            const base64Url = token.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
-            return JSON.parse(jsonPayload);
-          } catch (e) {
-            return null;
-          }
-        };
+        // Log in via AuthContext which verifies identity with GET /api/users/me from backend DB
+        const userData = await authLogin(data.access_token);
 
-        const payload = parseJwt(data.access_token);
-        const role = payload ? payload.role : null;
+        if (!userData) {
+          setError('فشل التثبت من صحة الحساب من قاعدة البيانات.');
+          setLoading(false);
+          return;
+        }
+
+        const role = userData.role;
 
         // Perform role validation based on active tab
         if (activeTab === 'admin') {
@@ -87,27 +83,19 @@ export default function LoginForm({ openPolicy }) {
 
         // Successful login
         setSuccess('تم تسجيل الدخول بنجاح! جاري تحويلك...');
-        
-        // Store tokens
-        const storage = rememberMe ? localStorage : sessionStorage;
-        storage.setItem('access_token', data.access_token);
-        storage.setItem('refresh_token', data.refresh_token);
-        if (data.token_type) {
-          storage.setItem('token_type', data.token_type);
-        }
 
         // Reset form
         setEmail('');
         setPassword('');
 
-        // Redirect after a delay based on active tab
+        // Redirect after a short delay
         setTimeout(() => {
           if (activeTab === 'admin') {
-            window.location.href = '/admin/dashboard';
+            navigate('/admin/dashboard');
           } else {
-            window.location.href = '/dashboard';
+            navigate('/dashboard');
           }
-        }, 1500);
+        }, 1000);
 
       } else {
         // Backend returned error
@@ -291,7 +279,17 @@ export default function LoginForm({ openPolicy }) {
         {activeTab === 'user' && (
           <div className="card-footer-links">
             <span>ليس لديك حساب؟ </span>
-            <a href="/register" className="register-link">إنشاء حساب</a>
+            <a 
+              href="/register" 
+              className="register-link"
+              onClick={(e) => {
+                e.preventDefault();
+                if (navigate) navigate('/register');
+                else window.location.href = '/register';
+              }}
+            >
+              إنشاء حساب
+            </a>
           </div>
         )}
 

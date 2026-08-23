@@ -1,15 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  --primary-color: #0A365C;
-  --primary-light: #164E7D;
-  --primary-dark: #06233D;
-  --secondary-color: #C5A85C; /* Elegant Gold */
-  --secondary-hover: #B0944F;
-  --bg-gradient: linear-gradient(135deg, #F0F4F8 0%, #D9E2EC 100%);
-  --card-bg: rgba(255, 255, 255, 0.82);
-  --card-border: rgba(255, 255, 255, 0.5);
-  --text-main: #102A43;
+  --primary-color: #0D3C5C;
+  --header-bg: #005D9C;
+  --primary-light: #005D9C;
+  --primary-dark: #07253B;
+  --secondary-color: #F5A52A; /* Warm Golden Amber from design palette */
+  --secondary-hover: #D98E1F;
+  --bg-gradient: linear-gradient(135deg, #E5EFF5 0%, #EFF1F2 100%);
+  --card-bg: #E5EFF5; /* Soft Light Blue card background from design palette */
+  --card-border: rgba(0, 93, 156, 0.15);
+  --text-main: #222224;
   --text-muted: #486581;
   --text-white: #FFFFFF;
   --border-color: #BCCCDC;
@@ -19,9 +20,9 @@
   --success-color: #2E7D32;
   --success-bg: #E8F5E9;
   
-  --shadow-sm: 0 2px 4px rgba(10, 54, 92, 0.05);
-  --shadow-md: 0 10px 25px rgba(10, 54, 92, 0.08);
-  --shadow-lg: 0 20px 40px rgba(10, 54, 92, 0.12);
+  --shadow-sm: 0 2px 4px rgba(13, 60, 92, 0.05);
+  --shadow-md: 0 10px 25px rgba(13, 60, 92, 0.08);
+  --shadow-lg: 0 20px 40px rgba(13, 60, 92, 0.12);
   
   --transition-fast: 0.2s ease;
   --transition-normal: 0.3s ease;

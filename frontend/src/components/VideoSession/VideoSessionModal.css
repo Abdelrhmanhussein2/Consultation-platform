@@ -1,0 +1,119 @@
+/* Video Session Modal Styles */
+.video-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.video-modal-container {
+  width: 100%;
+  max-width: 1100px;
+  height: 85vh;
+  background: #0F172A;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.video-modal-header {
+  padding: 16px 24px;
+  background: #1E293B;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
+}
+
+.video-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.live-indicator-badge {
+  background: #EF4444;
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.video-frame-body {
+  flex: 1;
+  width: 100%;
+  position: relative;
+  background: #000000;
+}
+
+.video-frame-body iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.video-loading-state, .video-error-state {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  gap: 16px;
+  text-align: center;
+  padding: 32px;
+}
+
+.video-modal-footer {
+  padding: 14px 24px;
+  background: #1E293B;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.end-meeting-btn {
+  background: #EF4444;
+  color: #FFFFFF;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.end-meeting-btn:hover {
+  background: #DC2626;
+  transform: translateY(-1px);
+}

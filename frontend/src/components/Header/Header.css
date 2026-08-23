@@ -1,5 +1,5 @@
 .site-header {
-  background-color: var(--primary-color);
+  background-color: var(--header-bg);
   color: var(--text-white);
   height: 60px;
   width: 100%;

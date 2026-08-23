@@ -36,8 +36,14 @@ class AuthController:
                 detail=str(e)
             )
         
+        access_token = create_access_token(data={"sub": str(db_user.id), "role": db_user.role.value})
+        refresh_token = create_refresh_token(data={"sub": str(db_user.id)})
+        
         return {
-            "message": "تم تسجيل طلب الانضمام بنجاح وهو قيد المراجعة حالياً من قبل الإدارة."
+            "message": "تم إنشاء حسابك بنجاح! يمكنك الآن تسجيل الدخول مباشرة.",
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer"
         }
 
     @staticmethod

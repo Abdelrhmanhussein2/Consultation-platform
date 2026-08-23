@@ -1,9 +1,10 @@
 import uuid
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+from models import User
 from schemes import ConsultantApplicationAction, AdminBroadcastNotification
 from helpers.enums import UserRole, EntityType, NotificationAudience, NotificationType
-from services.super_admin_service import SuperAdminService
+from services import ConsultantService, SuperAdminService
 
 class SuperAdminController:
     @staticmethod

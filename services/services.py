@@ -56,7 +56,7 @@ class UserService:
             commercial_register_url=commercial_register_url,
             title=getattr(user_in, "title", None),
             address=getattr(user_in, "address", None),
-            verification_status=VerificationStatus.pending
+            verification_status=VerificationStatus.approved if role == UserRole.user else VerificationStatus.pending
         )
         db.add(db_user)
         db.commit()
