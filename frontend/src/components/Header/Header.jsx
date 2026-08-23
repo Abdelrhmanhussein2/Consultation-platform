@@ -33,6 +33,14 @@ export default function Header({ currentPath, navigate }) {
           >
             مركز السياسات
           </a>
+          <a 
+            href="/admin" 
+            onClick={(e) => handleNavClick(e, '/admin')} 
+            className="nav-item"
+            style={{ color: '#E58A13', fontWeight: '800' }}
+          >
+            👑 لوحة الإدارة (Admin)
+          </a>
         </nav>
       </div>
     </header>

@@ -19,6 +19,7 @@ import InvoicesPage from './pages/InvoicesPage';
 import PolicyCenterPage from './pages/PolicyCenterPage';
 import UserSettingsPage from './pages/UserSettingsPage';
 import SupportTicketsPage from './pages/SupportTicketsPage';
+import AdminApp from './admin/AdminApp';
 
 function MainApp() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -41,10 +42,16 @@ function MainApp() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Route any /admin path directly to AdminApp Command Center
+  if (currentPath.startsWith('/admin')) {
+    return <AdminApp currentPath={currentPath} navigate={navigate} />;
+  }
+
   const openPolicy = (type) => {
     setPolicyType(type);
     setIsModalOpen(true);
   };
+
 
   // List of paths belonging to the authenticated User Portal
   const userPortalPaths = [
