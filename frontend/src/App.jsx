@@ -20,6 +20,12 @@ import PolicyCenterPage from './pages/PolicyCenterPage';
 import UserSettingsPage from './pages/UserSettingsPage';
 import SupportTicketsPage from './pages/SupportTicketsPage';
 import AdminApp from './admin/AdminApp';
+import PlaceholderPage from './pages/PlaceholderPage';
+import ConsultantDashboard from './pages/ConsultantDashboard';
+import ConsultantSessionsPage from './pages/ConsultantSessionsPage';
+import ConsultantClientsPage from './pages/ConsultantClientsPage';
+import ConsultantProfilePage from './pages/ConsultantProfilePage';
+import ConsultantEarningsPage from './pages/ConsultantEarningsPage';
 
 function MainApp() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -64,7 +70,20 @@ function MainApp() {
     '/invoices',
     '/tickets',
     '/settings',
-    '/policies-portal'
+    '/policies-portal',
+    '/consultant/dashboard',
+    '/consultant/sessions',
+    '/consultant/clients',
+    '/consultant/profile',
+    '/consultant/earnings',
+    '/consultant/semantic-search',
+    '/consultant/document-analysis',
+    '/consultant/colleagues',
+    '/consultant/subscriptions',
+    '/consultant/payments',
+    '/consultant/documents',
+    '/consultant/favorites',
+    '/consultant/templates'
   ];
 
   const isUserPortal = userPortalPaths.some(p => currentPath.startsWith(p));
@@ -98,6 +117,48 @@ function MainApp() {
     if (currentPath === '/settings') {
       return <UserSettingsPage />;
     }
+
+    // Consultant Portal Screens
+    if (currentPath === '/consultant/dashboard') {
+      return <ConsultantDashboard navigate={navigate} />;
+    }
+    if (currentPath === '/consultant/sessions') {
+      return <ConsultantSessionsPage navigate={navigate} />;
+    }
+    if (currentPath === '/consultant/clients') {
+      return <ConsultantClientsPage navigate={navigate} />;
+    }
+    if (currentPath === '/consultant/profile') {
+      return <ConsultantProfilePage navigate={navigate} />;
+    }
+    if (currentPath === '/consultant/earnings') {
+      return <ConsultantEarningsPage navigate={navigate} />;
+    }
+    if (currentPath === '/consultant/semantic-search') {
+      return <PlaceholderPage title="البحث الدلالي للمستشار" />;
+    }
+    if (currentPath === '/consultant/document-analysis') {
+      return <PlaceholderPage title="تحليل المستندات" />;
+    }
+    if (currentPath === '/consultant/colleagues') {
+      return <ConsultantsPage navigate={navigate} />;
+    }
+    if (currentPath === '/consultant/subscriptions') {
+      return <PlaceholderPage title="الاشتراكات للمستشار" />;
+    }
+    if (currentPath === '/consultant/payments') {
+      return <PlaceholderPage title="المدفوعات للمستشار" />;
+    }
+    if (currentPath === '/consultant/documents') {
+      return <PlaceholderPage title="وثائقي" />;
+    }
+    if (currentPath === '/consultant/favorites') {
+      return <PlaceholderPage title="المفضلة" />;
+    }
+    if (currentPath === '/consultant/templates') {
+      return <PlaceholderPage title="النماذج" />;
+    }
+
     // Default Portal page
     return <UserDashboard navigate={navigate} />;
   };

@@ -153,7 +153,7 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
             </div>
             <div className="user-info-text">
               <span className="user-name">{user?.full_name || 'مستخدم المنصة'}</span>
-              <span className="user-role-label">{getEntityLabel(user?.entity_type)}</span>
+              <span className="user-role-label">{user?.role === 'consultant' ? 'حساب مستشار' : getEntityLabel(user?.entity_type)}</span>
             </div>
             <span style={{ fontSize: '10px', color: '#94A3B8' }}>▼</span>
           </div>

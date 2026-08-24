@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { appointmentService } from '../services/appointmentService';
 import VideoSessionModal from '../components/VideoSession/VideoSessionModal';
-import { AppointmentsIcon, VideoIcon, InvoicesIcon } from '../components/UserPortal/Icons';
 
 export default function MyAppointmentsPage({ navigate }) {
   const { token } = useAuth();
+  
+  // States
   const [appointments, setAppointments] = useState([]);
-  const [activeTab, setActiveTab] = useState('all'); // 'all', 'confirmed', 'pending_payment', 'completed', 'cancelled'
+  const [activeTab, setActiveTab] = useState('all'); // 'all', 'active', 'completed', 'cancelled'
   const [loading, setLoading] = useState(true);
   const [activeVideoApptId, setActiveVideoApptId] = useState(null);
 
@@ -18,7 +19,7 @@ export default function MyAppointmentsPage({ navigate }) {
       const data = await appointmentService.getMyAppointments(token);
       setAppointments(data || []);
     } catch (err) {
-      // Handle error
+      console.error('Error fetching appointments:', err);
     } finally {
       setLoading(false);
     }
@@ -50,60 +51,216 @@ export default function MyAppointmentsPage({ navigate }) {
     }
   };
 
-  const filteredAppointments = appointments.filter(a => {
-    if (activeTab === 'all') return true;
-    return a.status === activeTab;
-  });
+  // Stats Calculations
+  const activeCount = appointments.filter(a => ['confirmed', 'pending_payment', 'pending_approval'].includes(a.status)).length;
+  const completedCount = appointments.filter(a => a.status === 'completed').length;
+  const cancelledCount = appointments.filter(a => ['cancelled', 'cancelled_by_user', 'cancelled_by_consultant', 'rejected'].includes(a.status)).length;
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'confirmed':
-        return <span style={{ background: '#D1FAE5', color: '#065F46', padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: '700' }}>مؤكد ومجهز للميتينج</span>;
-      case 'pending_payment':
-        return <span style={{ background: '#FEF3C7', color: '#92400E', padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: '700' }}>بانتظار الدفع</span>;
+  // Filter Appointments by Tab
+  const getFilteredAppointments = () => {
+    switch (activeTab) {
+      case 'active':
+        return appointments.filter(a => ['confirmed', 'pending_payment', 'pending_approval'].includes(a.status));
       case 'completed':
-        return <span style={{ background: '#E0E7FF', color: '#3730A3', padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: '700' }}>مكتملة</span>;
+        return appointments.filter(a => a.status === 'completed');
       case 'cancelled':
-        return <span style={{ background: '#FEE2E2', color: '#991B1B', padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: '700' }}>ملغاة</span>;
+        return appointments.filter(a => ['cancelled', 'cancelled_by_user', 'cancelled_by_consultant', 'rejected'].includes(a.status));
+      case 'all':
       default:
-        return <span style={{ background: '#F1F5F9', color: '#475569', padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: '700' }}>{status}</span>;
+        return appointments;
     }
   };
 
+  // Get status badge UI
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'confirmed':
+        return <span style={{ background: '#D1FAE5', color: '#065F46', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>مؤكدة</span>;
+      case 'pending_payment':
+      case 'pending_approval':
+        return <span style={{ background: '#DBEAFE', color: '#1E40AF', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>مقبولة</span>;
+      case 'completed':
+        return <span style={{ background: '#E0E7FF', color: '#3730A3', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>مكتملة</span>;
+      case 'cancelled':
+      case 'cancelled_by_user':
+      case 'cancelled_by_consultant':
+      case 'rejected':
+        return <span style={{ background: '#FEE2E2', color: '#991B1B', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>ملغاة</span>;
+      default:
+        return <span style={{ background: '#FEF3C7', color: '#92400E', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>معلقة</span>;
+    }
+  };
+
+  // Render Date nicely
+  const formatDateStr = (dateVal) => {
+    if (!dateVal) return '';
+    const dateObj = new Date(dateVal);
+    const dateFormatted = dateObj.toLocaleDateString('ar-EG', { year: 'numeric', month: 'numeric', day: 'numeric' });
+    const timeFormatted = dateObj.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+    return `${dateFormatted} ، ${timeFormatted}`;
+  };
+
+  const filteredAppointments = getFilteredAppointments();
+  
+  // Show first 5 upcoming confirmed appointments
+  const upcomingAppointments = appointments.filter(a => a.status === 'confirmed').slice(0, 5);
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', color: '#005D9C', fontWeight: '700' }}>
+        جاري تحميل الاستشارات الخاصة بك...
+      </div>
+    );
+  }
+
   return (
-    <div className="fade-in">
-      {/* Title */}
-      <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div style={{ background: '#E5EFF5', padding: '10px', borderRadius: '12px', color: '#005D9C' }}>
-          <AppointmentsIcon size={24} color="#005D9C" />
-        </div>
+    <div style={{ direction: 'rtl', textAlign: 'right', fontFamily: 'sans-serif', paddingBottom: '40px' }}>
+      
+      {/* Header controls & Title */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px', marginBottom: '28px' }}>
         <div>
-          <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#1E293B', margin: 0 }}>
-            استشاراتي ومواعيـدي
-          </h1>
-          <p style={{ color: '#64748B', fontSize: '13px', margin: '4px 0 0 0' }}>
-            إدارة وتتبع جميع الاستشارات المحجوزة، الدخول لغرف الميتينج المباشرة، أو إلغاء/إعادة جدولة المواعيد.
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '24px' }}>📅</span>
+            <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#0D3C5C', margin: 0 }}>استشاراتي</h1>
+          </div>
+          <p style={{ color: '#64748B', fontSize: '13px', margin: '6px 0 0 0' }}>جميع طلبات الاستشارة ومواعيدك في مكان واحد.</p>
+        </div>
+
+        {/* Action buttons */}
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={() => navigate('/consultants')}
+            style={{
+              background: 'linear-gradient(135deg, #F5A52A, #E0921B)',
+              color: '#FFFFFF',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '20px',
+              fontWeight: '700',
+              fontSize: '13px',
+              cursor: 'pointer',
+              boxShadow: '0 4px 10px rgba(245, 165, 42, 0.25)'
+            }}
+          >
+            + طلب استشارة جديدة
+          </button>
+          
+          <button
+            onClick={() => setActiveVideoApptId('test-session-id')}
+            style={{
+              background: '#FFFFFF',
+              border: '1px solid #CBD5E1',
+              color: '#64748B',
+              padding: '10px 20px',
+              borderRadius: '20px',
+              fontWeight: '700',
+              fontSize: '13px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <span>⚙️</span>
+            <span>تجربة غرفة الفيديو الآن</span>
+          </button>
         </div>
       </div>
 
-      {/* Filter Tabs - Soft Light Blue & Warm Golden Highlight */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '10px',
-          marginBottom: '24px',
-          borderBottom: '1px solid #E2E8F0',
-          paddingBottom: '14px',
+      {/* Three Stats Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+        
+        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', padding: '20px', borderRadius: '16px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <span style={{ fontSize: '28px', fontWeight: '800', color: '#3B82F6', display: 'block' }}>{activeCount}</span>
+          <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '600' }}>نشطة</span>
+        </div>
+
+        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', padding: '20px', borderRadius: '16px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <span style={{ fontSize: '28px', fontWeight: '800', color: '#10B981', display: 'block' }}>{completedCount}</span>
+          <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '600' }}>مكتملة</span>
+        </div>
+
+        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', padding: '20px', borderRadius: '16px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <span style={{ fontSize: '28px', fontWeight: '800', color: '#EF4444', display: 'block' }}>{cancelledCount}</span>
+          <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '600' }}>ملغاة/مرفوضة</span>
+        </div>
+
+      </div>
+
+      {/* Section: Upcoming Appointments */}
+      {upcomingAppointments.length > 0 && (
+        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '20px', padding: '24px', marginBottom: '32px', boxShadow: '0 4px 12px rgba(13, 60, 92, 0.02)' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#0D3C5C', marginTop: 0, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>🕒</span> مواعيدك القادمة
+          </h3>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {upcomingAppointments.map((appt) => (
+              <div 
+                key={appt.id} 
+                style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  paddingBottom: '14px', 
+                  borderBottom: '1px solid #F1F5F9',
+                  flexWrap: 'wrap',
+                  gap: '12px'
+                }}
+              >
+                <div>
+                  <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#334155', margin: '0 0 4px 0' }}>
+                    {appt.service_name || 'جلسة تجريبية - اختبار الفيديو والملخص الذكي'}
+                  </h4>
+                  <span style={{ fontSize: '11px', color: '#64748B' }}>
+                    {formatDateStr(appt.scheduled_at)}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {getStatusBadge(appt.status)}
+                  <button
+                    onClick={() => setActiveVideoApptId(appt.id)}
+                    style={{
+                      backgroundColor: '#F5A52A',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      padding: '8px 18px',
+                      borderRadius: '10px',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <span>📹</span>
+                    <span>دخول الغرفة</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tabs list */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          gap: '10px', 
+          borderBottom: '2px solid #F1F5F9', 
+          paddingBottom: '10px', 
+          marginBottom: '20px',
           overflowX: 'auto'
         }}
       >
         {[
-          { id: 'all', label: 'جميع المواعيد' },
-          { id: 'confirmed', label: 'المؤكدة والميتينج' },
-          { id: 'pending_payment', label: 'بانتظار الدفع' },
+          { id: 'all', label: 'الكل' },
+          { id: 'active', label: 'النشطة' },
           { id: 'completed', label: 'المكتملة' },
-          { id: 'cancelled', label: 'الملغاة' }
+          { id: 'cancelled', label: 'الملغاة/المرفوضة' }
         ].map(tab => {
           const isActive = activeTab === tab.id;
           return (
@@ -111,16 +268,17 @@ export default function MyAppointmentsPage({ navigate }) {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               style={{
-                padding: '9px 20px',
-                borderRadius: '25px',
+                background: 'none',
                 border: 'none',
-                background: isActive ? 'linear-gradient(135deg, #F5A52A, #E0921B)' : '#E5EFF5',
-                color: isActive ? '#FFFFFF' : '#005D9C',
-                fontWeight: isActive ? '700' : '600',
+                color: isActive ? '#003C62' : '#64748B',
+                fontWeight: isActive ? '800' : '600',
                 fontSize: '13px',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                boxShadow: isActive ? '0 4px 12px rgba(245, 165, 42, 0.3)' : 'none'
+                padding: '8px 16px',
+                borderBottom: isActive ? '3px solid #003C62' : '3px solid transparent',
+                borderRadius: '0',
+                transition: 'all 0.15s',
+                marginBottom: '-12px'
               }}
             >
               {tab.label}
@@ -129,118 +287,149 @@ export default function MyAppointmentsPage({ navigate }) {
         })}
       </div>
 
-      {/* Appointments List */}
-      {loading ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: '#005D9C' }}>
-          <div className="spinner"></div>
-          <p style={{ marginTop: '16px' }}>جاري تحميل استشاراتك ومواعيدك...</p>
-        </div>
-      ) : filteredAppointments.length > 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {filteredAppointments.map(appt => (
-            <div
-              key={appt.id}
-              style={{
-                background: '#FFFFFF',
-                borderRadius: '16px',
-                padding: '20px',
-                border: '1px solid #E2E8F0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '16px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-              }}
-            >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                  {getStatusBadge(appt.status)}
-                  <span style={{ fontSize: '12px', color: '#94A3B8' }}>رقم الموعد: #{appt.id.substring(0, 8)}</span>
-                </div>
-                <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1E293B', marginBottom: '4px' }}>
-                  {appt.consultant_name ? `استشارة مع ${appt.consultant_name}` : 'جلسة استشارية ضريبية'}
-                </h3>
-                <p style={{ fontSize: '13px', color: '#64748B', margin: 0 }}>
-                  {new Date(appt.scheduled_at).toLocaleString('ar-EG', { dateStyle: 'full', timeStyle: 'short' })} ({appt.duration_minutes || 60} دقيقة)
-                </p>
-              </div>
-
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {appt.status === 'confirmed' && (
-                  <button
-                    onClick={() => setActiveVideoApptId(appt.id)}
-                    style={{
-                      background: 'linear-gradient(135deg, #F5A52A, #E0921B)',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      padding: '10px 20px',
-                      borderRadius: '20px',
-                      fontWeight: '700',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      boxShadow: '0 4px 10px rgba(245, 165, 42, 0.25)'
-                    }}
-                  >
-                    <VideoIcon size={16} color="#FFFFFF" />
-                    <span>دخول غرفة الميتينج المباشرة</span>
-                  </button>
-                )}
-
-                {appt.status === 'pending_payment' && (
-                  <button
-                    onClick={() => handlePay(appt.id)}
-                    style={{
-                      background: '#10B981',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      padding: '10px 20px',
-                      borderRadius: '20px',
-                      fontWeight: '700',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <InvoicesIcon size={16} color="#FFFFFF" />
-                    <span>دفع {appt.amount || 50} د.أ</span>
-                  </button>
-                )}
-
-                {appt.status !== 'cancelled' && appt.status !== 'completed' && (
-                  <button
-                    onClick={() => handleCancel(appt.id)}
-                    style={{
-                      background: '#FEF2F2',
-                      color: '#EF4444',
-                      border: '1px solid #FCA5A5',
-                      padding: '10px 16px',
-                      borderRadius: '20px',
-                      fontWeight: '600',
-                      fontSize: '13px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    إلغاء الموعد
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
+      {/* Tab content list */}
+      {filteredAppointments.length === 0 ? (
         <div style={{ background: '#FFFFFF', padding: '48px', borderRadius: '20px', textAlign: 'center', border: '1px solid #E2E8F0', color: '#64748B' }}>
           <div style={{ width: '60px', height: '60px', background: '#E5EFF5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto' }}>
-            <AppointmentsIcon size={28} color="#005D9C" />
+            📥
           </div>
           <h3 style={{ color: '#1E293B', marginBottom: '8px' }}>لا توجد استشارات في هذا التبويب</h3>
           <p style={{ fontSize: '13px', margin: 0 }}>يمكنك حجز موعد جديد من دليل المستشارين.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {filteredAppointments.map((appt) => {
+            const isConfirmed = appt.status === 'confirmed';
+            const isPendingPayment = appt.status === 'pending_payment';
+            const isPendingApproval = appt.status === 'pending_approval';
+
+            return (
+              <div 
+                key={appt.id}
+                style={{
+                  background: '#FFFFFF',
+                  borderRadius: '16px',
+                  padding: '20px',
+                  border: '1px solid #E2E8F0',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '16px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                }}
+              >
+                
+                {/* Details Section */}
+                <div style={{ flex: 1, minWidth: '280px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                    {getStatusBadge(appt.status)}
+                    <span style={{ fontSize: '11px', color: '#94A3B8' }}>رقم المعاملة: #{appt.id.substring(0, 8)}</span>
+                  </div>
+                  
+                  <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0D3C5C', margin: '0 0 6px 0' }}>
+                    {appt.service_name || 'جلسة تجريبية - اختبار الفيديو والملخص الذكي'}
+                  </h3>
+
+                  <p style={{ fontSize: '12px', color: '#64748B', lineHeight: '1.6', margin: 0 }}>
+                    {isConfirmed ? (
+                      `جلسة فيديو - يمكن الدخول ومراجعة السجل في أي حالة (${formatDateStr(appt.scheduled_at)})`
+                    ) : isPendingPayment || isPendingApproval ? (
+                      `غرفة تجريبية لاختيار المكالمة، التفريغ الصوتي، والملخص الذكي. الموعد المختار: ${formatDateStr(appt.scheduled_at)}`
+                    ) : (
+                      `الموعد المفضل: ${formatDateStr(appt.scheduled_at)} القناة: فيديو المستشار المطلوب`
+                    )}
+                  </p>
+                </div>
+
+                {/* Actions Button */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  
+                  {isConfirmed && (
+                    <button
+                      onClick={() => setActiveVideoApptId(appt.id)}
+                      style={{
+                        backgroundColor: '#F5A52A',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '20px',
+                        fontWeight: '700',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <span>📹</span>
+                      <span>دخول الغرفة</span>
+                    </button>
+                  )}
+
+                  {isPendingPayment && (
+                    <button
+                      onClick={() => handlePay(appt.id)}
+                      style={{
+                        backgroundColor: '#10B981',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '20px',
+                        fontWeight: '700',
+                        fontSize: '13px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      دفع {appt.amount || appt.price || 50} د.أ
+                    </button>
+                  )}
+
+                  {(isPendingApproval || isPendingPayment || isConfirmed) && (
+                    <button
+                      onClick={() => navigate('/chat')}
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        border: '1px solid #CBD5E1',
+                        color: '#64748B',
+                        padding: '10px 18px',
+                        borderRadius: '20px',
+                        fontWeight: '700',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <span>💬</span>
+                      <span>راسل المستشار</span>
+                    </button>
+                  )}
+
+                  {appt.status !== 'cancelled' && appt.status !== 'completed' && appt.status !== 'cancelled_by_user' && appt.status !== 'cancelled_by_consultant' && (
+                    <button
+                      onClick={() => handleCancel(appt.id)}
+                      style={{
+                        backgroundColor: '#FEF2F2',
+                        color: '#EF4444',
+                        border: '1px solid #FCA5A5',
+                        padding: '10px 18px',
+                        borderRadius: '20px',
+                        fontWeight: '700',
+                        fontSize: '13px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      إلغاء الموعد
+                    </button>
+                  )}
+
+                </div>
+
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -251,6 +440,7 @@ export default function MyAppointmentsPage({ navigate }) {
         onClose={() => setActiveVideoApptId(null)}
         onSessionEnd={fetchAppointments}
       />
+
     </div>
   );
 }
