@@ -5,29 +5,26 @@
 
 const API_BASE = '/api';
 
+// Strictly In-Memory Token Reference (No localStorage / No sessionStorage for maximum security)
+let inMemoryAdminToken = '';
+
 /**
- * Get current Auth Token from storage / memory
+ * Get current Auth Token from in-memory state
  */
 export function getAdminToken() {
-  if (typeof window !== 'undefined') {
-    return window.__ADMIN_TOKEN__ || 
-           localStorage.getItem('token') || 
-           localStorage.getItem('access_token') || 
-           sessionStorage.getItem('token') ||
-           '';
+  if (typeof window !== 'undefined' && window.__ADMIN_TOKEN__) {
+    return window.__ADMIN_TOKEN__;
   }
-  return '';
+  return inMemoryAdminToken;
 }
 
 /**
- * Set current Auth Token
+ * Set current Auth Token in-memory only
  */
 export function setAdminToken(token) {
+  inMemoryAdminToken = token || '';
   if (typeof window !== 'undefined') {
-    window.__ADMIN_TOKEN__ = token;
-    try {
-      localStorage.setItem('token', token);
-    } catch (e) {}
+    window.__ADMIN_TOKEN__ = token || '';
   }
 }
 
