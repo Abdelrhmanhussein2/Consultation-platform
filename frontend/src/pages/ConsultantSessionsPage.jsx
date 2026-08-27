@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { consultantService } from '../services/consultantService';
+import Toast, { useToast } from '../components/Toast/Toast';
 
 export default function ConsultantSessionsPage({ navigate }) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState([]);
   const [availability, setAvailability] = useState([]);
   const [savingAvail, setSavingAvail] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState(null);
+  const { toast, showToast } = useToast();
 
   // Grid constants
   const times = ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00'];
@@ -24,9 +26,9 @@ export default function ConsultantSessionsPage({ navigate }) {
     { label: 'سبت', value: 5 }
   ];
 
-  const fetchPageData = async () => {
+  const fetchPageData = async (silent = false) => {
     if (!token) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const [apptsData, availData] = await Promise.all([
         consultantService.getIncomingAppointments(token).catch(() => []),
@@ -37,7 +39,7 @@ export default function ConsultantSessionsPage({ navigate }) {
     } catch (err) {
       console.error("Error fetching sessions page data:", err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -48,7 +50,7 @@ export default function ConsultantSessionsPage({ navigate }) {
   // Check if a specific slot is enabled in availability state
   const isSlotActive = (dayValue, timeStr) => {
     return availability.some(
-      (avail) => avail.day_of_week === dayValue && avail.start_time.startsWith(timeStr) && avail.is_active
+      (avail) => avail && avail.day_of_week === dayValue && typeof avail.start_time === 'string' && avail.start_time.startsWith(timeStr) && avail.is_active
     );
   };
 
@@ -86,10 +88,10 @@ export default function ConsultantSessionsPage({ navigate }) {
         }));
 
       await consultantService.setAvailability(activeAvailabilities, token);
-      alert("تم حفظ أوقات التوفر بنجاح!");
-      await fetchPageData();
+      showToast("تم حفظ أوقات التوفر بنجاح!");
+      await fetchPageData(true); // silent refresh — don't show loading spinner
     } catch (err) {
-      alert(err.message || "فشل حفظ التغييرات");
+      showToast(err.message || "فشل حفظ التغييرات", "error");
     } finally {
       setSavingAvail(false);
     }
@@ -102,7 +104,7 @@ export default function ConsultantSessionsPage({ navigate }) {
       await consultantService.approveAppointment(apptId, token);
       await fetchPageData();
     } catch (err) {
-      alert(err.message || 'فشلت عملية قبول الجلسة');
+      showToast(err.message || 'فشلت عملية قبول الجلسة', 'error');
     } finally {
       setActionLoadingId(null);
     }
@@ -117,7 +119,7 @@ export default function ConsultantSessionsPage({ navigate }) {
       await consultantService.rejectAppointment(apptId, reason || "تم الرفض من قبل المستشار", token);
       await fetchPageData();
     } catch (err) {
-      alert(err.message || 'فشلت عملية رفض الجلسة');
+      showToast(err.message || 'فشلت عملية رفض الجلسة', 'error');
     } finally {
       setActionLoadingId(null);
     }
@@ -153,6 +155,8 @@ export default function ConsultantSessionsPage({ navigate }) {
   return (
     <div className="consultant-sessions-container fade-in" style={{ direction: 'rtl', fontFamily: 'sans-serif', paddingBottom: '40px' }}>
       
+      <Toast {...toast} />
+
       {/* Back Button */}
       <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '20px' }}>
         <button 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { consultantService } from '../services/consultantService';
+import Toast, { useToast } from '../components/Toast/Toast';
 
 export default function ConsultantEarningsPage({ navigate }) {
   const { token } = useAuth();
@@ -11,8 +12,7 @@ export default function ConsultantEarningsPage({ navigate }) {
   const [clients, setClients] = useState([]);
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const { toast, showToast } = useToast();
 
   // Payout / Bank Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -61,8 +61,8 @@ export default function ConsultantEarningsPage({ navigate }) {
         setClients(clientsData);
         setServices(servicesData);
       } catch (err) {
-        console.error('Error fetching wallet/earnings data:', err);
-        setError('فشل تحميل البيانات المالية. يرجى المحاولة مرة أخرى.');
+        console.error("Error fetching earnings initial data:", err);
+        showToast('فشل تحميل البيانات المالية. يرجى المحاولة مرة أخرى.', 'error');
       } finally {
         setLoading(false);
       }
@@ -114,7 +114,7 @@ export default function ConsultantEarningsPage({ navigate }) {
         const freshWallet = await consultantService.getWallet(token).catch(() => null);
         if (freshWallet) setWallet(freshWallet);
         
-        setSuccessMessage('تم حفظ تفاصيل الحساب البنكي بنجاح!');
+        showToast('تم حفظ تفاصيل الحساب البنكي بنجاح!');
         setModalType('payout'); // Switch back to payout modal type
       }
     } catch (err) {
@@ -144,7 +144,7 @@ export default function ConsultantEarningsPage({ navigate }) {
         const freshWallet = await consultantService.getWallet(token).catch(() => null);
         if (freshWallet) setWallet(freshWallet);
 
-        setSuccessMessage('تم تقديم طلب السحب بنجاح وهو قيد المراجعة الآن!');
+        showToast('تم تقديم طلب السحب بنجاح وهو قيد المراجعة الآن!');
         setIsModalOpen(false);
         setPayoutAmount('');
       }
@@ -217,25 +217,7 @@ export default function ConsultantEarningsPage({ navigate }) {
         عمولة المنصة: 15% - الحد الأدنى للسحب: 50 د.أ
       </p>
 
-      {/* Alert message */}
-      {(successMessage || error) && (
-        <div 
-          onClick={() => { setSuccessMessage(''); setError(''); }}
-          style={{ 
-            background: error ? '#FEE2E2' : '#E5EFF5', 
-            color: error ? '#991B1B' : '#005D9C', 
-            padding: '14px 18px', 
-            borderRadius: '12px', 
-            marginBottom: '20px', 
-            fontSize: '13px', 
-            fontWeight: '700', 
-            border: error ? '1px solid #FCA5A5' : '1px solid #BAE6FD',
-            cursor: 'pointer'
-          }}
-        >
-          {successMessage || error}
-        </div>
-      )}
+      <Toast {...toast} />
 
       {/* 3 cards row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '32px' }}>
@@ -432,7 +414,7 @@ export default function ConsultantEarningsPage({ navigate }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1000,
+          zIndex: 9999,
           backdropFilter: 'blur(4px)'
         }}>
           

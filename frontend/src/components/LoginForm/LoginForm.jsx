@@ -56,7 +56,7 @@ export default function LoginForm({ openPolicy, navigate }) {
 
       if (response.ok) {
         // Log in via AuthContext which verifies identity with GET /api/users/me from backend DB
-        const userData = await authLogin(data.access_token);
+        const userData = await authLogin(data.access_token, data.refresh_token);
 
         if (!userData) {
           setError('فشل التثبت من صحة الحساب من قاعدة البيانات.');

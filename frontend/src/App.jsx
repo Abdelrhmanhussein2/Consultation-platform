@@ -26,6 +26,11 @@ import ConsultantSessionsPage from './pages/ConsultantSessionsPage';
 import ConsultantClientsPage from './pages/ConsultantClientsPage';
 import ConsultantProfilePage from './pages/ConsultantProfilePage';
 import ConsultantEarningsPage from './pages/ConsultantEarningsPage';
+import DocumentAnalysisPage from './pages/DocumentAnalysisPage';
+import BusinessHelpPage from './pages/BusinessHelpPage';
+import ConsultantSubscriptionsPage from './pages/ConsultantSubscriptionsPage';
+import ConsultantPaymentsPage from './pages/ConsultantPaymentsPage';
+import ConsultantDocumentsPage from './pages/ConsultantDocumentsPage';
 
 function MainApp() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -109,7 +114,7 @@ function MainApp() {
       return <InvoicesPage />;
     }
     if (currentPath === '/tickets') {
-      return <SupportTicketsPage />;
+      return <BusinessHelpPage navigate={navigate} />;
     }
     if (currentPath === '/policies-portal') {
       return <PolicyCenterPage openPolicy={openPolicy} />;
@@ -138,19 +143,19 @@ function MainApp() {
       return <PlaceholderPage title="البحث الدلالي للمستشار" />;
     }
     if (currentPath === '/consultant/document-analysis') {
-      return <PlaceholderPage title="تحليل المستندات" />;
+      return <DocumentAnalysisPage navigate={navigate} />;
     }
     if (currentPath === '/consultant/colleagues') {
       return <ConsultantsPage navigate={navigate} />;
     }
     if (currentPath === '/consultant/subscriptions') {
-      return <PlaceholderPage title="الاشتراكات للمستشار" />;
+      return <ConsultantSubscriptionsPage navigate={navigate} />;
     }
     if (currentPath === '/consultant/payments') {
-      return <PlaceholderPage title="المدفوعات للمستشار" />;
+      return <ConsultantPaymentsPage navigate={navigate} />;
     }
     if (currentPath === '/consultant/documents') {
-      return <PlaceholderPage title="وثائقي" />;
+      return <ConsultantDocumentsPage />;
     }
     if (currentPath === '/consultant/favorites') {
       return <PlaceholderPage title="المفضلة" />;

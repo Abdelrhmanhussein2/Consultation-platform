@@ -71,7 +71,7 @@ from schemes.schemes import (
     SMTPSettingsSchema, BankTransferGatewaySchema, PayPalGatewaySchema,
     StripeGatewaySchema, PaymentGatewaysSchema, AllPlatformSettingsOut,
     PublicPaymentGatewayOut, PublicPlatformSettingsOut, TestEmailRequest,
-    TestEmailResponse,
+    TestEmailResponse, UserDocumentOut,
 )
 
 

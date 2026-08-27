@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { consultantService } from '../services/consultantService';
+import Toast, { useToast } from '../components/Toast/Toast';
 
 export default function ConsultantProfilePage({ navigate }) {
   const { token } = useAuth();
@@ -15,8 +16,7 @@ export default function ConsultantProfilePage({ navigate }) {
   
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const { toast, showToast } = useToast();
 
   // Fetch profile and service data on load
   useEffect(() => {
@@ -50,7 +50,7 @@ export default function ConsultantProfilePage({ navigate }) {
         }
       } catch (err) {
         console.error('Error loading consultant profile:', err);
-        setError('فشل تحميل بيانات الملف الشخصي. يرجى المحاولة مرة أخرى.');
+        showToast('فشل تحميل بيانات الملف الشخصي. يرجى المحاولة مرة أخرى.', 'error');
       } finally {
         setInitialLoading(false);
       }
@@ -63,8 +63,6 @@ export default function ConsultantProfilePage({ navigate }) {
     e.preventDefault();
     if (!token) return;
     setLoading(true);
-    setMessage('');
-    setError('');
 
     try {
       // 1. Update Profile (Bio, Years of Experience)
@@ -144,10 +142,10 @@ export default function ConsultantProfilePage({ navigate }) {
       const freshServices = await consultantService.getMyServices(token).catch(() => []);
       setServices(freshServices);
 
-      setMessage('تم حفظ التغييرات بنجاح!');
+      showToast('تم حفظ التغييرات بنجاح!');
     } catch (err) {
       console.error('Error saving profile changes:', err);
-      setError(err.message || 'حدث خطأ أثناء حفظ التغييرات. يرجى المحاولة مرة أخرى.');
+      showToast(err.message || 'حدث خطأ أثناء حفظ التغييرات. يرجى المحاولة مرة أخرى.', 'error');
     } finally {
       setLoading(false);
     }
@@ -225,36 +223,7 @@ export default function ConsultantProfilePage({ navigate }) {
         </span>
       </div>
 
-      {/* Alerts */}
-      {message && (
-        <div style={{ 
-          background: '#E5EFF5', 
-          color: '#005D9C', 
-          padding: '14px 18px', 
-          borderRadius: '12px', 
-          marginBottom: '20px', 
-          fontSize: '13px', 
-          fontWeight: '700', 
-          border: '1px solid #BAE6FD' 
-        }}>
-          {message}
-        </div>
-      )}
-
-      {error && (
-        <div style={{ 
-          background: '#FEE2E2', 
-          color: '#991B1B', 
-          padding: '14px 18px', 
-          borderRadius: '12px', 
-          marginBottom: '20px', 
-          fontSize: '13px', 
-          fontWeight: '700', 
-          border: '1px solid #FCA5A5' 
-        }}>
-          {error}
-        </div>
-      )}
+      <Toast {...toast} />
 
       {/* Main Profile Form Card */}
       <div style={{ 

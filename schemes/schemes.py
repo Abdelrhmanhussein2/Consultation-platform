@@ -1138,6 +1138,19 @@ class TestEmailResponse(BaseModel):
     sent_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+class UserDocumentOut(BaseModel):
+    id: uuid.UUID
+    filename: str
+    file_path: str
+    file_size: int
+    content_type: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+
 
 
 

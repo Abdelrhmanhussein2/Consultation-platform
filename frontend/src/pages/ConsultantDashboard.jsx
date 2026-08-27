@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { consultantService } from '../services/consultantService';
+import Toast, { useToast } from '../components/Toast/Toast';
 
 export default function ConsultantDashboard({ navigate }) {
   const { token, user } = useAuth();
@@ -9,6 +10,15 @@ export default function ConsultantDashboard({ navigate }) {
   const [appointments, setAppointments] = useState([]);
   const [profile, setProfile] = useState(null);
   const [actionLoadingId, setActionLoadingId] = useState(null);
+  const { toast, showToast } = useToast();
+
+  const handleNavigate = (path) => {
+    if (typeof navigate === 'function') {
+      navigate(path);
+    } else {
+      window.location.href = path;
+    }
+  };
 
   const fetchDashboardData = async () => {
     if (!token) return;
@@ -40,8 +50,9 @@ export default function ConsultantDashboard({ navigate }) {
     try {
       await consultantService.approveAppointment(apptId, token);
       await fetchDashboardData();
+      showToast('تم قبول طلب الاستشارة بنجاح!');
     } catch (err) {
-      alert(err.message || 'فشلت عملية الموافقة على الطلب');
+      showToast(err.message || 'فشلت عملية الموافقة على الطلب', 'error');
     } finally {
       setActionLoadingId(null);
     }
@@ -56,8 +67,9 @@ export default function ConsultantDashboard({ navigate }) {
     try {
       await consultantService.rejectAppointment(apptId, reason || "تم الرفض من قبل المستشار", token);
       await fetchDashboardData();
+      showToast('تم رفض طلب الاستشارة.');
     } catch (err) {
-      alert(err.message || 'فشلت عملية رفض الطلب');
+      showToast(err.message || 'فشلت عملية رفض الطلب', 'error');
     } finally {
       setActionLoadingId(null);
     }
@@ -113,6 +125,8 @@ export default function ConsultantDashboard({ navigate }) {
   return (
     <div className="consultant-dashboard-container fade-in" style={{ direction: 'rtl', fontFamily: 'sans-serif' }}>
       
+      <Toast {...toast} />
+
       {/* 1. Header Greeting Card (Full Width at the Top) */}
       <div className="consultant-header-card" style={{
         display: 'flex',
@@ -173,7 +187,7 @@ export default function ConsultantDashboard({ navigate }) {
             معتمد
           </span>
           <button 
-            onClick={() => navigate('/consultant/sessions')}
+            onClick={() => handleNavigate('/consultant/sessions')}
             style={{
               backgroundColor: '#F5A52A',
               color: '#FFFFFF',
@@ -282,7 +296,7 @@ export default function ConsultantDashboard({ navigate }) {
               {/* Bottom block: Actions */}
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <button 
-                  onClick={() => navigate('/consultant/earnings')}
+                  onClick={() => handleNavigate('/consultant/earnings')}
                   style={{
                     backgroundColor: '#FFF8F0',
                     border: '1px solid #FFE4C4',
@@ -378,7 +392,7 @@ export default function ConsultantDashboard({ navigate }) {
               </div>
 
               <button 
-                onClick={() => navigate('/consultant/profile')}
+                onClick={() => handleNavigate('/consultant/profile')}
                 style={{
                   width: '100%',
                   backgroundColor: '#F8FAFC',
@@ -520,7 +534,7 @@ export default function ConsultantDashboard({ navigate }) {
                 طلبات الحجز الواردة
               </h3>
               <button 
-                onClick={() => navigate('/consultant/sessions')}
+                onClick={() => handleNavigate('/consultant/sessions')}
                 style={{
                   backgroundColor: '#F1F5F9',
                   border: 'none',
@@ -684,7 +698,7 @@ export default function ConsultantDashboard({ navigate }) {
               ].map((act, i) => (
                 <button 
                   key={i}
-                  onClick={() => navigate(act.path)}
+                  onClick={() => handleNavigate(act.path)}
                   style={{
                     display: 'flex',
                     justifyContent: 'space-between',

@@ -12,6 +12,7 @@ from routes.specialization_routes import router as specialization_router
 from routes.chat_routes import router as chat_router
 from routes.ticket_routes import router as ticket_router
 from routes.settings_routes import router as settings_router
+from routes.user_document_routes import router as user_document_router
 
 api_router = APIRouter(prefix="/api")
 
@@ -29,5 +30,6 @@ api_router.include_router(specialization_router)
 api_router.include_router(chat_router)
 api_router.include_router(ticket_router)
 api_router.include_router(settings_router)
+api_router.include_router(user_document_router)
 
 
