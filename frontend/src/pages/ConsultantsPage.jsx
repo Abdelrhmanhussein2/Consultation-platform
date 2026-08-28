@@ -53,7 +53,21 @@ export default function ConsultantsPage({ navigate }) {
         consultantService.getSpecializations()
       ]);
 
-      setConsultants(Array.isArray(consultantsData) ? consultantsData : []);
+      const mockConsultant = {
+        profile_id: 'mock-raafat-1',
+        id: 'mock-raafat-1',
+        full_name: 'أ. رأفت حداد',
+        bio: 'خبير ومستشار ضريبي بخبرة تزيد عن 20 سنة في الاستشارات الضريبية والتدقيق والامتثال القانوني للأفراد والشركات.',
+        specialization_name: 'ضريبة دخل',
+        specialization_id: 1,
+        average_rating: 5.0,
+        ratings_count: 5,
+        years_of_experience: 20,
+        price: 50,
+        services_count: 2
+      };
+
+      setConsultants(Array.isArray(consultantsData) ? [mockConsultant, ...consultantsData] : [mockConsultant]);
       setSpecializations(Array.isArray(specData) ? specData : []);
     } catch (err) {
       console.error('Error loading consultants directory:', err);

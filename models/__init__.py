@@ -30,6 +30,8 @@ from models.consultant_bank_account import ConsultantBankAccount
 from models.payout_request import PayoutRequest
 from models.platform_setting import PlatformSetting
 from models.user_document import UserDocument
+from models.official_template import OfficialTemplate
+from models.favorite import Favorite
 
 
 

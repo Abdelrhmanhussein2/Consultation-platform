@@ -31,6 +31,9 @@ import BusinessHelpPage from './pages/BusinessHelpPage';
 import ConsultantSubscriptionsPage from './pages/ConsultantSubscriptionsPage';
 import ConsultantPaymentsPage from './pages/ConsultantPaymentsPage';
 import ConsultantDocumentsPage from './pages/ConsultantDocumentsPage';
+import ConsultantTemplatesPage from './pages/ConsultantTemplatesPage';
+import ConsultantFavoritesPage from './pages/ConsultantFavoritesPage';
+import ConsultantDetailPage from './pages/ConsultantDetailPage';
 
 function MainApp() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -98,11 +101,16 @@ function MainApp() {
     if (currentPath === '/consultants') {
       return <ConsultantsPage navigate={navigate} />;
     }
+    if (currentPath.startsWith('/consultants/')) {
+      const parts = currentPath.split('/');
+      const id = parts[parts.length - 1];
+      return <ConsultantDetailPage profileId={id} navigate={navigate} />;
+    }
     if (currentPath === '/my-appointments') {
       return <MyAppointmentsPage navigate={navigate} />;
     }
     if (currentPath === '/chat') {
-      return <ChatPage />;
+      return <ChatPage navigate={navigate} />;
     }
     if (currentPath.startsWith('/regulations')) {
       return <RegulationsPage />;
@@ -158,10 +166,10 @@ function MainApp() {
       return <ConsultantDocumentsPage />;
     }
     if (currentPath === '/consultant/favorites') {
-      return <PlaceholderPage title="المفضلة" />;
+      return <ConsultantFavoritesPage navigate={navigate} />;
     }
     if (currentPath === '/consultant/templates') {
-      return <PlaceholderPage title="النماذج" />;
+      return <ConsultantTemplatesPage />;
     }
 
     // Default Portal page

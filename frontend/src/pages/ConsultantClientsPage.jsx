@@ -8,31 +8,6 @@ export default function ConsultantClientsPage({ navigate }) {
   const [clients, setClients] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Fallback mock clients matching screenshot if backend is empty
-  const mockClients = [
-    {
-      user_id: 'mock-1',
-      full_name: 'عميل',
-      phone: null,
-      total_sessions: 2,
-      last_appointment_at: '2026-08-22T10:00:00Z'
-    },
-    {
-      user_id: 'mock-2',
-      full_name: 'أ. رأفت حداد (تجريبي)',
-      phone: null,
-      total_sessions: 20,
-      last_appointment_at: '2026-08-15T10:00:00Z'
-    },
-    {
-      user_id: 'mock-3',
-      full_name: 'عميل',
-      phone: null,
-      total_sessions: 1,
-      last_appointment_at: '2026-08-04T10:00:00Z'
-    }
-  ];
-
   useEffect(() => {
     const fetchClients = async () => {
       if (!token) return;
@@ -42,11 +17,11 @@ export default function ConsultantClientsPage({ navigate }) {
         if (data && data.length > 0) {
           setClients(data);
         } else {
-          setClients(mockClients);
+          setClients([]);
         }
       } catch (err) {
         console.error("Error fetching clients:", err);
-        setClients(mockClients);
+        setClients([]);
       } finally {
         setLoading(false);
       }
@@ -183,7 +158,9 @@ export default function ConsultantClientsPage({ navigate }) {
           color: '#64748B'
         }}>
           <span style={{ fontSize: '48px', display: 'block', marginBottom: '16px' }}>👥</span>
-          <p style={{ fontSize: '15px', fontWeight: '700' }}>لا يوجد عملاء يطابقون البحث.</p>
+          <p style={{ fontSize: '15px', fontWeight: '700' }}>
+            {searchQuery ? 'لا يوجد عملاء يطابقون البحث.' : 'لا يوجد لديك عملاء مسجلون حالياً.'}
+          </p>
         </div>
       ) : (
         <div style={{

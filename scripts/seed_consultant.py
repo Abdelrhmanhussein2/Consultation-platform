@@ -1,5 +1,7 @@
 import os
 import sys
+from datetime import time
+from sqlalchemy import text
 
 # Append the project root directory to sys.path to resolve relative imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -9,6 +11,8 @@ from helpers.enums import UserRole, VerificationStatus
 from models.user import User
 from models.consultant_profile import ConsultantProfile
 from models.specialization import Specialization
+from models.consultant_service import ConsultantService
+from models.consultant_availability import ConsultantAvailability
 
 import importlib.util
 spec = importlib.util.spec_from_file_location(
@@ -19,90 +23,165 @@ _auth = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(_auth)
 hash_password = _auth.hash_password
 
-def seed_consultant():
-    db = SessionLocal()
+def fix_sequences(db):
     try:
-        # Check if the specialization exists, otherwise get the first one or seed
-        tech_spec = db.query(Specialization).filter(Specialization.id == 4).first()
-        if not tech_spec:
-            tech_spec = db.query(Specialization).first()
-        
-        specialization_id = tech_spec.id if tech_spec else None
-        
-        email = "consultant@platform.com"
-        password = "Password123!"
-        full_name = "مستشار تجريبي"
-        
-        # Check if consultant already exists
-        existing_user = db.query(User).filter(User.email == email).first()
-        if existing_user:
-            print(f"INFO: Consultant user already exists with email: {email}")
-            # Ensure the role is consultant and they have a profile
-            if existing_user.role != UserRole.consultant:
-                existing_user.role = UserRole.consultant
-                db.commit()
-                print(f"INFO: Updated role of existing user to consultant")
-            
-            existing_profile = db.query(ConsultantProfile).filter(ConsultantProfile.user_id == existing_user.id).first()
-            if not existing_profile:
-                new_profile = ConsultantProfile(
-                    user_id=existing_user.id,
-                    bio="مستشار تقني تجريبي لتقديم الاستشارات البرمجية والتقنية.",
-                    main_specialization_id=specialization_id,
-                    verification_status=VerificationStatus.approved,
-                    years_of_experience=10,
-                    activity_type="مستشار مستقل"
-                )
-                db.add(new_profile)
-                db.commit()
-                print("INFO: Created missing consultant profile for the existing user.")
-            else:
-                existing_profile.verification_status = VerificationStatus.approved
-                db.commit()
-                print("INFO: Consultant profile verified successfully.")
-            return
-
-        # Seed the consultant User
-        hashed_pw = hash_password(password)
-        consultant_user = User(
-            full_name=full_name,
-            email=email,
-            phone="+966500000000",
-            password_hash=hashed_pw,
-            role=UserRole.consultant,
-            verification_status=VerificationStatus.approved,
-            is_active=True,
-            language="ar"
-        )
-        db.add(consultant_user)
+        db.execute(text("SELECT setval('specializations_id_seq', (SELECT MAX(id) FROM specializations));"))
         db.commit()
-        db.refresh(consultant_user)
-        
-        # Seed the Consultant Profile
-        consultant_profile = ConsultantProfile(
-            user_id=consultant_user.id,
-            bio="مستشار تقني تجريبي لتقديم الاستشارات البرمجية والتقنية.",
-            main_specialization_id=specialization_id,
-            verification_status=VerificationStatus.approved,
-            years_of_experience=10,
-            activity_type="مستشار مستقل"
-        )
-        db.add(consultant_profile)
-        db.commit()
-        
-        print("--------------------------------------------------")
-        print("SUCCESS: Consultant account has been seeded successfully!")
-        print(f"Full Name: {consultant_user.full_name}")
-        print(f"Email:     {consultant_user.email}")
-        print(f"Password:  {password}")
-        print(f"Role:      {consultant_user.role}")
-        print("--------------------------------------------------")
-        
+        print("INFO: Reset specializations sequence successfully.")
     except Exception as e:
-        print(f"CRITICAL ERROR seeding consultant: {e}")
+        db.rollback()
+        print(f"WARNING: Could not reset sequence: {repr(e)}")
+
+def get_or_create_specialization(db, name, desc):
+    spec = db.query(Specialization).filter(Specialization.name == name).first()
+    if not spec:
+        spec = Specialization(name=name, description=desc)
+        db.add(spec)
+        db.commit()
+        db.refresh(spec)
+        print(f"INFO: Created specialization: {name}")
+    return spec
+
+def seed_consultants():
+    db = SessionLocal()
+    # Reset sequence before inserting
+    fix_sequences(db)
+    
+    try:
+        # 1. Get or Create Specializations
+        income_tax_spec = get_or_create_specialization(db, "ضريبة دخل", "استشارات ضريبة الدخل والامتثال القانوني للأفراد والشركات")
+        accounting_tax_spec = get_or_create_specialization(db, "محاسبة ضريبية", "المحاسبة الضريبية والتدقيق المالي وإعداد الإقرارات")
+
+        # 2. Consultants details
+        advisors = [
+            {
+                "email": "raafat@platform.com",
+                "password": "Password123!",
+                "full_name": "أ. رأفت حداد",
+                "phone": "+962790000001",
+                "spec_id": income_tax_spec.id,
+                "bio": "خبير ومستشار ضريبي بخبرة تزيد عن 20 سنة في الاستشارات الضريبية، تدقيق الحسابات، والاعتراضات لدى دائرة ضريبة الدخل والمبيعات الأردنية.",
+                "years_exp": 20,
+                "activity_type": "مستشار مستقل",
+                "certs": "بكالوريوس محاسبة - JCPA (مستشار ضريبي معتمد)",
+                "services": [
+                    {"name": "استشارة ضريبة الدخل", "price": 50.00, "duration": 45},
+                    {"name": "تدقيق ضريبي شامل", "price": 100.00, "duration": 60}
+                ],
+                "availabilities": [
+                    (6, time(10, 0)), (6, time(12, 0)), (6, time(14, 0)), # Sunday
+                    (0, time(10, 0)), (0, time(12, 0)), (0, time(14, 0)), # Monday
+                    (1, time(10, 0)), (1, time(12, 0)), (1, time(14, 0))  # Tuesday
+                ]
+            },
+            {
+                "email": "mona@platform.com",
+                "password": "Password123!",
+                "full_name": "أ. منى العمري",
+                "phone": "+962790000002",
+                "spec_id": accounting_tax_spec.id,
+                "bio": "أخصائية في التخطيط والمحاسبة الضريبية وإعداد القوائم المالية والاقرارات الضريبية بكفاءة عالية للشركات الناشئة والمتوسطة.",
+                "years_exp": 15,
+                "activity_type": "مستشار مستقل",
+                "certs": "بكالوريوس علوم مالية ومصرفية - JCPA",
+                "services": [
+                    {"name": "استشارة محاسبة ضريبية", "price": 40.00, "duration": 45}
+                ],
+                "availabilities": [
+                    (6, time(11, 0)), (6, time(13, 0)), # Sunday
+                    (0, time(11, 0)), (0, time(13, 0))  # Monday
+                ]
+            }
+        ]
+
+        for advisor in advisors:
+            # Check if user already exists
+            user = db.query(User).filter(User.email == advisor["email"]).first()
+            if user:
+                print(f"INFO: Advisor user already exists: {advisor['email']}")
+                user.full_name = advisor["full_name"]
+                user.role = UserRole.consultant
+                user.verification_status = VerificationStatus.approved
+                db.commit()
+            else:
+                user = User(
+                    full_name=advisor["full_name"],
+                    email=advisor["email"],
+                    phone=advisor["phone"],
+                    password_hash=hash_password(advisor["password"]),
+                    role=UserRole.consultant,
+                    verification_status=VerificationStatus.approved,
+                    is_active=True,
+                    language="ar"
+                )
+                db.add(user)
+                db.commit()
+                db.refresh(user)
+                print(f"INFO: Created user: {advisor['email']}")
+
+            # Check profile
+            profile = db.query(ConsultantProfile).filter(ConsultantProfile.user_id == user.id).first()
+            if profile:
+                profile.bio = advisor["bio"]
+                profile.main_specialization_id = advisor["spec_id"]
+                profile.years_of_experience = advisor["years_exp"]
+                profile.activity_type = advisor["activity_type"]
+                profile.certificates_licenses = advisor["certs"]
+                profile.verification_status = VerificationStatus.approved
+                db.commit()
+                print(f"INFO: Updated profile for: {advisor['full_name']}")
+            else:
+                profile = ConsultantProfile(
+                    user_id=user.id,
+                    bio=advisor["bio"],
+                    main_specialization_id=advisor["spec_id"],
+                    verification_status=VerificationStatus.approved,
+                    years_of_experience=advisor["years_exp"],
+                    activity_type=advisor["activity_type"],
+                    certificates_licenses=advisor["certs"]
+                )
+                db.add(profile)
+                db.commit()
+                db.refresh(profile)
+                print(f"INFO: Created profile for: {advisor['full_name']}")
+
+            # Clear and seed Services
+            db.query(ConsultantService).filter(ConsultantService.consultant_id == profile.id).delete()
+            for s in advisor["services"]:
+                srv = ConsultantService(
+                    consultant_id=profile.id,
+                    specialization_id=advisor["spec_id"],
+                    name=s["name"],
+                    price=s["price"],
+                    duration_minutes=s["duration"],
+                    is_active=True
+                )
+                db.add(srv)
+            db.commit()
+            print(f"INFO: Seeded services for: {advisor['full_name']}")
+
+            # Clear and seed Availabilities
+            db.query(ConsultantAvailability).filter(ConsultantAvailability.consultant_id == profile.id).delete()
+            for day, t_val in advisor["availabilities"]:
+                avail = ConsultantAvailability(
+                    consultant_id=profile.id,
+                    day_of_week=day,
+                    start_time=t_val,
+                    is_active=True
+                )
+                db.add(avail)
+            db.commit()
+            print(f"INFO: Seeded time slots for: {advisor['full_name']}")
+
+        print("--------------------------------------------------")
+        print("SUCCESS: Mock advisors seeded successfully!")
+        print("--------------------------------------------------")
+
+    except Exception as e:
+        print(f"CRITICAL ERROR seeding: {repr(e)}")
         db.rollback()
     finally:
         db.close()
 
 if __name__ == "__main__":
-    seed_consultant()
+    seed_consultants()

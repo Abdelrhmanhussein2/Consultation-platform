@@ -5,7 +5,7 @@ export const appointmentService = {
   async bookAppointment(data, token) {
     return await apiFetch('/api/appointments/', {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: data
     }, token);
   },
 
@@ -13,7 +13,7 @@ export const appointmentService = {
   async payAppointment(id, token, method = 'card') {
     return await apiFetch(`/api/appointments/${id}/pay`, {
       method: 'POST',
-      body: JSON.stringify({ payment_method: method })
+      body: { payment_method: method }
     }, token);
   },
 
@@ -28,7 +28,7 @@ export const appointmentService = {
   async cancelAppointment(id, reason, token) {
     return await apiFetch(`/api/appointments/${id}/cancel`, {
       method: 'POST',
-      body: JSON.stringify({ reason })
+      body: { reason }
     }, token);
   },
 
@@ -36,7 +36,7 @@ export const appointmentService = {
   async rateAppointment(id, rating, feedback, token) {
     return await apiFetch(`/api/appointments/${id}/rate`, {
       method: 'POST',
-      body: JSON.stringify({ rating, feedback })
+      body: { rating, feedback }
     }, token);
   },
 

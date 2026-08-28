@@ -1155,6 +1155,46 @@ class UserDocumentOut(BaseModel):
         from_attributes = True
 
 
+class OfficialTemplateOut(BaseModel):
+    id: uuid.UUID
+    code: Optional[str] = None
+    title: str
+    description: Optional[str] = None
+    category: str
+    file_path: str
+    file_size: Optional[int] = None
+    file_type: Optional[str] = None
+    language: Optional[str] = None
+    downloads_count: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class FavoriteOut(BaseModel):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    item_type: str
+    item_id: str
+    title: str
+    subtitle: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class FavoriteToggle(BaseModel):
+    item_type: str
+    item_id: str
+    title: str
+    subtitle: Optional[str] = None
+
+
+
+
 
 
 
