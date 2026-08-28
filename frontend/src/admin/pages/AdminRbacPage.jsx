@@ -1,218 +1,1233 @@
 import React, { useState, useEffect } from 'react';
-import { IconRbac, IconCheck } from '../components/AdminIcons';
-import { getAdminsList, createAdmin as apiCreateAdmin } from '../services/adminApi';
+import { IconSearch } from '../components/AdminIcons';
+import { getAdminsList, createAdmin, updateAdminPermissions, getAuditLogs } from '../services/adminApi';
 
 export default function AdminRbacPage({ navigate }) {
-  const [admins, setAdmins] = useState([
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
+
+  // Currently viewed role for Detail Screen (Eye icon 👁️)
+  const [activeRoleDetail, setActiveRoleDetail] = useState(null);
+  const [activeTab, setActiveTab] = useState('permissions'); // 'permissions' | 'users' | 'audit'
+
+  // Search & filter inside detail tabs
+  const [permSearch, setPermSearch] = useState('');
+  const [permCategoryFilter, setPermCategoryFilter] = useState('all');
+  const [userSearch, setUserSearch] = useState('');
+  const [auditSearch, setAuditSearch] = useState('');
+
+  // Sensitive Permissions Confirmation Modal
+  const [sensitiveModalGroup, setSensitiveModalGroup] = useState(null);
+
+  const [roles, setRoles] = useState([
     {
-      id: 'adm_1',
-      name: 'خالد (Super Admin)',
-      email: 'admin@diwan.jo',
-      role: 'super_admin',
-      permissionsKeys: ['manage_users', 'manage_consultants', 'manage_sessions', 'reply_tickets', 'send_notifications', 'manage_payouts', 'manage_settings', 'view_analytics', 'manage_admins'],
-      permissions: ['الكل (Super Admin Full Access)'],
-      createdAt: '2026-08-01'
+      id: 'r1',
+      name: 'مدير المنصة',
+      description: 'تحكم كامل في كافة ميزات النظام والإعدادات والمستخدمين.',
+      type: 'دور إضافي',
+      usersCount: 3,
+      activeUsersCount: 1,
+      permsCount: 48,
+      status: 'مفعل',
+      createdAt: '2026-08-18',
+      createdBy: 'سعد هارون',
+      assignedUsers: [
+        { id: 'u1', name: 'سعد هارون', phone: '00962791679444', status: 'مفعل', assignedAt: '2026-08-18', assignType: 'مباشر' },
+        { id: 'u2', name: 'رأفت حداد', phone: '00962788541223', status: 'مفعل', assignedAt: '2026-08-19', assignType: 'مباشر' },
+        { id: 'u3', name: 'فراس عودة', phone: '00962771239874', status: 'معطل', assignedAt: '2026-08-20', assignType: 'مباشر' }
+      ]
     },
     {
-      id: 'adm_2',
-      name: 'عبدالرحمن حسين',
-      email: 'abdelrhman@diwan.jo',
-      role: 'admin',
-      permissionsKeys: ['manage_users', 'manage_consultants', 'manage_sessions', 'manage_payouts'],
-      permissions: ['إدارة المستخدمين', 'اعتماد المستشارين', 'إدارة الجلسات', 'إدارة السحوبات والماليات'],
-      createdAt: '2026-08-15'
+      id: 'r2',
+      name: 'مدير المحتوى',
+      description: 'إدارة ونشر وتعديل المقالات وقواعد المعرفة بالكامل.',
+      type: 'دور إضافي',
+      usersCount: 3,
+      activeUsersCount: 3,
+      permsCount: 19,
+      status: 'مفعل',
+      createdAt: '2026-08-10',
+      createdBy: 'مدير النظام',
+      assignedUsers: [
+        { id: 'u2', name: 'رأفت حداد', phone: '00962788541223', status: 'مفعل', assignedAt: '2026-08-15', assignType: 'مباشر' },
+        { id: 'u4', name: 'محمد الخطيب', phone: '00962799887766', status: 'مفعل', assignedAt: '2026-08-16', assignType: 'مباشر' }
+      ]
+    },
+    {
+      id: 'r3',
+      name: 'مراجع المحتوى',
+      description: 'مراجعة وتدقيق المستندات والمحتوى قبل النشر النهائي.',
+      type: 'دور إضافي',
+      usersCount: 4,
+      activeUsersCount: 4,
+      permsCount: 15,
+      status: 'مفعل',
+      createdAt: '2026-07-28',
+      createdBy: 'مدير النظام',
+      assignedUsers: []
+    },
+    {
+      id: 'r4',
+      name: 'مستشار',
+      description: 'تقديم الاستشارات الضريبية والمالية وعقد الجلسات المباشرة.',
+      type: 'دور أساسي',
+      usersCount: 12,
+      activeUsersCount: 12,
+      permsCount: 12,
+      status: 'مفعل',
+      createdAt: '2026-06-01',
+      createdBy: 'مدير النظام',
+      assignedUsers: []
+    },
+    {
+      id: 'r5',
+      name: 'موظف دعم فني',
+      description: 'الرد على تذاكر الدعم ومساعدة المستخدمين وحل المشكلات.',
+      type: 'دور إضافي',
+      usersCount: 1,
+      activeUsersCount: 1,
+      permsCount: 7,
+      status: 'مفعل',
+      createdAt: '2026-06-15',
+      createdBy: 'مدير النظام',
+      assignedUsers: []
+    },
+    {
+      id: 'r6',
+      name: 'مسؤول مالي',
+      description: 'إدارة الفواتير والمدفوعات وتنفيذ طلبات سحب الأرباح البنكية.',
+      type: 'دور أساسي',
+      usersCount: 2,
+      activeUsersCount: 2,
+      permsCount: 11,
+      status: 'مفعل',
+      createdAt: '2026-07-01',
+      createdBy: 'مدير النظام',
+      assignedUsers: []
+    },
+    {
+      id: 'r7',
+      name: 'مسؤول خدمة العملاء',
+      description: 'إدارة علاقات العملاء والتواصل المباشر ومتابعة الحجوزات.',
+      type: 'دور أساسي',
+      usersCount: 3,
+      activeUsersCount: 3,
+      permsCount: 6,
+      status: 'مفعل',
+      createdAt: '2026-07-10',
+      createdBy: 'مدير النظام',
+      assignedUsers: []
+    },
+    {
+      id: 'r8',
+      name: 'صادق للقراءة فقط',
+      description: 'اطلاع على التقارير والسجلات والتدقيق بدون إمكانية التعديل.',
+      type: 'دور أساسي',
+      usersCount: 4,
+      activeUsersCount: 4,
+      permsCount: 4,
+      status: 'مفعل',
+      createdAt: '2026-07-20',
+      createdBy: 'مدير النظام',
+      assignedUsers: []
     }
   ]);
 
-  const [createModal, setCreateModal] = useState(false);
+  // Comprehensive 8 Categorized Groups Matching All Screenshots
+  const [permissionGroups, setPermissionGroups] = useState([
+    {
+      id: 'users_group',
+      title: 'المستخدمون وإدارة الحسابات',
+      count: 7,
+      permissions: [
+        { id: 'p_u1', name: 'عرض المستخدمين', enabled: true, scope: 'الجميع', sensitive: false },
+        { id: 'p_u2', name: 'إضافة مستخدم جديد', enabled: false, scope: 'الخاصة بي', sensitive: true },
+        { id: 'p_u3', name: 'تعديل بيانات المستخدم', enabled: false, scope: 'الجميع', sensitive: false },
+        { id: 'p_u4', name: 'تعطيل / تفعيل المستخدم', enabled: false, scope: 'خاص بي', sensitive: true },
+        { id: 'p_u5', name: 'حذف المستخدم نهائياً', enabled: false, scope: 'خاص بي', sensitive: true },
+        { id: 'p_u6', name: 'تصدير بيانات المستخدمين', enabled: false, scope: 'الجميع', sensitive: true },
+        { id: 'p_u7', name: 'إدارة أدوار المستخدمين', enabled: false, scope: 'خاص بي', sensitive: true }
+      ]
+    },
+    {
+      id: 'content_group',
+      title: 'المحتوى',
+      count: 14,
+      permissions: [
+        { id: 'p_c1', name: 'عرض المحتوى', enabled: true, scope: 'الجميع', sensitive: false },
+        { id: 'p_c2', name: 'إضافة محتوى جديد', enabled: true, scope: 'خاص بي', sensitive: false },
+        { id: 'p_c3', name: 'تعديل المحتوى', enabled: true, scope: 'الخاصة بي', sensitive: false },
+        { id: 'p_c4', name: 'مراجعة المحتوى', enabled: true, scope: 'الجميع', sensitive: false },
+        { id: 'p_c5', name: 'اعتماد المحتوى', enabled: false, scope: 'خاص بي', sensitive: true },
+        { id: 'p_c6', name: 'نشر المحتوى للموقع', enabled: false, scope: 'الجميع', sensitive: true },
+        { id: 'p_c7', name: 'إلغاء نشر المحتوى', enabled: false, scope: 'خاص بي', sensitive: false },
+        { id: 'p_c8', name: 'أرشفة المحتوى', enabled: true, scope: 'الجميع', sensitive: false },
+        { id: 'p_c9', name: 'حذف المحتوى', enabled: false, scope: 'خاص بي', sensitive: true }
+      ]
+    },
+    {
+      id: 'consultations_group',
+      title: 'الاستشارات',
+      count: 17,
+      permissions: [
+        { id: 'p_cs1', name: 'عرض الاستشارات', enabled: true, scope: 'الخاصة بي', sensitive: false },
+        { id: 'p_cs2', name: 'عرض تفاصيل الاستشارة', enabled: true, scope: 'الخاصة بي', sensitive: false },
+        { id: 'p_cs3', name: 'تعديل الاستشارة', enabled: false, scope: 'خاص بي', sensitive: false },
+        { id: 'p_cs4', name: 'إعادة تعيين المستشار', enabled: false, scope: 'خاص بي', sensitive: true },
+        { id: 'p_cs5', name: 'تعديل الموعد', enabled: true, scope: 'الجميع', sensitive: false },
+        { id: 'p_cs6', name: 'إلغاء الاستشارة', enabled: true, scope: 'الخاصة بي', sensitive: false },
+        { id: 'p_cs7', name: 'عرض المحادثة', enabled: true, scope: 'الجميع', sensitive: false },
+        { id: 'p_cs8', name: 'تحميل التقرير', enabled: false, scope: 'خاص بي', sensitive: false },
+        { id: 'p_cs9', name: 'إنهاء الجلسة', enabled: false, scope: 'خاص بي', sensitive: true }
+      ]
+    },
+    {
+      id: 'ai_group',
+      title: 'المساعد الذكي (AI)',
+      count: 4,
+      permissions: [
+        { id: 'p_ai1', name: 'استخدام المساعد الذكي', enabled: false, scope: 'خاص بي', sensitive: false },
+        { id: 'p_ai2', name: 'إدارة إعدادات الذكاء الاصطناعي', enabled: false, scope: 'خاص بي', sensitive: true },
+        { id: 'p_ai3', name: 'تدريب النماذج على بيانات جديدة', enabled: false, scope: 'خاص بي', sensitive: true },
+        { id: 'p_ai4', name: 'عرض سجل محادثات AI', enabled: false, scope: 'الجميع', sensitive: false }
+      ]
+    },
+    {
+      id: 'tax_forms_group',
+      title: 'الإقرارات الضريبية',
+      count: 10,
+      permissions: [
+        { id: 'p_tx1', name: 'عرض الإقرارات', enabled: false, scope: 'الجميع', sensitive: false },
+        { id: 'p_tx2', name: 'إنشاء إقرار جديد', enabled: false, scope: 'خاص بي', sensitive: false },
+        { id: 'p_tx3', name: 'تعديل الإقرار', enabled: false, scope: 'الخاصة بي', sensitive: false },
+        { id: 'p_tx4', name: 'تصدير الإقرار للجهات الرسمية', enabled: false, scope: 'خاص بي', sensitive: true },
+        { id: 'p_tx5', name: 'تدمير الإقرارات', enabled: false, scope: 'خاص بي', sensitive: true }
+      ]
+    },
+    {
+      id: 'finance_group',
+      title: 'الفواتير والمدفوعات',
+      count: 11,
+      permissions: [
+        { id: 'p_fn1', name: 'عرض الفواتير', enabled: true, scope: 'الخاصة بي', sensitive: false },
+        { id: 'p_fn2', name: 'عرض العمليات المالية', enabled: true, scope: 'الخاصة بي', sensitive: false },
+        { id: 'p_fn3', name: 'إصدار فاتورة', enabled: false, scope: 'خاص بي', sensitive: false },
+        { id: 'p_fn4', name: 'تعديل بيانات الفاتورة', enabled: false, scope: 'خاص بي', sensitive: true },
+        { id: 'p_fn5', name: 'إلغاء الفاتورة', enabled: false, scope: 'خاص بي', sensitive: true },
+        { id: 'p_fn6', name: 'معالجة استرداد المدفوعات', enabled: false, scope: 'خاص بي', sensitive: true },
+        { id: 'p_fn7', name: 'تصدير البيانات المالية', enabled: false, scope: 'الجميع', sensitive: true }
+      ]
+    },
+    {
+      id: 'support_group',
+      title: 'الدعم والتذاكر',
+      count: 10,
+      permissions: [
+        { id: 'p_sp1', name: 'عرض التذاكر', enabled: true, scope: 'الجميع', sensitive: false },
+        { id: 'p_sp2', name: 'الرد على التذاكر', enabled: true, scope: 'الجميع', sensitive: false },
+        { id: 'p_sp3', name: 'إغلاق التذكرة', enabled: true, scope: 'الجميع', sensitive: false },
+        { id: 'p_sp4', name: 'حذف التذكرة', enabled: false, scope: 'خاص بي', sensitive: true }
+      ]
+    },
+    {
+      id: 'system_group',
+      title: 'النظام',
+      count: 15,
+      permissions: [
+        { id: 'p_sys1', name: 'عرض الإعدادات العامة', enabled: true, scope: 'الجميع', sensitive: false },
+        { id: 'p_sys2', name: 'تعديل إعدادات المنصة', enabled: false, scope: 'خاص بي', sensitive: true },
+        { id: 'p_sys3', name: 'إدارة بوابات الدفع', enabled: false, scope: 'خاص بي', sensitive: true },
+        { id: 'p_sys4', name: 'عرض سجل التدقيق الأمني', enabled: true, scope: 'الجميع', sensitive: false },
+        { id: 'p_sys5', name: 'تفريغ السجلات', enabled: false, scope: 'خاص بي', sensitive: true }
+      ]
+    }
+  ]);
+
+  // Modals state
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [addUserToRoleModal, setAddUserToRoleModal] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(null);
   const [cloneSourceId, setCloneSourceId] = useState('');
-  const [newAdmin, setNewAdmin] = useState({
+
+  const [formData, setFormData] = useState({
     name: '',
-    email: '',
-    phone: '',
-    password: '',
-    role: 'admin',
-    permissions: []
+    description: '',
+    type: 'دور إضافي',
+    status: 'مفعل',
+    cloneSource: ''
   });
 
-  const availablePerms = [
-    { key: 'manage_users', label: 'إدارة المستخدمين والشركات (Users & Companies)' },
-    { key: 'manage_consultants', label: 'اعتماد ومراجعة المستشارين والشهادات (Consultants & Credentials)' },
-    { key: 'manage_payouts', label: 'معالجة وتنفيذ طلبات سحب الأرباح والماليات (Financial & Payouts)' },
-    { key: 'manage_sessions', label: 'إدارة جلسات الاستشارات وغرفة المراقب (Sessions & Live Observer)' },
-    { key: 'reply_tickets', label: 'الرد على تذاكر الدعم والملاحظات السرية (Support & Internal Notes)' },
-    { key: 'send_notifications', label: 'إرسال الإذاعات والإشعارات العامة (Live Broadcasts)' },
-    { key: 'manage_settings', label: 'تعديل إعدادات المنصة وبوابات الدفع (Platform Settings)' },
-    { key: 'view_analytics', label: 'الاطلاع على تحليلات واستفسارات AI (Analytics & AI Oversight)' },
-    { key: 'manage_admins', label: 'إدارة صلاحيات المشرفين وسجل التدقيق (Admins & Audit Trail)' }
-  ];
-
-  // Presets
-  const presets = [
-    { name: 'مشرف مالي وحسابات', perms: ['manage_payouts', 'manage_users', 'manage_settings'] },
-    { name: 'مشرف جودة ودعم فني', perms: ['reply_tickets', 'manage_sessions', 'send_notifications'] },
-    { name: 'مشرف تدقيق المستشارين', perms: ['manage_consultants', 'manage_users', 'view_analytics'] },
-    { name: 'مشرف شامل (All Permissions)', perms: availablePerms.map(p => p.key) }
-  ];
-
+  // Fetch Admins list & audit logs from FastAPI backend on mount
   useEffect(() => {
-    let mounted = true;
-    async function loadAdmins() {
+    async function loadAdminsAndLogs() {
       try {
-        const data = await getAdminsList();
-        if (mounted && Array.isArray(data) && data.length > 0) {
-          setAdmins(data.map(a => ({
-            id: a.id,
-            name: a.full_name || a.name || 'مشرف نظام',
-            email: a.email,
-            role: a.role || 'admin',
-            permissionsKeys: a.permissions || ['manage_users', 'manage_consultants'],
-            permissions: a.role === 'super_admin' ? ['الكل (Super Admin Full Access)'] : (a.permissions || ['إدارة المستخدمين', 'اعتماد المستشارين']),
-            createdAt: a.created_at ? new Date(a.created_at).toISOString().split('T')[0] : '2026-08-23'
-          })));
+        setLoading(true);
+        const [adminsData, logsData] = await Promise.allSettled([
+          getAdminsList(),
+          getAuditLogs(20)
+        ]);
+
+        if (adminsData.status === 'fulfilled' && Array.isArray(adminsData.value) && adminsData.value.length > 0) {
+          const mappedAdmins = adminsData.value.map((item, idx) => ({
+            id: item.id ? item.id.toString() : `r_admin_${idx}`,
+            rawId: item.id,
+            name: item.full_name || 'مسؤول إداري',
+            description: `صلاحيات مخصصة للبريد: ${item.email}`,
+            type: 'دور إداري أساسي',
+            usersCount: 1,
+            activeUsersCount: item.is_active ? 1 : 0,
+            permsCount: Array.isArray(item.permissions) ? item.permissions.length : 32,
+            status: item.is_active ? 'مفعل' : 'معطل',
+            createdAt: item.created_at ? item.created_at.split('T')[0] : '2026-08-18',
+            createdBy: 'سعد هارون',
+            assignedUsers: [
+              { id: item.id ? item.id.toString() : `u_${idx}`, name: item.full_name || item.email, phone: item.phone || '00962790000000', status: item.is_active ? 'مفعل' : 'معطل', assignedAt: '2026-08-18', assignType: 'مباشر' }
+            ]
+          }));
+          setRoles(prev => [...prev, ...mappedAdmins.filter(m => !prev.some(p => p.rawId && p.rawId === m.rawId))]);
+        }
+
+        if (logsData.status === 'fulfilled' && Array.isArray(logsData.value) && logsData.value.length > 0) {
+          const mappedLogs = logsData.value.map((log, idx) => ({
+            id: log.id || `log_${idx}`,
+            event: log.action || 'تعديل',
+            details: log.details || 'تحديث أمني',
+            element: log.resource || 'الصلاحيات',
+            prevVal: '—',
+            newVal: 'محدث',
+            user: log.admin_name || 'مدير النظام',
+            date: log.created_at ? new Date(log.created_at).toLocaleString('ar-JO') : '2026-08-20 14:00',
+            ip: log.ip_address || '127.0.0.1',
+            status: 'ناجح'
+          }));
+          setAuditLogsList(mappedLogs);
         }
       } catch (err) {
-        console.warn('Admins API fallback:', err);
+        console.warn('Backend RBAC offline, using verified mock state:', err.message);
+      } finally {
+        setLoading(false);
       }
     }
-    loadAdmins();
-    return () => { mounted = false; };
+    loadAdminsAndLogs();
   }, []);
 
-  // Clone / Import permissions from existing admin
-  const handleClonePermissions = (adminId) => {
-    setCloneSourceId(adminId);
-    if (!adminId) return;
+  const [auditLogsList, setAuditLogsList] = useState([
+    { id: 'a1', event: 'تعديل', details: 'منح صلاحية', element: 'حجب الاستشارات', prevVal: 'معطل', newVal: 'مفعل', user: 'سعد هارون', date: '2026-08-20 14:30 م', ip: '192.168.1.1', status: 'ناجح' },
+    { id: 'a2', event: 'تعديل', details: 'تعديل النطاق', element: 'عرض تفاصيل الاستشارة', prevVal: 'خاص بي', newVal: 'الخاصة بي', user: 'سعد هارون', date: '2026-08-19 11:15 ص', ip: '192.168.1.1', status: 'ناجح' },
+    { id: 'a3', event: 'إضافة', details: 'إسناد مستخدم للدور', element: 'رأفت حداد', prevVal: '—', newVal: 'إسناد مباشر', user: 'سعد هارون', date: '2026-08-19 09:40 ص', ip: '192.168.1.1', status: 'ناجح' },
+    { id: 'a4', event: 'إنشاء', details: 'إنشاء الدور لأول مرة', element: 'مدير المنصة', prevVal: '—', newVal: 'دور إضافي', user: 'سعد هارون', date: '2026-08-18 10:00 ص', ip: '192.168.1.1', status: 'ناجح' }
+  ]);
 
-    const source = admins.find(a => a.id === adminId);
-    if (source) {
-      if (source.role === 'super_admin') {
-        setNewAdmin(prev => ({
-          ...prev,
-          permissions: availablePerms.map(p => p.key)
-        }));
-      } else {
-        setNewAdmin(prev => ({
-          ...prev,
-          permissions: [...(source.permissionsKeys || [])]
-        }));
-      }
+  const handleTogglePerm = (groupId, permId) => {
+    setPermissionGroups(groups => groups.map(g => g.id === groupId ? {
+      ...g,
+      permissions: g.permissions.map(p => p.id === permId ? { ...p, enabled: !p.enabled } : p)
+    } : g));
+  };
+
+  const handleSetScope = (groupId, permId, scopeVal) => {
+    setPermissionGroups(groups => groups.map(g => g.id === groupId ? {
+      ...g,
+      permissions: g.permissions.map(p => p.id === permId ? { ...p, scope: scopeVal } : p)
+    } : g));
+  };
+
+  const handleTriggerSelectAll = (group) => {
+    const sensitiveItems = group.permissions.filter(p => p.sensitive);
+    if (sensitiveItems.length > 0) {
+      setSensitiveModalGroup(group);
+    } else {
+      applySelectAll(group.id, true, true);
     }
   };
 
-  const handleApplyPreset = (presetPerms) => {
-    setNewAdmin(prev => ({
-      ...prev,
-      permissions: [...presetPerms]
-    }));
+  const applySelectAll = (groupId, selectAll, includeSensitive = true) => {
+    setPermissionGroups(groups => groups.map(g => g.id === groupId ? {
+      ...g,
+      permissions: g.permissions.map(p => {
+        if (!includeSensitive && p.sensitive) return p;
+        return { ...p, enabled: selectAll };
+      })
+    } : g));
   };
 
-  const handleCreateAdmin = async () => {
-    if (!newAdmin.name || !newAdmin.email || !newAdmin.password) {
-      alert('يرجى ملء كافة الحقول الأساسية (الاسم، البريد، كلمة المرور)');
+  const handleOpenCreate = () => {
+    setSelectedRole(null);
+    setFormData({ name: '', description: '', type: 'دور إضافي', status: 'مفعل', cloneSource: '' });
+    setCloneSourceId('');
+    setCreateModalOpen(true);
+  };
+
+  const handleOpenEdit = (role) => {
+    setSelectedRole(role);
+    setFormData({ name: role.name, description: role.description, type: role.type, status: role.status, cloneSource: '' });
+    setCloneSourceId('');
+    setEditModalOpen(true);
+  };
+
+  const handleCloneRole = (role) => {
+    setSelectedRole(null);
+    setFormData({ name: `نسخة من ${role.name}`, description: role.description, type: role.type, status: 'مفعل', cloneSource: role.id });
+    setCloneSourceId(role.id);
+    setCreateModalOpen(true);
+  };
+
+  const handleCloneFromDropdown = (sourceRoleId) => {
+    setCloneSourceId(sourceRoleId);
+    setFormData(prev => ({ ...prev, cloneSource: sourceRoleId }));
+    const src = roles.find(r => r.id === sourceRoleId);
+    if (src) {
+      setFormData(prev => ({ ...prev, type: src.type }));
+    }
+  };
+
+  const handleSaveRole = () => {
+    if (!formData.name.trim()) {
+      alert('يرجى إدخال اسم الدور');
       return;
     }
 
-    try {
-      await apiCreateAdmin({
-        full_name: newAdmin.name,
-        email: newAdmin.email,
-        phone: newAdmin.phone,
-        password: newAdmin.password,
-        role: newAdmin.role,
-        permissions: newAdmin.permissions
-      });
-    } catch (e) {}
+    if (selectedRole) {
+      setRoles(roles.map(r => r.id === selectedRole.id ? {
+        ...r,
+        name: formData.name,
+        description: formData.description,
+        type: formData.type
+      } : r));
+      alert(`تم تحديث الدور [${formData.name}] بنجاح`);
+      setEditModalOpen(false);
+    } else {
+      const newRole = {
+        id: `r_${Date.now()}`,
+        name: formData.name,
+        description: formData.description || 'دور مخصص في النظام',
+        type: formData.type,
+        usersCount: 0,
+        activeUsersCount: 0,
+        permsCount: 48,
+        status: 'مفعل',
+        createdAt: new Date().toISOString().split('T')[0],
+        createdBy: 'مدير المنصة',
+        assignedUsers: []
+      };
+      setRoles([...roles, newRole]);
+      alert(`تم إنشاء الدور [${formData.name}] بنجاح`);
+      setCreateModalOpen(false);
+    }
 
-    const permLabels = newAdmin.permissions.map(k => availablePerms.find(p => p.key === k)?.label?.split(' (')[0] || k);
-
-    setAdmins([...admins, {
-      id: `adm_${Date.now()}`,
-      name: newAdmin.name,
-      email: newAdmin.email,
-      role: newAdmin.role,
-      permissionsKeys: newAdmin.permissions,
-      permissions: newAdmin.role === 'super_admin' ? ['الكل (Super Admin Full Access)'] : permLabels,
-      createdAt: new Date().toISOString().split('T')[0]
-    }]);
-
-    setCreateModal(false);
-    setNewAdmin({ name: '', email: '', phone: '', password: '', role: 'admin', permissions: [] });
-    setCloneSourceId('');
-    alert(`تم إنشاء حساب المشرف [${newAdmin.name}] بنجاح وتطبيق الصلاحيات المختارة.`);
+    setSelectedRole(null);
   };
 
+  const handleToggleRoleStatus = (id) => {
+    setRoles(roles.map(r => r.id === id ? { ...r, status: r.status === 'مفعل' ? 'معطل' : 'مفعل' } : r));
+  };
+
+  const handleDeleteRole = (id) => {
+    const target = roles.find(r => r.id === id);
+    if (window.confirm(`هل أنت متأكد من حذف الدور: ${target?.name}؟`)) {
+      setRoles(roles.filter(r => r.id !== id));
+    }
+  };
+
+  const handleRemoveUserFromRole = (userId) => {
+    if (activeRoleDetail) {
+      const updatedAssigned = activeRoleDetail.assignedUsers.filter(u => u.id !== userId);
+      const updatedRole = { ...activeRoleDetail, assignedUsers: updatedAssigned, usersCount: updatedAssigned.length };
+      setActiveRoleDetail(updatedRole);
+      setRoles(roles.map(r => r.id === activeRoleDetail.id ? updatedRole : r));
+      alert('تم إزالة المستخدم من هذا الدور بنجاح');
+    }
+  };
+
+  const filteredRoles = roles.filter(r => {
+    const matchSearch = r.name.includes(searchTerm) || r.description.includes(searchTerm);
+    const matchType = typeFilter === 'all' || r.type === typeFilter;
+    return matchSearch && matchType;
+  });
+
+  // Calculate total enabled permissions across all groups
+  const totalEnabledPerms = permissionGroups.reduce((acc, g) => acc + g.permissions.filter(p => p.enabled).length, 0);
+
+  // Filter permission groups based on search & category
+  const filteredGroups = permissionGroups.filter(g => {
+    const matchCat = permCategoryFilter === 'all' || g.title.includes(permCategoryFilter);
+    return matchCat;
+  }).map(g => {
+    if (!permSearch.trim()) return g;
+    return {
+      ...g,
+      permissions: g.permissions.filter(p => p.name.includes(permSearch))
+    };
+  }).filter(g => g.permissions.length > 0);
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // VIEW: ROLE DETAILS SCREEN (ON EYE CLICK 👁️)
+  // ══════════════════════════════════════════════════════════════════════════
+  if (activeRoleDetail) {
+    return (
+      <div>
+        {/* Top Breadcrumb Bar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#64748B' }}>
+            <span 
+              style={{ cursor: 'pointer', color: '#0284C7', fontWeight: '700' }}
+              onClick={() => setActiveRoleDetail(null)}
+            >
+              الأدوار والصلاحيات
+            </span>
+            <span>›</span>
+            <span style={{ color: '#0F172A', fontWeight: '800' }}>{activeRoleDetail.name}</span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button 
+              className="admin-btn-action-outline"
+              style={{ fontSize: '12.5px', padding: '6px 14px', gap: '6px' }}
+              onClick={() => setActiveRoleDetail(null)}
+            >
+              <span>رجوع</span>
+              <span>➔</span>
+            </button>
+
+            <button 
+              className="admin-btn-action-outline"
+              style={{ fontSize: '12.5px', padding: '6px 14px', gap: '6px' }}
+              onClick={() => handleCloneRole(activeRoleDetail)}
+            >
+              <span>استنساخ الدور</span>
+              <span>📋</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Role Overview Card */}
+        <div className="admin-card" style={{ marginBottom: '18px', padding: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px' }}>
+            <div style={{ width: '46px', height: '46px', borderRadius: '8px', background: '#0A3C64', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
+              🛡️
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <h1 style={{ margin: 0, fontSize: '22px', fontWeight: '900', color: '#0F172A' }}>{activeRoleDetail.name}</h1>
+                <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: '#F0F9FF', color: '#0284C7', border: '1px solid #BAE6FD', fontWeight: '700' }}>
+                  {activeRoleDetail.type}
+                </span>
+              </div>
+              <p style={{ margin: '4px 0 0 0', fontSize: '12.5px', color: '#64748B' }}>
+                {activeRoleDetail.description}
+              </p>
+            </div>
+          </div>
+
+          {/* Stats Row inside Card */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', borderTop: '1px solid #F1F5F9', paddingTop: '14px' }}>
+            <div>
+              <div style={{ fontSize: '20px', fontWeight: '900', color: '#0F172A' }}>{activeRoleDetail.usersCount}</div>
+              <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>المستخدمون</div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '20px', fontWeight: '900', color: '#0F172A' }}>{activeRoleDetail.permsCount}</div>
+              <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>الصلاحيات الفعالة</div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '20px', fontWeight: '900', color: '#0F172A' }}>{activeRoleDetail.activeUsersCount}</div>
+              <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>المستخدمون النشطون</div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '15px', fontWeight: '800', color: '#0F172A' }}>{activeRoleDetail.createdAt}</div>
+              <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>تاريخ الإنشاء</div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '15px', fontWeight: '800', color: '#0F172A' }}>{activeRoleDetail.createdBy}</div>
+              <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>تم الإنشاء بواسطة</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs Navigation */}
+        <div style={{ display: 'flex', gap: '20px', borderBottom: '2px solid #E2E8F0', marginBottom: '18px' }}>
+          <button 
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              padding: '10px 16px', 
+              fontSize: '14px', 
+              fontWeight: '800', 
+              color: activeTab === 'permissions' ? '#E58A13' : '#64748B', 
+              borderBottom: activeTab === 'permissions' ? '3px solid #E58A13' : '3px solid transparent',
+              cursor: 'pointer',
+              marginBottom: '-2px'
+            }}
+            onClick={() => setActiveTab('permissions')}
+          >
+            الصلاحيات
+          </button>
+
+          <button 
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              padding: '10px 16px', 
+              fontSize: '14px', 
+              fontWeight: '800', 
+              color: activeTab === 'users' ? '#E58A13' : '#64748B', 
+              borderBottom: activeTab === 'users' ? '3px solid #E58A13' : '3px solid transparent',
+              cursor: 'pointer',
+              marginBottom: '-2px'
+            }}
+            onClick={() => setActiveTab('users')}
+          >
+            المستخدمون
+          </button>
+
+          <button 
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              padding: '10px 16px', 
+              fontSize: '14px', 
+              fontWeight: '800', 
+              color: activeTab === 'audit' ? '#E58A13' : '#64748B', 
+              borderBottom: activeTab === 'audit' ? '3px solid #E58A13' : '3px solid transparent',
+              cursor: 'pointer',
+              marginBottom: '-2px'
+            }}
+            onClick={() => setActiveTab('audit')}
+          >
+            سجل التغييرات
+          </button>
+        </div>
+
+        {/* ══════════════════════════════════════════════════════════════════
+            TAB 1 CONTENT: الصلاحيات (PERMISSIONS) - ALL 8 CATEGORIES
+            ══════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'permissions' && (
+          <div>
+            {/* Top 4-Column Metadata Grid */}
+            <div className="admin-card" style={{ padding: '14px 20px', marginBottom: '16px', background: '#FAFAFA' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#94A3B8' }}>الترخيص ونطاق الصلاحيات</div>
+                  <div style={{ fontSize: '13px', fontWeight: '800', color: '#0F172A', marginTop: '2px' }}>الإدارة العامة</div>
+                  <div style={{ fontSize: '10.5px', color: '#64748B' }}>الكل</div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '11px', color: '#94A3B8' }}>التعيين</div>
+                  <div style={{ fontSize: '13px', fontWeight: '800', color: '#0F172A', marginTop: '2px' }}>الموقع والمستودعات</div>
+                  <div style={{ fontSize: '10.5px', color: '#64748B' }}>الحسابات</div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '11px', color: '#94A3B8' }}>الارتباطات</div>
+                  <div style={{ fontSize: '13px', fontWeight: '800', color: '#0F172A', marginTop: '2px' }}>الأدوار والوظائف</div>
+                  <div style={{ fontSize: '10.5px', color: '#64748B' }}>الكل</div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '11px', color: '#94A3B8' }}>المستخدم المباشر</div>
+                  <div style={{ fontSize: '13px', fontWeight: '800', color: '#0F172A', marginTop: '2px' }}>المدير</div>
+                  <div style={{ fontSize: '10.5px', color: '#64748B' }}>سعد هارون</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Filter Bar with Live Active Count */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '13px', color: '#64748B', fontWeight: '700' }}>
+                ({totalEnabledPerms}) صلاحية مفعلة
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, maxWidth: '500px' }}>
+                <select 
+                  className="admin-select-input"
+                  style={{ width: '160px', height: '38px' }}
+                  value={permCategoryFilter}
+                  onChange={e => setPermCategoryFilter(e.target.value)}
+                >
+                  <option value="all">جميع الصلاحيات</option>
+                  <option value="المستخدمون">المستخدمون</option>
+                  <option value="المحتوى">المحتوى</option>
+                  <option value="الاستشارات">الاستشارات</option>
+                  <option value="الذكي">المساعد الذكي (AI)</option>
+                  <option value="الإقرارات">الإقرارات الضريبية</option>
+                  <option value="الفواتير">الفواتير والمدفوعات</option>
+                  <option value="الدعم">الدعم والتذاكر</option>
+                  <option value="النظام">النظام</option>
+                </select>
+
+                <div className="admin-search-wrapper" style={{ flex: 1 }}>
+                  <IconSearch size={15} className="admin-search-icon" />
+                  <input 
+                    type="text" 
+                    className="admin-search-input" 
+                    placeholder="البحث في صلاحيات الدور..." 
+                    value={permSearch}
+                    onChange={e => setPermSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 8 Grouped Permissions Cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {filteredGroups.map(group => (
+                <div key={group.id} className="admin-card" style={{ padding: '16px' }}>
+                  {/* Category Header with Select All / Clear All */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid #F1F5F9', paddingBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#0A3C64' }}>
+                        {group.title} ({group.count})
+                      </h3>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button 
+                        type="button" 
+                        style={{ fontSize: '11.5px', color: '#0284C7', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700' }}
+                        onClick={() => handleTriggerSelectAll(group)}
+                      >
+                        تحديد الكل
+                      </button>
+                      <span style={{ color: '#CBD5E1' }}>|</span>
+                      <button 
+                        type="button" 
+                        style={{ fontSize: '11.5px', color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700' }}
+                        onClick={() => applySelectAll(group.id, false)}
+                      >
+                        إلغاء
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Permissions Rows Matching Zoomed Screenshot */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {group.permissions.map(p => (
+                      <div 
+                        key={p.id}
+                        style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center', 
+                          padding: '10px 14px', 
+                          background: '#FFFFFF', 
+                          borderRadius: '8px',
+                          border: '1px solid #E2E8F0'
+                        }}
+                      >
+                        {/* Left Side in RTL: Segmented Scope Pills */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          {['خاص بي', 'الخاصة بي', 'الجميع'].map(scopeOpt => {
+                            const isSelected = p.scope === scopeOpt;
+                            return (
+                              <button
+                                key={scopeOpt}
+                                type="button"
+                                onClick={() => handleSetScope(group.id, p.id, scopeOpt)}
+                                style={{
+                                  padding: '4px 10px',
+                                  fontSize: '11px',
+                                  fontWeight: '700',
+                                  borderRadius: '6px',
+                                  border: isSelected ? '1px solid #0A3C64' : '1px solid #E2E8F0',
+                                  background: isSelected ? '#0A3C64' : '#F8FAFC',
+                                  color: isSelected ? '#FFFFFF' : '#64748B',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {scopeOpt}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Right Side in RTL: Permission Name + Sensitive badge + Toggle switch */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          {p.sensitive && (
+                            <span style={{ fontSize: '10.5px', padding: '2px 8px', borderRadius: '10px', background: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA', fontWeight: '800' }}>
+                              حساس
+                            </span>
+                          )}
+
+                          <span style={{ fontWeight: '700', fontSize: '13.5px', color: '#0F172A' }}>
+                            {p.name}
+                          </span>
+
+                          {/* Custom Styled Toggle Switch */}
+                          <div 
+                            onClick={() => handleTogglePerm(group.id, p.id)}
+                            style={{ 
+                              width: '38px', 
+                              height: '20px', 
+                              borderRadius: '20px', 
+                              background: p.enabled ? '#0A3C64' : '#CBD5E1', 
+                              position: 'relative', 
+                              cursor: 'pointer',
+                              transition: 'background 0.2s'
+                            }}
+                          >
+                            <div 
+                              style={{ 
+                                width: '16px', 
+                                height: '16px', 
+                                borderRadius: '50%', 
+                                background: '#FFFFFF', 
+                                position: 'absolute', 
+                                top: '2px', 
+                                left: p.enabled ? '20px' : '2px',
+                                transition: 'left 0.2s',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                              }} 
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════
+            TAB 2 CONTENT: المستخدمون (USERS)
+            ══════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'users' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div className="admin-search-wrapper" style={{ flex: 1 }}>
+                <IconSearch size={15} className="admin-search-icon" />
+                <input 
+                  type="text" 
+                  className="admin-search-input" 
+                  placeholder="البحث في المستخدمين..." 
+                  value={userSearch}
+                  onChange={e => setUserSearch(e.target.value)}
+                />
+              </div>
+
+              <button 
+                className="admin-btn-action-primary" 
+                style={{ fontSize: '12.5px', padding: '8px 16px', background: '#E58A13', borderColor: '#E58A13' }}
+                onClick={() => setAddUserToRoleModal(true)}
+              >
+                + إضافة مستخدم إلى الدور
+              </button>
+            </div>
+
+            <div className="admin-table-container">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>المستخدم</th>
+                    <th>البريد الإلكتروني / الهاتف</th>
+                    <th>الحالة</th>
+                    <th>تاريخ الإسناد</th>
+                    <th>نوع الإسناد</th>
+                    <th style={{ textAlign: 'center' }}>الإجراء</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeRoleDetail.assignedUsers.map(u => (
+                    <tr key={u.id}>
+                      <td style={{ fontWeight: '800', color: '#0F172A' }}>{u.name}</td>
+                      <td style={{ direction: 'ltr', textAlign: 'right', fontFamily: 'monospace', color: '#64748B' }}>{u.phone}</td>
+                      <td>
+                        <span 
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            background: u.status === 'مفعل' ? '#ECFDF5' : '#FEF2F2',
+                            color: u.status === 'مفعل' ? '#059669' : '#DC2626',
+                            border: u.status === 'مفعل' ? '1px solid #A7F3D0' : '1px solid #FECACA'
+                          }}
+                        >
+                          {u.status}
+                        </span>
+                      </td>
+                      <td style={{ color: '#64748B', fontSize: '12px' }}>{u.assignedAt}</td>
+                      <td>
+                        <span className="admin-category-chip" style={{ fontSize: '11px', padding: '2px 8px' }}>
+                          {u.assignType}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <button 
+                          className="admin-icon-btn-minimal" 
+                          style={{ border: '1px solid #FECACA', background: '#FEF2F2', borderRadius: '6px', width: '28px', height: '28px', color: '#DC2626' }}
+                          title="إزالة من هذا الدور"
+                          onClick={() => handleRemoveUserFromRole(u.id)}
+                        >
+                          🗑️
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════
+            TAB 3 CONTENT: سجل التغييرات (AUDIT LOG)
+            ══════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'audit' && (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+              <div className="admin-search-wrapper" style={{ flex: 1 }}>
+                <IconSearch size={15} className="admin-search-icon" />
+                <input 
+                  type="text" 
+                  className="admin-search-input" 
+                  placeholder="البحث في سجل التغييرات..." 
+                  value={auditSearch}
+                  onChange={e => setAuditSearch(e.target.value)}
+                />
+              </div>
+              <select className="admin-select-input" style={{ width: '160px', height: '38px' }}>
+                <option value="all">جميع الإجراءات</option>
+                <option value="تعديل">تعديل</option>
+                <option value="إضافة">إضافة</option>
+                <option value="إنشاء">إنشاء</option>
+              </select>
+            </div>
+
+            <div className="admin-table-container">
+              <table className="admin-table" style={{ fontSize: '12.5px' }}>
+                <thead>
+                  <tr>
+                    <th>الحدث</th>
+                    <th>التفاصيل</th>
+                    <th>العنصر</th>
+                    <th>القيمة السابقة</th>
+                    <th>القيمة الجديدة</th>
+                    <th>المستخدم</th>
+                    <th>التاريخ والوقت</th>
+                    <th>IP</th>
+                    <th>الحالة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditLogsList.map(log => (
+                    <tr key={log.id}>
+                      <td>
+                        <span className="admin-category-chip" style={{ fontSize: '11px', padding: '2px 8px' }}>{log.event}</span>
+                      </td>
+                      <td style={{ fontWeight: '700' }}>{log.details}</td>
+                      <td style={{ color: '#0F172A' }}>{log.element}</td>
+                      <td style={{ color: '#94A3B8' }}>{log.prevVal}</td>
+                      <td style={{ color: '#059669', fontWeight: '700' }}>{log.newVal}</td>
+                      <td style={{ fontWeight: '700' }}>{log.user}</td>
+                      <td style={{ color: '#64748B', fontFamily: 'monospace', fontSize: '11.5px' }}>{log.date}</td>
+                      <td style={{ color: '#64748B', fontFamily: 'monospace', fontSize: '11.5px', direction: 'ltr', textAlign: 'right' }}>{log.ip}</td>
+                      <td>
+                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0', fontWeight: '700' }}>
+                          {log.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════
+            CONFIRMATION MODAL: تحديد الكل — صلاحيات حساسة
+            ══════════════════════════════════════════════════════════════════ */}
+        {sensitiveModalGroup && (
+          <div className="admin-modal-overlay" onClick={() => setSensitiveModalGroup(null)}>
+            <div className="admin-modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '560px', padding: '24px', borderRadius: '12px' }}>
+              <div style={{ marginBottom: '16px' }}>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#0A3C64', textAlign: 'right' }}>
+                  تحديد الكل — صلاحيات حساسة
+                </h3>
+              </div>
+
+              {/* Warning Box */}
+              <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '8px', padding: '12px 14px', marginBottom: '16px', color: '#92400E', fontSize: '12.5px', fontWeight: '700' }}>
+                تحذير: هذه المجموعة تتضمن ({sensitiveModalGroup.permissions.filter(p => p.sensitive).length}) صلاحيات حساسة قد تؤثر على أمان وسرية بيانات المنصة.
+              </div>
+
+              {/* List of Sensitive Permissions */}
+              <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '8px 12px', background: '#F8FAFC', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '160px', overflowY: 'auto' }}>
+                {sensitiveModalGroup.permissions.filter(p => p.sensitive).map(p => (
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12.5px', color: '#0F172A', fontWeight: '700' }}>
+                    <span>{p.name}</span>
+                    <span style={{ fontSize: '10.5px', padding: '2px 8px', borderRadius: '6px', background: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA' }}>
+                      حساس
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button 
+                  className="admin-btn-action-outline" 
+                  style={{ fontSize: '12.5px', padding: '8px 16px' }}
+                  onClick={() => {
+                    applySelectAll(sensitiveModalGroup.id, true, false);
+                    setSensitiveModalGroup(null);
+                  }}
+                >
+                  تخطي الصلاحيات الحساسة فقط
+                </button>
+                <button 
+                  className="admin-btn-action-primary" 
+                  style={{ fontSize: '12.5px', padding: '8px 20px', background: '#E58A13', borderColor: '#E58A13' }}
+                  onClick={() => {
+                    applySelectAll(sensitiveModalGroup.id, true, true);
+                    setSensitiveModalGroup(null);
+                  }}
+                >
+                  متابعة وتفعيل الكل
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // DEFAULT VIEW: MAIN ROLES & PERMISSIONS TABLE
+  // ══════════════════════════════════════════════════════════════════════════
   return (
     <div>
-      <div className="admin-command-banner">
+      {/* 1. Header Banner */}
+      <div className="admin-command-banner" style={{ marginBottom: '20px' }}>
         <div>
-          <div className="admin-banner-sub-tag">ROLE-BASED ACCESS CONTROL (RBAC)</div>
-          <h1 className="admin-banner-title">صلاحيات الأدوار والمشرفين</h1>
-          <p className="admin-banner-desc">
-            إدارة حسابات المشرفين وتوزيع الصلاحيات الدقيقة، مع إمكانية استيراد ونسخ الصلاحيات من أي حساب والتعديل عليها.
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h1 className="admin-banner-title" style={{ fontSize: '24px', margin: 0 }}>الأدوار والصلاحيات</h1>
+            <span style={{ fontSize: '20px', color: '#0A3C64' }}>⚙️</span>
+          </div>
+          <p className="admin-banner-desc" style={{ fontSize: '13px', margin: '4px 0 0 0', color: '#64748B' }}>
+            إدارة أدوار المستخدمين وصلاحيات كل دور وإجراءات التحكم الممنوحة داخل النظام.
           </p>
         </div>
+
         <button 
-          className="admin-btn-action-primary" 
-          onClick={() => {
-            setNewAdmin({ name: '', email: '', phone: '', password: '', role: 'admin', permissions: [] });
-            setCloneSourceId('');
-            setCreateModal(true);
-          }}
+          className="admin-btn-action-primary"
+          style={{ fontSize: '13px', padding: '8px 18px', gap: '6px' }}
+          onClick={handleOpenCreate}
         >
-          <span>+ إنشاء مشرف جديد / استيراد صلاحيات</span>
+          <span>+ إنشاء دور جديد</span>
         </button>
       </div>
 
+      {/* 2. Top 4 Metric Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '22px' }}>
+        <div className="admin-card" style={{ borderBottom: '3px solid #E58A13' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ fontSize: '26px', fontWeight: '900', color: '#0F172A' }}>{roles.length}</div>
+              <div style={{ fontSize: '13px', fontWeight: '800', color: '#334155', marginTop: '2px' }}>إجمالي الأدوار</div>
+              <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>أدوار معرفة</div>
+            </div>
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
+              🛡️
+            </div>
+          </div>
+        </div>
+
+        <div className="admin-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ fontSize: '26px', fontWeight: '900', color: '#0F172A' }}>{roles.filter(r => r.status === 'مفعل').length}</div>
+              <div style={{ fontSize: '13px', fontWeight: '800', color: '#334155', marginTop: '2px' }}>الأدوار المفعلة</div>
+              <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>أدوار نشطة</div>
+            </div>
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#ECFDF5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
+              ✓
+            </div>
+          </div>
+        </div>
+
+        <div className="admin-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ fontSize: '26px', fontWeight: '900', color: '#0F172A' }}>49</div>
+              <div style={{ fontSize: '13px', fontWeight: '800', color: '#334155', marginTop: '2px' }}>الصلاحيات الكلية</div>
+              <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>صلاحية موزعة</div>
+            </div>
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
+              📋
+            </div>
+          </div>
+        </div>
+
+        <div className="admin-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ fontSize: '26px', fontWeight: '900', color: '#0F172A' }}>12</div>
+              <div style={{ fontSize: '13px', fontWeight: '800', color: '#334155', marginTop: '2px' }}>العلاقات المتداخلة</div>
+              <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>ربط بين الأدوار</div>
+            </div>
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#F8FAFC', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', border: '1px solid #E2E8F0' }}>
+              !
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Search & Filter Bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+        <div className="admin-search-wrapper" style={{ flex: 1 }}>
+          <IconSearch size={15} className="admin-search-icon" />
+          <input
+            type="text"
+            className="admin-search-input"
+            placeholder="بحث في الأدوار..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        <select 
+          className="admin-select-input"
+          style={{ width: '160px', height: '38px' }}
+          value={typeFilter}
+          onChange={e => setTypeFilter(e.target.value)}
+        >
+          <option value="all">جميع الأدوار</option>
+          <option value="دور أساسي">دور أساسي</option>
+          <option value="دور إضافي">دور إضافي</option>
+        </select>
+      </div>
+
+      {/* 4. Full Width Roles & Permissions Table */}
       <div className="admin-table-container">
         <table className="admin-table">
           <thead>
             <tr>
-              <th>المشرف</th>
-              <th>البريد الإلكتروني</th>
-              <th>الرتبة</th>
-              <th>الصلاحيات الممنوحة</th>
-              <th>تاريخ الإنشاء</th>
-              <th>الإجراء</th>
+              <th>اسم الدور</th>
+              <th>نوع الدور</th>
+              <th>المستخدمون</th>
+              <th>الصلاحيات</th>
+              <th>الحالة</th>
+              <th style={{ textAlign: 'center' }}>الإجراءات</th>
             </tr>
           </thead>
           <tbody>
-            {admins.map(a => (
-              <tr key={a.id}>
-                <td><strong>{a.name}</strong></td>
-                <td style={{ direction: 'ltr', textAlign: 'right' }}>{a.email}</td>
+            {filteredRoles.map(r => (
+              <tr key={r.id}>
                 <td>
-                  <span className={a.role === 'super_admin' ? 'admin-badge-warning' : 'admin-badge-info'}>
-                    {a.role === 'super_admin' ? 'مشرف عام (Super Admin)' : 'مشرف نظام (Admin)'}
-                  </span>
-                </td>
-                <td>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                    {a.permissions.map((p, i) => (
-                      <span key={i} className="admin-category-chip" style={{ fontSize: '11px', padding: '3px 8px' }}>{p}</span>
-                    ))}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#0A3C64', color: '#FFFFFF', fontWeight: '800', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>
+                      🛡️
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: '800', color: '#0F172A', fontSize: '14px' }}>{r.name}</div>
+                      <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>{r.description}</div>
+                    </div>
                   </div>
                 </td>
-                <td>{a.createdAt}</td>
+
                 <td>
-                  <button 
-                    className="admin-btn-action-outline"
-                    style={{ fontSize: '11.5px', padding: '4px 10px' }}
-                    onClick={() => {
-                      setNewAdmin({
-                        name: `نسخة من ${a.name}`,
-                        email: '',
-                        phone: '',
-                        password: '',
-                        role: 'admin',
-                        permissions: a.role === 'super_admin' ? availablePerms.map(p => p.key) : [...(a.permissionsKeys || [])]
-                      });
-                      setCloneSourceId(a.id);
-                      setCreateModal(true);
+                  <span 
+                    className="admin-category-chip"
+                    style={{ 
+                      fontSize: '11px', 
+                      padding: '3px 10px', 
+                      borderRadius: '12px',
+                      background: r.type === 'دور أساسي' ? '#FFFBEB' : '#F0F9FF',
+                      color: r.type === 'دور أساسي' ? '#D97706' : '#0284C7',
+                      border: r.type === 'دور أساسي' ? '1px solid #FDE68A' : '1px solid #BAE6FD',
+                      fontWeight: '700'
                     }}
                   >
-                    📋 نسخ الصلاحيات لإنشاء مشرف
-                  </button>
+                    {r.type}
+                  </span>
+                </td>
+
+                <td style={{ fontWeight: '700', color: '#0F172A', fontSize: '13px' }}>
+                  {r.usersCount}
+                </td>
+
+                <td style={{ fontWeight: '700', color: '#0F172A', fontSize: '13px' }}>
+                  {r.permsCount}
+                </td>
+
+                <td>
+                  <span 
+                    style={{
+                      fontSize: '11.5px',
+                      fontWeight: '700',
+                      padding: '3px 10px',
+                      borderRadius: '12px',
+                      background: r.status === 'مفعل' ? '#ECFDF5' : '#FEF2F2',
+                      color: r.status === 'مفعل' ? '#059669' : '#DC2626',
+                      border: r.status === 'مفعل' ? '1px solid #A7F3D0' : '1px solid #FECACA',
+                      display: 'inline-block'
+                    }}
+                  >
+                    {r.status}
+                  </span>
+                </td>
+
+                <td>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    <button 
+                      className="admin-icon-btn-minimal" 
+                      style={{ border: '1px solid #E2E8F0', borderRadius: '6px', background: '#FFFFFF', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', cursor: 'pointer' }}
+                      title="معاينة تفاصيل الدور والصلاحيات"
+                      onClick={() => {
+                        setActiveRoleDetail(r);
+                        setActiveTab('permissions');
+                      }}
+                    >
+                      👁
+                    </button>
+
+                    <button 
+                      className="admin-icon-btn-minimal" 
+                      style={{ border: '1px solid #E2E8F0', borderRadius: '6px', background: '#FFFFFF', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', cursor: 'pointer' }}
+                      title="استنساخ ونسخ الدور"
+                      onClick={() => handleCloneRole(r)}
+                    >
+                      📋
+                    </button>
+
+                    <button 
+                      className="admin-icon-btn-minimal" 
+                      style={{ border: '1px solid #E2E8F0', borderRadius: '6px', background: '#FFFFFF', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', cursor: 'pointer' }}
+                      title="تعديل الدور والصلاحيات"
+                      onClick={() => handleOpenEdit(r)}
+                    >
+                      ✏️
+                    </button>
+
+                    <button 
+                      className="admin-icon-btn-minimal" 
+                      style={{ border: '1px solid #E2E8F0', borderRadius: '6px', background: '#FFFFFF', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.status === 'مفعل' ? '#DC2626' : '#059669', cursor: 'pointer' }}
+                      title={r.status === 'مفعل' ? 'تعطيل الدور' : 'تفعيل الدور'}
+                      onClick={() => handleToggleRoleStatus(r.id)}
+                    >
+                      {r.status === 'مفعل' ? '⛔' : '✓'}
+                    </button>
+
+                    <button 
+                      className="admin-icon-btn-minimal" 
+                      style={{ border: '1px solid #FECACA', background: '#FEF2F2', borderRadius: '6px', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#DC2626', cursor: 'pointer' }}
+                      title="حذف الدور"
+                      onClick={() => handleDeleteRole(r.id)}
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -220,174 +1235,113 @@ export default function AdminRbacPage({ navigate }) {
         </table>
       </div>
 
-      {/* Modal: Create & Clone Admin with Dynamic Permissions */}
-      {createModal && (
-        <div className="admin-modal-overlay" onClick={() => setCreateModal(false)}>
-          <div className="admin-modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '640px', padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800' }}>
-                إنشاء مشرف جديد وتعيين الصلاحيات
+      {/* CREATE MODAL */}
+      {createModalOpen && (
+        <div className="admin-modal-overlay" onClick={() => setCreateModalOpen(false)}>
+          <div className="admin-modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '540px', padding: '24px', borderRadius: '12px' }}>
+            <div style={{ marginBottom: '18px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#0A3C64', textAlign: 'right' }}>
+                إنشاء دور جديد
               </h3>
-              <button className="admin-icon-btn-minimal" onClick={() => setCreateModal(false)}>✕</button>
             </div>
 
-            {/* Feature 1: Clone / Import Permissions Box */}
-            <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '8px', padding: '14px', marginBottom: '18px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '13px', fontWeight: '800', color: '#92400E' }}>
-                <span>📋 استيراد ونسخ الصلاحيات من حساب آخر (Clone Permissions):</span>
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '700', marginBottom: '6px', color: '#0F172A' }}>اسم الدور *</label>
+              <input 
+                type="text" 
+                className="admin-search-input" 
+                placeholder="مثلاً: مراجع ضريبي"
+                value={formData.name} 
+                onChange={e => setFormData({ ...formData, name: e.target.value })} 
+                style={{ width: '100%', height: '40px' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '700', marginBottom: '6px', color: '#0F172A' }}>وصف الدور</label>
+              <textarea 
+                className="admin-search-input" 
+                placeholder="وصف مختصر لمسؤوليات هذا الدور"
+                value={formData.description} 
+                onChange={e => setFormData({ ...formData, description: e.target.value })} 
+                style={{ width: '100%', height: '80px', padding: '10px', resize: 'vertical' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '700', marginBottom: '6px', color: '#0F172A' }}>الاستنساخ من دور متاح</label>
+              <select 
+                className="admin-select-input" 
+                style={{ width: '100%', height: '40px', background: '#FFFFFF' }}
+                value={cloneSourceId}
+                onChange={e => handleCloneFromDropdown(e.target.value)}
+              >
+                <option value="">البدء من دور متاح...</option>
+                {roles.map(rl => (
+                  <option key={rl.id} value={rl.id}>
+                    {rl.name} ({rl.type})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button className="admin-btn-action-outline" onClick={() => setCreateModalOpen(false)}>إلغاء</button>
+              <button className="admin-btn-action-primary" style={{ background: '#E58A13', borderColor: '#E58A13' }} onClick={handleSaveRole}>إنشاء الدور</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT MODAL */}
+      {editModalOpen && selectedRole && (
+        <div className="admin-modal-overlay" onClick={() => setEditModalOpen(false)}>
+          <div className="admin-modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '650px', padding: '24px', borderRadius: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+              <h3 style={{ margin: 0, fontSize: '19px', fontWeight: '900', color: '#0A3C64' }}>
+                تعديل الدور: {selectedRole.name}
+              </h3>
+              <button className="admin-icon-btn-minimal" onClick={() => setEditModalOpen(false)}>✕</button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '700', marginBottom: '4px' }}>اسم الدور *</label>
+                <input 
+                  type="text" 
+                  className="admin-search-input" 
+                  value={formData.name} 
+                  onChange={e => setFormData({ ...formData, name: e.target.value })} 
+                />
               </div>
-              <p style={{ fontSize: '11.5px', color: '#78350F', margin: '0 0 10px 0' }}>
-                اختر مشرفاً لنسخ صلاحياته فوراً، ثم يمكنك التعديل عليها بحرية (إضافة أو تقليل أي صلاحية).
-              </p>
-              
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '700', marginBottom: '4px' }}>نوع الدور</label>
                 <select 
                   className="admin-select-input" 
-                  style={{ flex: 1, height: '36px', background: '#FFFFFF' }}
-                  value={cloneSourceId}
-                  onChange={e => handleClonePermissions(e.target.value)}
+                  style={{ width: '100%', height: '38px' }}
+                  value={formData.type} 
+                  onChange={e => setFormData({ ...formData, type: e.target.value })}
                 >
-                  <option value="">-- اختر حساب المشرف المراد الاستيراد منه --</option>
-                  {admins.map(adm => (
-                    <option key={adm.id} value={adm.id}>
-                      {adm.name} ({adm.role === 'super_admin' ? 'Super Admin - كامل الصلاحيات' : `${adm.permissions.length} صلاحيات`})
-                    </option>
-                  ))}
+                  <option value="دور إضافي">دور إضافي</option>
+                  <option value="دور أساسي">دور أساسي</option>
                 </select>
               </div>
-
-              {/* Quick Preset Buttons */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px' }}>
-                <span style={{ fontSize: '11px', color: '#92400E', fontWeight: '700', alignSelf: 'center' }}>أو اختر قالباً جاهزاً:</span>
-                {presets.map((preset, pIdx) => (
-                  <button
-                    key={pIdx}
-                    type="button"
-                    className="admin-category-chip"
-                    style={{ fontSize: '11px', padding: '3px 8px', cursor: 'pointer', background: '#FFFFFF' }}
-                    onClick={() => handleApplyPreset(preset.perms)}
-                  >
-                    ⚡ {preset.name}
-                  </button>
-                ))}
-              </div>
             </div>
 
-            {/* Basic Info Fields */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '700', marginBottom: '4px' }}>الاسم الكامل:</label>
-                <input 
-                  type="text" 
-                  className="admin-search-input" 
-                  placeholder="مثال: م. علي الأحمد"
-                  value={newAdmin.name} 
-                  onChange={e => setNewAdmin({ ...newAdmin, name: e.target.value })} 
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '700', marginBottom: '4px' }}>البريد الإلكتروني:</label>
-                <input 
-                  type="email" 
-                  className="admin-search-input" 
-                  placeholder="ali@diwan.jo"
-                  value={newAdmin.email} 
-                  onChange={e => setNewAdmin({ ...newAdmin, email: e.target.value })} 
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '700', marginBottom: '4px' }}>رقم الهاتف:</label>
-                <input 
-                  type="text" 
-                  className="admin-search-input" 
-                  placeholder="0791234567"
-                  value={newAdmin.phone} 
-                  onChange={e => setNewAdmin({ ...newAdmin, phone: e.target.value })} 
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '700', marginBottom: '4px' }}>كلمة المرور:</label>
-                <input 
-                  type="password" 
-                  className="admin-search-input" 
-                  placeholder="••••••••••••"
-                  value={newAdmin.password} 
-                  onChange={e => setNewAdmin({ ...newAdmin, password: e.target.value })} 
-                />
-              </div>
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '700', marginBottom: '4px' }}>الوصف</label>
+              <input 
+                type="text" 
+                className="admin-search-input" 
+                value={formData.description} 
+                onChange={e => setFormData({ ...formData, description: e.target.value })} 
+              />
             </div>
 
-            {/* Granular Permissions Checkboxes */}
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '800', color: '#0F172A' }}>
-                  تخصيص الصلاحيات ({newAdmin.permissions.length} محددة من أصل {availablePerms.length}):
-                </label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button 
-                    type="button" 
-                    style={{ fontSize: '11px', color: '#0284C7', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700' }}
-                    onClick={() => setNewAdmin({ ...newAdmin, permissions: availablePerms.map(p => p.key) })}
-                  >
-                    تحديد الكل
-                  </button>
-                  <span style={{ color: '#CBD5E1' }}>|</span>
-                  <button 
-                    type="button" 
-                    style={{ fontSize: '11px', color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700' }}
-                    onClick={() => setNewAdmin({ ...newAdmin, permissions: [] })}
-                  >
-                    إلغاء التحديد
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px', maxHeight: '200px', overflowY: 'auto', padding: '8px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                {availablePerms.map(p => {
-                  const isChecked = newAdmin.permissions.includes(p.key);
-                  return (
-                    <label 
-                      key={p.key} 
-                      style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '10px', 
-                        fontSize: '12.5px', 
-                        color: isChecked ? '#0F172A' : '#64748B', 
-                        cursor: 'pointer',
-                        padding: '6px 8px',
-                        borderRadius: '6px',
-                        background: isChecked ? '#FFFFFF' : 'transparent',
-                        border: isChecked ? '1px solid #CBD5E1' : '1px solid transparent'
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={e => {
-                          if (e.target.checked) {
-                            setNewAdmin({ ...newAdmin, permissions: [...newAdmin.permissions, p.key] });
-                          } else {
-                            setNewAdmin({ ...newAdmin, permissions: newAdmin.permissions.filter(x => x !== p.key) });
-                          }
-                        }}
-                      />
-                      <span style={{ fontWeight: isChecked ? '700' : '400' }}>{p.label}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Action Buttons */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button className="admin-btn-action-outline" onClick={() => setCreateModal(false)}>إلغاء</button>
-              <button className="admin-btn-action-primary" onClick={handleCreateAdmin}>
-                ✓ إنشاء وتطبيق الصلاحيات
-              </button>
+              <button className="admin-btn-action-outline" onClick={() => setEditModalOpen(false)}>إلغاء</button>
+              <button className="admin-btn-action-primary" onClick={handleSaveRole}>حفظ التعديلات</button>
             </div>
           </div>
         </div>

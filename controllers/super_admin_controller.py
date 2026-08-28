@@ -137,6 +137,27 @@ class SuperAdminController:
         return SuperAdminService.admin_get_all_sessions(db)
 
     @staticmethod
+    def admin_update_session_status(db: Session, appointment_id: str, new_status):
+        """
+        Updates session status (e.g. from Kanban board drag & drop).
+        """
+        try:
+            appt_uuid = uuid.UUID(appointment_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid appointment ID format"
+            )
+            
+        try:
+            return SuperAdminService.admin_update_session_status(db, appt_uuid, new_status)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+
+    @staticmethod
     def admin_join_session(db: Session, appointment_id: str, admin_user):
         """
         Generates an observer join token for administrators.

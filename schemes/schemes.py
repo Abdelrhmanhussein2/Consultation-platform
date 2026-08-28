@@ -804,6 +804,11 @@ class AdminSessionJoinOut(BaseModel):
     token: str
     expires_at: datetime
 
+class AdminUpdateSessionStatus(BaseModel):
+    status: AppointmentStatus
+    notes: Optional[str] = None
+
+
 # =====================================================================
 # TICKETS (SUPPORT DESK)
 # =====================================================================

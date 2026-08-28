@@ -137,9 +137,27 @@ export async function getAdminSessions() {
   return adminRequest('/super-admin/sessions');
 }
 
-export async function getObserverToken(sessionId) {
-  return adminRequest(`/super-admin/sessions/${sessionId}/observer-token`, {
+export async function adminJoinSession(appointmentId) {
+  return adminRequest(`/super-admin/sessions/${appointmentId}/join`, {
     method: 'POST'
+  });
+}
+
+export async function updateAdminSessionStatus(appointmentId, status) {
+  return adminRequest(`/super-admin/sessions/${appointmentId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status })
+  });
+}
+
+export async function getUserStats() {
+  return adminRequest('/super-admin/stats/users');
+}
+
+export async function adminAddUser(userData) {
+  return adminRequest('/super-admin/users/add', {
+    method: 'POST',
+    body: JSON.stringify(userData)
   });
 }
 
@@ -190,6 +208,13 @@ export async function createAdmin(adminData) {
   return adminRequest('/super-admin/admins', {
     method: 'POST',
     body: JSON.stringify(adminData)
+  });
+}
+
+export async function updateAdminPermissions(adminId, permissions) {
+  return adminRequest(`/super-admin/admins/${adminId}/permissions`, {
+    method: 'PATCH',
+    body: JSON.stringify({ permissions })
   });
 }
 

@@ -48,7 +48,7 @@ from schemes.schemes import (
     AdminBroadcastNotification, BroadcastResultOut,
 
     # Sessions (Admin)
-    AdminSessionOut, AdminSessionJoinOut,
+    AdminSessionOut, AdminSessionJoinOut, AdminUpdateSessionStatus,
 
     # Tickets (Support Desk)
     TicketCreate, TicketReplyCreate, TicketReplyOut, TicketOut,

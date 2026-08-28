@@ -11,7 +11,7 @@ from schemes import (
     CredentialOut, CredentialReview,
     UserStatsOut, AdminUserListOut, AdminAddUserRequest,
     AdminBroadcastNotification, BroadcastResultOut,
-    AdminSessionOut, AdminSessionJoinOut,
+    AdminSessionOut, AdminSessionJoinOut, AdminUpdateSessionStatus,
     TicketOut, TicketReplyOut, AdminTicketCreate,
     AdminTicketReplyCreate, AdminTicketUpdate,
     AdminCreate, AdminUpdatePermissions,
@@ -274,6 +274,23 @@ def admin_join_session(
     Creates a Daily.co meeting token with observer status (is_owner=False) for the admin to enter the session room.
     """
     return SuperAdminController.admin_join_session(db, appointment_id, current_admin)
+
+
+@router.patch(
+    "/sessions/{appointment_id}/status",
+    summary="Update session/appointment status (e.g. from Kanban drag & drop)",
+)
+def admin_update_session_status(
+    appointment_id: str,
+    status_in: AdminUpdateSessionStatus,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_sessions)
+):
+    """
+    Updates appointment status dynamically with real-time sync.
+    """
+    return SuperAdminController.admin_update_session_status(db, appointment_id, status_in.status)
+
 
 
 # ─────────────────────────────────────────────────────────────────────

@@ -292,20 +292,18 @@ class SuperAdminService:
     @staticmethod
     def admin_get_all_sessions(db: Session) -> list:
         """
-        Returns all scheduled video sessions with client and consultant metadata.
+        Returns all scheduled video and consultation sessions with client and consultant metadata.
         """
-        appointments = db.query(Appointment).filter(
-            Appointment.status.in_([AppointmentStatus.confirmed, AppointmentStatus.completed])
-        ).order_by(Appointment.scheduled_at.desc()).all()
+        appointments = db.query(Appointment).order_by(Appointment.scheduled_at.desc()).all()
 
         results = []
         for appt in appointments:
             results.append({
                 "appointment_id": appt.id,
                 "client_id": appt.user_id,
-                "client_name": appt.user.full_name,
+                "client_name": appt.user.full_name if appt.user else "عميل المنصة",
                 "consultant_profile_id": appt.consultant_id,
-                "consultant_name": appt.consultant.user.full_name,
+                "consultant_name": appt.consultant.user.full_name if (appt.consultant and appt.consultant.user) else "مستشار المنصة",
                 "scheduled_at": appt.scheduled_at,
                 "duration_minutes": appt.duration_minutes,
                 "status": appt.status,
@@ -314,6 +312,25 @@ class SuperAdminService:
                 "created_at": appt.created_at,
             })
         return results
+
+    @staticmethod
+    def admin_update_session_status(db: Session, appointment_id: uuid.UUID, new_status: AppointmentStatus) -> dict:
+        """
+        Updates the status of an appointment (e.g. from kanban drag & drop).
+        """
+        appt = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+        if not appt:
+            raise ValueError("Appointment not found")
+
+        appt.status = new_status
+        db.commit()
+        db.refresh(appt)
+
+        return {
+            "appointment_id": appt.id,
+            "status": appt.status,
+            "updated_at": datetime.now(timezone.utc)
+        }
 
     @staticmethod
     def admin_join_session(db: Session, appointment_id: uuid.UUID, admin_user: User) -> dict:
