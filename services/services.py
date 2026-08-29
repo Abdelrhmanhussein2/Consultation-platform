@@ -9,7 +9,7 @@ from models import (
     ServiceExpansionRequest, ConsultantService as ConsultantServiceModel, Appointment,
     AppointmentCancellation, Rating, Notification, Invoice, AdminActionLog,
     UserRole, VerificationStatus, AppointmentStatus, ActorRole, RatingStatus,
-    NotificationType, InvoiceType, InvoiceStatus, ConsultantAvailability
+    NotificationType, InvoiceType, InvoiceStatus, ConsultantAvailability, SessionType
 )
 from helpers.enums import EntityType, BusinessSector, LegalForm
 from services.auth_utils import hash_password, verify_password
@@ -80,7 +80,8 @@ class UserService:
                 main_specialization_id=getattr(user_in, "main_specialization_id", None),
                 activity_type=getattr(user_in, "activity_type", None),
                 years_of_experience=getattr(user_in, "years_of_experience", None),
-                certificates_licenses=getattr(user_in, "certificates_licenses", None)
+                certificates_licenses=getattr(user_in, "certificates_licenses", None),
+                price_per_hour=getattr(user_in, "price_per_hour", None),
             )
             db.add(profile)
             db.commit()
@@ -333,11 +334,15 @@ class ConsultantService:
         for av in availabilities_in:
             # Convert start_time string (HH:MM) to time object
             start_t = datetime.strptime(av.start_time, "%H:%M").time()
+            end_t = None
+            if getattr(av, "end_time", None):
+                end_t = datetime.strptime(av.end_time, "%H:%M").time()
             
             db_av = ConsultantAvailability(
                 consultant_id=consultant_id,
                 day_of_week=av.day_of_week,
                 start_time=start_t,
+                end_time=end_t,
                 is_active=True
             )
             db.add(db_av)
@@ -398,20 +403,47 @@ class ConsultantService:
             dow = current_date.weekday()
             day_avails = avail_by_day.get(dow, [])
             for av in day_avails:
-                start_slot_dt = datetime.combine(current_date, av.start_time).replace(tzinfo=timezone.utc)
-                slot_end = start_slot_dt + timedelta(minutes=duration_minutes)
-                
-                has_overlap = False
-                for b_start, b_end in busy_intervals:
-                    if max(start_slot_dt, b_start) < min(slot_end, b_end):
-                        has_overlap = True
-                        break
+                if av.end_time:
+                    slot_start_time = av.start_time
+                    while True:
+                        start_slot_dt = datetime.combine(current_date, slot_start_time).replace(tzinfo=timezone.utc)
+                        slot_end = start_slot_dt + timedelta(minutes=duration_minutes)
                         
-                if not has_overlap:
-                    available_slots.append({
-                        "start_time": start_slot_dt,
-                        "end_time": slot_end
-                    })
+                        limit_dt = datetime.combine(current_date, av.end_time).replace(tzinfo=timezone.utc)
+                        if slot_end > limit_dt:
+                            break
+                            
+                        has_overlap = False
+                        for b_start, b_end in busy_intervals:
+                            if max(start_slot_dt, b_start) < min(slot_end, b_end):
+                                has_overlap = True
+                                break
+                                
+                        if not has_overlap:
+                            available_slots.append({
+                                "start_time": start_slot_dt,
+                                "end_time": slot_end
+                            })
+                            
+                        new_start_dt = start_slot_dt + timedelta(minutes=duration_minutes)
+                        if new_start_dt.date() > current_date:
+                            break
+                        slot_start_time = new_start_dt.time()
+                else:
+                    start_slot_dt = datetime.combine(current_date, av.start_time).replace(tzinfo=timezone.utc)
+                    slot_end = start_slot_dt + timedelta(minutes=duration_minutes)
+                    
+                    has_overlap = False
+                    for b_start, b_end in busy_intervals:
+                        if max(start_slot_dt, b_start) < min(slot_end, b_end):
+                            has_overlap = True
+                            break
+                            
+                    if not has_overlap:
+                        available_slots.append({
+                            "start_time": start_slot_dt,
+                            "end_time": slot_end
+                        })
                     
             current_date += timedelta(days=1)
             
@@ -444,6 +476,7 @@ class ConsultantService:
                 joinedload(ConsultantProfile.user),
                 joinedload(ConsultantProfile.specialization),
                 joinedload(ConsultantProfile.services),
+                joinedload(ConsultantProfile.availabilities),
             )
             .filter(
                 and_(
@@ -468,6 +501,8 @@ class ConsultantService:
             "ratings_count": profile.ratings_count,
             "role": profile.user.role,
             "services": active_services,
+            "price_per_hour": profile.price_per_hour,
+            "working_days": list(set([av.day_of_week for av in profile.availabilities if av.is_active])),
         }
 
     @staticmethod
@@ -480,6 +515,7 @@ class ConsultantService:
         min_rating: float | None = None,
         page: int = 1,
         limit: int = 20,
+        platform_only: bool = False,
     ) -> list[dict]:
         """
         Returns a paginated list of approved consultant cards with optional filters.
@@ -491,9 +527,15 @@ class ConsultantService:
                 joinedload(ConsultantProfile.user),
                 joinedload(ConsultantProfile.specialization),
                 joinedload(ConsultantProfile.services),
+                joinedload(ConsultantProfile.availabilities),
             )
             .filter(ConsultantProfile.verification_status == VerificationStatus.approved)
         )
+
+        if platform_only:
+            query = query.join(User, ConsultantProfile.user_id == User.id).filter(
+                User.role == UserRole.platform_consultant
+            )
 
         if specialization_id is not None:
             query = query.filter(
@@ -536,6 +578,8 @@ class ConsultantService:
                 "ratings_count": profile.ratings_count,
                 "role": profile.user.role,
                 "services_count": len(active_services),
+                "price_per_hour": profile.price_per_hour,
+                "working_days": list(set([av.day_of_week for av in profile.availabilities if av.is_active])),
             })
 
         return results
@@ -557,6 +601,8 @@ class ConsultantService:
             profile.years_of_experience = profile_in.years_of_experience
         if getattr(profile_in, "certificates_licenses", None) is not None:
             profile.certificates_licenses = profile_in.certificates_licenses
+        if getattr(profile_in, "price_per_hour", None) is not None:
+            profile.price_per_hour = profile_in.price_per_hour
 
         # If specialization changed or a new certificate document is uploaded, set to pending admin review
         spec_changed = (
@@ -978,6 +1024,10 @@ class AppointmentService:
                 raise ValueError("Active service not found for this consultant")
             price = service.price
             duration = service.duration_minutes
+        else:
+            # Urgent/Quick consultation booking without a specific service
+            hourly_rate = consultant.price_per_hour or Decimal("0.00")
+            price = (Decimal(duration) / Decimal("60.00")) * hourly_rate
 
         # Verify the selected scheduled_at is within consultant's availability if they have any defined
         appt_start_dt = appt_in.scheduled_at
@@ -998,14 +1048,25 @@ class AppointmentService:
             appt_time = appt_in.scheduled_at.time()
             dow = appt_date.weekday()
 
-            is_available = db.query(ConsultantAvailability).filter(
+            availabilities_on_day = db.query(ConsultantAvailability).filter(
                 and_(
                     ConsultantAvailability.consultant_id == consultant_uuid,
                     ConsultantAvailability.day_of_week == dow,
-                    ConsultantAvailability.start_time == appt_time,
                     ConsultantAvailability.is_active == True
                 )
-            ).first() is not None
+            ).all()
+
+            is_available = False
+            for av in availabilities_on_day:
+                if av.end_time:
+                    appt_end_time = (appt_in.scheduled_at + appt_duration).time()
+                    if appt_time >= av.start_time and appt_end_time <= av.end_time:
+                        is_available = True
+                        break
+                else:
+                    if av.start_time == appt_time:
+                        is_available = True
+                        break
 
             if not is_available:
                 raise ValueError("الموعد المطلوب خارج ساعات عمل المستشار المحددة")
@@ -1039,6 +1100,7 @@ class AppointmentService:
             status=AppointmentStatus.pending_approval,
             created_by_role=ActorRole.user,
             price=price,
+            session_type=getattr(appt_in, "session_type", SessionType.video_call),
             notes=appt_in.notes,
         )
         db.add(appointment)

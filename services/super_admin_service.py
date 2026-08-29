@@ -226,7 +226,8 @@ class SuperAdminService:
                 user_id=db_user.id,
                 bio=user_in.bio,
                 main_specialization_id=user_in.main_specialization_id,
-                verification_status=VerificationStatus.approved
+                verification_status=VerificationStatus.approved,
+                price_per_hour=getattr(user_in, "price_per_hour", None),
             )
             db.add(profile)
             db.commit()

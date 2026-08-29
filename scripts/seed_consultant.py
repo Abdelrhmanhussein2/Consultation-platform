@@ -49,8 +49,13 @@ def seed_consultants():
     
     try:
         # 1. Get or Create Specializations
-        income_tax_spec = get_or_create_specialization(db, "ضريبة دخل", "استشارات ضريبة الدخل والامتثال القانوني للأفراد والشركات")
-        accounting_tax_spec = get_or_create_specialization(db, "محاسبة ضريبية", "المحاسبة الضريبية والتدقيق المالي وإعداد الإقرارات")
+        income_tax_spec = db.query(Specialization).filter(Specialization.name == "ضريبة الدخل والمبيعات").first()
+        if not income_tax_spec:
+            income_tax_spec = get_or_create_specialization(db, "ضريبة الدخل والمبيعات", "استشارات ضريبة الدخل والامتثال القانوني للأفراد والشركات")
+            
+        accounting_tax_spec = db.query(Specialization).filter(Specialization.name == "التخطيط والامتثال الضريبي").first()
+        if not accounting_tax_spec:
+            accounting_tax_spec = get_or_create_specialization(db, "التخطيط والامتثال الضريبي", "التخطيط الضريبي الاستراتيجي وتخفيف المخاطر")
 
         # 2. Consultants details
         advisors = [

@@ -12,6 +12,7 @@ class ConsultantAvailability(Base):
     consultant_id = Column(UUID(as_uuid=True), ForeignKey("consultant_profiles.id", ondelete="CASCADE"), nullable=False)
     day_of_week = Column(Integer, nullable=False)  # 0 = Monday, 6 = Sunday
     start_time = Column(Time, nullable=False)
+    end_time = Column(Time, nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
 
     # Relationships

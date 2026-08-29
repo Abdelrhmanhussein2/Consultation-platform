@@ -23,17 +23,42 @@ def seed_super_admin():
     """
     db = SessionLocal()
     try:
-        # 1. Seed Default Specializations
-        if db.query(Specialization).count() == 0:
-            default_specs = [
-                Specialization(id=1, name="Legal", description="Legal & Corporate Consultations"),
-                Specialization(id=2, name="Finance", description="Financial & Investment Planning"),
-                Specialization(id=3, name="Business", description="Business Development & Marketing"),
-                Specialization(id=4, name="Tech", description="Software & IT Architecture")
-            ]
-            db.add_all(default_specs)
-            db.commit()
-            print("INFO: Seeded default specializations (Legal, Finance, Business, Tech)")
+        # 1. Seed/Update Default Specializations
+        default_specs_data = [
+            {"name": "ضريبة القيمة المضافة (VAT)", "description": "استشارات ضريبة القيمة المضافة والامتثال والتقارير"},
+            {"name": "ضريبة الدخل والمبيعات", "description": "استشارات ضريبة الدخل والامتثال القانوني للأفراد والشركات"},
+            {"name": "التخطيط والامتثال الضريبي", "description": "التخطيط الضريبي الاستراتيجي وتخفيف المخاطر"},
+            {"name": "الاستشارات النزاعية والاعتراضات", "description": "تمثيل مكلفي الضرائب والاعتراضات أمام اللجان الضريبية"}
+        ]
+        
+        existing_specs = db.query(Specialization).all()
+        existing_by_name = {spec.name: spec for spec in existing_specs}
+        
+        target_names = [d["name"] for d in default_specs_data]
+        needed_names = [name for name in target_names if name not in existing_by_name]
+        obsolete_specs = [spec for spec in existing_specs if spec.name not in target_names]
+        
+        # Rename obsolete items to avoid unique constraint issues and preserve foreign keys
+        for spec in obsolete_specs:
+            if needed_names:
+                new_name = needed_names.pop(0)
+                desc = next(d["description"] for d in default_specs_data if d["name"] == new_name)
+                print(f"INFO: Renaming specialization '{spec.name}' (ID {spec.id}) to '{new_name}'")
+                spec.name = new_name
+                spec.description = desc
+            else:
+                # Keep other specializations if they exist and are not in default list
+                pass
+                
+        # Create remaining needed ones if any
+        for new_name in needed_names:
+            desc = next(d["description"] for d in default_specs_data if d["name"] == new_name)
+            new_spec = Specialization(name=new_name, description=desc)
+            db.add(new_spec)
+            print(f"INFO: Created new specialization: '{new_name}'")
+            
+        db.commit()
+        print("INFO: Seeded/Updated default specializations (VAT, Income Tax, Tax Planning, Dispute resolution)")
 
         # 2. Seed Super Admin
         email = settings.SUPER_ADMIN_EMAIL

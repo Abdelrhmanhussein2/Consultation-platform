@@ -38,6 +38,7 @@ def list_consultants(
     min_price: Optional[Decimal] = Query(None, description="Minimum service price"),
     max_price: Optional[Decimal] = Query(None, description="Maximum service price"),
     min_rating: Optional[float] = Query(None, ge=0, le=5, description="Minimum average rating"),
+    platform_only: bool = Query(False, description="Filter by platform consultants only"),
     page: int = Query(1, ge=1, description="Page number"),
     limit: int = Query(20, ge=1, le=100, description="Results per page"),
     db: Session = Depends(get_db),
@@ -46,7 +47,7 @@ def list_consultants(
     """
     Returns a paginated list of all approved consultants.
     Visible to both users and consultants.
-    Supports filtering by specialization, service name keyword, price range, and rating.
+    Supports filtering by specialization, service name keyword, price range, rating, and platform role.
     """
     return ConsultantController.list_consultants(
         db,
@@ -55,6 +56,7 @@ def list_consultants(
         min_price=min_price,
         max_price=max_price,
         min_rating=min_rating,
+        platform_only=platform_only,
         page=page,
         limit=limit,
     )

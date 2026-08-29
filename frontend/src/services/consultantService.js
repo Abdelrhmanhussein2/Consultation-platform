@@ -9,6 +9,7 @@ export const consultantService = {
     if (filters.min_price) params.append('min_price', filters.min_price);
     if (filters.max_price) params.append('max_price', filters.max_price);
     if (filters.min_rating) params.append('min_rating', filters.min_rating);
+    if (filters.platform_only) params.append('platform_only', filters.platform_only);
     if (filters.page) params.append('page', filters.page);
     if (filters.limit) params.append('limit', filters.limit);
 

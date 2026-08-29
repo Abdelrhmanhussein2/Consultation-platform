@@ -24,6 +24,12 @@ const ConsultantDashboardIcon = ({ size = 20, color = 'currentColor' }) => (
   </svg>
 );
 
+const QuickIcon = ({ size = 20, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </svg>
+);
+
 const SessionsIcon = ({ size = 20, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -129,6 +135,7 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
 
   const clientNavItems = [
     { path: '/dashboard', label: 'لوحة التحكم', IconComponent: DashboardIcon },
+    { path: '/quick-consultation', label: 'استشارة سريعة', IconComponent: QuickIcon },
     { path: '/consultants', label: 'المستشارون', IconComponent: ConsultantsIcon },
     { path: '/my-appointments', label: 'استشاراتي والمواعيد', IconComponent: AppointmentsIcon },
     { path: '/chat', label: 'المحادثات والرسائل', IconComponent: ChatIcon },

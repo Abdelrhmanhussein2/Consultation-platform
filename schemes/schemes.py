@@ -7,7 +7,7 @@ from helpers.enums import (
     UserRole, VerificationStatus, AppointmentStatus, ActorRole,
     RatingStatus, NotificationType, InvoiceType, InvoiceStatus,
     PayoutStatus, EntityType, BusinessSector, TicketCategory, TicketPriority,
-    TicketStatus, NotificationAudience, AdminPermission, LegalForm
+    TicketStatus, NotificationAudience, AdminPermission, LegalForm, SessionType
 )
 
 # =====================================================================
@@ -62,6 +62,7 @@ class ConsultantRegister(BaseModel):
     activity_type: Optional[str] = Field(None, max_length=100)
     years_of_experience: Optional[int] = None
     certificates_licenses: Optional[str] = None
+    price_per_hour: Optional[Decimal] = None
     accepted_privacy_policy: bool = Field(..., description="Must accept privacy policy")
 
     @field_validator('accepted_privacy_policy')
@@ -340,6 +341,7 @@ class ConsultantProfileCreate(BaseModel):
     years_of_experience: Optional[int] = None
     certificates_licenses: Optional[str] = None
     document_url: Optional[str] = None
+    price_per_hour: Optional[Decimal] = None
 
 
 class ConsultantProfileOut(BaseModel):
@@ -354,6 +356,7 @@ class ConsultantProfileOut(BaseModel):
     activity_type: Optional[str] = None
     years_of_experience: Optional[int] = None
     certificates_licenses: Optional[str] = None
+    price_per_hour: Optional[Decimal] = None
 
     class Config:
         from_attributes = True
@@ -384,6 +387,8 @@ class ConsultantPublicProfileOut(BaseModel):
     activity_type: Optional[str] = None
     years_of_experience: Optional[int] = None
     certificates_licenses: Optional[str] = None
+    price_per_hour: Optional[Decimal] = None
+    working_days: List[int] = []
 
     class Config:
         from_attributes = True
@@ -399,6 +404,8 @@ class ConsultantListItemOut(BaseModel):
     ratings_count: int
     role: UserRole
     services_count: int
+    price_per_hour: Optional[Decimal] = None
+    working_days: List[int] = []
 
     class Config:
         from_attributes = True
@@ -516,6 +523,7 @@ class AppointmentCreate(BaseModel):
     service_id: Optional[str] = None
     scheduled_at: datetime
     duration_minutes: int = Field(60, ge=1)
+    session_type: Optional[SessionType] = SessionType.video_call
     notes: Optional[str] = None
 
 class AppointmentCancel(BaseModel):
@@ -540,6 +548,7 @@ class AppointmentOut(BaseModel):
     status: AppointmentStatus
     created_by_role: ActorRole
     price: Optional[Decimal]
+    session_type: Optional[SessionType] = SessionType.video_call
     notes: Optional[str]
     created_at: datetime
 
@@ -689,12 +698,14 @@ from datetime import time
 class ConsultantAvailabilityCreate(BaseModel):
     day_of_week: int = Field(..., ge=0, le=6, description="0 = Monday, 6 = Sunday")
     start_time: str = Field(..., pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$", description="Start time formatted as HH:MM")
+    end_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$", description="End time formatted as HH:MM")
 
 class ConsultantAvailabilityOut(BaseModel):
     id: uuid.UUID
     consultant_id: uuid.UUID
     day_of_week: int
     start_time: time
+    end_time: Optional[time] = None
     is_active: bool
 
     class Config:
@@ -735,6 +746,7 @@ class AdminUserListOut(BaseModel):
     created_at: datetime
     bio: Optional[str] = None
     verification_status: Optional[VerificationStatus] = None
+    price_per_hour: Optional[Decimal] = None
 
     class Config:
         from_attributes = True
@@ -751,6 +763,7 @@ class AdminAddUserRequest(BaseModel):
     sector: Optional[BusinessSector] = None
     bio: Optional[str] = None
     main_specialization_id: Optional[int] = None
+    price_per_hour: Optional[Decimal] = None
 
     @field_validator('password')
     @classmethod

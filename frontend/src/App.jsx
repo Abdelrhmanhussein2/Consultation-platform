@@ -12,6 +12,7 @@ import UserLayout from './components/UserPortal/UserLayout';
 import UserDashboard from './pages/UserDashboard';
 import ConsultantsPage from './pages/ConsultantsPage';
 import MyAppointmentsPage from './pages/MyAppointmentsPage';
+import QuickConsultationPage from './pages/QuickConsultationPage';
 import ChatPage from './pages/ChatPage';
 import RegulationsPage from './pages/RegulationsPage';
 import AiAssistantPage from './pages/AiAssistantPage';
@@ -71,6 +72,7 @@ function MainApp() {
   const userPortalPaths = [
     '/dashboard',
     '/consultants',
+    '/quick-consultation',
     '/my-appointments',
     '/chat',
     '/regulations',
@@ -105,6 +107,9 @@ function MainApp() {
       const parts = currentPath.split('/');
       const id = parts[parts.length - 1];
       return <ConsultantDetailPage profileId={id} navigate={navigate} />;
+    }
+    if (currentPath === '/quick-consultation') {
+      return <QuickConsultationPage navigate={navigate} />;
     }
     if (currentPath === '/my-appointments') {
       return <MyAppointmentsPage navigate={navigate} />;

@@ -195,6 +195,7 @@ class ConsultantController:
         min_price: Decimal | None,
         max_price: Decimal | None,
         min_rating: float | None,
+        platform_only: bool,
         page: int,
         limit: int,
     ) -> list[dict]:
@@ -206,6 +207,7 @@ class ConsultantController:
             min_price=min_price,
             max_price=max_price,
             min_rating=min_rating,
+            platform_only=platform_only,
             page=page,
             limit=limit,
         )

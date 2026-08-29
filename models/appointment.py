@@ -4,7 +4,7 @@ from sqlalchemy.dialects.postgresql import UUID, ENUM as PG_ENUM
 from sqlalchemy.orm import relationship
 
 from helpers.database import Base
-from helpers.enums import AppointmentStatus, ActorRole
+from helpers.enums import AppointmentStatus, ActorRole, SessionType
 
 class Appointment(Base):
     __tablename__ = "appointments"
@@ -18,6 +18,7 @@ class Appointment(Base):
     status = Column(PG_ENUM(AppointmentStatus, name="appointment_status", inherit_schema=True), nullable=False, default=AppointmentStatus.pending_approval)
     created_by_role = Column(PG_ENUM(ActorRole, name="actor_role", inherit_schema=True), nullable=False)
     price = Column(Numeric(10, 2), nullable=True)
+    session_type = Column(PG_ENUM(SessionType, name="session_type", inherit_schema=True), nullable=True, default=SessionType.video_call)
     notes = Column(Text, nullable=True)
     session_room_name = Column(String(100), nullable=True)
     session_room_url = Column(String(300), nullable=True)

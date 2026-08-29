@@ -505,6 +505,7 @@ export default function UserDashboard({ navigate }) {
               {[
                 { title: 'تحليل مستند', icon: '📄', path: '/ai-assistant' },
                 { title: 'حجز استشارة', icon: '👥', path: '/consultants' },
+                { title: 'استشارة سريعة', icon: '⚡', path: '/quick-consultation' },
                 { title: 'الحاسبة', icon: '🧮', path: '/consultant/earnings' },
                 { title: 'التشريعات', icon: '📚', path: '/regulations' },
                 { title: 'ملفاتي', icon: '📁', path: '/consultant/earnings' }

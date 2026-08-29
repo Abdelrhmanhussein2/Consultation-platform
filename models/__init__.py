@@ -2,7 +2,7 @@ from helpers.database import Base, get_db, engine, SessionLocal
 from helpers.enums import (
     UserRole, VerificationStatus, AppointmentStatus, ActorRole,
     RatingStatus, NotificationType, InvoiceType, InvoiceStatus,
-    PayoutStatus, LegalForm
+    PayoutStatus, LegalForm, SessionType
 )
 from models.user import User
 from models.specialization import Specialization

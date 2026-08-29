@@ -19,7 +19,7 @@ export default function VideoSessionModal({ appointmentId, isOpen, onClose, onSe
 
     const initSession = async () => {
       try {
-        const data = await appointmentService.joinSession(appointmentId, token);
+        const data = await appointmentService.joinVideoSession(appointmentId, token);
         if (isMounted) {
           setRoomUrl(data.room_url);
           setMeetingToken(data.token);

@@ -1,5 +1,10 @@
 import enum
 
+class SessionType(str, enum.Enum):
+    audio_call = "audio_call"
+    video_call = "video_call"
+    chat = "chat"
+
 class UserRole(str, enum.Enum):
     user = "user"
     admin = "admin"
