@@ -298,4 +298,36 @@ class SuperAdminController:
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
+    @staticmethod
+    def get_reports_analytics(
+        db: Session,
+        category: str = "executive",
+        from_date: Optional[str] = None,
+        to_date: Optional[str] = None,
+        user_type: Optional[str] = None,
+        sector: Optional[str] = None,
+        city: Optional[str] = None,
+        status: Optional[str] = None
+    ):
+        """
+        Retrieves aggregated reports and analytics dataset for the admin command center.
+        """
+        try:
+            return SuperAdminService.get_reports_analytics(
+                db=db,
+                category=category,
+                from_date=from_date,
+                to_date=to_date,
+                user_type=user_type,
+                sector=sector,
+                city=city,
+                status=status
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to generate reports analytics: {str(e)}"
+            )
+
+
 

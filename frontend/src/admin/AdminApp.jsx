@@ -15,6 +15,9 @@ import AdminPaymentsPage from './pages/AdminPaymentsPage';
 import AdminTaxFormsPage from './pages/AdminTaxFormsPage';
 import AdminKnowledgePage from './pages/AdminKnowledgePage';
 import AdminPromptsPage from './pages/AdminPromptsPage';
+import AdminReportsPage from './pages/AdminReportsPage';
+import AdminAuditLogsPage from './pages/AdminAuditLogsPage';
+import AdminSecurityPage from './pages/AdminSecurityPage';
 import AdminGenericPage from './pages/AdminGenericPage';
 
 export default function AdminApp({ currentPath = '/admin', navigate }) {
@@ -25,6 +28,9 @@ export default function AdminApp({ currentPath = '/admin', navigate }) {
 
   const renderAdminContent = () => {
     switch (normalizedPath) {
+      case '/admin/reports':
+      case '/admin/analytics':
+        return <AdminReportsPage navigate={navigate} />;
       case '/admin/users':
         return <AdminUsersPage navigate={navigate} />;
       case '/admin/consultants':
@@ -39,6 +45,10 @@ export default function AdminApp({ currentPath = '/admin', navigate }) {
         return <AdminSettingsPage navigate={navigate} />;
       case '/admin/rbac':
         return <AdminRbacPage navigate={navigate} />;
+      case '/admin/audit-logs':
+        return <AdminAuditLogsPage navigate={navigate} />;
+      case '/admin/security':
+        return <AdminSecurityPage navigate={navigate} />;
       case '/admin/notifications':
         return <AdminNotificationsPage navigate={navigate} />;
       case '/admin/ai-monitoring':
@@ -70,37 +80,6 @@ export default function AdminApp({ currentPath = '/admin', navigate }) {
           />
         );
 
-      case '/admin/security':
-        return (
-          <AdminGenericPage
-            title="مركز الأمن وحماية البيانات"
-            tag="SECURITY, ENCRYPTION & COMPLIANCE"
-            desc="مراقبة التشفير الميداني (AES-256)، ورموز OTP، وجلسات تسجيل الدخول النشطة."
-            columns={['الوحدة الأمنية', 'نوع الحماية', 'الحالة التشغيلية', 'آخر فحص']}
-            items={[
-              ['تشفير الرسائل والمحادثات في DB', 'AES-256 Fernet Field-level', <span className="admin-badge-success">نشط 100%</span>, 'الآن'],
-              ['حجب وتشفير الحسابات البنكية والـ IBAN', 'AES-256 + UI Masking', <span className="admin-badge-success">نشط 100%</span>, 'الآن'],
-              ['منظومة OTP وتأكيد البريد وكلمة المرور', '6-Digit Redis TTL Vault', <span className="admin-badge-success">نشط 100%</span>, 'الآن'],
-              ['إبطال التوكنات والقائمة السوداء', 'JWT Invalidation Blacklist', <span className="admin-badge-success">نشط 100%</span>, 'الآن']
-            ]}
-          />
-        );
-
-      case '/admin/audit-logs':
-        return (
-          <AdminGenericPage
-            title="سجل التدقيق والعمليات الحساسة"
-            tag="SYSTEM AUDIT TRAIL & ACTIVITY LOGS"
-            desc="تتبع دقيق لكافة العمليات الإدارية وتعديلات الصلاحيات وحركات الأموال."
-            columns={['المستخدم / المشرف', 'نوع العملية', 'الكيان المتأثر', 'التفاصيل', 'الوقت']}
-            items={[
-              ['خالد (Super Admin)', 'admin.permission.grant', 'المشرف: عبدالرحمن حسين', 'منح صلاحية إدارة السحوبات والماليات', '14:40:14'],
-              ['خالد (Super Admin)', 'payout.request.status_update', 'سحب أرباح #pay_103', 'تأكيد التحويل البنكي للمستشار عبر البنك العربي', '14:32:19'],
-              ['نظام الأمان', 'auth.login.success', 'المشرف: admin@diwan.jo', 'تسجيل دخول ناجح مع توثيق JWT', '14:30:00']
-            ]}
-            actionButtonText="تصدير السجل الكامل"
-          />
-        );
 
       default:
         return <AdminDashboardPage navigate={navigate} />;

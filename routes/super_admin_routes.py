@@ -177,6 +177,41 @@ def toggle_user_active(
 
 
 # ─────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────
+# ANALYTICS & REPORTS (require_perm_view_analytics)
+# ─────────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/analytics/reports",
+    summary="Get comprehensive platform reports and analytics dataset",
+)
+def get_reports_analytics(
+    category: str = Query("executive", description="Report Category"),
+    from_date: Optional[str] = Query(None, description="Start date filter (YYYY-MM-DD)"),
+    to_date: Optional[str] = Query(None, description="End date filter (YYYY-MM-DD)"),
+    user_type: Optional[str] = Query(None, description="User type filter"),
+    sector: Optional[str] = Query(None, description="Sector filter"),
+    city: Optional[str] = Query(None, description="City filter"),
+    status: Optional[str] = Query(None, description="Status filter"),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_view_analytics)
+):
+    """
+    Returns live aggregated reports, KPI metrics, chart series, and drilldown records.
+    """
+    return SuperAdminController.get_reports_analytics(
+        db=db,
+        category=category,
+        from_date=from_date,
+        to_date=to_date,
+        user_type=user_type,
+        sector=sector,
+        city=city,
+        status=status
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────
 # USER STATS & ADVANCED SEARCH (require_admin)
 # ─────────────────────────────────────────────────────────────────────
 

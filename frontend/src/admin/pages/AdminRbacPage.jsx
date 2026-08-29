@@ -976,7 +976,7 @@ export default function AdminRbacPage({ navigate }) {
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <button 
                   className="admin-btn-action-outline" 
-                  style={{ fontSize: '12.5px', padding: '8px 16px' }}
+                  style={{ fontSize: '12.5px', padding: '8px 16px', cursor: 'pointer' }}
                   onClick={() => {
                     applySelectAll(sensitiveModalGroup.id, true, false);
                     setSensitiveModalGroup(null);
@@ -986,7 +986,7 @@ export default function AdminRbacPage({ navigate }) {
                 </button>
                 <button 
                   className="admin-btn-action-primary" 
-                  style={{ fontSize: '12.5px', padding: '8px 20px', background: '#E58A13', borderColor: '#E58A13' }}
+                  style={{ fontSize: '12.5px', padding: '8px 20px', background: '#E58A13', borderColor: '#E58A13', cursor: 'pointer' }}
                   onClick={() => {
                     applySelectAll(sensitiveModalGroup.id, true, true);
                     setSensitiveModalGroup(null);
@@ -1021,21 +1021,31 @@ export default function AdminRbacPage({ navigate }) {
 
         <button 
           className="admin-btn-action-primary"
-          style={{ fontSize: '13px', padding: '8px 18px', gap: '6px' }}
+          style={{ fontSize: '13px', padding: '8px 18px', gap: '6px', background: '#E58A13', borderColor: '#E58A13', color: '#FFFFFF', fontWeight: '800', cursor: 'pointer' }}
           onClick={handleOpenCreate}
         >
           <span>+ إنشاء دور جديد</span>
         </button>
       </div>
 
-      {/* 2. Top 4 Metric Cards */}
+      {/* 2. Top 4 Metric Cards (CLICKABLE & INTERACTIVE) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '22px' }}>
-        <div className="admin-card" style={{ borderBottom: '3px solid #E58A13' }}>
+        <div 
+          className="admin-card" 
+          style={{ 
+            borderBottom: '3px solid #E58A13', 
+            cursor: 'pointer',
+            background: typeFilter === 'all' && !searchTerm ? '#F8FAFC' : '#FFFFFF',
+            boxShadow: typeFilter === 'all' && !searchTerm ? '0 4px 12px rgba(229,138,19,0.12)' : 'none'
+          }}
+          onClick={() => { setTypeFilter('all'); setSearchTerm(''); }}
+          title="انقر لعرض كافة الأدوار"
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={{ fontSize: '26px', fontWeight: '900', color: '#0F172A' }}>{roles.length}</div>
               <div style={{ fontSize: '13px', fontWeight: '800', color: '#334155', marginTop: '2px' }}>إجمالي الأدوار</div>
-              <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>أدوار معرفة</div>
+              <div style={{ fontSize: '11px', color: '#059669', marginTop: '4px', fontWeight: '700' }}>أدوار معرفة ونشطة 🛡️</div>
             </div>
             <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
               🛡️
@@ -1043,12 +1053,20 @@ export default function AdminRbacPage({ navigate }) {
           </div>
         </div>
 
-        <div className="admin-card">
+        <div 
+          className="admin-card"
+          style={{ borderBottom: '3px solid #059669', cursor: 'pointer' }}
+          onClick={() => {
+            setRoles(prev => prev.filter(r => r.status === 'مفعل'));
+            alert('تم تصفية الأدوار المفعلة فقط');
+          }}
+          title="انقر لتصفية الأدوار المفعلة"
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={{ fontSize: '26px', fontWeight: '900', color: '#0F172A' }}>{roles.filter(r => r.status === 'مفعل').length}</div>
               <div style={{ fontSize: '13px', fontWeight: '800', color: '#334155', marginTop: '2px' }}>الأدوار المفعلة</div>
-              <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>أدوار نشطة</div>
+              <div style={{ fontSize: '11px', color: '#059669', marginTop: '4px', fontWeight: '700' }}>متاحة للمشرفين ✓</div>
             </div>
             <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#ECFDF5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
               ✓
@@ -1056,12 +1074,22 @@ export default function AdminRbacPage({ navigate }) {
           </div>
         </div>
 
-        <div className="admin-card">
+        <div 
+          className="admin-card"
+          style={{ borderBottom: '3px solid #2563EB', cursor: 'pointer' }}
+          onClick={() => {
+            if (roles.length > 0) {
+              setActiveRoleDetail(roles[0]);
+              setActiveTab('permissions');
+            }
+          }}
+          title="انقر لاستعراض مصفوفة الصلاحيات الكلية"
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={{ fontSize: '26px', fontWeight: '900', color: '#0F172A' }}>49</div>
               <div style={{ fontSize: '13px', fontWeight: '800', color: '#334155', marginTop: '2px' }}>الصلاحيات الكلية</div>
-              <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>صلاحية موزعة</div>
+              <div style={{ fontSize: '11px', color: '#2563EB', marginTop: '4px', fontWeight: '700' }}>مصفوفة 8 فئات 📋</div>
             </div>
             <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
               📋
@@ -1069,15 +1097,20 @@ export default function AdminRbacPage({ navigate }) {
           </div>
         </div>
 
-        <div className="admin-card">
+        <div 
+          className="admin-card"
+          style={{ borderBottom: '3px solid #6366F1', cursor: 'pointer' }}
+          onClick={() => alert('العلاقات المتداخلة: 12 ارتباط تشغيلي وصلاحيات متوارثة بين الأدوار الأساسية والإضافية.')}
+          title="انقر لمعاينة العلاقات المتداخلة"
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={{ fontSize: '26px', fontWeight: '900', color: '#0F172A' }}>12</div>
               <div style={{ fontSize: '13px', fontWeight: '800', color: '#334155', marginTop: '2px' }}>العلاقات المتداخلة</div>
-              <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>ربط بين الأدوار</div>
+              <div style={{ fontSize: '11px', color: '#6366F1', marginTop: '4px', fontWeight: '700' }}>وراثة الصلاحيات 🔗</div>
             </div>
-            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#F8FAFC', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', border: '1px solid #E2E8F0' }}>
-              !
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#EEF2FF', color: '#6366F1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
+              🔗
             </div>
           </div>
         </div>
@@ -1097,7 +1130,7 @@ export default function AdminRbacPage({ navigate }) {
         </div>
 
         <select 
-          className="admin-select-input"
+          className="admin-select-input" 
           style={{ width: '160px', height: '38px' }}
           value={typeFilter}
           onChange={e => setTypeFilter(e.target.value)}
@@ -1123,7 +1156,14 @@ export default function AdminRbacPage({ navigate }) {
           </thead>
           <tbody>
             {filteredRoles.map(r => (
-              <tr key={r.id}>
+              <tr 
+                key={r.id}
+                style={{ cursor: 'pointer', transition: 'background 0.15s' }}
+                onClick={() => {
+                  setActiveRoleDetail(r);
+                  setActiveTab('permissions');
+                }}
+              >
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#0A3C64', color: '#FFFFFF', fontWeight: '800', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>
@@ -1154,15 +1194,16 @@ export default function AdminRbacPage({ navigate }) {
                 </td>
 
                 <td style={{ fontWeight: '700', color: '#0F172A', fontSize: '13px' }}>
-                  {r.usersCount}
+                  {r.usersCount} مستخدم
                 </td>
 
-                <td style={{ fontWeight: '700', color: '#0F172A', fontSize: '13px' }}>
-                  {r.permsCount}
+                <td style={{ fontWeight: '700', color: '#0A3C64', fontSize: '13px' }}>
+                  {r.permsCount} صلاحية
                 </td>
 
-                <td>
+                <td onClick={e => e.stopPropagation()}>
                   <span 
+                    onClick={() => handleToggleRoleStatus(r.id)}
                     style={{
                       fontSize: '11.5px',
                       fontWeight: '700',
@@ -1171,14 +1212,16 @@ export default function AdminRbacPage({ navigate }) {
                       background: r.status === 'مفعل' ? '#ECFDF5' : '#FEF2F2',
                       color: r.status === 'مفعل' ? '#059669' : '#DC2626',
                       border: r.status === 'مفعل' ? '1px solid #A7F3D0' : '1px solid #FECACA',
-                      display: 'inline-block'
+                      display: 'inline-block',
+                      cursor: 'pointer'
                     }}
+                    title="انقر لتبديل الحالة"
                   >
                     {r.status}
                   </span>
                 </td>
 
-                <td>
+                <td onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                     <button 
                       className="admin-icon-btn-minimal" 

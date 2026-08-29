@@ -169,6 +169,13 @@ export async function getAdminTickets(params = {}) {
   return adminRequest(`/super-admin/tickets${query ? `?${query}` : ''}`);
 }
 
+export async function createAdminTicket(ticketData) {
+  return adminRequest('/super-admin/tickets', {
+    method: 'POST',
+    body: JSON.stringify(ticketData)
+  });
+}
+
 export async function replyAdminTicket(ticketId, { reply_text, is_internal = false, status_update = null }) {
   return adminRequest(`/super-admin/tickets/${ticketId}/reply`, {
     method: 'POST',
@@ -176,9 +183,28 @@ export async function replyAdminTicket(ticketId, { reply_text, is_internal = fal
   });
 }
 
+export async function updateAdminTicketStatus(ticketId, updateData) {
+  return adminRequest(`/super-admin/tickets/${ticketId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updateData)
+  });
+}
+
+export async function closeAdminTicket(ticketId, resolutionNotes = '') {
+  return adminRequest(`/super-admin/tickets/${ticketId}/close`, {
+    method: 'PATCH',
+    body: JSON.stringify({ resolution_notes: resolutionNotes })
+  });
+}
+
+
 /* ══════════════════════════════════════════════════════════════════
    SETTINGS (7 SECTIONS)
    ══════════════════════════════════════════════════════════════════ */
+export async function getAllPlatformSettings() {
+  return adminRequest('/super-admin/settings');
+}
+
 export async function getSettingsSection(section) {
   return adminRequest(`/super-admin/settings/${section}`);
 }
@@ -219,6 +245,23 @@ export async function updateAdminPermissions(adminId, permissions) {
 }
 
 /* ══════════════════════════════════════════════════════════════════
+   REPORTS & ANALYTICS
+   ══════════════════════════════════════════════════════════════════ */
+export async function getReportsAnalytics(params = {}) {
+  const query = new URLSearchParams();
+  if (params.category) query.append('category', params.category);
+  if (params.from_date) query.append('from_date', params.from_date);
+  if (params.to_date) query.append('to_date', params.to_date);
+  if (params.user_type && params.user_type !== 'all') query.append('user_type', params.user_type);
+  if (params.sector && params.sector !== 'all') query.append('sector', params.sector);
+  if (params.city && params.city !== 'all') query.append('city', params.city);
+  if (params.status && params.status !== 'all') query.append('status', params.status);
+
+  const qs = query.toString();
+  return adminRequest(`/super-admin/analytics/reports${qs ? `?${qs}` : ''}`);
+}
+
+/* ══════════════════════════════════════════════════════════════════
    NOTIFICATIONS & BROADCAST
    ══════════════════════════════════════════════════════════════════ */
 export async function sendBroadcastNotification({ title, message, audience = 'all' }) {
@@ -227,3 +270,4 @@ export async function sendBroadcastNotification({ title, message, audience = 'al
     body: JSON.stringify({ title, message, audience })
   });
 }
+
