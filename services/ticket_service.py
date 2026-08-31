@@ -263,15 +263,53 @@ class TicketService:
         old_status = ticket.status
 
         if update_in.priority is not None:
-            ticket.priority = update_in.priority
+            prio = update_in.priority
+            if isinstance(prio, str):
+                prio_map = {
+                    "منخفضة": TicketPriority.low,
+                    "متوسطة": TicketPriority.medium,
+                    "عالية": TicketPriority.high,
+                    "low": TicketPriority.low,
+                    "medium": TicketPriority.medium,
+                    "high": TicketPriority.high
+                }
+                ticket.priority = prio_map.get(prio, TicketPriority.medium)
+            else:
+                ticket.priority = prio
+
         if update_in.status is not None:
-            if ticket.status != update_in.status:
-                ticket.status = update_in.status
+            st = update_in.status
+            if isinstance(st, str):
+                status_map = {
+                    "جديد": TicketStatus.new,
+                    "مفتوح": TicketStatus.open,
+                    "قيد المراجعة": TicketStatus.reviewing,
+                    "قيد المعالجة": TicketStatus.in_progress,
+                    "بانتظار رد المستخدم": TicketStatus.waiting_user,
+                    "تم التصعيد": TicketStatus.escalated,
+                    "تم الحل": TicketStatus.resolved,
+                    "مغلق": TicketStatus.closed,
+                    "new": TicketStatus.new,
+                    "open": TicketStatus.open,
+                    "in_progress": TicketStatus.in_progress,
+                    "reviewing": TicketStatus.reviewing,
+                    "waiting_user": TicketStatus.waiting_user,
+                    "escalated": TicketStatus.escalated,
+                    "resolved": TicketStatus.resolved,
+                    "closed": TicketStatus.closed
+                }
+                new_status = status_map.get(st, TicketStatus.in_progress)
+            else:
+                new_status = st
+
+            if ticket.status != new_status:
+                ticket.status = new_status
                 status_changed = True
-                if update_in.status == TicketStatus.closed:
+                if new_status == TicketStatus.closed:
                     ticket.closed_at = datetime.now(timezone.utc)
                 else:
                     ticket.closed_at = None
+
         if update_in.internal_note is not None:
             ticket.internal_note = update_in.internal_note
         if update_in.assigned_to is not None:

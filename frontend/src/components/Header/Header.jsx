@@ -19,27 +19,19 @@ export default function Header({ currentPath, navigate }) {
           </a>
         </div>
         <nav className="header-nav">
-          <a 
-            href="/" 
-            onClick={(e) => handleNavClick(e, '/')} 
+          <a
+            href="/"
+            onClick={(e) => handleNavClick(e, '/')}
             className={`nav-item ${isHomeActive ? 'active' : ''}`}
           >
             الرئيسية
           </a>
-          <a 
-            href="/policies" 
-            onClick={(e) => handleNavClick(e, '/policies')} 
+          <a
+            href="/policies"
+            onClick={(e) => handleNavClick(e, '/policies')}
             className={`nav-item ${isPoliciesActive ? 'active' : ''}`}
           >
             مركز السياسات
-          </a>
-          <a 
-            href="/admin" 
-            onClick={(e) => handleNavClick(e, '/admin')} 
-            className="nav-item"
-            style={{ color: '#E58A13', fontWeight: '800' }}
-          >
-            👑 لوحة الإدارة (Admin)
           </a>
         </nav>
       </div>

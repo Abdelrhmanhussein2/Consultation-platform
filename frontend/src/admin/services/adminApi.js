@@ -12,8 +12,12 @@ let inMemoryAdminToken = '';
  * Get current Auth Token from in-memory state
  */
 export function getAdminToken() {
-  if (typeof window !== 'undefined' && window.__ADMIN_TOKEN__) {
-    return window.__ADMIN_TOKEN__;
+  if (typeof window !== 'undefined') {
+    if (window.__ADMIN_TOKEN__) return window.__ADMIN_TOKEN__;
+    try {
+      const storedToken = localStorage.getItem('token') || localStorage.getItem('admin_token');
+      if (storedToken) return storedToken;
+    } catch {}
   }
   return inMemoryAdminToken;
 }

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 import uuid
-from typing import Optional, Literal, List
+from typing import Optional, Literal, List, Union, Any
 from datetime import datetime
 from decimal import Decimal
 from helpers.enums import (
@@ -785,10 +785,41 @@ class AdminAddUserRequest(BaseModel):
 # ADMIN BROADCAST NOTIFICATION
 # =====================================================================
 class AdminBroadcastNotification(BaseModel):
-    audience: NotificationAudience
+    audience: NotificationAudience = NotificationAudience.all
     title: str = Field(..., max_length=200)
     message: str = Field(...)
-    notification_type: NotificationType = NotificationType.general
+    notification_type: Optional[Any] = NotificationType.general
+
+    @field_validator('audience', mode='before')
+    @classmethod
+    def map_audience(cls, v):
+        if isinstance(v, str):
+            mapping = {
+                'all': NotificationAudience.all,
+                'users': NotificationAudience.users_only,
+                'users_only': NotificationAudience.users_only,
+                'clients': NotificationAudience.users_only,
+                'consultants': NotificationAudience.consultants_only,
+                'consultants_only': NotificationAudience.consultants_only,
+                'companies': NotificationAudience.companies_only,
+                'companies_only': NotificationAudience.companies_only,
+                'researchers': NotificationAudience.researchers_only,
+                'researchers_only': NotificationAudience.researchers_only,
+                'admins': NotificationAudience.admins_only,
+                'admins_only': NotificationAudience.admins_only,
+            }
+            return mapping.get(v.lower(), NotificationAudience.all)
+        return v
+
+    @field_validator('notification_type', mode='before')
+    @classmethod
+    def map_notif_type(cls, v):
+        if isinstance(v, str):
+            try:
+                return NotificationType(v)
+            except ValueError:
+                return NotificationType.general
+        return v or NotificationType.general
 
 class BroadcastResultOut(BaseModel):
     sent_to: int
@@ -896,14 +927,35 @@ class AdminTicketCreate(BaseModel):
     assigned_to: Optional[uuid.UUID] = None
 
 class AdminTicketReplyCreate(BaseModel):
-    message: str
+    message: Optional[str] = None
+    reply_text: Optional[str] = None
     is_internal: bool = False
+    status_update: Optional[str] = None
+
+    @model_validator(mode='after')
+    def extract_message(self):
+        if not self.message and self.reply_text:
+            self.message = self.reply_text
+        if not self.message:
+            self.message = ""
+        return self
 
 class AdminTicketUpdate(BaseModel):
-    priority: Optional[TicketPriority] = None
-    status: Optional[TicketStatus] = None
+    priority: Optional[Union[TicketPriority, str]] = None
+    status: Optional[Union[TicketStatus, str]] = None
     internal_note: Optional[str] = None
-    assigned_to: Optional[uuid.UUID] = None
+    internal_notes: Optional[str] = None
+    assigned_to: Optional[Union[uuid.UUID, str]] = None
+    assignee_id: Optional[Union[uuid.UUID, str]] = None
+
+    @model_validator(mode='after')
+    def normalize_fields(self):
+        if not self.internal_note and self.internal_notes:
+            self.internal_note = self.internal_notes
+        if not self.assigned_to and self.assignee_id:
+            if isinstance(self.assignee_id, uuid.UUID):
+                self.assigned_to = self.assignee_id
+        return self
 
 
 # =====================================================================

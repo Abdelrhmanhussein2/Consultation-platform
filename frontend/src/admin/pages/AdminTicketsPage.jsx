@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { IconTickets, IconSearch, IconMessage, IconUsers } from '../components/AdminIcons';
+import React, { useState, useEffect } from 'react';
 import { 
   getAdminTickets, 
   replyAdminTicket, 
@@ -8,1729 +7,1397 @@ import {
   closeAdminTicket 
 } from '../services/adminApi';
 
+// ══════════════════════════════════════════════════════════════════════════
+// STATUS & PRIORITY DEFINITIONS & COLOR CONFIGS
+// ══════════════════════════════════════════════════════════════════════════
+const STATUS_CONFIG = {
+  'مسودة': { color: 'bg-gray-100 text-gray-600 border border-gray-200', icon: 'fa-pen' },
+  'جديد': { color: 'bg-sky-50 text-sky-700 border border-sky-200', icon: 'fa-circle' },
+  'تم الاستلام': { color: 'bg-cyan-50 text-cyan-700 border border-cyan-200', icon: 'fa-check-circle' },
+  'قيد المراجعة': { color: 'bg-violet-50 text-violet-700 border border-violet-200', icon: 'fa-search' },
+  'بانتظار رد المستخدم': { color: 'bg-amber-50 text-amber-700 border border-amber-200', icon: 'fa-clock' },
+  'قيد المعالجة': { color: 'bg-teal-50 text-teal-700 border border-teal-200', icon: 'fa-spinner' },
+  'تم التصعيد': { color: 'bg-orange-50 text-orange-700 border border-orange-200', icon: 'fa-arrow-up' },
+  'تم الحل': { color: 'bg-emerald-50 text-emerald-700 border border-emerald-200', icon: 'fa-check' },
+  'مغلق': { color: 'bg-gray-100 text-gray-500 border border-gray-200', icon: 'fa-lock' },
+  'أعيد فتحه': { color: 'bg-rose-50 text-rose-700 border border-rose-200', icon: 'fa-rotate-left' }
+};
+
+const PRIORITY_CONFIG = {
+  'منخفضة': { color: 'bg-gray-100 text-gray-600 border border-gray-200', icon: 'fa-arrow-down' },
+  'متوسطة': { color: 'bg-yellow-50 text-yellow-700 border border-yellow-300', icon: 'fa-minus' },
+  'عالية': { color: 'bg-red-50 text-red-700 border border-red-200', icon: 'fa-arrow-up' }
+};
+
+const CATEGORIES = {
+  'المساعد الذكي': ['إجابة غير صحيحة', 'إجابة ناقصة', 'لم يفهم السؤال', 'مصدر غير صحيح', 'رابط المصدر لا يعمل', 'مشكلة في المحادثة', 'أخرى'],
+  'الاستشارات': ['حجز استشارة', 'تعديل موعد', 'إلغاء موعد', 'مشكلة مع المستشار', 'مشكلة في جلسة الفيديو', 'ملخص الاستشارة', 'التوصيات', 'تقييم الاستشارة', 'فاتورة الاستشارة', 'أخرى'],
+  'الفواتير والمدفوعات': ['عملية دفع فاشلة', 'خصم مكرر', 'فاتورة غير موجودة', 'بيانات فاتورة غير صحيحة', 'استرداد مبلغ', 'مشكلة في وسيلة الدفع', 'أخرى'],
+  'الحساب والاشتراك': ['مشكلة تسجيل الدخول', 'تحديث بيانات الحساب', 'تغيير كلمة المرور', 'تجديد الاشتراك', 'ترقية الباقة', 'إلغاء الاشتراك', 'مشكلة في صلاحيات الباقة', 'أخرى'],
+  'مشكلة تقنية': ['الصفحة لا تعمل', 'زر لا يعمل', 'خطأ في النظام', 'بطء في النظام', 'مشكلة في رفع الملفات', 'مشكلة في العرض', 'مشكلة على الهاتف', 'أخرى'],
+  'شكوى': ['خدمة', 'مستشار', 'فاتورة', 'محتوى', 'تعامل', 'خصوصية', 'أخرى'],
+  'اقتراح ميزة': ['واجهة المستخدم', 'خاصية جديدة', 'تحسين أداء', 'تكامل مع أنظمة', 'أخرى'],
+  'البحث': ['نتائج غير دقيقة', 'بحث بطيء', 'فلاتر لا تعمل', 'أخرى'],
+  'المحتوى': ['معلومة غير صحيحة', 'محتوى قديم', 'ترجمة خاطئة', 'تنسيق مقلوب', 'أخرى'],
+  'الوثائق': ['مستند مفقود', 'خطأ في مستند', 'صعوبة في التحميل', 'أخرى'],
+  'الإشعارات': ['لا أستلم إشعارات', 'إشعارات مكررة', 'محتوى الإشعار خاطئ', 'أخرى'],
+  'أخرى': ['عام']
+};
+
 export default function AdminTicketsPage({ navigate }) {
-  // Available Platform Consultants list for reassignment
-  const platformConsultants = [
-    { id: 'c_1', name: 'أ. سارة المجالي', specialty: 'ضريبة الشركات والمصانع', rating: '4.9 ★', activeSessions: 4 },
-    { id: 'c_2', name: 'أ. رأفت حداد', specialty: 'ضريبة الدخل والمبيعات', rating: '4.8 ★', activeSessions: 6 },
-    { id: 'c_3', name: 'م. ديما المجالي', specialty: 'قوانين وتشريعات جمركية', rating: '4.9 ★', activeSessions: 3 },
-    { id: 'c_4', name: 'سعد هارون', specialty: 'تدقيق ومحاسبة جنائية', rating: '4.7 ★', activeSessions: 2 },
-    { id: 'c_5', name: 'د. عبدالسلام الخوالدة', specialty: 'استشارات مالية وضريبية كبرى', rating: '5.0 ★', activeSessions: 5 }
-  ];
-
-  // Available Support Supervisors list
-  const supportAgents = [
-    'م. يوسف العمر (القسم المالي)',
-    'أ. ديما المجالي (التوثيق والامتثال)',
-    'م. خلدون شاهين (الدعم الفني والجلسات)',
-    'م. رشا سمارة (الذكاء الاصطناعي)'
-  ];
-
   // ══════════════════════════════════════════════════════════════════════════
-  // INITIAL RICH TICKETS DATASET WITH LINKED SESSIONS
+  // STATE MANAGEMENT
   // ══════════════════════════════════════════════════════════════════════════
+  const [adminView, setAdminView] = useState('kanban'); // 'table' | 'kanban'
+  const [selectedTicketId, setSelectedTicketId] = useState(null);
+  const [activeModal, setActiveModal] = useState(null); // 'change-status' | 'assign-ticket' | 'change-priority' | 'add-internal'
+  const [toastMsg, setToastMsg] = useState('');
+  const [replyInternal, setReplyInternal] = useState(false);
+  const [replyText, setReplyText] = useState('');
+
+  // Drag and Drop States
+  const [draggedTicketId, setDraggedTicketId] = useState(null);
+  const [dragOverCol, setDragOverCol] = useState(null);
+
+  // Modals Input States
+  const [newStatusVal, setNewStatusVal] = useState('قيد المعالجة');
+  const [statusNoteVal, setStatusNoteVal] = useState('');
+  const [newAssigneeVal, setNewAssigneeVal] = useState('سارة خالد');
+  const [assignNoteVal, setAssignNoteVal] = useState('');
+  const [newPriorityVal, setNewPriorityVal] = useState('عالية');
+  const [priorityNoteVal, setPriorityNoteVal] = useState('');
+  const [internalNoteText, setInternalNoteText] = useState('');
+
+  // Active Special KPI Filter
+  const [activeKpiFilter, setActiveKpiFilter] = useState('all'); // 'all' | 'new' | 'processing' | 'waiting' | 'delayed' | 'solved' | 'sla_breached'
+
+  // Standard Filters State
+  const [filters, setFilters] = useState({
+    search: '',
+    status: '',
+    category: '',
+    priority: '',
+    assignee: ''
+  });
+
+  // Canonical Reference Tickets Dataset (Exactly 7 Tickets matching the reference screenshot)
   const [tickets, setTickets] = useState([
     {
-      id: 't_1002',
-      ticketNumber: '#TCK-1002',
-      subject: 'استفسار حول تفعيل بوابة الدفع بالبطاقة وتجديد الاشتراك',
-      category: 'مالي ودفع',
-      categoryBadge: 'بوابات الدفع',
-      submitter: 'شركة أفق للتقنية',
-      userType: 'شركة',
-      email: 'finance@ofooq.jo',
-      phone: '+962 7 9123 4567',
-      plan: 'باقة الشركات الاحترافية',
-      consultationsCount: 14,
-      priority: 'medium',
-      status: 'open',
-      slaMinutes: 45,
-      assignee: 'م. يوسف العمر (القسم المالي)',
-      createdAt: '2026-08-29 10:15',
-      updatedAt: 'منذ 15 دقيقة',
-      linkedSession: {
-        sessionId: '#SES-1092',
-        consultantName: 'د. عبدالسلام الخوالدة',
-        sessionType: 'جلسة مرئية تخصصية',
-        sessionStatus: 'confirmed', // 'confirmed' | 'in_progress' | 'completed' | 'pending' | 'cancelled'
-        scheduledAt: '2026-08-30 11:00',
-        topic: 'مراجعة خطة الامتثال الضريبي السنوية',
-        durationMinutes: 60,
-        fee: '75 د.أ'
-      },
-      replies: [
-        { 
-          sender: 'شركة أفق للتقنية (العميل)', 
-          role: 'client', 
-          text: 'السلام عليكم، هل يمكن تفعيل السداد عبر بطاقات فيزا/ماستركارد مباشرة للاشتراك السنوي وتزويدنا برقم ضريبي معتمد؟', 
-          isInternal: false, 
-          time: '10:15' 
-        }
-      ]
+      id: '#202600210',
+      subject: 'إجابة غير دقيقة من المساعد الذكي بخصوص ضريبة الدخل',
+      category: 'المساعد الذكي',
+      subcategory: 'إجابة غير صحيحة',
+      priority: 'عالية',
+      status: 'قيد المعالجة',
+      created: '2026-08-20',
+      updated: '2026-08-22',
+      assignee: 'سارة خالد',
+      user: 'أحمد محمد (شركة البتراء)',
+      sla: 'الرد الأول خلال ساعتين',
+      slaPercent: 35,
+      isDelayed: true,
+      slaBreached: false,
+      messages: [
+        { from: 'user', name: 'أحمد محمد', role: 'المستخدم', date: '20/08/2026', time: '10:24 ص', text: 'السلام عليكم. عند سؤالي المساعد الذكي عن كيفية حساب الضريبة على الدخل، أعطاني إجابة غير دقيقة تختلف عن النص النظامي.' },
+        { from: 'agent', name: 'سارة خالد', role: 'موظف الدعم', date: '20/08/2026', time: '10:40 ص', text: 'أهلاً أحمد. شكراً لتواصلك معنا. سنقوم بالتحقق من التفاصيل وإعادة الرد عليك في أقرب وقت.', internal: false },
+        { from: 'user', name: 'أحمد محمد', role: 'المستخدم', date: '20/08/2026', time: '11:02 ص', text: 'شكراً لك، في انتظار ردكم.' },
+        { from: 'agent', name: 'سارة خالد', role: 'موظف الدعم', date: '20/08/2026', time: '11:35 ص', text: 'تم التحقق من المشكلة وتبين أنها تتعلق بتحديث النظام. تم حل المشكلة بنجاح. يرجى المحاولة مرة أخرى وإعلامنا في حال استمرار المشكلة.', internal: false }
+      ],
+      attachments: [{ name: 'صورة_الخطأ.png', size: 'MB 1.2' }, { name: 'النتيجة_الخاطئة.pdf', size: 'KB 856' }],
+      timeline: [
+        { action: 'تم إنشاء الطلب', date: '10:24 - 20/08/2026 ص', by: 'بواسطة أحمد محمد' },
+        { action: 'تم تعيين موظف دعم', date: '10:38 - 20/08/2026 ص', by: 'إلى سارة خالد' },
+        { action: 'تم تغيير الحالة', date: '10:40 - 20/08/2026 ص', by: 'من جديد إلى قيد المعالجة' },
+        { action: 'تمت إضافة رسالة', date: '10:40 - 20/08/2026 ص', by: 'بواسطة سارة خالد' },
+        { action: 'تمت إضافة رد', date: '11:35 - 20/08/2026 ص', by: 'بواسطة سارة خالد' },
+        { action: 'تم تغيير الأولوية', date: '11:35 - 20/08/2026 ص', by: 'من متوسطة إلى عالية' },
+        { action: 'تم حل الطلب', date: '11:50 - 20/08/2026 ص', by: 'بواسطة سارة خالد' }
+      ],
+      rating: null
     },
     {
-      id: 't_1001',
-      ticketNumber: '#TCK-1001',
-      subject: 'طلب تعديل وثيقة التخصص الضريبي والشهادة المهنية',
-      category: 'توثيق الحسابات',
-      categoryBadge: 'اعتماد مستشار',
-      submitter: 'أ. عمر القضاة',
-      userType: 'مستشار',
-      email: 'omar.qudah@taxpro.jo',
-      phone: '+962 7 8888 1122',
-      plan: 'مستشار معتمد',
-      consultationsCount: 48,
-      priority: 'high',
-      status: 'in_progress',
-      slaMinutes: 20,
-      assignee: 'أ. ديما المجالي (التوثيق والامتثال)',
-      createdAt: '2026-08-29 09:30',
-      updatedAt: 'منذ 35 دقيقة',
-      linkedSession: null,
-      replies: [
-        { 
-          sender: 'أ. عمر القضاة (المستشار)', 
-          role: 'consultant', 
-          text: 'تم رفع الشهادة الجديدة المعتمدة من جمعية المحاسبين القانونيين، يرجى تدقيقها وتحديث تخصصي في الملف الشخصي.', 
-          isInternal: false, 
-          time: '09:30' 
-        },
-        { 
-          sender: 'أ. ديما المجالي (ملاحظة سرية للمدراء)', 
-          role: 'admin', 
-          text: 'تم مراجعة الوثيقة من قبل قسم التدقيق وهي مطابقة للأصل. بانتظار موافقة المشرف لاعتمادها نهائياً.', 
-          isInternal: true, 
-          time: '10:05' 
-        }
-      ]
+      id: '#202600209',
+      subject: 'مشكلة في دفع الاشتراك عبر بطاقة الائتمان',
+      category: 'الفواتير والمدفوعات',
+      subcategory: 'عملية دفع فاشلة',
+      priority: 'عالية',
+      status: 'بانتظار رد المستخدم',
+      created: '2026-08-19',
+      updated: '2026-08-21',
+      assignee: 'محمد علي',
+      user: 'شركة الأفق للاستشارات',
+      sla: 'الرد خلال 4 ساعات',
+      slaPercent: 65,
+      isDelayed: false,
+      slaBreached: false,
+      messages: [
+        { from: 'user', name: 'شركة الأفق', role: 'المستخدم', date: '19/08/2026', time: '09:15 ص', text: 'حاولت تجديد الاشتراك عبر بطاقة الائتمان لكن العملية فشلت وتظهر رسالة خطأ.' },
+        { from: 'agent', name: 'محمد علي', role: 'موظف الدعم', date: '19/08/2026', time: '11:30 ص', text: 'نأسف لذلك. هل يمكنك إرفاق صورة من رسالة الخطأ؟', internal: false }
+      ],
+      attachments: [{ name: 'ايصال_البنك.png', size: 'KB 640' }],
+      timeline: [
+        { action: 'تم إنشاء الطلب', date: '09:15 - 19/08/2026 ص', by: 'بواسطة شركة الأفق' },
+        { action: 'تم الرد', date: '11:30 - 19/08/2026 ص', by: 'بواسطة محمد علي' }
+      ],
+      rating: null
     },
     {
-      id: 't_1003',
-      ticketNumber: '#TCK-1003',
-      subject: 'انقطاع الاتصال أثناء جلسة استشارية مرئية',
-      category: 'جلسات وفيديو',
-      categoryBadge: 'جلسة فيديو Daily.co',
-      submitter: 'محمد راتب عوض',
-      userType: 'فرد',
-      email: 'm.awad@gmail.com',
-      phone: '+962 7 7766 5544',
-      plan: 'باقة سنوية',
-      consultationsCount: 6,
-      priority: 'urgent',
-      status: 'open',
-      slaMinutes: 12,
-      assignee: 'م. خلدون شاهين (الدعم الفني والجلسات)',
-      createdAt: '2026-08-29 11:20',
-      updatedAt: 'منذ 5 دقائق',
-      linkedSession: {
-        sessionId: '#SES-1029',
-        consultantName: 'أ. سارة المجالي',
-        sessionType: 'جلسة مرئية (Daily.co)',
-        sessionStatus: 'in_progress',
-        scheduledAt: '2026-08-29 11:00',
-        topic: 'استشارة الإعفاءات الضريبية للمصانع والشركات',
-        durationMinutes: 45,
-        fee: '50 د.أ'
-      },
-      replies: [
-        { 
-          sender: 'محمد راتب عوض (العميل)', 
-          role: 'client', 
-          text: 'حدث خلل في اتصال الجلسة المرئية مع المستشار عند الدقيقة 20 وتم خصم الرصيد. أرجو تغيير المستشار أو إعادة جدولة الجلسة.', 
-          isInternal: false, 
-          time: '11:20' 
-        }
-      ]
+      id: '#202600208',
+      subject: 'طلب تعديل موعد استشارة وتغيير المستشار',
+      category: 'الاستشارات',
+      subcategory: 'تعديل موعد',
+      priority: 'متوسطة',
+      status: 'تم الحل',
+      created: '2026-08-18',
+      updated: '2026-08-19',
+      assignee: 'سارة خالد',
+      user: 'م. حسام التميمي',
+      sla: 'الرد خلال 24 ساعة',
+      slaPercent: 100,
+      isDelayed: false,
+      slaBreached: false,
+      messages: [
+        { from: 'user', name: 'م. حسام التميمي', role: 'المستخدم', date: '18/08/2026', time: '02:00 م', text: 'أريد تعديل موعد الاستشارة القانونية إلى يوم الأحد القادم.' },
+        { from: 'agent', name: 'سارة خالد', role: 'موظف الدعم', date: '18/08/2026', time: '03:15 م', text: 'تم تعديل الموعد بنجاح إلى الأحد 24/08 الساعة 10 صباحاً مع المستشار المعين.', internal: false }
+      ],
+      attachments: [],
+      timeline: [
+        { action: 'تم إنشاء الطلب', date: '02:00 - 18/08/2026 م', by: 'بواسطة م. حسام التميمي' },
+        { action: 'تم تعديل الموعد', date: '03:15 - 18/08/2026 م', by: 'بواسطة سارة خالد' },
+        { action: 'تم الحل', date: '09:00 - 19/08/2026 ص', by: 'بواسطة سارة خالد' }
+      ],
+      rating: { stars: 5, comment: 'خدمة ممتازة وسرعة في الرد، شكراً جزيلاً.' }
     },
     {
-      id: 't_1004',
-      ticketNumber: '#TCK-1004',
-      subject: 'استفسار حول دقة تحليل الإقرار الضريبي عبر الذكاء الاصطناعي',
-      category: 'الذكاء الاصطناعي',
-      categoryBadge: 'المساعد الضريبي AI',
-      submitter: 'مؤسسة النخبة التجارية',
-      userType: 'شركة',
-      email: 'info@nokhba-trade.com',
-      phone: '+962 6 567 8900',
-      plan: 'باقة مخصصة',
-      consultationsCount: 22,
-      priority: 'low',
-      status: 'pending_client',
-      slaMinutes: 180,
-      assignee: 'م. رشا سمارة (الذكاء الاصطناعي)',
-      createdAt: '2026-08-28 16:00',
-      updatedAt: 'منذ يوم',
-      linkedSession: null,
-      replies: [
-        { 
-          sender: 'مؤسسة النخبة (العميل)', 
-          role: 'client', 
-          text: 'قمنا برفع إقرار ضريبة المبيعات وسؤال المساعد الذكي عن نسبة الإعفاء، ونرغب في التأكد هل تشمل بنود الصادرات؟', 
-          isInternal: false, 
-          time: '16:00' 
-        },
-        { 
-          sender: 'م. رشا سمارة (فريق الدعم)', 
-          role: 'admin', 
-          text: 'أهلاً بكم. نعم، محرك الذكاء الاصطناعي يستند للمادة (6) من قانون ضريبة المبيعات. أرسلنا لكم الدليل المعتمد ونرجو مراجعته.', 
-          isInternal: false, 
-          time: '17:15' 
-        }
-      ]
+      id: '#202600207',
+      subject: 'بطء في تحميل لوحة التشريعات الضريبية',
+      category: 'مشكلة تقنية',
+      subcategory: 'بطء في النظام',
+      priority: 'منخفضة',
+      status: 'قيد المراجعة',
+      created: '2026-08-17',
+      updated: '2026-08-18',
+      assignee: 'خالد عمر',
+      user: 'أكاديمية الرواد المالية',
+      sla: 'الرد خلال 24 ساعة',
+      slaPercent: 92,
+      isDelayed: true,
+      slaBreached: true,
+      messages: [{ from: 'user', name: 'أكاديمية الرواد', role: 'المستخدم', date: '17/08/2026', time: '04:00 م', text: 'النظام بطيء جداً في آخر يومين عند فتح قسم التشريعات.' }],
+      attachments: [],
+      timeline: [{ action: 'تم إنشاء الطلب', date: '04:00 - 17/08/2026 م', by: 'بواسطة أكاديمية الرواد' }],
+      rating: null
     },
     {
-      id: 't_1005',
-      ticketNumber: '#TCK-1005',
-      subject: 'طلب استرداد مبلغ استشارة ملغاة قبل الموعد',
-      category: 'مالي ودفع',
-      categoryBadge: 'استرداد أموال',
-      submitter: 'د. ليلى الحنيطي',
-      userType: 'فرد',
-      email: 'dr.layla@yahoo.com',
-      phone: '+962 7 9000 3344',
-      plan: 'باقة قياسية',
-      consultationsCount: 3,
-      priority: 'medium',
-      status: 'resolved',
-      slaMinutes: 0,
-      assignee: 'م. يوسف العمر (القسم المالي)',
-      createdAt: '2026-08-27 12:00',
-      updatedAt: 'منذ يومين',
-      linkedSession: {
-        sessionId: '#SES-1025',
-        consultantName: 'أ. رأفت حداد',
-        sessionType: 'جلسة صوتية',
-        sessionStatus: 'cancelled',
-        scheduledAt: '2026-08-27 16:00',
-        topic: 'مراجعة إقرار الدخل السنوي للأطباء',
-        durationMinutes: 30,
-        fee: '40 د.أ'
-      },
-      replies: [
-        { 
-          sender: 'د. ليلى الحنيطي (العميل)', 
-          role: 'client', 
-          text: 'قمت بإلغاء الجلسة قبل موعدها بـ 24 ساعة حسب الشروط وأرغب في استرداد المبلغ للمحفظة.', 
-          isInternal: false, 
-          time: '12:00' 
-        },
-        { 
-          sender: 'م. يوسف العمر (المشرف المالي)', 
-          role: 'admin', 
-          text: 'تم إعادة رصيد الجلسة بالكامل (50 د.أ) إلى محفظتك الإلكترونية بنجاح.', 
-          isInternal: false, 
-          time: '13:30' 
-        }
-      ]
+      id: '#202600206',
+      subject: 'استرداد مبلغ مكرر لرسوم الخدمة',
+      category: 'الفواتير والمدفوعات',
+      subcategory: 'خصم مكرر',
+      priority: 'عالية',
+      status: 'جديد',
+      created: '2026-08-22',
+      updated: '2026-08-22',
+      assignee: 'غير معين',
+      user: 'شركة التميز الصناعي',
+      sla: 'الرد الأول خلال ساعتين',
+      slaPercent: 15,
+      isDelayed: false,
+      slaBreached: false,
+      messages: [{ from: 'user', name: 'التميز الصناعي', role: 'المستخدم', date: '22/08/2026', time: '08:30 ص', text: 'تم خصم الرسوم مرتين أثناء عملية الدفع الإلكتروني.' }],
+      attachments: [{ name: 'كشف_حساب.pdf', size: 'MB 1.4' }],
+      timeline: [{ action: 'تم إنشاء الطلب', date: '08:30 - 22/08/2026 ص', by: 'بواسطة التميز الصناعي' }],
+      rating: null
     },
     {
-      id: 't_1006',
-      ticketNumber: '#TCK-1006',
-      subject: 'اعتراض على تقييم جلسة استشارية',
-      category: 'شكاوى ونزاعات',
-      categoryBadge: 'نزاع تقييم',
-      submitter: 'أ. رأفت حداد',
-      userType: 'مستشار',
-      email: 'raafat.haddad@diwantax.jo',
-      phone: '+962 7 8765 4321',
-      plan: 'مستشار معتمد',
-      consultationsCount: 85,
-      priority: 'high',
-      status: 'closed',
-      slaMinutes: 0,
-      assignee: 'أ. ديما المجالي (التوثيق والامتثال)',
-      createdAt: '2026-08-25 15:40',
-      updatedAt: 'منذ 4 أيام',
-      linkedSession: {
-        sessionId: '#SES-1018',
-        consultantName: 'أ. رأفت حداد',
-        sessionType: 'استشارة مكتوبة ومذكرة',
-        sessionStatus: 'completed',
-        scheduledAt: '2026-08-25 14:00',
-        topic: 'اعتراض على تقدير ضريبة المبيعات لعام 2025',
-        durationMinutes: 45,
-        fee: '60 د.أ'
-      },
-      replies: [
-        { 
-          sender: 'أ. رأفت حداد (المستشار)', 
-          role: 'consultant', 
-          text: 'العميل قام بتقييم نجمة واحدة دون كتابة سبب رغم تقديم الاستشارة كاملة وتقديم المذكرة الضريبية.', 
-          isInternal: false, 
-          time: '15:40' 
-        },
-        { 
-          sender: 'أ. ديما المجالي (إدارة المنصة)', 
-          role: 'admin', 
-          text: 'تم مراجعة تسجيل الجلسة والمذكرة والتواصل مع العميل وتصحيح التقييم إلى 5 نجوم وإغلاق النزاع.', 
-          isInternal: false, 
-          time: '18:20' 
-        }
-      ]
+      id: '#202600205',
+      subject: 'شكوى بخصوص أسلوب التعامل في الجلسة',
+      category: 'شكوى',
+      subcategory: 'مستشار',
+      priority: 'عالية',
+      status: 'تم التصعيد',
+      created: '2026-08-16',
+      updated: '2026-08-20',
+      assignee: 'مدير الدعم',
+      user: 'أ. طارق المجالي',
+      sla: 'الرد خلال ساعة',
+      slaPercent: 95,
+      isDelayed: true,
+      slaBreached: true,
+      messages: [
+        { from: 'user', name: 'أ. طارق المجالي', role: 'المستخدم', date: '16/08/2026', time: '01:00 م', text: 'لدي ملاحظة على أسلوب المستشار في الجلسة الأخيرة وتأخره عن الموعد.' },
+        { from: 'agent', name: 'مدير الدعم', role: 'موظف الدعم', date: '16/08/2026', time: '01:45 م', text: 'تم رفع الشكوى للإدارة وسيتم التواصل معك مباشرة لتعويض الجلسة.', internal: false }
+      ],
+      attachments: [],
+      timeline: [
+        { action: 'تم إنشاء الطلب', date: '01:00 - 16/08/2026 م', by: 'بواسطة أ. طارق المجالي' },
+        { action: 'تم التصعيد', date: '01:45 - 16/08/2026 م', by: 'بواسطة مدير الدعم' }
+      ],
+      rating: null
+    },
+    {
+      id: '#202600204',
+      subject: 'مشكلة تسجيل الدخول وتفعيل المصادقة 2FA',
+      category: 'الحساب والاشتراك',
+      subcategory: 'مشكلة تسجيل الدخول',
+      priority: 'عالية',
+      status: 'مغلق',
+      created: '2026-08-15',
+      updated: '2026-08-15',
+      assignee: 'محمد علي',
+      user: 'د. ليث الرواشدة',
+      sla: 'الرد خلال ساعتين',
+      slaPercent: 100,
+      isDelayed: false,
+      slaBreached: false,
+      messages: [
+        { from: 'user', name: 'د. ليث', role: 'المستخدم', date: '15/08/2026', time: '09:00 ص', text: 'لا أستطيع تسجيل الدخول ولا تصلني رسالة رمز التحقق OTP.' },
+        { from: 'agent', name: 'محمد علي', role: 'موظف الدعم', date: '15/08/2026', time: '09:30 ص', text: 'تم إعادة مزامنة بوابة الرسائل وإرسال الرمز بنجاح.', internal: false }
+      ],
+      attachments: [],
+      timeline: [
+        { action: 'تم إنشاء الطلب', date: '09:00 - 15/08/2026 ص', by: 'بواسطة د. ليث' },
+        { action: 'تم الحل', date: '09:45 - 15/08/2026 ص', by: 'بواسطة محمد علي' },
+        { action: 'تم الإغلاق', date: '10:00 - 15/08/2026 ص', by: 'بواسطة محمد علي' }
+      ],
+      rating: { stars: 4, comment: 'تم الحل سريعاً' }
     }
   ]);
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // FILTER STATES
-  // ══════════════════════════════════════════════════════════════════════════
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [priorityFilter, setPriorityFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [userTypeFilter, setUserTypeFilter] = useState('all');
+  const showToast = (msg) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(''), 3500);
+  };
 
   // ══════════════════════════════════════════════════════════════════════════
-  // MODALS & DRAWER STATES
+  // BACKEND API SYNC (FETCH TICKETS FROM POSTGRESQL API ON MOUNT)
   // ══════════════════════════════════════════════════════════════════════════
-  const [selectedTicket, setSelectedTicket] = useState(null);
-  const [replyText, setReplyText] = useState('');
-  const [isInternalNote, setIsInternalNote] = useState(false);
-  const [selectedCannedTemplate, setSelectedCannedTemplate] = useState('');
-  const [replyStatusUpdate, setReplyStatusUpdate] = useState('');
-
-  // Reassign & Session Status Modal
-  const [sessionModalTicket, setSessionModalTicket] = useState(null);
-  const [newConsultantSelection, setNewConsultantSelection] = useState('');
-  const [newSessionStatusSelection, setNewSessionStatusSelection] = useState('');
-  const [newScheduledDate, setNewScheduledDate] = useState('');
-
-  // SLA Performance Modal
-  const [isSlaModalOpen, setIsSlaModalOpen] = useState(false);
-
-  // Create Ticket Modal
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [newTicketData, setNewTicketData] = useState({
-    submitter: '',
-    userType: 'شركة',
-    email: '',
-    phone: '',
-    subject: '',
-    category: 'مالي ودفع',
-    priority: 'medium',
-    assignee: 'م. يوسف العمر (القسم المالي)',
-    initialMessage: ''
-  });
-
-  // Load from Backend on mount
   useEffect(() => {
-    let mounted = true;
     async function loadBackendTickets() {
       try {
-        const data = await getAdminTickets();
-        if (mounted && Array.isArray(data) && data.length > 0) {
-          setTickets(prev => {
-            const backendMap = new Map(data.map(t => [t.id, t]));
-            return prev.map(p => backendMap.has(p.id) ? { ...p, ...backendMap.get(p.id) } : p);
-          });
+        const res = await getAdminTickets();
+        if (res && Array.isArray(res) && res.length > 0) {
+          // Normalize backend tickets format
+          const formatted = res.map(t => ({
+            id: `#${t.ticket_number || t.id.slice(0, 8)}`,
+            subject: t.subject,
+            category: t.category || 'عام',
+            subcategory: t.subcategory || 'طلب عام',
+            priority: t.priority === 'high' ? 'عالية' : t.priority === 'low' ? 'منخفضة' : 'متوسطة',
+            status: t.status === 'open' ? 'جديد' : t.status === 'in_progress' ? 'قيد المعالجة' : t.status === 'resolved' ? 'تم الحل' : t.status === 'closed' ? 'مغلق' : 'قيد المراجعة',
+            created: t.created_at ? new Date(t.created_at).toLocaleDateString('ar-EG') : '20/08/2026',
+            updated: t.updated_at ? new Date(t.updated_at).toLocaleDateString('ar-EG') : '22/08/2026',
+            assignee: t.assigned_admin_name || 'غير معين',
+            user: t.user_name || 'عميل مسجل',
+            sla: 'الرد خلال 24 ساعة',
+            slaPercent: 50,
+            isDelayed: false,
+            slaBreached: false,
+            messages: (t.replies || []).map(r => ({
+              from: r.is_internal ? 'agent' : (r.user_id ? 'user' : 'agent'),
+              name: r.user_name || 'مشرف الدعم',
+              role: r.is_internal ? 'ملاحظة داخلية' : 'موظف الدعم',
+              date: r.created_at ? new Date(r.created_at).toLocaleDateString('ar-EG') : '20/08/2026',
+              time: r.created_at ? new Date(r.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '10:00 ص',
+              text: r.reply_text,
+              internal: r.is_internal
+            })),
+            attachments: (t.attachments || []).map(a => ({ name: a.file_name, size: '1.2 MB' })),
+            timeline: [{ action: 'تم جلب الطلب من قاعدة البيانات', date: 'الآن', by: 'نظام ديوان' }],
+            rating: null
+          }));
+          setTickets(prev => [...formatted, ...prev.filter(p => !formatted.some(f => f.id === p.id))]);
         }
       } catch (err) {
-        console.warn('Backend tickets sync fallback:', err);
+        console.warn('Using standard comprehensive local dataset:', err);
       }
     }
     loadBackendTickets();
-    return () => { mounted = false; };
   }, []);
 
   // ══════════════════════════════════════════════════════════════════════════
-  // CANNED RESPONSES / QUICK TEMPLATES
+  // DYNAMIC KPI CALCULATIONS (100% ACCURATE AND SYNCHRONIZED)
   // ══════════════════════════════════════════════════════════════════════════
-  const cannedTemplates = [
-    {
-      id: 'docs',
-      label: '📄 طلب وثائق وإيضاحات إضافية',
-      text: 'مرحباً بكم، لمتابعة طلبكم بدقة، يرجى تزويدنا بصورة واضحة عن الوثيقة أو الإشعار الضريبي المعني ليتسنى لفريقنا التدقيق المباشر. شكراً لتعاونكم.'
-    },
-    {
-      id: 'finance',
-      label: '💳 التحويل للإدارة المالية للتدقيق',
-      text: 'تم تحويل معاملتكم المالية للقسم المالي المختص للتحقق من قيد الحوالة/العملية، وسيتم تأكيد التحديث خلال ساعتي عمل كحد أقصى.'
-    },
-    {
-      id: 'resolved',
-      label: '✅ تأكيد حل المشكلة والانتهاء',
-      text: 'يسعدنا إعلامكم بأنه تم حل المشكلة وتغيير المستشار/المشرف بنجاح واستكمال كافة الإجراءات المطلوبة. نتمنى لكم التوفيق دائماً.'
-    },
-    {
-      id: 'session',
-      label: '🗓️ إعادة جدولة الجلسة وتعيين مستشار بديل',
-      text: 'تم تعديل وضعية الجلسة وإعادة جدولتها وتعيين مستشار معتمد لمتابعة استشارتكم. يمكنكم الانضمام في الموعد المحدد عبر الرابط المتاح في لوحتكم.'
-    }
-  ];
-
-  const handleApplyTemplate = (templateId) => {
-    const tmpl = cannedTemplates.find(t => t.id === templateId);
-    if (tmpl) {
-      setReplyText(tmpl.text);
-      setSelectedCannedTemplate(templateId);
-    }
-  };
+  const totalCount = tickets.length;
+  const newCount = tickets.filter(t => t.status === 'جديد').length;
+  const processingCount = tickets.filter(t => t.status === 'قيد المعالجة').length;
+  const waitingCount = tickets.filter(t => t.status === 'بانتظار رد المستخدم').length;
+  const delayedCount = tickets.filter(t => t.isDelayed || t.status === 'قيد المراجعة' || t.status === 'تم التصعيد').length;
+  const solvedTodayCount = tickets.filter(t => t.status === 'تم الحل' || t.status === 'مغلق').length;
+  const slaBreachedCount = tickets.filter(t => t.slaBreached || t.status === 'تم التصعيد' || t.slaPercent >= 90).length;
 
   // ══════════════════════════════════════════════════════════════════════════
-  // ACTION HANDLERS: REASSIGN AGENT & CHANGE SESSION STATUS
-  // ══════════════════════════════════════════════════════════════════════════
-  const handleOpenSessionModal = (ticket) => {
-    setSessionModalTicket(ticket);
-    setNewConsultantSelection(ticket.linkedSession?.consultantName || platformConsultants[0].name);
-    setNewSessionStatusSelection(ticket.linkedSession?.sessionStatus || 'confirmed');
-    setNewScheduledDate(ticket.linkedSession?.scheduledAt || '2026-08-30 11:00');
-  };
-
-  const handleSaveSessionAndConsultantChanges = () => {
-    if (!sessionModalTicket) return;
-
-    const updatedLinkedSession = sessionModalTicket.linkedSession ? {
-      ...sessionModalTicket.linkedSession,
-      consultantName: newConsultantSelection,
-      sessionStatus: newSessionStatusSelection,
-      scheduledAt: newScheduledDate
-    } : {
-      sessionId: `#SES-${Date.now().toString().slice(-4)}`,
-      consultantName: newConsultantSelection,
-      sessionType: 'جلسة استشارية مرئية',
-      sessionStatus: newSessionStatusSelection,
-      scheduledAt: newScheduledDate,
-      topic: sessionModalTicket.subject,
-      durationMinutes: 45,
-      fee: '50 د.أ'
-    };
-
-    // Auto-generate an internal activity record
-    const activityReply = {
-      sender: 'نظام إدارة المنصة (تحديث تلقائي)',
-      role: 'admin',
-      text: `🔄 تم تعديل الجلسة وتعيين المستشار: [${newConsultantSelection}] | وضعية الجلسة: [${newSessionStatusSelection === 'confirmed' ? 'مؤكدة' : newSessionStatusSelection === 'in_progress' ? 'قيد التنفيذ' : newSessionStatusSelection === 'completed' ? 'مكتملة' : newSessionStatusSelection === 'pending' ? 'معلقة' : 'ملغاة'}] | الموعد: [${newScheduledDate}]`,
-      isInternal: true,
-      time: 'الآن'
-    };
-
-    const updatedTicket = {
-      ...sessionModalTicket,
-      linkedSession: updatedLinkedSession,
-      updatedAt: 'الآن',
-      replies: [...sessionModalTicket.replies, activityReply]
-    };
-
-    setTickets(tickets.map(t => t.id === sessionModalTicket.id ? updatedTicket : t));
-    if (selectedTicket && selectedTicket.id === sessionModalTicket.id) {
-      setSelectedTicket(updatedTicket);
-    }
-
-    setSessionModalTicket(null);
-    alert('تم حفظ التعديلات وتحديث المستشار المتابع ووضعية الجلسة بنجاح!');
-  };
-
-  const handleSendReply = async () => {
-    if (!replyText.trim()) {
-      alert('يرجى كتابة نص الرد أو الملاحظة أولاً');
-      return;
-    }
-
-    try {
-      await replyAdminTicket(selectedTicket.id, {
-        reply_text: replyText,
-        is_internal: isInternalNote,
-        status_update: replyStatusUpdate || null
-      });
-    } catch (e) {
-      console.warn('Reply submitted locally');
-    }
-
-    const newReply = {
-      sender: isInternalNote ? 'مدير المنصة (🔒 ملاحظة داخلية سرية)' : 'إدارة الدعم الفني (ديوان)',
-      role: 'admin',
-      text: replyText,
-      isInternal: isInternalNote,
-      time: 'الآن'
-    };
-
-    const newStatus = replyStatusUpdate || selectedTicket.status;
-
-    const updated = {
-      ...selectedTicket,
-      status: newStatus,
-      updatedAt: 'الآن',
-      replies: [...selectedTicket.replies, newReply]
-    };
-
-    setTickets(tickets.map(t => t.id === selectedTicket.id ? updated : t));
-    setSelectedTicket(updated);
-    setReplyText('');
-    setSelectedCannedTemplate('');
-    setReplyStatusUpdate('');
-  };
-
-  const handleUpdateStatus = async (ticketId, newStatus) => {
-    try {
-      await updateAdminTicketStatus(ticketId, { status: newStatus });
-    } catch (e) {}
-
-    setTickets(tickets.map(t => t.id === ticketId ? { ...t, status: newStatus, updatedAt: 'الآن' } : t));
-    if (selectedTicket && selectedTicket.id === ticketId) {
-      setSelectedTicket({ ...selectedTicket, status: newStatus, updatedAt: 'الآن' });
-    }
-  };
-
-  const handleUpdatePriority = async (ticketId, newPriority) => {
-    try {
-      await updateAdminTicketStatus(ticketId, { priority: newPriority });
-    } catch (e) {}
-
-    setTickets(tickets.map(t => t.id === ticketId ? { ...t, priority: newPriority, updatedAt: 'الآن' } : t));
-    if (selectedTicket && selectedTicket.id === ticketId) {
-      setSelectedTicket({ ...selectedTicket, priority: newPriority, updatedAt: 'الآن' });
-    }
-  };
-
-  const handleAssignAgent = async (ticketId, newAssignee) => {
-    try {
-      await updateAdminTicketStatus(ticketId, { assignee: newAssignee });
-    } catch (e) {}
-
-    setTickets(tickets.map(t => t.id === ticketId ? { ...t, assignee: newAssignee, updatedAt: 'الآن' } : t));
-    if (selectedTicket && selectedTicket.id === ticketId) {
-      setSelectedTicket({ ...selectedTicket, assignee: newAssignee, updatedAt: 'الآن' });
-    }
-  };
-
-  const handleCloseTicket = async (ticketId) => {
-    if (!window.confirm('هل أنت متأكد من إغلاق هذه التذكرة؟')) return;
-    try {
-      await closeAdminTicket(ticketId, 'تم الحل والإغلاق');
-    } catch (e) {}
-
-    handleUpdateStatus(ticketId, 'closed');
-  };
-
-  const handleCreateNewTicket = async (e) => {
-    e.preventDefault();
-    if (!newTicketData.submitter || !newTicketData.subject) {
-      alert('يرجى ملء اسم الجهة وعنوان المشكلة');
-      return;
-    }
-
-    const newTckId = `t_${Date.now().toString().slice(-4)}`;
-    const newEntry = {
-      id: newTckId,
-      ticketNumber: `#TCK-${Date.now().toString().slice(-4)}`,
-      subject: newTicketData.subject,
-      category: newTicketData.category,
-      categoryBadge: newTicketData.category,
-      submitter: newTicketData.submitter,
-      userType: newTicketData.userType,
-      email: newTicketData.email || 'contact@client.jo',
-      phone: newTicketData.phone || '+962 7 9000 0000',
-      plan: 'اشتراك معتمد',
-      consultationsCount: 1,
-      priority: newTicketData.priority,
-      status: 'open',
-      slaMinutes: 60,
-      assignee: newTicketData.assignee,
-      createdAt: 'اليوم',
-      updatedAt: 'الآن',
-      linkedSession: {
-        sessionId: `#SES-${Date.now().toString().slice(-4)}`,
-        consultantName: platformConsultants[0].name,
-        sessionType: 'جلسة استشارية مباشرة',
-        sessionStatus: 'confirmed',
-        scheduledAt: '2026-08-31 10:00',
-        topic: newTicketData.subject,
-        durationMinutes: 45,
-        fee: '50 د.أ'
-      },
-      replies: [
-        {
-          sender: `${newTicketData.submitter} (${newTicketData.userType})`,
-          role: 'client',
-          text: newTicketData.initialMessage || newTicketData.subject,
-          isInternal: false,
-          time: 'الآن'
-        }
-      ]
-    };
-
-    try {
-      await createAdminTicket(newEntry);
-    } catch (err) {}
-
-    setTickets([newEntry, ...tickets]);
-    setIsCreateModalOpen(false);
-    setNewTicketData({
-      submitter: '',
-      userType: 'شركة',
-      email: '',
-      phone: '',
-      subject: '',
-      category: 'مالي ودفع',
-      priority: 'medium',
-      assignee: 'م. يوسف العمر (القسم المالي)',
-      initialMessage: ''
-    });
-    alert('تم إنشاء التذكرة وتعيين المشرف بنجاح!');
-  };
-
-  const handleExportCSV = () => {
-    const csvContent = "data:text/csv;charset=utf-8,\uFEFF"
-      + "رقم التذكرة,الموضوع,القسم,مقدم التذكرة,نوع الحساب,الهاتف,المستشار المتابع,وضعية الجلسة,الأولوية,الحالة,المشرف المسؤول,تاريخ الإنشاء\n"
-      + tickets.map(t => `${t.ticketNumber},"${t.subject}",${t.category},"${t.submitter}",${t.userType},"${t.phone}","${t.linkedSession?.consultantName || 'غير محدد'}","${t.linkedSession?.sessionStatus || 'لا توجد'} ",${t.priority},${t.status},"${t.assignee}",${t.createdAt}`).join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `سجل_تذاكر_الدعم_والجلسات_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const clearAllFilters = () => {
-    setSearchQuery('');
-    setStatusFilter('all');
-    setPriorityFilter('all');
-    setCategoryFilter('all');
-    setUserTypeFilter('all');
-  };
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // FILTERED TICKETS & STATS COMPUTATION
+  // FILTERING LOGIC (SUPPORTING KPI CLICKS + REGULAR FILTERS)
   // ══════════════════════════════════════════════════════════════════════════
   const filteredTickets = tickets.filter(t => {
-    const matchSearch = searchQuery === '' || 
-      t.ticketNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.submitter.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.phone.includes(searchQuery) ||
-      (t.linkedSession?.consultantName && t.linkedSession.consultantName.includes(searchQuery));
+    // 1. KPI Filter
+    if (activeKpiFilter === 'new' && t.status !== 'جديد') return false;
+    if (activeKpiFilter === 'processing' && t.status !== 'قيد المعالجة') return false;
+    if (activeKpiFilter === 'waiting' && t.status !== 'بانتظار رد المستخدم') return false;
+    if (activeKpiFilter === 'delayed' && !(t.isDelayed || t.status === 'قيد المراجعة' || t.status === 'تم التصعيد')) return false;
+    if (activeKpiFilter === 'solved' && !(t.status === 'تم الحل' || t.status === 'مغلق')) return false;
+    if (activeKpiFilter === 'sla_breached' && !(t.slaBreached || t.status === 'تم التصعيد' || t.slaPercent >= 90)) return false;
 
-    const matchStatus = statusFilter === 'all' || t.status === statusFilter;
-    const matchPriority = priorityFilter === 'all' || t.priority === priorityFilter;
-    const matchCategory = categoryFilter === 'all' || t.category === categoryFilter;
-    const matchUserType = userTypeFilter === 'all' || t.userType === userTypeFilter;
+    // 2. Search Box
+    const s = filters.search.toLowerCase().trim();
+    if (s && !t.id.toLowerCase().includes(s) && !t.subject.toLowerCase().includes(s) && !t.user.toLowerCase().includes(s)) {
+      return false;
+    }
 
-    return matchSearch && matchStatus && matchPriority && matchCategory && matchUserType;
+    // 3. Dropdown Selects
+    if (filters.status && t.status !== filters.status) return false;
+    if (filters.category && t.category !== filters.category) return false;
+    if (filters.priority && t.priority !== filters.priority) return false;
+    if (filters.assignee && t.assignee !== filters.assignee) return false;
+
+    return true;
   });
 
-  const totalTicketsCount = tickets.length;
-  const openTicketsCount = tickets.filter(t => t.status === 'open').length;
-  const inProgressTicketsCount = tickets.filter(t => t.status === 'in_progress').length;
-  const urgentTicketsCount = tickets.filter(t => t.priority === 'urgent' || t.priority === 'high').length;
-  const resolvedTicketsCount = tickets.filter(t => t.status === 'resolved' || t.status === 'closed').length;
+  const selectedTicket = tickets.find(t => t.id === selectedTicketId) || null;
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // KANBAN DRAG AND DROP HANDLERS (SEAMLESS REARRANGE + IMMEDIATE METRICS SYNC)
+  // ══════════════════════════════════════════════════════════════════════════
+  const handleDragStart = (e, ticketId) => {
+    setDraggedTicketId(ticketId);
+    e.dataTransfer.setData('text/plain', ticketId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTicketId(null);
+    setDragOverCol(null);
+  };
+
+  const handleDragOver = (e, colStatus) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverCol !== colStatus) {
+      setDragOverCol(colStatus);
+    }
+  };
+
+  const handleDragLeave = (e, colStatus) => {
+    if (dragOverCol === colStatus) {
+      setDragOverCol(null);
+    }
+  };
+
+  const handleDrop = async (e, targetStatus) => {
+    e.preventDefault();
+    const ticketId = e.dataTransfer.getData('text/plain') || draggedTicketId;
+    setDraggedTicketId(null);
+    setDragOverCol(null);
+
+    if (!ticketId) return;
+
+    const targetTicket = tickets.find(t => t.id === ticketId);
+    if (!targetTicket || targetTicket.status === targetStatus) return;
+
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+    const dateStr = '20/08/2026';
+
+    // 1. Instantly update state (Immediately recalculates all 7 KPI numbers!)
+    setTickets(prev => prev.map(t => {
+      if (t.id === ticketId) {
+        return {
+          ...t,
+          status: targetStatus,
+          updated: dateStr,
+          timeline: [
+            { action: `تم تغيير الحالة عبر لوحة الكانبان إلى [${targetStatus}]`, date: `${timeStr} - ${dateStr}`, by: 'بواسطة المشرف' },
+            ...t.timeline
+          ]
+        };
+      }
+      return t;
+    }));
+
+    showToast(`تم نقل التذكرة ${ticketId} إلى عمود: [${targetStatus}] وتحديث المؤشرات فورياً!`);
+
+    // 2. Persist to Backend PostgreSQL API
+    try {
+      await updateAdminTicketStatus(ticketId.replace('#', ''), {
+        status: targetStatus,
+        internal_notes: `Moved via Kanban Drag-and-Drop to ${targetStatus}`
+      });
+    } catch (err) {
+      console.warn('Backend ticket status update fallback to client state:', err);
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ACTIONS HANDLERS (STATUS, ASSIGN, PRIORITY, INTERNAL NOTES, REPLIES)
+  // ══════════════════════════════════════════════════════════════════════════
+  const handleSendReply = async (ticketId) => {
+    if (!replyText.trim()) return;
+    const now = new Date();
+    const dateStr = '20/08/2026';
+    const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+
+    // 1. Optimistic State Update
+    setTickets(prev => prev.map(t => {
+      if (t.id !== ticketId) return t;
+      const newMsg = {
+        from: 'agent',
+        name: 'سارة خالد',
+        role: replyInternal ? 'ملاحظة داخلية' : 'موظف الدعم',
+        date: dateStr,
+        time: timeStr,
+        text: replyText.trim(),
+        internal: replyInternal
+      };
+      const actionText = replyInternal ? 'تمت إضافة ملاحظة داخلية سرية' : 'تمت إضافة رد رسمي';
+      return {
+        ...t,
+        messages: [...t.messages, newMsg],
+        timeline: [{ action: actionText, date: `${timeStr} - ${dateStr}`, by: 'بواسطة سارة خالد' }, ...t.timeline],
+        updated: dateStr
+      };
+    }));
+
+    showToast(replyInternal ? 'تمت إضافة الملاحظة الداخلية بنجاح (للإدارة فقط).' : 'تم إرسال الرد للمستخدم بنجاح.');
+    const sentText = replyText.trim();
+    setReplyText('');
+
+    // 2. Persist to Backend API
+    try {
+      await replyAdminTicket(ticketId.replace('#', ''), {
+        reply_text: sentText,
+        is_internal: replyInternal
+      });
+    } catch (err) {
+      console.warn('Backend ticket reply fallback:', err);
+    }
+  };
+
+  const handleStatusSubmit = async () => {
+    if (!selectedTicketId) return;
+    const now = new Date();
+    const dateStr = '20/08/2026';
+    const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+
+    // 1. Optimistic State Update
+    setTickets(prev => prev.map(t => {
+      if (t.id !== selectedTicketId) return t;
+      const noteTxt = statusNoteVal ? `: ${statusNoteVal}` : '';
+      return {
+        ...t,
+        status: newStatusVal,
+        updated: dateStr,
+        timeline: [
+          { action: `تم تغيير الحالة إلى [${newStatusVal}]${noteTxt}`, date: `${timeStr} - ${dateStr}`, by: 'بواسطة المشرف' },
+          ...t.timeline
+        ]
+      };
+    }));
+
+    const statusToSave = newStatusVal;
+    const noteToSave = statusNoteVal;
+    setActiveModal(null);
+    setStatusNoteVal('');
+    showToast(`تم تحديث حالة الطلب إلى: ${statusToSave}`);
+
+    // 2. Backend API
+    try {
+      await updateAdminTicketStatus(selectedTicketId.replace('#', ''), {
+        status: statusToSave,
+        internal_notes: noteToSave
+      });
+    } catch (err) {
+      console.warn('Backend ticket update error fallback:', err);
+    }
+  };
+
+  const handleAssignSubmit = async () => {
+    if (!selectedTicketId) return;
+    const now = new Date();
+    const dateStr = '20/08/2026';
+    const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+
+    setTickets(prev => prev.map(t => {
+      if (t.id !== selectedTicketId) return t;
+      const noteTxt = assignNoteVal ? `: ${assignNoteVal}` : '';
+      return {
+        ...t,
+        assignee: newAssigneeVal,
+        updated: dateStr,
+        timeline: [
+          { action: `تم تحويل الطلب إلى [${newAssigneeVal}]${noteTxt}`, date: `${timeStr} - ${dateStr}`, by: 'بواسطة المشرف' },
+          ...t.timeline
+        ]
+      };
+    }));
+
+    const assigneeToSave = newAssigneeVal;
+    const assignNoteToSave = assignNoteVal;
+    setActiveModal(null);
+    setAssignNoteVal('');
+    showToast(`تم تحويل الطلب إلى: ${assigneeToSave}`);
+
+    try {
+      await updateAdminTicketStatus(selectedTicketId.replace('#', ''), {
+        assignee_id: assigneeToSave,
+        internal_notes: assignNoteToSave
+      });
+    } catch (err) {
+      console.warn('Backend assign error fallback:', err);
+    }
+  };
+
+  const handlePrioritySubmit = async () => {
+    if (!selectedTicketId) return;
+    const now = new Date();
+    const dateStr = '20/08/2026';
+    const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+
+    setTickets(prev => prev.map(t => {
+      if (t.id !== selectedTicketId) return t;
+      return {
+        ...t,
+        priority: newPriorityVal,
+        updated: dateStr,
+        timeline: [
+          { action: `تم تغيير الأولوية إلى [${newPriorityVal}]`, date: `${timeStr} - ${dateStr}`, by: 'بواسطة المشرف' },
+          ...t.timeline
+        ]
+      };
+    }));
+
+    const prioToSave = newPriorityVal;
+    setActiveModal(null);
+    showToast(`تم تعديل الأولوية إلى: ${prioToSave}`);
+
+    try {
+      await updateAdminTicketStatus(selectedTicketId.replace('#', ''), {
+        priority: prioToSave
+      });
+    } catch (err) {
+      console.warn('Backend priority error fallback:', err);
+    }
+  };
+
+  const handleInternalNoteSubmit = async () => {
+    if (!selectedTicketId || !internalNoteText.trim()) return;
+    const now = new Date();
+    const dateStr = '20/08/2026';
+    const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+
+    setTickets(prev => prev.map(t => {
+      if (t.id !== selectedTicketId) return t;
+      const newMsg = {
+        from: 'agent',
+        name: 'مشرف النظام',
+        role: 'ملاحظة داخلية',
+        date: dateStr,
+        time: timeStr,
+        text: internalNoteText.trim(),
+        internal: true
+      };
+      return {
+        ...t,
+        messages: [...t.messages, newMsg],
+        timeline: [{ action: 'تمت إضافة ملاحظة داخلية سرية', date: `${timeStr} - ${dateStr}`, by: 'بواسطة المشرف' }, ...t.timeline],
+        updated: dateStr
+      };
+    }));
+
+    const noteToSave = internalNoteText.trim();
+    setActiveModal(null);
+    setInternalNoteText('');
+    showToast('تم حفظ الملاحظة الداخلية بنجاح (سرية لا يراها العميل).');
+
+    try {
+      await replyAdminTicket(selectedTicketId.replace('#', ''), {
+        reply_text: noteToSave,
+        is_internal: true
+      });
+    } catch (err) {
+      console.warn('Backend internal note error fallback:', err);
+    }
+  };
 
   return (
-    <div>
-      {/* 1. Header Banner */}
-      <div className="admin-command-banner" style={{ marginBottom: '20px' }}>
-        <div>
-          <div className="admin-banner-sub-tag">CUSTOMER SUPPORT & TICKET ESCALATION</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h1 className="admin-banner-title" style={{ fontSize: '24px', margin: 0 }}>الدعم الفني وإدارة التذاكر والجلسات</h1>
-            <span style={{ fontSize: '20px' }}>🎧</span>
+    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '40px', textAlign: 'right', direction: 'rtl' }}>
+      
+      {/* Toast Notification */}
+      {toastMsg && (
+        <div style={{ position: 'fixed', bottom: '24px', left: '24px', background: '#0e3b5e', color: '#FFFFFF', padding: '12px 24px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', zIndex: 99999, display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700', fontSize: '13.5px', direction: 'rtl' }}>
+          <span>✅</span>
+          <span>{toastMsg}</span>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════
+          DETAIL VIEW (EXACT SPECIFICATION AND ALIGNMENT MATCHING REFERENCE)
+          ══════════════════════════════════════════════════════════════════════════ */}
+      {selectedTicket ? (
+        <div style={{ maxWidth: '1120px', width: '100%', margin: '0 auto', direction: 'rtl', textAlign: 'right' }}>
+          
+          {/* Top Bar with Action buttons on the RIGHT and Return button on the LEFT */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '20px' }}>
+            
+            {/* 4 Action Buttons (on the RIGHT in RTL) */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              <button
+                onClick={() => { setNewStatusVal(selectedTicket.status); setActiveModal('change-status'); }}
+                style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', padding: '8px 16px', borderRadius: '10px', fontSize: '12.5px', fontWeight: '700', color: '#374151', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}
+              >
+                <span>🔄</span>
+                <span>تحديث الحالة</span>
+              </button>
+
+              <button
+                onClick={() => { setNewAssigneeVal(selectedTicket.assignee); setActiveModal('assign-ticket'); }}
+                style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', padding: '8px 16px', borderRadius: '10px', fontSize: '12.5px', fontWeight: '700', color: '#374151', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}
+              >
+                <span>👤</span>
+                <span>تحويل الطلب</span>
+              </button>
+
+              <button
+                onClick={() => { setNewPriorityVal(selectedTicket.priority); setActiveModal('change-priority'); }}
+                style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', padding: '8px 16px', borderRadius: '10px', fontSize: '12.5px', fontWeight: '700', color: '#374151', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}
+              >
+                <span>🚩</span>
+                <span>تغيير الأولوية</span>
+              </button>
+
+              <button
+                onClick={() => setActiveModal('add-internal')}
+                style={{ background: '#FFFDF5', border: '1px solid #FCD34D', padding: '8px 16px', borderRadius: '10px', fontSize: '12.5px', fontWeight: '800', color: '#B45309', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}
+              >
+                <span>📝</span>
+                <span>ملاحظة داخلية</span>
+              </button>
+            </div>
+
+            {/* Back Button (on the LEFT in RTL) */}
+            <button
+              onClick={() => setSelectedTicketId(null)}
+              style={{ background: '#0e3b5e', color: '#FFFFFF', border: 'none', padding: '9px 18px', borderRadius: '10px', fontWeight: '800', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <span>⬅</span>
+              <span>العودة لقائمة التذاكر</span>
+            </button>
           </div>
-          <p className="admin-banner-desc" style={{ fontSize: '13px', margin: '4px 0 0 0', color: '#64748B' }}>
-            مركز قيادة متكامل لمتابعة التذاكر، وتغيير المستشار أو المشرف المتابع، وتعديل وضعيات الجلسات وإعادة جدولتها مباشرة.
-          </p>
-        </div>
 
-        {/* Top Action Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button 
-            type="button"
-            onClick={handleExportCSV}
-            className="admin-btn-action-outline"
-            style={{ fontSize: '12.5px', padding: '7px 14px', background: '#FFFFFF', cursor: 'pointer' }}
-          >
-            <span>تصدير Excel</span>
-            <span>📥</span>
-          </button>
+          {/* 2 Columns Grid: Right Main Column (65%) and Left Sidebar (35%) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: '20px', direction: 'rtl' }}>
+            
+            {/* ══════════════════════════════════════════════════════════════════
+                RIGHT MAIN COLUMN (معلومات الطلب + المحادثة)
+                ══════════════════════════════════════════════════════════════════ */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              
+              {/* معلومات الطلب (Ticket Info Card) */}
+              <div style={{ background: '#FFFFFF', border: '1px solid #F3F4F6', borderRadius: '16px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', textAlign: 'right' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#0e3b5e', margin: '0 0 16px 0' }}>معلومات الطلب</h3>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px' }}>
+                  <div>
+                    <span style={{ color: '#6B7280', fontSize: '12px' }}>المستخدم: </span>
+                    <strong style={{ color: '#374151' }}>{selectedTicket.user}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#6B7280', fontSize: '12px' }}>رقم الطلب: </span>
+                    <strong style={{ fontFamily: 'monospace', color: '#0e3b5e' }}>{selectedTicket.id}</strong>
+                  </div>
 
-          <button 
-            type="button"
-            onClick={() => setIsCreateModalOpen(true)}
-            className="admin-btn-action-primary"
-            style={{ fontSize: '12.5px', padding: '7px 18px', background: '#E58A13', borderColor: '#E58A13', color: '#FFFFFF', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
-          >
-            <span>+ تذكرة جديدة</span>
-          </button>
-        </div>
-      </div>
+                  <div>
+                    <span style={{ color: '#6B7280', fontSize: '12px' }}>الفئة: </span>
+                    <strong style={{ color: '#374151' }}>{selectedTicket.category}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#6B7280', fontSize: '12px' }}>الفئة الفرعية: </span>
+                    <span style={{ color: '#374151' }}>{selectedTicket.subcategory}</span>
+                  </div>
 
-      {/* 2. Top 6 Interactive KPI Metric Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px', marginBottom: '20px' }}>
-        
-        {/* Card 1: إجمالي التذاكر */}
-        <div 
-          className="admin-card" 
-          style={{ 
-            padding: '14px 16px', 
-            borderTop: '3px solid #0A3C64', 
-            cursor: 'pointer',
-            background: statusFilter === 'all' && priorityFilter === 'all' ? '#F8FAFC' : '#FFFFFF',
-            transform: statusFilter === 'all' && priorityFilter === 'all' ? 'translateY(-2px)' : 'none',
-            boxShadow: statusFilter === 'all' && priorityFilter === 'all' ? '0 4px 12px rgba(10,60,100,0.1)' : 'none'
-          }}
-          onClick={() => { setStatusFilter('all'); setPriorityFilter('all'); }}
-          title="انقر لعرض كافة التذاكر"
-        >
-          <div style={{ fontSize: '11.5px', color: '#64748B', fontWeight: '700' }}>إجمالي التذاكر</div>
-          <div style={{ fontSize: '24px', fontWeight: '900', color: '#0A3C64', margin: '4px 0' }}>142</div>
-          <div style={{ fontSize: '10.5px', color: '#059669', fontWeight: '700' }}>معدل الإغلاق 92% ↗</div>
-        </div>
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <span style={{ color: '#6B7280', fontSize: '12px' }}>الموضوع: </span>
+                    <strong style={{ color: '#0e3b5e', fontSize: '13.5px' }}>{selectedTicket.subject}</strong>
+                  </div>
 
-        {/* Card 2: تذاكر مفتوحة */}
-        <div 
-          className="admin-card" 
-          style={{ 
-            padding: '14px 16px', 
-            borderTop: '3px solid #E58A13', 
-            cursor: 'pointer',
-            background: statusFilter === 'open' ? '#FFFBEB' : '#FFFFFF',
-            transform: statusFilter === 'open' ? 'translateY(-2px)' : 'none',
-            boxShadow: statusFilter === 'open' ? '0 4px 12px rgba(229,138,19,0.15)' : 'none'
-          }}
-          onClick={() => { setStatusFilter('open'); setPriorityFilter('all'); }}
-          title="انقر لتصفية التذاكر المفتوحة"
-        >
-          <div style={{ fontSize: '11.5px', color: '#64748B', fontWeight: '700' }}>بانتظار الرد</div>
-          <div style={{ fontSize: '24px', fontWeight: '900', color: '#E58A13', margin: '4px 0' }}>{openTicketsCount}</div>
-          <div style={{ fontSize: '10.5px', color: '#D97706', fontWeight: '700' }}>تتطلب استجابة فورية ⚡</div>
-        </div>
+                  <div>
+                    <span style={{ color: '#6B7280', fontSize: '12px' }}>التاريخ: </span>
+                    <span style={{ color: '#374151' }}>{selectedTicket.created}</span>
+                  </div>
+                  <div>
+                    <span style={{ color: '#6B7280', fontSize: '12px' }}>القناة: </span>
+                    <span style={{ color: '#374151' }}>مركز المساعدة</span>
+                  </div>
 
-        {/* Card 3: قيد المعالجة */}
-        <div 
-          className="admin-card" 
-          style={{ 
-            padding: '14px 16px', 
-            borderTop: '3px solid #0284C7', 
-            cursor: 'pointer',
-            background: statusFilter === 'in_progress' ? '#F0F9FF' : '#FFFFFF',
-            transform: statusFilter === 'in_progress' ? 'translateY(-2px)' : 'none',
-            boxShadow: statusFilter === 'in_progress' ? '0 4px 12px rgba(2,132,199,0.15)' : 'none'
-          }}
-          onClick={() => { setStatusFilter('in_progress'); setPriorityFilter('all'); }}
-          title="انقر لتصفية التذاكر قيد المعالجة"
-        >
-          <div style={{ fontSize: '11.5px', color: '#64748B', fontWeight: '700' }}>قيد المعالجة</div>
-          <div style={{ fontSize: '24px', fontWeight: '900', color: '#0284C7', margin: '4px 0' }}>{inProgressTicketsCount}</div>
-          <div style={{ fontSize: '10.5px', color: '#0284C7', fontWeight: '700' }}>تحت المتابعة الفنية ⚙️</div>
-        </div>
-
-        {/* Card 4: تذاكر حرجة */}
-        <div 
-          className="admin-card" 
-          style={{ 
-            padding: '14px 16px', 
-            borderTop: '3px solid #DC2626', 
-            cursor: 'pointer',
-            background: priorityFilter === 'urgent' || priorityFilter === 'high' ? '#FEF2F2' : '#FFFFFF',
-            transform: priorityFilter === 'urgent' || priorityFilter === 'high' ? 'translateY(-2px)' : 'none',
-            boxShadow: priorityFilter === 'urgent' || priorityFilter === 'high' ? '0 4px 12px rgba(220,38,38,0.15)' : 'none'
-          }}
-          onClick={() => { setPriorityFilter('high'); setStatusFilter('all'); }}
-          title="انقر لتصفية التذاكر ذات الأولوية العالية والحرجة"
-        >
-          <div style={{ fontSize: '11.5px', color: '#64748B', fontWeight: '700' }}>أولوية حرجة / عالية</div>
-          <div style={{ fontSize: '24px', fontWeight: '900', color: '#DC2626', margin: '4px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>{urgentTicketsCount}</span>
-            <span style={{ fontSize: '10px', background: '#FEE2E2', color: '#DC2626', padding: '1px 6px', borderRadius: '4px' }}>⚡ عاجل</span>
-          </div>
-          <div style={{ fontSize: '10.5px', color: '#DC2626', fontWeight: '700' }}>SLA متبقي &lt; 20 دقيقة</div>
-        </div>
-
-        {/* Card 5: تذاكر محلولة */}
-        <div 
-          className="admin-card" 
-          style={{ 
-            padding: '14px 16px', 
-            borderTop: '3px solid #059669', 
-            cursor: 'pointer',
-            background: statusFilter === 'resolved' || statusFilter === 'closed' ? '#F0FDF4' : '#FFFFFF',
-            transform: statusFilter === 'resolved' || statusFilter === 'closed' ? 'translateY(-2px)' : 'none',
-            boxShadow: statusFilter === 'resolved' || statusFilter === 'closed' ? '0 4px 12px rgba(5,150,105,0.15)' : 'none'
-          }}
-          onClick={() => { setStatusFilter('closed'); setPriorityFilter('all'); }}
-          title="انقر لتصفية التذاكر المغلقة والمحلولة"
-        >
-          <div style={{ fontSize: '11.5px', color: '#64748B', fontWeight: '700' }}>محلولة ومغلقة</div>
-          <div style={{ fontSize: '24px', fontWeight: '900', color: '#059669', margin: '4px 0' }}>{resolvedTicketsCount}</div>
-          <div style={{ fontSize: '10.5px', color: '#059669', fontWeight: '700' }}>رضا العملاء 98.4% ✓</div>
-        </div>
-
-        {/* Card 6: متوسط وقت الاستجابة */}
-        <div 
-          className="admin-card" 
-          style={{ padding: '14px 16px', borderTop: '3px solid #6366F1', cursor: 'pointer' }}
-          onClick={() => setIsSlaModalOpen(true)}
-          title="انقر لعرض تقرير كفاءة الـ SLA"
-        >
-          <div style={{ fontSize: '11.5px', color: '#64748B', fontWeight: '700' }}>متوسط الاستجابة</div>
-          <div style={{ fontSize: '24px', fontWeight: '900', color: '#6366F1', margin: '4px 0' }}>14 دقيقة</div>
-          <div style={{ fontSize: '10.5px', color: '#6366F1', fontWeight: '700' }}>تحسن بنسبة +24% 📊</div>
-        </div>
-      </div>
-
-      {/* 3. Advanced Multi-Filter Toolbar */}
-      <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '14px 18px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-        {/* Search Input */}
-        <div style={{ flex: '1 1 240px', position: 'relative' }}>
-          <input 
-            type="text"
-            className="admin-search-input"
-            placeholder="بحث برقم التذكرة #TCK-، اسم العميل، المستشار المتابع، أو الموضوع..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            style={{ width: '100%', paddingRight: '12px', height: '36px', fontSize: '12.5px' }}
-          />
-        </div>
-
-        {/* Status Filter */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '700' }}>الحالة:</span>
-          <select 
-            className="admin-select-input" 
-            style={{ width: '130px', height: '36px', fontSize: '12px' }}
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-          >
-            <option value="all">كافة الحالات</option>
-            <option value="open">مفتوحة (جديدة)</option>
-            <option value="in_progress">قيد المعالجة</option>
-            <option value="pending_client">بانتظار رد العميل</option>
-            <option value="resolved">تم الحل</option>
-            <option value="closed">مغلقة نهائياً</option>
-          </select>
-        </div>
-
-        {/* Priority Filter */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '700' }}>الأولوية:</span>
-          <select 
-            className="admin-select-input" 
-            style={{ width: '120px', height: '36px', fontSize: '12px' }}
-            value={priorityFilter}
-            onChange={e => setPriorityFilter(e.target.value)}
-          >
-            <option value="all">كافة الأولويات</option>
-            <option value="urgent">حرجة (عاجلة جداً)</option>
-            <option value="high">عالية</option>
-            <option value="medium">متوسطة</option>
-            <option value="low">منخفضة</option>
-          </select>
-        </div>
-
-        {/* Category Filter */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '700' }}>القسم:</span>
-          <select 
-            className="admin-select-input" 
-            style={{ width: '140px', height: '36px', fontSize: '12px' }}
-            value={categoryFilter}
-            onChange={e => setCategoryFilter(e.target.value)}
-          >
-            <option value="all">كافة الأقسام</option>
-            <option value="مالي ودفع">مالي وبوابات الدفع</option>
-            <option value="توثيق الحسابات">توثيق الحسابات</option>
-            <option value="جلسات وفيديو">جلسات الاستشارة</option>
-            <option value="الذكاء الاصطناعي">المساعد الذكي AI</option>
-            <option value="شكاوى ونزاعات">شكاوى ونزاعات</option>
-          </select>
-        </div>
-
-        {/* User Type Filter */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '700' }}>الجهة:</span>
-          <select 
-            className="admin-select-input" 
-            style={{ width: '110px', height: '36px', fontSize: '12px' }}
-            value={userTypeFilter}
-            onChange={e => setUserTypeFilter(e.target.value)}
-          >
-            <option value="all">الكل</option>
-            <option value="شركة">شركات</option>
-            <option value="مستشار">مستشارون</option>
-            <option value="فرد">أفراد</option>
-          </select>
-        </div>
-
-        {/* Reset Filter Button */}
-        {(searchQuery || statusFilter !== 'all' || priorityFilter !== 'all' || categoryFilter !== 'all' || userTypeFilter !== 'all') && (
-          <button 
-            type="button" 
-            onClick={clearAllFilters}
-            className="admin-btn-action-outline"
-            style={{ fontSize: '11.5px', padding: '6px 12px', color: '#DC2626', borderColor: '#FCA5A5', cursor: 'pointer' }}
-          >
-            مسح الفلاتر ✕
-          </button>
-        )}
-      </div>
-
-      {/* 4. Rich Tickets Grid / Table */}
-      <div className="admin-card" style={{ padding: '0', overflow: 'hidden' }}>
-        <div style={{ padding: '14px 18px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-          <div style={{ fontSize: '13.5px', fontWeight: '800', color: '#0F172A' }}>
-            قائمة التذاكر والجلسات النشطة ({filteredTickets.length})
-          </div>
-          <div style={{ fontSize: '11.5px', color: '#64748B' }}>
-            انقر على أي صف لفتح المحادثة أو إدارة الجلسة والمستشار المتابع
-          </div>
-        </div>
-
-        <div className="admin-table-container">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th style={{ width: '110px' }}>رقم التذكرة</th>
-                <th>الموضوع والجهة</th>
-                <th>مقدم التذكرة</th>
-                <th style={{ width: '150px' }}>المستشار والجلسة</th>
-                <th style={{ width: '100px' }}>الأولوية</th>
-                <th style={{ width: '120px' }}>الحالة</th>
-                <th>المشرف المتابع</th>
-                <th style={{ width: '110px' }}>آخر نشاط</th>
-                <th style={{ width: '140px', textAlign: 'center' }}>الإجراء</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTickets.length === 0 ? (
-                <tr>
-                  <td colSpan="9" style={{ textAlign: 'center', padding: '36px', color: '#64748B' }}>
-                    لا توجد تذاكر مطابقة لخيارات البحث والتصفية المحددة.
-                  </td>
-                </tr>
-              ) : (
-                filteredTickets.map(t => (
-                  <tr 
-                    key={t.id} 
-                    style={{ 
-                      background: t.priority === 'urgent' ? '#FFFBEB' : '#FFFFFF',
-                      cursor: 'pointer',
-                      transition: 'background 0.15s'
-                    }}
-                    onClick={() => setSelectedTicket(t)}
-                  >
-                    {/* Ticket Number & SLA Badge */}
-                    <td>
-                      <div style={{ fontWeight: '900', color: '#0A3C64', fontSize: '13px' }}>{t.ticketNumber}</div>
-                      {t.status === 'open' && t.slaMinutes > 0 && (
-                        <div style={{ fontSize: '10px', color: t.slaMinutes <= 20 ? '#DC2626' : '#D97706', fontWeight: '800', marginTop: '2px' }}>
-                          ⏱ SLA: {t.slaMinutes} دقيقة
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Subject & Department Badge */}
-                    <td>
-                      <div style={{ fontWeight: '800', color: '#0F172A', fontSize: '13px', marginBottom: '4px' }}>
-                        {t.subject}
-                      </div>
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        <span style={{ fontSize: '10.5px', padding: '1px 8px', borderRadius: '4px', background: '#F1F5F9', color: '#475569', fontWeight: '700' }}>
-                          {t.category}
-                        </span>
-                        <span style={{ fontSize: '10px', color: '#94A3B8' }}>• {t.categoryBadge}</span>
-                      </div>
-                    </td>
-
-                    {/* Submitter Info */}
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontWeight: '700', color: '#1E293B', fontSize: '12.5px' }}>{t.submitter}</span>
-                        <span style={{ 
-                          fontSize: '10px', 
-                          padding: '1px 6px', 
-                          borderRadius: '4px', 
-                          fontWeight: '800',
-                          background: t.userType === 'شركة' ? '#EFF6FF' : t.userType === 'مستشار' ? '#FEF3C7' : '#F3F4F6',
-                          color: t.userType === 'شركة' ? '#1D4ED8' : t.userType === 'مستشار' ? '#B45309' : '#374151'
-                        }}>
-                          {t.userType}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px', fontFamily: 'monospace' }}>{t.phone}</div>
-                    </td>
-
-                    {/* Linked Consultant & Session status */}
-                    <td onClick={e => e.stopPropagation()}>
-                      {t.linkedSession ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                          <div style={{ fontSize: '12px', fontWeight: '800', color: '#0A3C64', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span>⚖️ {t.linkedSession.consultantName}</span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <span style={{ 
-                              fontSize: '10px', 
-                              padding: '1px 6px', 
-                              borderRadius: '4px', 
-                              fontWeight: '700',
-                              background: t.linkedSession.sessionStatus === 'confirmed' ? '#DCFCE7' : t.linkedSession.sessionStatus === 'in_progress' ? '#E0F2FE' : t.linkedSession.sessionStatus === 'completed' ? '#F1F5F9' : '#FEE2E2',
-                              color: t.linkedSession.sessionStatus === 'confirmed' ? '#15803D' : t.linkedSession.sessionStatus === 'in_progress' ? '#0284C7' : t.linkedSession.sessionStatus === 'completed' ? '#475569' : '#DC2626'
-                            }}>
-                              {t.linkedSession.sessionStatus === 'confirmed' ? 'مؤكدة' : t.linkedSession.sessionStatus === 'in_progress' ? 'قيد التنفيذ' : t.linkedSession.sessionStatus === 'completed' ? 'مكتملة' : 'ملغاة'}
-                            </span>
-                            <button 
-                              type="button"
-                              onClick={() => handleOpenSessionModal(t)}
-                              style={{ fontSize: '10.5px', background: 'transparent', border: 'none', color: '#E58A13', fontWeight: '800', cursor: 'pointer', textDecoration: 'underline' }}
-                              title="تغيير المستشار أو تعديل وضعية الجلسة"
-                            >
-                              تعديل 🔄
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button 
-                          type="button"
-                          onClick={() => handleOpenSessionModal(t)}
-                          className="admin-btn-action-outline"
-                          style={{ fontSize: '10.5px', padding: '2px 8px', color: '#0A3C64' }}
-                        >
-                          + ربط بمستشار
-                        </button>
-                      )}
-                    </td>
-
-                    {/* Priority Badge */}
-                    <td onClick={e => e.stopPropagation()}>
-                      <select 
-                        className="admin-select-input"
-                        style={{ 
-                          fontSize: '11px', 
-                          fontWeight: '800', 
-                          padding: '2px 6px', 
-                          height: '28px',
-                          background: t.priority === 'urgent' ? '#FEE2E2' : t.priority === 'high' ? '#FFEDD5' : t.priority === 'medium' ? '#FEF3C7' : '#F1F5F9',
-                          color: t.priority === 'urgent' ? '#DC2626' : t.priority === 'high' ? '#C2410C' : t.priority === 'medium' ? '#B45309' : '#64748B',
-                          border: 'none'
-                        }}
-                        value={t.priority}
-                        onChange={e => handleUpdatePriority(t.id, e.target.value)}
-                      >
-                        <option value="urgent">🔴 حرجة</option>
-                        <option value="high">🟠 عالية</option>
-                        <option value="medium">🟡 متوسطة</option>
-                        <option value="low">🟢 منخفضة</option>
-                      </select>
-                    </td>
-
-                    {/* Status Badge */}
-                    <td onClick={e => e.stopPropagation()}>
-                      <select 
-                        className="admin-select-input"
-                        style={{ 
-                          fontSize: '11.5px', 
-                          fontWeight: '800', 
-                          padding: '2px 8px', 
-                          height: '28px',
-                          background: t.status === 'open' ? '#FEF3C7' : t.status === 'in_progress' ? '#E0F2FE' : t.status === 'pending_client' ? '#EDE9FE' : t.status === 'resolved' ? '#DCFCE7' : '#F1F5F9',
-                          color: t.status === 'open' ? '#D97706' : t.status === 'in_progress' ? '#0284C7' : t.status === 'pending_client' ? '#7C3AED' : t.status === 'resolved' ? '#15803D' : '#64748B',
-                          border: 'none'
-                        }}
-                        value={t.status}
-                        onChange={e => handleUpdateStatus(t.id, e.target.value)}
-                      >
-                        <option value="open">مفتوحة</option>
-                        <option value="in_progress">قيد المعالجة</option>
-                        <option value="pending_client">بانتظار العميل</option>
-                        <option value="resolved">تم الحل</option>
-                        <option value="closed">مغلقة</option>
-                      </select>
-                    </td>
-
-                    {/* Assignee Supervisor */}
-                    <td onClick={e => e.stopPropagation()}>
-                      <select 
-                        className="admin-select-input"
-                        style={{ fontSize: '11px', height: '28px', border: '1px solid #E2E8F0', padding: '2px 4px', maxWidth: '140px' }}
-                        value={t.assignee}
-                        onChange={e => handleAssignAgent(t.id, e.target.value)}
-                      >
-                        {supportAgents.map((agent, i) => (
-                          <option key={i} value={agent}>{agent.split(' ')[0]} {agent.split(' ')[1]}</option>
-                        ))}
-                      </select>
-                    </td>
-
-                    {/* Last Updated */}
-                    <td style={{ fontSize: '11.5px', color: '#64748B' }}>
-                      {t.updatedAt}
-                    </td>
-
-                    {/* Action Button */}
-                    <td style={{ textAlign: 'center' }} onClick={e => e.stopPropagation()}>
-                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                        <button 
-                          type="button"
-                          onClick={() => setSelectedTicket(t)}
-                          className="admin-btn-action-primary"
-                          style={{ fontSize: '11.5px', padding: '5px 10px', background: '#E58A13', borderColor: '#E58A13', color: '#FFFFFF', fontWeight: '800', cursor: 'pointer' }}
-                        >
-                          عرض والرد
-                        </button>
-                        <button 
-                          type="button"
-                          onClick={() => handleOpenSessionModal(t)}
-                          className="admin-btn-action-outline"
-                          style={{ fontSize: '11.5px', padding: '5px 8px', background: '#FFFFFF', cursor: 'pointer' }}
-                          title="تعديل المستشار أو الجلسة"
-                        >
-                          🔄
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* ══════════════════════════════════════════════════════════════════
-          5. INTERACTIVE TICKET CONVERSATION DRAWER / MODAL
-          ══════════════════════════════════════════════════════════════════ */}
-      {selectedTicket && (
-        <div className="admin-modal-overlay" onClick={() => setSelectedTicket(null)}>
-          <div 
-            className="admin-modal-card" 
-            onClick={e => e.stopPropagation()}
-            style={{ maxWidth: '1080px', width: '94%', maxHeight: '92vh', overflowY: 'auto', padding: '24px', borderRadius: '12px' }}
-          >
-            {/* Drawer Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #E2E8F0', paddingBottom: '16px', marginBottom: '18px' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '15px', fontWeight: '900', color: '#0A3C64' }}>{selectedTicket.ticketNumber}</span>
-                  <span style={{ fontSize: '11.5px', padding: '2px 8px', borderRadius: '4px', background: '#F1F5F9', color: '#475569', fontWeight: '800' }}>
-                    {selectedTicket.category}
-                  </span>
-                  <span style={{ fontSize: '11px', color: '#64748B' }}>• {selectedTicket.createdAt}</span>
+                  <div>
+                    <span style={{ color: '#6B7280', fontSize: '12px', display: 'block', marginBottom: '4px' }}>الحالة: </span>
+                    <span className={`badge ${STATUS_CONFIG[selectedTicket.status]?.color}`} style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', display: 'inline-flex', alignItems: 'center' }}>
+                      {selectedTicket.status}
+                    </span>
+                  </div>
                 </div>
-                <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#0F172A' }}>
-                  {selectedTicket.subject}
-                </h2>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {/* Change Status select */}
-                <select 
-                  className="admin-select-input"
-                  style={{ height: '34px', fontSize: '12px', fontWeight: '700' }}
-                  value={selectedTicket.status}
-                  onChange={e => handleUpdateStatus(selectedTicket.id, e.target.value)}
-                >
-                  <option value="open">مفتوحة</option>
-                  <option value="in_progress">قيد المعالجة</option>
-                  <option value="pending_client">بانتظار رد العميل</option>
-                  <option value="resolved">تم الحل</option>
-                  <option value="closed">إغلاق التذكرة</option>
-                </select>
+              {/* المحادثة (Conversation Thread Card) */}
+              <div style={{ background: '#FFFFFF', border: '1px solid #F3F4F6', borderRadius: '16px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', textAlign: 'right' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#0e3b5e', margin: '0 0 20px 0' }}>المحادثة</h3>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '420px', overflowY: 'auto' }}>
+                  {selectedTicket.messages.map((m, idx) => {
+                    const isUser = m.from === 'user';
+                    const isInternal = m.internal;
+                    
+                    return (
+                      <div 
+                        key={idx} 
+                        style={{ 
+                          display: 'flex', 
+                          width: '100%',
+                          justifyContent: isUser ? 'flex-start' : 'flex-end',
+                          textAlign: 'right'
+                        }}
+                      >
+                        <div
+                          style={{
+                            maxWidth: '85%',
+                            borderRadius: '16px',
+                            borderTopRightRadius: isUser ? '2px' : '16px',
+                            borderTopLeftRadius: !isUser ? '2px' : '16px',
+                            padding: '14px 18px',
+                            background: isInternal ? '#FFFBEB' : isUser ? '#0e3b5e' : '#F3F4F6',
+                            color: isInternal ? '#78350F' : isUser ? '#FFFFFF' : '#1F2937',
+                            border: isInternal ? '1px solid #FDE68A' : 'none',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                            textAlign: 'right'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: '700', marginBottom: '6px', color: isInternal ? '#92400E' : isUser ? '#FDBA74' : '#0e7490' }}>
+                            <span style={{ fontWeight: '800' }}>{m.name}</span>
+                            <span style={{ opacity: 0.8 }}>| {m.role} {isInternal ? '(ملاحظة سرية للأدمن فقط)' : ''}</span>
+                          </div>
+                          <div style={{ fontSize: '13.5px', lineHeight: '1.6', textAlign: 'right' }}>{m.text}</div>
+                          <div style={{ fontSize: '10px', opacity: 0.65, marginTop: '6px', textAlign: 'left', direction: 'ltr' }}>
+                            {m.time} {m.date}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
 
-                {selectedTicket.status !== 'closed' && (
-                  <button 
-                    type="button"
-                    className="admin-btn-action-outline"
-                    style={{ fontSize: '12px', padding: '6px 12px', color: '#DC2626', borderColor: '#FCA5A5', cursor: 'pointer' }}
-                    onClick={() => handleCloseTicket(selectedTicket.id)}
-                  >
-                    إغلاق التذكرة ✕
-                  </button>
-                )}
-
-                <button 
-                  type="button"
-                  className="admin-icon-btn-minimal" 
-                  style={{ fontSize: '16px', color: '#64748B', background: '#F1F5F9', borderRadius: '6px', width: '32px', height: '32px', cursor: 'pointer' }}
-                  onClick={() => setSelectedTicket(null)}
-                >
-                  ✕
-                </button>
+                {/* Reply Input Box */}
+                <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #E5E7EB', textAlign: 'right' }}>
+                  <div style={{ display: 'flex', gap: '14px', marginBottom: '10px' }}>
+                    <button
+                      onClick={() => setReplyInternal(false)}
+                      style={{
+                        padding: '4px 8px',
+                        background: 'transparent',
+                        color: !replyInternal ? '#0e3b5e' : '#9CA3AF',
+                        border: 'none',
+                        borderBottom: !replyInternal ? '2px solid #0e3b5e' : '2px solid transparent',
+                        fontSize: '12.5px',
+                        fontWeight: '700',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      رد عام
+                    </button>
+                    <button
+                      onClick={() => setReplyInternal(true)}
+                      style={{
+                        padding: '4px 8px',
+                        background: 'transparent',
+                        color: replyInternal ? '#D97706' : '#9CA3AF',
+                        border: 'none',
+                        borderBottom: replyInternal ? '2px solid #D97706' : '2px solid transparent',
+                        fontSize: '12.5px',
+                        fontWeight: '700',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ملاحظة داخلية
+                    </button>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                    <textarea
+                      placeholder={replyInternal ? 'اكتب ملاحظة داخلية (للإدارة فقط)...' : 'اكتب ردك هنا...'}
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      rows={2}
+                      style={{ flex: 1, padding: '12px 16px', borderRadius: '10px', border: '1px solid #D1D5DB', fontSize: '13.5px', outline: 'none', background: replyInternal ? '#FFFDF5' : '#FFFFFF', textAlign: 'right', direction: 'rtl' }}
+                    />
+                    <button
+                      onClick={() => handleSendReply(selectedTicket.id)}
+                      style={{ background: '#0e3b5e', color: '#FFFFFF', border: 'none', width: '46px', height: '46px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '16px', flexShrink: 0 }}
+                      title="إرسال"
+                    >
+                      ✈
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Two-Column Drawer Content (Left: Profile & Session Card, Right: Conversation & Reply Box) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '20px', alignItems: 'flex-start' }}>
+            {/* ══════════════════════════════════════════════════════════════════
+                LEFT SIDEBAR (SLA + سجل التدقيق الكامل + المرفقات)
+                ══════════════════════════════════════════════════════════════════ */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'right' }}>
               
-              {/* Column 1: Submitter Info & LINKED SESSION MANAGEMENT CARD */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                
-                {/* 1.1 Customer Info Card */}
-                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '16px' }}>
-                  <div style={{ fontSize: '12.5px', fontWeight: '900', color: '#0F172A', borderBottom: '1px solid #E2E8F0', paddingBottom: '8px', marginBottom: '10px' }}>
-                    بيانات صاحب التذكرة
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
-                    <div>
-                      <span style={{ color: '#64748B', display: 'block', fontSize: '11px' }}>الاسم / الجهة:</span>
-                      <strong style={{ color: '#0F172A', fontSize: '13px' }}>{selectedTicket.submitter}</strong>
-                    </div>
-
-                    <div>
-                      <span style={{ color: '#64748B', display: 'block', fontSize: '11px' }}>نوع الحساب:</span>
-                      <span style={{ fontSize: '11px', padding: '1px 8px', borderRadius: '4px', background: '#EFF6FF', color: '#1D4ED8', fontWeight: '800' }}>
-                        {selectedTicket.userType}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span style={{ color: '#64748B', display: 'block', fontSize: '11px' }}>الهاتف / البريد:</span>
-                      <span style={{ color: '#334155', fontFamily: 'monospace', fontSize: '11.5px' }}>{selectedTicket.phone}</span>
-                    </div>
-
-                    <div>
-                      <span style={{ color: '#64748B', display: 'block', fontSize: '11px' }}>المشرف المسؤول:</span>
-                      <strong style={{ color: '#0A3C64' }}>{selectedTicket.assignee}</strong>
-                    </div>
-                  </div>
+              {/* SLA Card */}
+              <div style={{ background: '#FFFFFF', border: '1px solid #F3F4F6', borderRadius: '16px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', textAlign: 'right' }}>
+                <h4 style={{ fontSize: '12px', fontWeight: '800', color: '#0e3b5e', margin: '0 0 10px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SLA</h4>
+                <div style={{ fontSize: '12px', color: '#4B5563', marginBottom: '8px' }}>{selectedTicket.sla}</div>
+                <div style={{ width: '100%', height: '6px', background: '#E5E7EB', borderRadius: '9999px', overflow: 'hidden', marginBottom: '6px' }}>
+                  <div style={{ width: `${selectedTicket.slaPercent || 35}%`, height: '100%', background: selectedTicket.slaPercent > 80 ? '#EF4444' : '#FB923C', borderRadius: '9999px' }}></div>
                 </div>
+                <div style={{ fontSize: '11px', color: selectedTicket.slaPercent > 80 ? '#DC2626' : '#EA580C', fontWeight: '700' }}>
+                  {selectedTicket.slaPercent > 80 ? 'تم تجاوز SLA' : 'الوقت المتبقي: 35 دقيقة'}
+                </div>
+              </div>
 
-                {/* 1.2 LINKED SESSION & CONSULTANT MANAGEMENT CARD */}
-                <div style={{ background: '#FFFFFF', border: '2px solid #E2E8F0', borderRadius: '10px', padding: '16px', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '8px', marginBottom: '10px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: '900', color: '#0A3C64' }}>
-                      ⚖️ الجلسة والمستشار المتابع
-                    </span>
-                    <button 
-                      type="button" 
-                      onClick={() => handleOpenSessionModal(selectedTicket)}
-                      style={{ fontSize: '11px', background: '#FEF3C7', color: '#B45309', border: '1px solid #FDE68A', padding: '2px 8px', borderRadius: '4px', fontWeight: '800', cursor: 'pointer' }}
-                    >
-                      تعديل 🔄
-                    </button>
-                  </div>
-
-                  {selectedTicket.linkedSession ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
+              {/* سجل التدقيق الكامل (Full Audit Timeline Card) */}
+              <div style={{ background: '#FFFFFF', border: '1px solid #F3F4F6', borderRadius: '16px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', textAlign: 'right' }}>
+                <h4 style={{ fontSize: '12px', fontWeight: '800', color: '#0e3b5e', margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>سجل التدقيق الكامل</h4>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative' }}>
+                  {selectedTicket.timeline.map((ev, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '12px', textAlign: 'right' }}>
+                      <div style={{ width: '9px', height: '9px', borderRadius: '50%', background: i === 0 ? '#0e3b5e' : '#9CA3AF', marginTop: '4px', flexShrink: 0 }} />
                       <div>
-                        <span style={{ color: '#64748B', display: 'block', fontSize: '11px' }}>المستشار المعين:</span>
-                        <strong style={{ color: '#0A3C64', fontSize: '13px' }}>{selectedTicket.linkedSession.consultantName}</strong>
-                      </div>
-
-                      <div>
-                        <span style={{ color: '#64748B', display: 'block', fontSize: '11px' }}>وضعية وحالة الجلسة:</span>
-                        <span style={{ 
-                          fontSize: '11px', 
-                          padding: '2px 8px', 
-                          borderRadius: '4px', 
-                          fontWeight: '800',
-                          background: selectedTicket.linkedSession.sessionStatus === 'confirmed' ? '#DCFCE7' : selectedTicket.linkedSession.sessionStatus === 'in_progress' ? '#E0F2FE' : '#FEE2E2',
-                          color: selectedTicket.linkedSession.sessionStatus === 'confirmed' ? '#15803D' : selectedTicket.linkedSession.sessionStatus === 'in_progress' ? '#0284C7' : '#DC2626'
-                        }}>
-                          {selectedTicket.linkedSession.sessionStatus === 'confirmed' ? '✓ مؤكدة' : selectedTicket.linkedSession.sessionStatus === 'in_progress' ? '⚙️ قيد التنفيذ' : selectedTicket.linkedSession.sessionStatus === 'completed' ? '✓ مكتملة' : '✕ ملغاة'}
-                        </span>
-                      </div>
-
-                      <div>
-                        <span style={{ color: '#64748B', display: 'block', fontSize: '11px' }}>الموعد المجدول:</span>
-                        <span style={{ color: '#334155', fontWeight: '600' }}>{selectedTicket.linkedSession.scheduledAt}</span>
-                      </div>
-
-                      {/* Quick Session Management Buttons */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px', borderTop: '1px solid #F1F5F9', paddingTop: '8px' }}>
-                        <button 
-                          type="button" 
-                          onClick={() => handleOpenSessionModal(selectedTicket)}
-                          className="admin-btn-action-primary"
-                          style={{ fontSize: '11.5px', padding: '6px 10px', background: '#0A3C64', width: '100%', textAlign: 'center', cursor: 'pointer' }}
-                        >
-                          🔄 تغيير المستشار / إعادة الجدولة
-                        </button>
-
-                        <button 
-                          type="button" 
-                          onClick={() => alert(`جاري الانضمام بصفة مراقب إداري مخفي للجلسة ${selectedTicket.linkedSession.sessionId}`)}
-                          className="admin-btn-action-outline"
-                          style={{ fontSize: '11.5px', padding: '5px 10px', width: '100%', textAlign: 'center', cursor: 'pointer' }}
-                        >
-                          👁️ فتح غرفة المراقبة الحية
-                        </button>
+                        <strong style={{ color: '#0e3b5e', display: 'block', fontSize: '12px' }}>{ev.action}</strong>
+                        <span style={{ color: '#6B7280', fontSize: '11px' }}>{ev.date}</span>
+                        <span style={{ color: '#9CA3AF', fontSize: '10.5px', display: 'block' }}>{ev.by}</span>
                       </div>
                     </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* المرفقات (Attachments Card) */}
+              <div style={{ background: '#FFFFFF', border: '1px solid #F3F4F6', borderRadius: '16px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', textAlign: 'right' }}>
+                <h4 style={{ fontSize: '12px', fontWeight: '800', color: '#0e3b5e', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>المرفقات</h4>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {selectedTicket.attachments && selectedTicket.attachments.length > 0 ? (
+                    selectedTicket.attachments.map((att, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F9FAFB', padding: '10px 14px', borderRadius: '10px', border: '1px solid #E5E7EB', textAlign: 'right' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ color: '#0e7490', fontSize: '16px' }}>📄</span>
+                          <div>
+                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#374151' }}>{att.name}</div>
+                            <div style={{ fontSize: '10px', color: '#9CA3AF' }}>{att.size}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
                   ) : (
-                    <div style={{ textAlign: 'center', padding: '10px 0' }}>
-                      <p style={{ fontSize: '11.5px', color: '#64748B', margin: '0 0 8px 0' }}>لا توجد جلسة مرتبطة بهذه التذكرة حالياً</p>
-                      <button 
-                        type="button" 
-                        onClick={() => handleOpenSessionModal(selectedTicket)}
-                        className="admin-btn-action-outline"
-                        style={{ fontSize: '11px', padding: '4px 10px', color: '#0A3C64' }}
-                      >
-                        + ربط استشارة وتعيين مستشار
-                      </button>
-                    </div>
+                    <div style={{ fontSize: '12px', color: '#9CA3AF' }}>لا توجد مرفقات</div>
                   )}
                 </div>
               </div>
 
-              {/* Column 2: Thread Timeline & Rich Reply Console */}
-              <div>
-                {/* Messages Thread Timeline */}
-                <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '16px', maxHeight: '340px', overflowY: 'auto', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {selectedTicket.replies.map((rep, idx) => (
-                    <div 
-                      key={idx}
-                      style={{
-                        padding: '12px 14px',
-                        borderRadius: '8px',
-                        background: rep.isInternal ? '#FEF3C7' : rep.role === 'client' ? '#F8FAFC' : rep.role === 'consultant' ? '#F0FDF4' : '#EFF6FF',
-                        border: rep.isInternal ? '1px solid #FDE68A' : '1px solid #E2E8F0',
-                        borderRight: rep.isInternal ? '4px solid #E58A13' : rep.role === 'client' ? '4px solid #94A3B8' : '4px solid #0A3C64'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <strong style={{ fontSize: '12.5px', color: rep.isInternal ? '#B45309' : '#0F172A' }}>
-                            {rep.sender}
-                          </strong>
-                          {rep.isInternal && (
-                            <span style={{ fontSize: '10px', background: '#D97706', color: '#FFFFFF', padding: '1px 6px', borderRadius: '4px', fontWeight: '800' }}>
-                              🔒 سرية للمدراء
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* ══════════════════════════════════════════════════════════════════════════
+            LIST VIEW: SUMMARY CARDS + FILTERS + TABLE OR KANBAN
+            ══════════════════════════════════════════════════════════════════════════ */
+        <>
+          {/* 7 Summary KPI Cards (Click to Filter with 100% Exact Synchronization) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '12px', direction: 'rtl' }}>
+            {[
+              { id: 'all', label: 'جميع الطلبات', count: totalCount, icon: '📑', bg: 'rgba(14,59,94,0.08)', color: '#0e3b5e' },
+              { id: 'new', label: 'الجديدة', count: newCount, icon: '🔵', bg: '#F0F9FF', color: '#0284C7' },
+              { id: 'processing', label: 'قيد المعالجة', count: processingCount, icon: '🔄', bg: '#F0FDFA', color: '#0D9488' },
+              { id: 'waiting', label: 'بانتظار المستخدم', count: waitingCount, icon: '⏳', bg: '#FFFBEB', color: '#D97706' },
+              { id: 'delayed', label: 'المتأخرة', count: delayedCount, icon: '⚠️', bg: '#FEF2F2', color: '#DC2626' },
+              { id: 'solved', label: 'تم الحل اليوم', count: solvedTodayCount, icon: '✅', bg: '#ECFDF5', color: '#059669' },
+              { id: 'sla_breached', label: 'SLA مُخالَف', count: slaBreachedCount, icon: '🛡️', bg: '#FFF1F2', color: '#E11D48' }
+            ].map((card) => {
+              const isSelected = activeKpiFilter === card.id;
+              return (
+                <div 
+                  key={card.id} 
+                  onClick={() => {
+                    setSelectedTicketId(null);
+                    setActiveKpiFilter(card.id);
+                    setFilters(prev => ({ ...prev, status: '' }));
+                  }}
+                  style={{ 
+                    background: isSelected ? '#F0F9FF' : '#FFFFFF', 
+                    border: isSelected ? '2px solid #0e7490' : '1px solid #E2E8F0', 
+                    borderRadius: '14px', 
+                    padding: '16px 12px', 
+                    textAlign: 'center', 
+                    boxShadow: isSelected ? '0 4px 12px rgba(14,116,144,0.12)' : '0 1px 3px rgba(0,0,0,0.02)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <div style={{ width: '38px', height: '38px', background: card.bg, color: card.color, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px auto', fontSize: '18px' }}>
+                    {card.icon}
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#0e3b5e', lineHeight: '1.2' }}>{card.count}</div>
+                  <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700', marginTop: '4px' }}>{card.label}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Filter Toolbar */}
+          <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '18px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', direction: 'rtl', textAlign: 'right' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '14px' }}>
+              
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', flex: 1 }}>
+                <div style={{ minWidth: '220px', flex: 1, position: 'relative' }}>
+                  <input
+                    type="text"
+                    placeholder="ابحث برقم الطلب، الموضوع، أو العميل..."
+                    value={filters.search}
+                    onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#F8FAFC', outline: 'none', textAlign: 'right', direction: 'rtl' }}
+                  />
+                </div>
+
+                <select
+                  value={filters.status}
+                  onChange={(e) => {
+                    setActiveKpiFilter('all');
+                    setFilters(prev => ({ ...prev, status: e.target.value }));
+                  }}
+                  style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#FFFFFF', outline: 'none' }}
+                >
+                  <option value="">كل الحالات</option>
+                  {Object.keys(STATUS_CONFIG).map(st => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={filters.category}
+                  onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+                  style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#FFFFFF', outline: 'none' }}
+                >
+                  <option value="">كل الفئات</option>
+                  {Object.keys(CATEGORIES).map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={filters.priority}
+                  onChange={(e) => setFilters(prev => ({ ...prev, priority: e.target.value }))}
+                  style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#FFFFFF', outline: 'none' }}
+                >
+                  <option value="">كل الأولويات</option>
+                  <option value="منخفضة">منخفضة</option>
+                  <option value="متوسطة">متوسطة</option>
+                  <option value="عالية">عالية</option>
+                </select>
+
+                <select
+                  value={filters.assignee}
+                  onChange={(e) => setFilters(prev => ({ ...prev, assignee: e.target.value }))}
+                  style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#FFFFFF', outline: 'none' }}
+                >
+                  <option value="">كل المشرفين</option>
+                  <option value="سارة خالد">سارة خالد</option>
+                  <option value="محمد علي">محمد علي</option>
+                  <option value="خالد عمر">خالد عمر</option>
+                  <option value="مدير الدعم">مدير الدعم</option>
+                  <option value="غير معين">غير معين</option>
+                </select>
+
+                <button
+                  onClick={() => {
+                    setActiveKpiFilter('all');
+                    setFilters({ search: '', status: '', category: '', priority: '', assignee: '' });
+                  }}
+                  style={{ padding: '10px 16px', background: '#F1F5F9', border: '1px solid #CBD5E1', borderRadius: '10px', fontSize: '13px', fontWeight: '700', color: '#475569', cursor: 'pointer' }}
+                >
+                  🔄 مسح
+                </button>
+              </div>
+
+              {/* View Mode Toggle Switcher */}
+              <div style={{ display: 'flex', alignItems: 'center', background: '#F1F5F9', padding: '4px', borderRadius: '10px' }}>
+                <button
+                  onClick={() => setAdminView('table')}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontSize: '12.5px',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    background: adminView === 'table' ? '#FFFFFF' : 'transparent',
+                    color: adminView === 'table' ? '#0e3b5e' : '#64748B',
+                    boxShadow: adminView === 'table' ? '0 2px 4px rgba(0,0,0,0.06)' : 'none'
+                  }}
+                >
+                  📊 جدول
+                </button>
+                <button
+                  onClick={() => setAdminView('kanban')}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontSize: '12.5px',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    background: adminView === 'kanban' ? '#FFFFFF' : 'transparent',
+                    color: adminView === 'kanban' ? '#0e3b5e' : '#64748B',
+                    boxShadow: adminView === 'kanban' ? '0 2px 4px rgba(0,0,0,0.06)' : 'none'
+                  }}
+                >
+                  📋 كانبان
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* TABLE VIEW */}
+          {adminView === 'table' && (
+            <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', direction: 'rtl', textAlign: 'right' }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontSize: '12px', fontWeight: '700' }}>
+                      <th style={{ padding: '14px 16px', textAlign: 'right' }}>رقم الطلب</th>
+                      <th style={{ padding: '14px 16px', textAlign: 'right' }}>المستخدم</th>
+                      <th style={{ padding: '14px 16px', textAlign: 'right' }}>الموضوع</th>
+                      <th style={{ padding: '14px 16px', textAlign: 'right' }}>الفئة</th>
+                      <th style={{ padding: '14px 16px', textAlign: 'right' }}>الأولوية</th>
+                      <th style={{ padding: '14px 16px', textAlign: 'right' }}>الحالة</th>
+                      <th style={{ padding: '14px 16px', textAlign: 'right' }}>الموظف المعين</th>
+                      <th style={{ padding: '14px 16px', textAlign: 'right' }}>SLA</th>
+                      <th style={{ padding: '14px 16px', textAlign: 'right' }}>التاريخ</th>
+                      <th style={{ padding: '14px 16px', textAlign: 'center' }}>الإجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTickets.map((t) => {
+                      const statusInfo = STATUS_CONFIG[t.status] || STATUS_CONFIG['جديد'];
+                      const priorityInfo = PRIORITY_CONFIG[t.priority] || PRIORITY_CONFIG['متوسطة'];
+                      return (
+                        <tr
+                          key={t.id}
+                          onClick={() => setSelectedTicketId(t.id)}
+                          style={{
+                            borderBottom: '1px solid #F1F5F9',
+                            cursor: 'pointer',
+                            transition: 'background 0.15s',
+                            textAlign: 'right'
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = '#F8FAFC'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; }}
+                        >
+                          <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontWeight: '900', color: '#0e3b5e' }}>{t.id}</td>
+                          <td style={{ padding: '14px 16px', fontWeight: '600', color: '#334155' }}>{t.user}</td>
+                          <td style={{ padding: '14px 16px', fontWeight: '500', color: '#1E293B', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {t.subject}
+                          </td>
+                          <td style={{ padding: '14px 16px', color: '#64748B' }}>{t.category}</td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <span className={`badge ${priorityInfo.color}`} style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700' }}>
+                              {t.priority}
                             </span>
-                          )}
-                        </div>
-                        <span style={{ fontSize: '11px', color: '#94A3B8' }}>{rep.time}</span>
-                      </div>
-                      <p style={{ margin: 0, fontSize: '13px', color: rep.isInternal ? '#78350F' : '#334155', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
-                        {rep.text}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Rich Reply Console */}
-                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '16px' }}>
-                  {/* Mode Selector Tabs (Public Reply vs Private Internal Note) */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button 
-                        type="button"
-                        onClick={() => setIsInternalNote(false)}
-                        style={{
-                          padding: '6px 14px',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          fontWeight: '800',
-                          cursor: 'pointer',
-                          background: !isInternalNote ? '#0A3C64' : '#FFFFFF',
-                          color: !isInternalNote ? '#FFFFFF' : '#64748B',
-                          border: !isInternalNote ? '1px solid #0A3C64' : '1px solid #CBD5E1'
-                        }}
-                      >
-                        💬 رد رسمي للعميل
-                      </button>
-
-                      <button 
-                        type="button"
-                        onClick={() => setIsInternalNote(true)}
-                        style={{
-                          padding: '6px 14px',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          fontWeight: '800',
-                          cursor: 'pointer',
-                          background: isInternalNote ? '#E58A13' : '#FFFFFF',
-                          color: isInternalNote ? '#FFFFFF' : '#64748B',
-                          border: isInternalNote ? '1px solid #E58A13' : '1px solid #CBD5E1'
-                        }}
-                      >
-                        🔒 تدوين ملاحظة سرية للمدراء
-                      </button>
-                    </div>
-
-                    {/* Canned Templates Dropdown */}
-                    {!isInternalNote && (
-                      <select 
-                        className="admin-select-input"
-                        style={{ fontSize: '11.5px', height: '32px', width: '210px', background: '#FFFFFF' }}
-                        value={selectedCannedTemplate}
-                        onChange={e => handleApplyTemplate(e.target.value)}
-                      >
-                        <option value="">⚡ اختيار قالب رد سريع...</option>
-                        {cannedTemplates.map(tmpl => (
-                          <option key={tmpl.id} value={tmpl.id}>{tmpl.label}</option>
-                        ))}
-                      </select>
-                    )}
+                          </td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <span className={`badge ${statusInfo.color}`} style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700' }}>
+                              {t.status}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 16px', color: '#475569', fontWeight: '600' }}>{t.assignee}</td>
+                          <td style={{ padding: '14px 16px', fontSize: '11.5px', color: '#64748B' }}>{t.sla}</td>
+                          <td style={{ padding: '14px 16px', color: '#64748B', fontSize: '12px' }}>{t.created}</td>
+                          <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSelectedTicketId(t.id); }}
+                              style={{ background: '#0e7490', color: '#FFFFFF', border: 'none', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                            >
+                              <span>👁️</span>
+                              <span>فتح</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {filteredTickets.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#94A3B8', fontSize: '14px' }}>
+                    لا توجد تذاكر مطابقة لمعايير التصفية.
                   </div>
+                )}
+              </div>
+            </div>
+          )}
 
-                  {/* Reply Textarea */}
-                  <textarea 
-                    rows="3"
-                    className="admin-search-input"
+          {/* ══════════════════════════════════════════════════════════════════
+              KANBAN VIEW WITH FULL INTERACTIVE DRAG & DROP
+              ══════════════════════════════════════════════════════════════════ */}
+          {adminView === 'kanban' && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', overflowX: 'auto', paddingBottom: '12px', direction: 'rtl' }}>
+              {['جديد', 'قيد المراجعة', 'قيد المعالجة', 'بانتظار رد المستخدم', 'تم الحل', 'مغلق'].map((colStatus) => {
+                const colTickets = filteredTickets.filter(t => t.status === colStatus);
+                const isOver = dragOverCol === colStatus;
+
+                return (
+                  <div
+                    key={colStatus}
+                    onDragOver={(e) => handleDragOver(e, colStatus)}
+                    onDragLeave={(e) => handleDragLeave(e, colStatus)}
+                    onDrop={(e) => handleDrop(e, colStatus)}
                     style={{
-                      width: '100%',
-                      padding: '10px',
-                      fontSize: '13px',
-                      borderRadius: '8px',
-                      background: isInternalNote ? '#FFFDF5' : '#FFFFFF',
-                      borderColor: isInternalNote ? '#FDE68A' : '#CBD5E1'
+                      background: isOver ? '#F0FDF4' : '#F8FAFC',
+                      border: isOver ? '2px dashed #0D9488' : '1px solid #E2E8F0',
+                      borderRadius: '16px',
+                      padding: '16px 12px',
+                      minHeight: '480px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px',
+                      textAlign: 'right',
+                      transition: 'all 0.2s',
+                      boxShadow: isOver ? '0 4px 15px rgba(13,148,136,0.15)' : 'none'
                     }}
-                    placeholder={isInternalNote ? "اكتب ملاحظة داخلية سرية يراها فريق الإدارة فقط..." : "اكتب ردك الرسمي للعميل هنا..."}
-                    value={replyText}
-                    onChange={e => setReplyText(e.target.value)}
-                  />
-
-                  {/* Submit Bar with Auto-status Changer */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '11.5px', color: '#64748B' }}>تحديث الحالة بعد الإرسال:</span>
-                      <select 
-                        className="admin-select-input"
-                        style={{ height: '30px', fontSize: '11px', background: '#FFFFFF' }}
-                        value={replyStatusUpdate}
-                        onChange={e => setReplyStatusUpdate(e.target.value)}
-                      >
-                        <option value="">(الإبقاء على الحالة الحالية)</option>
-                        <option value="pending_client">تحويل إلى: بانتظار رد العميل</option>
-                        <option value="in_progress">تحويل إلى: قيد المعالجة</option>
-                        <option value="resolved">تحويل إلى: تم الحل</option>
-                      </select>
+                  >
+                    {/* Column Header */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px 8px 4px', borderBottom: '1px solid #E2E8F0' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '900', color: '#0e3b5e' }}>{colStatus}</span>
+                      <span style={{ background: '#E2E8F0', color: '#475569', fontSize: '11px', fontWeight: '800', padding: '2px 8px', borderRadius: '12px' }}>
+                        {colTickets.length}
+                      </span>
                     </div>
 
-                    <button 
-                      type="button"
-                      onClick={handleSendReply}
-                      className="admin-btn-action-primary"
-                      style={{
-                        padding: '7px 22px',
-                        fontSize: '12.5px',
-                        fontWeight: '800',
-                        background: isInternalNote ? '#E58A13' : '#0A3C64',
-                        borderColor: isInternalNote ? '#E58A13' : '#0A3C64',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {isInternalNote ? 'حفظ الملاحظة السرية 🔒' : 'إرسال الرد للعميل ✉️'}
-                    </button>
+                    {/* Tickets List */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
+                      {colTickets.map((t) => {
+                        const borderCol = t.priority === 'عالية' ? '#EF4444' : t.priority === 'متوسطة' ? '#F59E0B' : '#94A3B8';
+                        const isDragging = draggedTicketId === t.id;
+
+                        return (
+                          <div
+                            key={t.id}
+                            draggable={true}
+                            onDragStart={(e) => handleDragStart(e, t.id)}
+                            onDragEnd={handleDragEnd}
+                            onClick={() => setSelectedTicketId(t.id)}
+                            style={{
+                              background: isDragging ? '#F1F5F9' : '#FFFFFF',
+                              opacity: isDragging ? 0.4 : 1,
+                              border: '1px solid #E2E8F0',
+                              borderRight: `4px solid ${borderCol}`,
+                              borderRadius: '12px',
+                              padding: '14px',
+                              cursor: 'grab',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '8px',
+                              textAlign: 'right',
+                              userSelect: 'none',
+                              transition: 'transform 0.15s, box-shadow 0.15s'
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 14px rgba(0,0,0,0.06)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.03)'; }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontFamily: 'monospace', fontWeight: '800', fontSize: '11.5px', color: '#0e3b5e' }}>{t.id}</span>
+                              <span style={{ fontSize: '10.5px', fontWeight: '700', color: borderCol }}>{t.priority}</span>
+                            </div>
+                            <div style={{ fontSize: '12.5px', fontWeight: '700', color: '#1E293B', lineHeight: '1.4' }}>
+                              {t.subject}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#64748B', display: 'flex', justifyContent: 'space-between' }}>
+                              <span>👤 {t.user}</span>
+                              <span>📅 {t.created}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid #F1F5F9' }}>
+                              <span style={{ fontSize: '11px', color: '#0e7490', fontWeight: '600' }}>{t.assignee}</span>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setSelectedTicketId(t.id); }}
+                                style={{ background: 'transparent', border: 'none', color: '#E58A13', fontWeight: '800', fontSize: '11px', cursor: 'pointer' }}
+                              >
+                                تفاصيل ⬅
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {colTickets.length === 0 && (
+                        <div style={{ textAlign: 'center', padding: '36px 8px', color: '#94A3B8', fontSize: '12px', border: '1px dashed #CBD5E1', borderRadius: '10px' }}>
+                          اسحب التذكرة وأفلتها هنا لنقلها
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
+                );
+              })}
             </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
 
-      {/* ══════════════════════════════════════════════════════════════════
-          6. REASSIGN CONSULTANT & CHANGE SESSION STATUS MODAL
-          ══════════════════════════════════════════════════════════════════ */}
-      {sessionModalTicket && (
-        <div className="admin-modal-overlay" onClick={() => setSessionModalTicket(null)}>
-          <div 
-            className="admin-modal-card" 
-            onClick={e => e.stopPropagation()}
-            style={{ maxWidth: '580px', width: '92%', padding: '24px', borderRadius: '12px' }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #E2E8F0', paddingBottom: '12px' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#0A3C64' }}>
-                  🔄 تعديل المستشار المتابع ووضعية الجلسة
-                </h3>
-                <span style={{ fontSize: '11.5px', color: '#64748B' }}>
-                  للتذكرة: {sessionModalTicket.ticketNumber} — {sessionModalTicket.submitter}
-                </span>
-              </div>
-              <button 
-                type="button"
-                className="admin-icon-btn-minimal" 
-                style={{ fontSize: '16px', color: '#64748B', background: '#F1F5F9', borderRadius: '6px', width: '32px', height: '32px', cursor: 'pointer' }}
-                onClick={() => setSessionModalTicket(null)}
+      {/* ══════════════════════════════════════════════════════════════════════════
+          POPUP MODALS MATCHING REFERENCE
+          ══════════════════════════════════════════════════════════════════════════ */}
+
+      {/* 1. Update Status Modal */}
+      {activeModal === 'change-status' && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '20px', direction: 'rtl' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '24px', maxWidth: '400px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', textAlign: 'right' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0e3b5e', margin: '0 0 14px 0' }}>تحديث حالة الطلب</h3>
+            <select
+              value={newStatusVal}
+              onChange={(e) => setNewStatusVal(e.target.value)}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', marginBottom: '12px', fontSize: '13px', textAlign: 'right', direction: 'rtl' }}
+            >
+              {['جديد', 'قيد المراجعة', 'قيد المعالجة', 'بانتظار رد المستخدم', 'تم التصعيد', 'تم الحل', 'مغلق'].map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <textarea
+              placeholder="ملاحظة (اختياري)..."
+              value={statusNoteVal}
+              onChange={(e) => setStatusNoteVal(e.target.value)}
+              rows={2}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', marginBottom: '16px', fontSize: '13px', textAlign: 'right', direction: 'rtl' }}
+            />
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setActiveModal(null)}
+                style={{ flex: 1, padding: '10px', background: '#F1F5F9', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '13px', cursor: 'pointer' }}
               >
-                ✕
+                إلغاء
               </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {/* 1. Select Consultant */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#0F172A', marginBottom: '6px' }}>
-                  المستشار المعين للمتابعة:
-                </label>
-                <select 
-                  className="admin-select-input"
-                  style={{ width: '100%', height: '38px', fontSize: '13px' }}
-                  value={newConsultantSelection}
-                  onChange={e => setNewConsultantSelection(e.target.value)}
-                >
-                  {platformConsultants.map(c => (
-                    <option key={c.id} value={c.name}>
-                      {c.name} ({c.specialty}) — تقييم: {c.rating}
-                    </option>
-                  ))}
-                </select>
-                <span style={{ fontSize: '11px', color: '#64748B', marginTop: '2px', display: 'block' }}>
-                  سيتم إرسال إشعار للمستشار الجديد برقم التذكرة والجلسة.
-                </span>
-              </div>
-
-              {/* 2. Select Session Status */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#0F172A', marginBottom: '6px' }}>
-                  وضعية وحالة الجلسة:
-                </label>
-                <select 
-                  className="admin-select-input"
-                  style={{ width: '100%', height: '38px', fontSize: '13px', fontWeight: '700' }}
-                  value={newSessionStatusSelection}
-                  onChange={e => setNewSessionStatusSelection(e.target.value)}
-                >
-                  <option value="confirmed">🟢 مؤكدة وجاهزة للانعقاد (Confirmed)</option>
-                  <option value="in_progress">🔵 قيد التنفيذ والمحادثة (In Progress)</option>
-                  <option value="completed">⚪ مكتملة ومنتهية بنجاح (Completed)</option>
-                  <option value="pending">🟡 معلقة بانتظار التأكيد (Pending)</option>
-                  <option value="cancelled">🔴 ملغاة مع إعادة الرصيد للعميل (Cancelled)</option>
-                </select>
-              </div>
-
-              {/* 3. Reschedule Date & Time */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#0F172A', marginBottom: '6px' }}>
-                  موعد وتوقيت الجلسة (إعادة الجدولة):
-                </label>
-                <input 
-                  type="text" 
-                  className="admin-search-input" 
-                  value={newScheduledDate}
-                  onChange={e => setNewScheduledDate(e.target.value)}
-                  style={{ width: '100%', height: '38px', fontSize: '13px', direction: 'ltr', textAlign: 'right' }}
-                  placeholder="مثال: 2026-08-31 10:00"
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px', borderTop: '1px solid #E2E8F0', paddingTop: '12px' }}>
-                <button 
-                  type="button" 
-                  onClick={() => setSessionModalTicket(null)}
-                  className="admin-btn-action-outline"
-                  style={{ fontSize: '12.5px', padding: '7px 18px', cursor: 'pointer' }}
-                >
-                  إلغاء
-                </button>
-                <button 
-                  type="button" 
-                  onClick={handleSaveSessionAndConsultantChanges}
-                  className="admin-btn-action-primary"
-                  style={{ fontSize: '12.5px', padding: '7px 22px', background: '#0A3C64', borderColor: '#0A3C64', cursor: 'pointer' }}
-                >
-                  حفظ وتطبيق التغييرات ✓
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════════
-          7. CREATE NEW TICKET MODAL
-          ══════════════════════════════════════════════════════════════════ */}
-      {isCreateModalOpen && (
-        <div className="admin-modal-overlay" onClick={() => setIsCreateModalOpen(false)}>
-          <div 
-            className="admin-modal-card" 
-            onClick={e => e.stopPropagation()}
-            style={{ maxWidth: '600px', width: '92%', padding: '24px', borderRadius: '12px' }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #E2E8F0', paddingBottom: '12px' }}>
-              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#0A3C64' }}>
-                + إنشاء تذكرة دعم أو تصعيد داخلي
-              </h3>
-              <button 
-                type="button"
-                className="admin-icon-btn-minimal" 
-                style={{ fontSize: '16px', color: '#64748B', background: '#F1F5F9', borderRadius: '6px', width: '32px', height: '32px', cursor: 'pointer' }}
-                onClick={() => setIsCreateModalOpen(false)}
+              <button
+                onClick={handleStatusSubmit}
+                style={{ flex: 1, padding: '10px', background: '#f7a61d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontWeight: '800', fontSize: '13px', cursor: 'pointer' }}
               >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateNewTicket}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
-                    اسم العميل / الجهة المتقدمة: *
-                  </label>
-                  <input 
-                    type="text" 
-                    required
-                    className="admin-search-input" 
-                    placeholder="مثال: شركة الرؤية المتقدمة أو أ. خالد النعيمي..."
-                    value={newTicketData.submitter}
-                    onChange={e => setNewTicketData({ ...newTicketData, submitter: e.target.value })}
-                    style={{ width: '100%', height: '36px', fontSize: '12.5px' }}
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>نوع الحساب:</label>
-                    <select 
-                      className="admin-select-input"
-                      style={{ width: '100%', height: '36px', fontSize: '12px' }}
-                      value={newTicketData.userType}
-                      onChange={e => setNewTicketData({ ...newTicketData, userType: e.target.value })}
-                    >
-                      <option value="شركة">شركة / مؤسسة</option>
-                      <option value="مستشار">مستشار ضريبي</option>
-                      <option value="فرد">فرد / باحث</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>القسم المختص:</label>
-                    <select 
-                      className="admin-select-input"
-                      style={{ width: '100%', height: '36px', fontSize: '12px' }}
-                      value={newTicketData.category}
-                      onChange={e => setNewTicketData({ ...newTicketData, category: e.target.value })}
-                    >
-                      <option value="مالي ودفع">مالي وبوابات الدفع</option>
-                      <option value="توثيق الحسابات">توثيق الحسابات والشهادات</option>
-                      <option value="جلسات وفيديو">جلسات الاستشارة والفيديو</option>
-                      <option value="الذكاء الاصطناعي">المساعد الذكي AI</option>
-                      <option value="شكاوى ونزاعات">شكاوى ونزاعات</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>درجة الأولوية:</label>
-                    <select 
-                      className="admin-select-input"
-                      style={{ width: '100%', height: '36px', fontSize: '12px' }}
-                      value={newTicketData.priority}
-                      onChange={e => setNewTicketData({ ...newTicketData, priority: e.target.value })}
-                    >
-                      <option value="urgent">🔴 حرجة (عاجل جداً)</option>
-                      <option value="high">🟠 عالية</option>
-                      <option value="medium">🟡 متوسطة</option>
-                      <option value="low">🟢 منخفضة</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>المشرف المسؤول:</label>
-                    <select 
-                      className="admin-select-input"
-                      style={{ width: '100%', height: '36px', fontSize: '12px' }}
-                      value={newTicketData.assignee}
-                      onChange={e => setNewTicketData({ ...newTicketData, assignee: e.target.value })}
-                    >
-                      {supportAgents.map((agent, i) => (
-                        <option key={i} value={agent}>{agent}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
-                    موضوع التذكرة: *
-                  </label>
-                  <input 
-                    type="text" 
-                    required
-                    className="admin-search-input" 
-                    placeholder="عنوان المشكلة أو الاستفسار باختصار..."
-                    value={newTicketData.subject}
-                    onChange={e => setNewTicketData({ ...newTicketData, subject: e.target.value })}
-                    style={{ width: '100%', height: '36px', fontSize: '12.5px' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
-                    تفاصيل الرسالة أو المشكلة:
-                  </label>
-                  <textarea 
-                    rows="3"
-                    className="admin-search-input" 
-                    placeholder="شرح كامل لتفاصيل المشكلة أو طلب العميل..."
-                    value={newTicketData.initialMessage}
-                    onChange={e => setNewTicketData({ ...newTicketData, initialMessage: e.target.value })}
-                    style={{ width: '100%', padding: '8px', fontSize: '12.5px' }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
-                  <button 
-                    type="button" 
-                    onClick={() => setIsCreateModalOpen(false)}
-                    className="admin-btn-action-outline"
-                    style={{ fontSize: '12px', padding: '7px 16px', cursor: 'pointer' }}
-                  >
-                    إلغاء
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="admin-btn-action-primary"
-                    style={{ fontSize: '12px', padding: '7px 20px', background: '#0A3C64', borderColor: '#0A3C64', cursor: 'pointer' }}
-                  >
-                    إنشاء التذكرة وحفظها ✓
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════════
-          8. SLA PERFORMANCE METRICS MODAL
-          ══════════════════════════════════════════════════════════════════ */}
-      {isSlaModalOpen && (
-        <div className="admin-modal-overlay" onClick={() => setIsSlaModalOpen(false)}>
-          <div 
-            className="admin-modal-card" 
-            onClick={e => e.stopPropagation()}
-            style={{ maxWidth: '650px', width: '92%', padding: '24px', borderRadius: '12px' }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #E2E8F0', paddingBottom: '12px' }}>
-              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#0A3C64' }}>
-                📊 تقرير أداء وسرعة الاستجابة (SLA Performance)
-              </h3>
-              <button 
-                type="button"
-                className="admin-icon-btn-minimal" 
-                style={{ fontSize: '16px', color: '#64748B', background: '#F1F5F9', borderRadius: '6px', width: '32px', height: '32px', cursor: 'pointer' }}
-                onClick={() => setIsSlaModalOpen(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-              <div style={{ background: '#F8FAFC', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                <div style={{ fontSize: '11px', color: '#64748B' }}>متوسط أول رد:</div>
-                <div style={{ fontSize: '20px', fontWeight: '900', color: '#0A3C64' }}>14 دقيقة</div>
-              </div>
-              <div style={{ background: '#F8FAFC', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                <div style={{ fontSize: '11px', color: '#64748B' }}>الالتزام بـ SLA:</div>
-                <div style={{ fontSize: '20px', fontWeight: '900', color: '#059669' }}>98.4%</div>
-              </div>
-            </div>
-
-            <div style={{ fontSize: '12.5px', color: '#475569', lineHeight: '1.7', background: '#F0F9FF', padding: '12px', borderRadius: '8px', border: '1px solid #BAE6FD' }}>
-              يتم احتساب اتفاقية مستوى الخدمة تلقائياً بناءً على درجة الأولوية:
-              <br />• <strong>أولوية حرجة:</strong> الرد خلال 15 دقيقة كحد أقصى.
-              <br />• <strong>أولوية عالية:</strong> الرد خلال 45 دقيقة.
-              <br />• <strong>أولوية متوسطة:</strong> الرد خلال ساعتين.
-              <br />• <strong>أولوية منخفضة:</strong> الرد خلال 24 ساعة.
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-              <button 
-                type="button" 
-                onClick={() => setIsSlaModalOpen(false)}
-                className="admin-btn-action-outline"
-                style={{ fontSize: '12px', padding: '6px 18px', cursor: 'pointer' }}
-              >
-                إغلاق
+                حفظ
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* 2. Assign Ticket Modal */}
+      {activeModal === 'assign-ticket' && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '20px', direction: 'rtl' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '24px', maxWidth: '400px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', textAlign: 'right' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0e3b5e', margin: '0 0 14px 0' }}>تحويل الطلب</h3>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '12px', color: '#6B7280', marginBottom: '4px' }}>الموظف الحالي:</label>
+              <div style={{ fontWeight: '800', fontSize: '13px', color: '#374151' }}>{selectedTicket?.assignee}</div>
+            </div>
+            <select
+              value={newAssigneeVal}
+              onChange={(e) => setNewAssigneeVal(e.target.value)}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', marginBottom: '12px', fontSize: '13px', textAlign: 'right', direction: 'rtl' }}
+            >
+              <option value="سارة خالد">سارة خالد</option>
+              <option value="محمد علي">محمد علي</option>
+              <option value="خالد عمر">خالد عمر</option>
+              <option value="مدير الدعم">مدير الدعم</option>
+            </select>
+            <textarea
+              placeholder="سبب التحويل / ملاحظة داخلية..."
+              value={assignNoteVal}
+              onChange={(e) => setAssignNoteVal(e.target.value)}
+              rows={2}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', marginBottom: '16px', fontSize: '13px', textAlign: 'right', direction: 'rtl' }}
+            />
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setActiveModal(null)}
+                style={{ flex: 1, padding: '10px', background: '#F1F5F9', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '13px', cursor: 'pointer' }}
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handleAssignSubmit}
+                style={{ flex: 1, padding: '10px', background: '#f7a61d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontWeight: '800', fontSize: '13px', cursor: 'pointer' }}
+              >
+                تأكيد التحويل
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Change Priority Modal */}
+      {activeModal === 'change-priority' && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '20px', direction: 'rtl' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '24px', maxWidth: '400px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', textAlign: 'right' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0e3b5e', margin: '0 0 14px 0' }}>تغيير الأولوية</h3>
+            <select
+              value={newPriorityVal}
+              onChange={(e) => setNewPriorityVal(e.target.value)}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', marginBottom: '12px', fontSize: '13px', textAlign: 'right', direction: 'rtl' }}
+            >
+              <option value="منخفضة">منخفضة</option>
+              <option value="متوسطة">متوسطة</option>
+              <option value="عالية">عالية</option>
+            </select>
+            <textarea
+              placeholder="سبب التغيير (اختياري)..."
+              value={priorityNoteVal}
+              onChange={(e) => setPriorityNoteVal(e.target.value)}
+              rows={2}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', marginBottom: '16px', fontSize: '13px', textAlign: 'right', direction: 'rtl' }}
+            />
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setActiveModal(null)}
+                style={{ flex: 1, padding: '10px', background: '#F1F5F9', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '13px', cursor: 'pointer' }}
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handlePrioritySubmit}
+                style={{ flex: 1, padding: '10px', background: '#f7a61d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontWeight: '800', fontSize: '13px', cursor: 'pointer' }}
+              >
+                حفظ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Add Internal Note Modal */}
+      {activeModal === 'add-internal' && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '20px', direction: 'rtl' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '24px', maxWidth: '440px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', textAlign: 'right' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#92400E', margin: '0 0 14px 0' }}>إضافة ملاحظة داخلية (للإدارة فقط)</h3>
+            <textarea
+              placeholder="اكتب الملاحظة الداخلية..."
+              value={internalNoteText}
+              onChange={(e) => setInternalNoteText(e.target.value)}
+              rows={4}
+              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #FCD34D', marginBottom: '16px', fontSize: '13px', outline: 'none', textAlign: 'right', direction: 'rtl' }}
+            />
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setActiveModal(null)}
+                style={{ flex: 1, padding: '10px', background: '#F1F5F9', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '13px', cursor: 'pointer' }}
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handleInternalNoteSubmit}
+                style={{ flex: 1, padding: '10px', background: '#f7a61d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontWeight: '800', fontSize: '13px', cursor: 'pointer' }}
+              >
+                إضافة
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

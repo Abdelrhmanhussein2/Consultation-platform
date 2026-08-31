@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAuth } from '../context/AuthContext';
 import AdminLayout from './components/AdminLayout';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminUsersPage from './pages/AdminUsersPage';
@@ -21,6 +22,43 @@ import AdminSecurityPage from './pages/AdminSecurityPage';
 import AdminGenericPage from './pages/AdminGenericPage';
 
 export default function AdminApp({ currentPath = '/admin', navigate }) {
+  const { user, isAuthenticated, loading } = useAuth();
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ZERO-TRUST ROLE ENFORCEMENT (STRICT ADMIN / SUPER_ADMIN ONLY)
+  // ══════════════════════════════════════════════════════════════════════════
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#F8FAFC' }}>
+        <div style={{ fontWeight: '800', color: '#0e3b5e', fontSize: '15px' }}>جاري التحقق من الصلاحيات الإدارية...</div>
+      </div>
+    );
+  }
+
+  const isAdmin = isAuthenticated && user && (user.role === 'admin' || user.role === 'super_admin');
+
+  if (!isAdmin) {
+    return (
+      <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#F8FAFC', padding: '24px', textAlign: 'center', direction: 'rtl' }}>
+        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '40px 32px', maxWidth: '460px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.06)' }}>
+          <div style={{ width: '64px', height: '64px', background: '#FEF2F2', color: '#DC2626', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', margin: '0 auto 16px auto' }}>
+            ⛔
+          </div>
+          <h2 style={{ fontSize: '20px', fontWeight: '900', color: '#0e3b5e', margin: '0 0 8px 0' }}>403 - وصول محظور (Forbidden)</h2>
+          <p style={{ fontSize: '13.5px', color: '#64748B', lineHeight: '1.6', margin: '0 0 24px 0' }}>
+            عذراً، هذه المنطقة مخصصة لمشرفي وإداريي المنصة المعتمدين فقط. حسابك الحالي لا يمتلك صلاحية الأدمن، أو يتطلب تسجيل الدخول بحساب مدير.
+          </p>
+          <button
+            onClick={() => navigate('/login')}
+            style={{ background: '#0e3b5e', color: '#FFFFFF', border: 'none', padding: '12px 28px', borderRadius: '12px', fontWeight: '800', fontSize: '13.5px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(14,59,94,0.2)', transition: 'all 0.2s' }}
+          >
+            تسجيل الدخول كمدير ⬅
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Normalize path by stripping trailing slashes (e.g. /admin/ -> /admin)
   const normalizedPath = (currentPath && currentPath.length > 1) 
     ? currentPath.replace(/\/+$/, '') 
@@ -79,7 +117,6 @@ export default function AdminApp({ currentPath = '/admin', navigate }) {
             actionButtonText="تحديث الفهرس المعرفي"
           />
         );
-
 
       default:
         return <AdminDashboardPage navigate={navigate} />;
