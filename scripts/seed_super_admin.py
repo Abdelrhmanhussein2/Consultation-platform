@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from helpers.database import SessionLocal
 from helpers.config import settings
-from helpers.enums import UserRole
+from helpers.enums import UserRole, VerificationStatus
 from models import User, Specialization
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -72,7 +72,11 @@ def seed_super_admin():
         # Check if any super admin exists in DB
         existing_admin = db.query(User).filter(User.role == UserRole.super_admin).first()
         if existing_admin:
-            print(f"Super Admin already exists in database: {existing_admin.email}")
+            print(f"Super Admin already exists in database: {existing_admin.email}. Ensuring it is approved...")
+            existing_admin.verification_status = VerificationStatus.approved
+            existing_admin.is_active = True
+            db.commit()
+            print("SUCCESS: Existing Super Admin account approved.")
             return
             
         # Verify the target email is not used by a regular user or consultant
@@ -88,7 +92,8 @@ def seed_super_admin():
             email=email,
             password_hash=hashed_pw,
             role=UserRole.super_admin,
-            is_active=True
+            is_active=True,
+            verification_status=VerificationStatus.approved
         )
         db.add(super_admin)
         db.commit()
