@@ -274,7 +274,7 @@ export default function ConsultantsPage({ navigate }) {
           <p style={{ marginTop: '16px' }}>جاري تحميل دليل المستشارين...</p>
         </div>
       ) : consultants.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '16px' }}>
           {consultants.map((c, index) => (
             <ConsultantCard
               key={c.profile_id || c.id || index}

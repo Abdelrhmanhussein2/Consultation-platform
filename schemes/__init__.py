@@ -51,7 +51,7 @@ from schemes.schemes import (
     AdminSessionOut, AdminSessionJoinOut, AdminUpdateSessionStatus,
 
     # Tickets (Support Desk)
-    TicketCreate, TicketReplyCreate, TicketReplyOut, TicketOut,
+    TicketCreate, TicketReplyCreate, TicketReplyOut, TicketOut, TicketAttachmentOut,
     AdminTicketCreate, AdminTicketReplyCreate, AdminTicketUpdate,
 
     # Admin RBAC Permissions

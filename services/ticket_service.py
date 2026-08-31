@@ -12,13 +12,22 @@ class TicketService:
         """
         Creates a new support ticket by a client/consultant.
         """
+        # Generate ticket number (e.g. #2026000001)
+        current_year = datetime.now(timezone.utc).year
+        year_start = datetime(current_year, 1, 1, tzinfo=timezone.utc)
+        count = db.query(SupportTicket).filter(SupportTicket.created_at >= year_start).count()
+        ticket_num = f"#{current_year}{str(count + 1).zfill(6)}"
+
         ticket = SupportTicket(
             submitted_by=client_id,
+            ticket_number=ticket_num,
             subject=ticket_in.subject,
             description=ticket_in.description,
             category=ticket_in.category,
-            priority=TicketPriority.medium,
-            status=TicketStatus.open
+            sub_category=ticket_in.sub_category,
+            priority=ticket_in.priority or TicketPriority.medium,
+            status=TicketStatus.new,
+            extra_fields=ticket_in.extra_fields
         )
         db.add(ticket)
         db.commit()
@@ -35,13 +44,19 @@ class TicketService:
         if not user:
             raise ValueError("Submitter user not found")
 
+        current_year = datetime.now(timezone.utc).year
+        year_start = datetime(current_year, 1, 1, tzinfo=timezone.utc)
+        count = db.query(SupportTicket).filter(SupportTicket.created_at >= year_start).count()
+        ticket_num = f"#{current_year}{str(count + 1).zfill(6)}"
+
         ticket = SupportTicket(
             submitted_by=ticket_in.submitted_by,
+            ticket_number=ticket_num,
             subject=ticket_in.subject,
             description=ticket_in.description,
             category=ticket_in.category,
             priority=ticket_in.priority,
-            status=TicketStatus.open,
+            status=TicketStatus.new,
             assigned_to=ticket_in.assigned_to or admin_id
         )
         db.add(ticket)
@@ -50,14 +65,39 @@ class TicketService:
         return ticket
 
     @staticmethod
-    def list_my_tickets(db: Session, client_id: uuid.UUID) -> List[SupportTicket]:
+    def list_my_tickets(
+        db: Session,
+        client_id: uuid.UUID,
+        status: Optional[TicketStatus] = None,
+        category: Optional[TicketCategory] = None,
+        priority: Optional[TicketPriority] = None,
+        search: Optional[str] = None,
+        page: int = 1,
+        limit: int = 20
+    ) -> List[SupportTicket]:
         """
-        Returns tickets created by the logged-in user.
-        Internal replies are excluded at the ORM level by temporarily overriding the replies list.
+        Returns tickets created by the logged-in user with filters, search, and pagination.
         """
-        tickets = db.query(SupportTicket).filter(
-            SupportTicket.submitted_by == client_id
-        ).order_by(SupportTicket.created_at.desc()).all()
+        query = db.query(SupportTicket).filter(SupportTicket.submitted_by == client_id)
+
+        if status:
+            query = query.filter(SupportTicket.status == status)
+        if category:
+            query = query.filter(SupportTicket.category == category)
+        if priority:
+            query = query.filter(SupportTicket.priority == priority)
+        if search:
+            search_pattern = f"%{search}%"
+            query = query.filter(
+                or_(
+                    SupportTicket.subject.ilike(search_pattern),
+                    SupportTicket.description.ilike(search_pattern),
+                    SupportTicket.ticket_number.ilike(search_pattern)
+                )
+            )
+
+        offset = (page - 1) * limit
+        tickets = query.order_by(SupportTicket.created_at.desc()).offset(offset).limit(limit).all()
 
         # Strip internal replies so the user never sees admin-internal notes
         for ticket in tickets:
@@ -107,6 +147,7 @@ class TicketService:
                 or_(
                     SupportTicket.subject.ilike(search_pattern),
                     SupportTicket.description.ilike(search_pattern),
+                    SupportTicket.ticket_number.ilike(search_pattern),
                     User.full_name.ilike(search_pattern)
                 )
             )

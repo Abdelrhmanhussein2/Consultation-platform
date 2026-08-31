@@ -108,6 +108,7 @@ class BusinessSector(str, enum.Enum):
 
 
 class TicketCategory(str, enum.Enum):
+    ai_assistant = "ai_assistant"
     technical = "technical"
     billing = "billing"
     consultation = "consultation"
@@ -124,10 +125,18 @@ class TicketPriority(str, enum.Enum):
 
 
 class TicketStatus(str, enum.Enum):
-    open = "open"
+    draft = "draft"
+    new = "new"
+    received = "received"
+    reviewing = "reviewing"
+    waiting_user = "waiting_user"
     in_progress = "in_progress"
+    escalated = "escalated"
     resolved = "resolved"
     closed = "closed"
+    reopened = "reopened"
+    open = "open"
+
 
 
 class NotificationAudience(str, enum.Enum):

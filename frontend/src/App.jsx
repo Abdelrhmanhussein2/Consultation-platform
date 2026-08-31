@@ -20,6 +20,10 @@ import InvoicesPage from './pages/InvoicesPage';
 import PolicyCenterPage from './pages/PolicyCenterPage';
 import UserSettingsPage from './pages/UserSettingsPage';
 import SupportTicketsPage from './pages/SupportTicketsPage';
+import SupportCenterPage from './pages/SupportCenterPage';
+import SupportTicketsListPage from './pages/SupportTicketsListPage';
+import SupportNewTicketPage from './pages/SupportNewTicketPage';
+import SupportTicketDetailPage from './pages/SupportTicketDetailPage';
 import AdminApp from './admin/AdminApp';
 import PlaceholderPage from './pages/PlaceholderPage';
 import ConsultantDashboard from './pages/ConsultantDashboard';
@@ -79,6 +83,7 @@ function MainApp() {
     '/ai-assistant',
     '/invoices',
     '/tickets',
+    '/support',
     '/settings',
     '/policies-portal',
     '/consultant/dashboard',
@@ -128,6 +133,20 @@ function MainApp() {
     }
     if (currentPath === '/tickets') {
       return <BusinessHelpPage navigate={navigate} />;
+    }
+    if (currentPath === '/support') {
+      return <SupportCenterPage navigate={navigate} />;
+    }
+    if (currentPath === '/support/tickets') {
+      return <SupportTicketsListPage navigate={navigate} />;
+    }
+    if (currentPath === '/support/new-ticket') {
+      return <SupportNewTicketPage navigate={navigate} />;
+    }
+    if (currentPath.startsWith('/support/tickets/')) {
+      const parts = currentPath.split('/');
+      const ticketId = parts[parts.length - 1];
+      return <SupportTicketDetailPage ticketId={ticketId} navigate={navigate} />;
     }
     if (currentPath === '/policies-portal') {
       return <PolicyCenterPage openPolicy={openPolicy} />;

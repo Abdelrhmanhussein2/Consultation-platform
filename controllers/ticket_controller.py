@@ -10,8 +10,17 @@ class TicketController:
         return TicketService.create_ticket(db, client_id, ticket_in)
 
     @staticmethod
-    def list_my_tickets(db: Session, client_id: uuid.UUID):
-        return TicketService.list_my_tickets(db, client_id)
+    def list_my_tickets(
+        db: Session,
+        client_id: uuid.UUID,
+        status: TicketStatus = None,
+        category: TicketCategory = None,
+        priority: TicketPriority = None,
+        search: str = None,
+        page: int = 1,
+        limit: int = 20
+    ):
+        return TicketService.list_my_tickets(db, client_id, status, category, priority, search, page, limit)
 
     @staticmethod
     def get_my_ticket(db: Session, ticket_id: str, client_id: uuid.UUID):
@@ -37,11 +46,14 @@ class TicketController:
                 "submitter_name": ticket.submitter.full_name,
                 "assigned_to": ticket.assigned_to,
                 "assignee_name": ticket.assignee.full_name if ticket.assignee else None,
+                "ticket_number": ticket.ticket_number,
                 "subject": ticket.subject,
                 "description": ticket.description,
                 "category": ticket.category,
+                "sub_category": ticket.sub_category,
                 "priority": ticket.priority,
                 "status": ticket.status,
+                "extra_fields": ticket.extra_fields,
                 "closed_at": ticket.closed_at,
                 "created_at": ticket.created_at,
                 "updated_at": ticket.updated_at,
@@ -56,6 +68,17 @@ class TicketController:
                         "is_internal": r.is_internal,
                         "created_at": r.created_at
                     } for r in public_replies
+                ],
+                "attachments": [
+                    {
+                        "id": att.id,
+                        "ticket_id": att.ticket_id,
+                        "filename": att.filename,
+                        "file_path": att.file_path,
+                        "file_size": att.file_size,
+                        "content_type": att.content_type,
+                        "created_at": att.created_at
+                    } for att in ticket.attachments
                 ]
             }
         except ValueError as e:
@@ -125,11 +148,14 @@ class TicketController:
                 "submitter_name": ticket.submitter.full_name,
                 "assigned_to": ticket.assigned_to,
                 "assignee_name": ticket.assignee.full_name if ticket.assignee else None,
+                "ticket_number": ticket.ticket_number,
                 "subject": ticket.subject,
                 "description": ticket.description,
                 "category": ticket.category,
+                "sub_category": ticket.sub_category,
                 "priority": ticket.priority,
                 "status": ticket.status,
+                "extra_fields": ticket.extra_fields,
                 "closed_at": ticket.closed_at,
                 "created_at": ticket.created_at,
                 "updated_at": ticket.updated_at,
@@ -144,6 +170,17 @@ class TicketController:
                         "is_internal": r.is_internal,
                         "created_at": r.created_at
                     } for r in ticket.replies
+                ],
+                "attachments": [
+                    {
+                        "id": att.id,
+                        "ticket_id": att.ticket_id,
+                        "filename": att.filename,
+                        "file_path": att.file_path,
+                        "file_size": att.file_size,
+                        "content_type": att.content_type,
+                        "created_at": att.created_at
+                    } for att in ticket.attachments
                 ]
             }
         except ValueError as e:

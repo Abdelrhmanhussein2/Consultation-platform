@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional
 from sqlalchemy import Column, String, DateTime, ForeignKey, Text, func
-from sqlalchemy.dialects.postgresql import UUID, ENUM as PG_ENUM
+from sqlalchemy.dialects.postgresql import UUID, ENUM as PG_ENUM, JSONB
 from sqlalchemy.orm import relationship
 
 from helpers.database import Base
@@ -14,11 +14,14 @@ class SupportTicket(Base):
     submitted_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     assigned_to = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     
+    ticket_number = Column(String(20), nullable=True, unique=True)
     subject = Column(String(200), nullable=False)
     description = Column(Text, nullable=False)
     category = Column(PG_ENUM(TicketCategory, name="ticket_category", inherit_schema=True), nullable=False, default=TicketCategory.other)
+    sub_category = Column(String(100), nullable=True)
     priority = Column(PG_ENUM(TicketPriority, name="ticket_priority", inherit_schema=True), nullable=False, default=TicketPriority.low)
     status = Column(PG_ENUM(TicketStatus, name="ticket_status", inherit_schema=True), nullable=False, default=TicketStatus.open)
+    extra_fields = Column(JSONB, nullable=True)
     internal_note = Column(Text, nullable=True)
     
     closed_at = Column(DateTime(timezone=True), nullable=True)
@@ -29,6 +32,7 @@ class SupportTicket(Base):
     submitter = relationship("User", foreign_keys=[submitted_by], backref="submitted_tickets")
     assignee = relationship("User", foreign_keys=[assigned_to], backref="assigned_tickets")
     replies = relationship("TicketReply", back_populates="ticket", cascade="all, delete-orphan", order_by="TicketReply.created_at")
+    attachments = relationship("TicketAttachment", back_populates="ticket", cascade="all, delete-orphan")
 
     @property
     def submitter_name(self) -> str:

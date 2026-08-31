@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
   DashboardIcon,
@@ -129,9 +129,34 @@ const TemplatesIcon = ({ size = 20, color = 'currentColor' }) => (
   </svg>
 );
 
+const ChevronIcon = ({ isOpen }) => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{
+      transition: 'transform 0.2s',
+      transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+      marginLeft: '0',
+      marginRight: 'auto'
+    }}
+  >
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
 export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
   const { logout, user } = useAuth();
   const userRole = user?.role;
+
+  const [supportOpen, setSupportOpen] = useState(
+    currentPath.startsWith('/support')
+  );
 
   const clientNavItems = [
     { path: '/dashboard', label: 'لوحة التحكم', IconComponent: DashboardIcon },
@@ -142,7 +167,7 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
     { path: '/regulations', label: 'التشريعات والقوانين', IconComponent: RegulationsIcon },
     { path: '/ai-assistant', label: 'المساعد الذكي', IconComponent: AiIcon },
     { path: '/invoices', label: 'الفواتير والمدفوعات', IconComponent: InvoicesIcon },
-    { path: '/tickets', label: 'مساعدة الأعمال والدعم', IconComponent: TicketsIcon },
+    { path: '/tickets', label: 'الدعم والمساعدة', IconComponent: TicketsIcon },
     { path: '/policies-portal', label: 'مركز السياسات', IconComponent: PolicyIcon },
     { path: '/settings', label: 'الإعدادات والملف الشخصي', IconComponent: SettingsIcon }
   ];
@@ -161,7 +186,7 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
     { path: '/consultant/colleagues', label: 'زملاء المنصة', IconComponent: ColleaguesIcon },
     { path: '/my-appointments', label: 'استشاراتي', IconComponent: AppointmentsIcon },
     { path: '/chat', label: 'الرسائل', IconComponent: ChatIcon },
-    { path: '/tickets', label: 'مساعدة الأعمال', IconComponent: TicketsIcon },
+    { path: '/tickets', label: 'الدعم والمساعدة', IconComponent: TicketsIcon },
     { path: '/invoices', label: 'الفواتير', IconComponent: InvoicesIcon },
     { path: '/consultant/subscriptions', label: 'الاشتراكات', IconComponent: SubscriptionsIcon },
     { path: '/consultant/payments', label: 'المدفوعات', IconComponent: PaymentsIcon },
@@ -214,6 +239,74 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
       {/* Main Navigation Items */}
       <nav className="sidebar-nav">
         {navItems.map((item) => {
+          if (item.path === '/tickets') {
+            const isSupportActive = currentPath.startsWith('/support');
+            return (
+              <div key="support-accordion" className="support-accordion-group" style={{ width: '100%' }}>
+                <button
+                  type="button"
+                  className={`nav-item ${isSupportActive ? 'active' : ''}`}
+                  onClick={() => {
+                    if (isCollapsed) {
+                      navigate('/support');
+                    } else {
+                      setSupportOpen(!supportOpen);
+                    }
+                  }}
+                  title="الدعم والمساعدة"
+                  style={{ display: 'flex', width: '100%', alignItems: 'center' }}
+                >
+                  <span className="nav-icon">
+                    <TicketsIcon size={20} color={isSupportActive ? '#FFFFFF' : '#CBD5E1'} />
+                  </span>
+                  {!isCollapsed && (
+                    <>
+                      <span className="nav-label" style={{ marginRight: '8px' }}>الدعم والمساعدة</span>
+                      <ChevronIcon isOpen={supportOpen} />
+                    </>
+                  )}
+                </button>
+                {supportOpen && !isCollapsed && (
+                  <div className="sidebar-sub-nav" style={{ paddingRight: '36px', display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                    {[
+                      { path: '/support', label: 'مركز الدعم والمساعدة' },
+                      { path: '/support/tickets', label: 'طلبات الدعم' },
+                      { path: '/support/new-ticket', label: 'تقديم طلب جديد' }
+                    ].map((subItem) => {
+                      const isSubActive = currentPath === subItem.path;
+                      return (
+                        <button
+                          key={subItem.path}
+                          type="button"
+                          className={`nav-sub-item ${isSubActive ? 'active' : ''}`}
+                          onClick={() => navigate(subItem.path)}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: isSubActive ? '#F5A52A' : '#94A3B8',
+                            padding: '8px 12px',
+                            textAlign: 'right',
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            borderRadius: '6px',
+                            fontWeight: isSubActive ? '700' : 'normal',
+                            transition: 'all 0.2s',
+                            display: 'block',
+                            width: '100%'
+                          }}
+                          onMouseEnter={(e) => { if (!isSubActive) e.target.style.color = '#FFFFFF'; }}
+                          onMouseLeave={(e) => { if (!isSubActive) e.target.style.color = '#94A3B8'; }}
+                        >
+                          {subItem.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
           const isActive = currentPath === item.path;
           const { IconComponent } = item;
           return (
@@ -248,3 +341,4 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
     </aside>
   );
 }
+

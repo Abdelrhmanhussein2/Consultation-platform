@@ -22,6 +22,7 @@ from models.chat_message import ChatMessage
 from models.consultant_availability import ConsultantAvailability
 from models.support_ticket import SupportTicket
 from models.ticket_reply import TicketReply
+from models.ticket_attachment import TicketAttachment
 from models.system_policy import SystemPolicy
 
 

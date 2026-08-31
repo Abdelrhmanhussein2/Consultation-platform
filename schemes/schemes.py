@@ -829,6 +829,9 @@ class TicketCreate(BaseModel):
     subject: str = Field(..., max_length=200)
     description: str
     category: TicketCategory = TicketCategory.other
+    priority: TicketPriority = TicketPriority.medium
+    sub_category: Optional[str] = None
+    extra_fields: Optional[dict] = None
 
 class TicketReplyCreate(BaseModel):
     message: str
@@ -846,21 +849,37 @@ class TicketReplyOut(BaseModel):
     class Config:
         from_attributes = True
 
+class TicketAttachmentOut(BaseModel):
+    id: uuid.UUID
+    ticket_id: uuid.UUID
+    filename: str
+    file_path: str
+    file_size: int
+    content_type: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 class TicketOut(BaseModel):
     id: uuid.UUID
     submitted_by: uuid.UUID
     submitter_name: str
     assigned_to: Optional[uuid.UUID]
     assignee_name: Optional[str]
+    ticket_number: Optional[str] = None
     subject: str
     description: str
     category: TicketCategory
+    sub_category: Optional[str] = None
     priority: TicketPriority
     status: TicketStatus
+    extra_fields: Optional[dict] = None
     closed_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
     replies: List[TicketReplyOut] = []
+    attachments: List[TicketAttachmentOut] = []
 
     class Config:
         from_attributes = True
