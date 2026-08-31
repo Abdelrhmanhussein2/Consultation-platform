@@ -536,7 +536,7 @@ class AppointmentReschedule(BaseModel):
 
 class PaymentSimulate(BaseModel):
     """Simulates payment confirmation for a pending appointment."""
-    payment_method: Literal["card", "cash", "wallet"] = "card"
+    payment_method: str = "card"
 
 class AppointmentOut(BaseModel):
     id: uuid.UUID
@@ -551,6 +551,9 @@ class AppointmentOut(BaseModel):
     session_type: Optional[SessionType] = SessionType.video_call
     notes: Optional[str]
     created_at: datetime
+    consultant_name: Optional[str] = None
+    client_name: Optional[str] = None
+    service_name: Optional[str] = None
 
     class Config:
         from_attributes = True

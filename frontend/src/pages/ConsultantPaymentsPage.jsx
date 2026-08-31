@@ -8,15 +8,7 @@ export default function ConsultantPaymentsPage({ navigate }) {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Mock payment transaction matching the screenshot
-  const mockPayment = {
-    id: 'ae5a45f1',
-    reference: 'PAY-20260622-5',
-    date: '2026/6/22، 4:17:46 ص',
-    amount: 33.64,
-    method: 'بطاقة بنكية',
-    status: 'مدفوعة'
-  };
+
 
   useEffect(() => {
     if (!token) {

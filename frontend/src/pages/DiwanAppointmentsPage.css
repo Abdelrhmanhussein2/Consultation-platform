@@ -1,0 +1,2618 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Tajawal:wght@400;500;700;800&display=swap');
+
+.diwan-appointments-root {
+  --bg: #f7f8fb;
+  --panel: #fff;
+  --line: #e7eaf0;
+  --muted: #818899;
+  --ink: #1d2330;
+  --cyan: #16b8d2;
+  --purple: #c543e5;
+  --shadow: 0 18px 50px rgba(22, 29, 48, 0.14);
+  --confirmed: #c9f3d4;
+  --pending: #fff0b8;
+  --progress: #d3efff;
+  --rejected: #ffd5dc;
+  --cancelled: #eceef2;
+  --completed: #d8d2ff;
+  --paid: #d6f5df;
+  --unpaid: #ffe0e5;
+  --paywait: #fff0b8;
+  --payreject: #f6d1ef;
+
+  position: relative;
+  width: 100%;
+  min-height: calc(100vh - 90px);
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Cairo", "Tajawal", Tahoma, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 13px;
+  overflow: visible;
+  direction: rtl;
+  text-align: right;
+  border-radius: 16px;
+}
+
+.diwan-appointments-root * {
+  box-sizing: border-box;
+}
+
+.diwan-appointments-root button,
+.diwan-appointments-root input,
+.diwan-appointments-root textarea,
+.diwan-appointments-root select {
+  font: inherit;
+}
+
+.diwan-appointments-root button {
+  cursor: pointer;
+}
+
+.diwan-appointments-root .num {
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: embed;
+}
+
+/* App Shell Layout */
+.diwan-appointments-root .app-shell {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100%;
+  direction: rtl;
+}
+
+.diwan-appointments-root .sidebar {
+  display: none !important;
+}
+
+.diwan-appointments-root .workspace {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.diwan-appointments-root .topbar {
+  height: 56px;
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  flex-shrink: 0;
+}
+
+.diwan-appointments-root .top-left,
+.diwan-appointments-root .top-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.diwan-appointments-root .icon-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: #687083;
+  transition: 0.15s all;
+}
+
+.diwan-appointments-root .icon-btn:hover {
+  background: #f4f6f8;
+  color: #1f2533;
+}
+
+.diwan-appointments-root .primary {
+  border: 0;
+  border-radius: 8px;
+  background: #13b8d3;
+  color: #fff;
+  padding: 9px 14px;
+  font-weight: 700;
+  transition: 0.15s all;
+}
+
+.diwan-appointments-root .primary:hover {
+  background: #0ea2bb;
+}
+
+.diwan-appointments-root .ghost {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 7px;
+  padding: 7px 10px;
+  color: #626a7a;
+  font-size: 11px;
+  transition: 0.15s all;
+}
+
+.diwan-appointments-root .ghost:hover {
+  background: #f5f7fa;
+  color: #222834;
+}
+
+.diwan-appointments-root .avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #f3b5d5;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 900;
+  color: #1e2633;
+}
+
+.diwan-appointments-root .user-block {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.diwan-appointments-root .user-meta {
+  line-height: 1.2;
+}
+
+.diwan-appointments-root .user-meta b {
+  font-size: 11px;
+  font-weight: 800;
+  display: block;
+}
+
+.diwan-appointments-root .user-meta span {
+  font-size: 9px;
+  color: #8b92a0;
+}
+
+.diwan-appointments-root .role-switch {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.diwan-appointments-root .role-switch button {
+  border: 0;
+  background: #fff;
+  padding: 7px 10px;
+  color: #737b8c;
+  font-size: 11px;
+  white-space: nowrap;
+  transition: 0.15s all;
+}
+
+.diwan-appointments-root .role-switch button.active {
+  background: #222831;
+  color: #fff;
+  font-weight: 700;
+}
+
+/* Calendar Header */
+.diwan-appointments-root .calendar-head {
+  background: #fff;
+  padding: 15px 22px 10px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.diwan-appointments-root .title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.diwan-appointments-root .title-row h1 {
+  font-size: 18px;
+  margin: 0;
+  font-weight: 900;
+}
+
+.diwan-appointments-root .calendar-actions {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+
+.diwan-appointments-root .period-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.diwan-appointments-root .period-picker select {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 7px;
+  padding: 7px 8px;
+  color: #545c6b;
+  font-size: 11px;
+  outline: 0;
+}
+
+.diwan-appointments-root .seg {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.diwan-appointments-root .seg button {
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: #fff;
+  padding: 7px 11px;
+  color: #737b8c;
+  font-weight: 500;
+  font-size: 11px;
+  transition: 0.15s all;
+}
+
+.diwan-appointments-root .seg button.active {
+  background: #222831;
+  color: #fff;
+  font-weight: 700;
+}
+
+.diwan-appointments-root .seg button:last-child {
+  border-left: 0;
+}
+
+.diwan-appointments-root .stats {
+  display: flex;
+  gap: 22px;
+  margin-top: 12px;
+  color: #8a91a0;
+}
+
+.diwan-appointments-root .stat strong {
+  display: block;
+  color: #222834;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.diwan-appointments-root .stat span {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.diwan-appointments-root .filterbar {
+  display: flex;
+  gap: 8px;
+  margin-top: 11px;
+  flex-wrap: wrap;
+}
+
+.diwan-appointments-root .filterbar select,
+.diwan-appointments-root .filterbar input {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 7px;
+  padding: 7px 10px;
+  outline: 0;
+  color: #535b6c;
+  font-size: 11px;
+}
+
+.diwan-appointments-root .filterbar input {
+  min-width: 220px;
+}
+
+/* Calendar Workspace Grid */
+.diwan-appointments-root .calendar-wrap {
+  position: relative;
+  flex: 1;
+  background: #fff;
+  overflow: auto;
+  direction: ltr;
+}
+
+.diwan-appointments-root .cal-grid {
+  min-width: 1080px;
+  display: grid;
+  grid-template-columns: 58px repeat(7, 1fr);
+  position: relative;
+}
+
+.diwan-appointments-root .corner {
+  position: sticky;
+  top: 0;
+  z-index: 7;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+
+.diwan-appointments-root .dayhead {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  height: 58px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.diwan-appointments-root .dayhead .dow {
+  font-size: 10px;
+  color: #979dac;
+  font-weight: 700;
+}
+
+.diwan-appointments-root .dayhead .date {
+  font-size: 14px;
+  font-weight: 900;
+  margin-top: 3px;
+}
+
+.diwan-appointments-root .dayhead.today .date {
+  background: #1a222d;
+  color: #fff;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+}
+
+.diwan-appointments-root .timecol {
+  border-right: 1px solid var(--line);
+  background: #fff;
+}
+
+.diwan-appointments-root .time {
+  height: 64px;
+  border-bottom: 1px solid #f0f1f5;
+  font-size: 10px;
+  color: #9ca2af;
+  padding-top: 5px;
+  text-align: center;
+}
+
+.diwan-appointments-root .daycol {
+  position: relative;
+  border-right: 1px solid var(--line);
+  height: 896px;
+  background: repeating-linear-gradient(to bottom, #fff 0, #fff 63px, #f0f1f5 63px, #f0f1f5 64px);
+}
+
+.diwan-appointments-root .event {
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  border-radius: 5px;
+  padding: 7px 8px;
+  font-size: 10px;
+  line-height: 1.35;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  transition: 0.15s transform, 0.15s box-shadow;
+  direction: rtl;
+  text-align: right;
+  user-select: none;
+}
+
+.diwan-appointments-root .event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 13px rgba(20, 30, 45, 0.12);
+  z-index: 4;
+}
+
+.diwan-appointments-root .event b {
+  display: block;
+  font-size: 10px;
+  margin-bottom: 2px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diwan-appointments-root .event small {
+  font-size: 9px;
+  color: #5f6571;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diwan-appointments-root .event .badges {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.diwan-appointments-root .tinybadge {
+  font-size: 8px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
+  font-weight: 600;
+}
+
+.diwan-appointments-root .st-confirmed { background: var(--confirmed); }
+.diwan-appointments-root .st-pending { background: var(--pending); }
+.diwan-appointments-root .st-progress { background: var(--progress); }
+.diwan-appointments-root .st-rejected { background: var(--rejected); }
+.diwan-appointments-root .st-cancelled { background: var(--cancelled); }
+.diwan-appointments-root .st-completed { background: var(--completed); }
+.diwan-appointments-root .event.selected { outline: 2px solid #c53ee8; outline-offset: 1px; }
+
+.diwan-appointments-root .now-line {
+  position: absolute;
+  left: 58px;
+  right: 0;
+  height: 1px;
+  background: #ef5f6d;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.diwan-appointments-root .now-line:before {
+  content: "";
+  position: absolute;
+  left: -3px;
+  top: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef5f6d;
+}
+
+/* Day & Month Views */
+.diwan-appointments-root .day-view {
+  min-width: 800px;
+  background: #fff;
+  direction: rtl;
+}
+
+.diwan-appointments-root .day-view-grid {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  direction: ltr;
+}
+
+.diwan-appointments-root .day-time {
+  height: 64px;
+  border-bottom: 1px solid #f0f1f5;
+  text-align: center;
+  padding-top: 5px;
+  font-size: 10px;
+  color: #9ca2af;
+}
+
+.diwan-appointments-root .day-lane {
+  height: 896px;
+  position: relative;
+  background: repeating-linear-gradient(to bottom, #fff 0, #fff 63px, #f0f1f5 63px, #f0f1f5 64px);
+  direction: rtl;
+}
+
+.diwan-appointments-root .day-event {
+  position: absolute;
+  right: 14px;
+  left: 14px;
+  border-radius: 7px;
+  padding: 9px 12px;
+  direction: rtl;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.diwan-appointments-root .month-view {
+  min-width: 980px;
+  padding: 14px;
+  direction: rtl;
+  background: #fff;
+}
+
+.diwan-appointments-root .month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.diwan-appointments-root .month-head {
+  background: #fafbfc;
+  padding: 10px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: #777f8f;
+  border-left: 1px solid var(--line);
+}
+
+.diwan-appointments-root .month-cell {
+  min-height: 126px;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  padding: 8px;
+  position: relative;
+}
+
+.diwan-appointments-root .month-cell .md {
+  font-size: 11px;
+  font-weight: 800;
+  color: #4d5564;
+}
+
+.diwan-appointments-root .month-cell.today {
+  background: #fbfeff;
+}
+
+.diwan-appointments-root .month-event {
+  font-size: 9px;
+  padding: 5px 6px;
+  border-radius: 5px;
+  margin-top: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+/* Floating Dock */
+.diwan-appointments-root .floating-dock {
+  position: fixed;
+  z-index: 40;
+  bottom: 82px;
+  left: calc(50% - 92px);
+  background: #11161e;
+  border-radius: 10px;
+  padding: 5px;
+  display: flex;
+  gap: 3px;
+  box-shadow: 0 9px 26px rgba(0, 0, 0, 0.2);
+  direction: ltr;
+}
+
+.diwan-appointments-root .floating-dock button {
+  width: 34px;
+  height: 31px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  transition: 0.15s all;
+}
+
+.diwan-appointments-root .floating-dock button:hover {
+  background: #29303b;
+}
+
+.diwan-appointments-root .floating-dock .accent {
+  background: #fff;
+  color: #111;
+  font-weight: 900;
+}
+
+/* Popover */
+.diwan-appointments-root .popover {
+  position: fixed;
+  width: 320px;
+  background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  border-radius: 10px;
+  z-index: 35;
+  padding: 13px;
+  direction: rtl;
+}
+
+.diwan-appointments-root .pop-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.diwan-appointments-root .chip {
+  font-size: 9px;
+  padding: 4px 6px;
+  border-radius: 999px;
+  background: #f3e1fb;
+  color: #9a27bc;
+  font-weight: 700;
+}
+
+.diwan-appointments-root .person {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  margin: 12px 0;
+}
+
+.diwan-appointments-root .person .ava {
+  width: 31px;
+  height: 31px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: #222;
+}
+
+.diwan-appointments-root .meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  color: #798090;
+  font-size: 10px;
+}
+
+.diwan-appointments-root .meta b {
+  color: #29313d;
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+}
+
+.diwan-appointments-root .pop-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.diwan-appointments-root .pop-actions button {
+  padding: 8px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.diwan-appointments-root .pop-actions .main {
+  background: #12b8d3;
+  color: #fff;
+  border-color: #12b8d3;
+}
+
+/* Modals & Overlays */
+.diwan-appointments-root .overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 24, 32, 0.45);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+}
+
+.diwan-appointments-root .modal {
+  width: 620px;
+  max-height: 88vh;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  direction: rtl;
+}
+
+.diwan-appointments-root .modal.wide {
+  width: min(1040px, 94vw);
+}
+
+.diwan-appointments-root .modal.ai-pro {
+  width: min(1120px, 94vw);
+}
+
+.diwan-appointments-root .modal-head {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.diwan-appointments-root .modal-head b {
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.diwan-appointments-root .modal-body {
+  padding: 16px 18px;
+  overflow: auto;
+}
+
+.diwan-appointments-root .modal-foot {
+  padding: 12px 18px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Drawer */
+.diwan-appointments-root .drawer {
+  position: fixed;
+  z-index: 52;
+  top: 0;
+  left: -420px;
+  width: 420px;
+  height: 100vh;
+  background: #fff;
+  box-shadow: 20px 0 50px rgba(0, 0, 0, 0.16);
+  transition: left 0.28s cubic-bezier(0.22, 0.8, 0.28, 1), box-shadow 0.28s ease;
+  direction: rtl;
+  display: flex;
+  flex-direction: column;
+}
+
+.diwan-appointments-root .drawer.open {
+  left: 0;
+}
+
+.diwan-appointments-root .drawer.collapsed {
+  left: -390px;
+}
+
+.diwan-appointments-root .drawer-peek {
+  position: absolute;
+  right: -32px;
+  top: 72px;
+  width: 32px;
+  height: 32px;
+  border-radius: 0 16px 16px 0;
+  border: 1px solid var(--line);
+  border-left: 0;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  box-shadow: 5px 3px 15px rgba(22, 29, 48, 0.10);
+  cursor: pointer;
+  z-index: 3;
+  transition: 0.22s transform, 0.22s background;
+}
+
+.diwan-appointments-root .drawer-peek:hover {
+  background: #f0fbfd;
+  transform: translateX(2px);
+}
+
+.diwan-appointments-root .drawer-peek span {
+  transition: 0.25s transform;
+  display: block;
+}
+
+.diwan-appointments-root .drawer.collapsed .drawer-peek span {
+  transform: rotate(180deg);
+}
+
+.diwan-appointments-root .drawer-head {
+  background: linear-gradient(90deg, #d34bea, #b63ae3);
+  color: #fff;
+  padding: 18px;
+}
+
+.diwan-appointments-root .drawer-head .dh-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.diwan-appointments-root .drawer-head h2 {
+  font-size: 15px;
+  margin: 0;
+  font-weight: 900;
+}
+
+.diwan-appointments-root .drawer-head p {
+  font-size: 9px;
+  opacity: 0.88;
+  margin: 5px 0 0;
+}
+
+.diwan-appointments-root .xbtn {
+  border: 0;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border-radius: 6px;
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+}
+
+.diwan-appointments-root .drawer-tabs {
+  display: flex;
+  padding: 0 13px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+
+.diwan-appointments-root .drawer-tabs button {
+  border: 0;
+  background: #fff;
+  padding: 11px 9px;
+  font-size: 9px;
+  color: #818895;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: 0.14s all;
+}
+
+.diwan-appointments-root .drawer-tabs button.active {
+  color: #b233d0;
+  border-bottom-color: #c441e4;
+  font-weight: 800;
+}
+
+.diwan-appointments-root .drawer-body {
+  overflow-y: auto;
+  padding: 14px 16px;
+  flex: 1;
+}
+
+.diwan-appointments-root .section-card {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 12px;
+  margin-bottom: 10px;
+  background: #fff;
+}
+
+.diwan-appointments-root .section-card h4 {
+  margin: 0 0 9px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.diwan-appointments-root .two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.diwan-appointments-root .field label {
+  display: block;
+  color: #9aa0ac;
+  font-size: 8px;
+  margin-bottom: 3px;
+  font-weight: 700;
+}
+
+.diwan-appointments-root .field div,
+.diwan-appointments-root .field input,
+.diwan-appointments-root .field select,
+.diwan-appointments-root .field textarea {
+  font-size: 10px;
+  width: 100%;
+  border: 0;
+  background: #f7f8fa;
+  border-radius: 6px;
+  padding: 8px;
+  outline: 0;
+}
+
+.diwan-appointments-root .field textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.diwan-appointments-root .drawer-footer {
+  padding: 12px 14px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 8px;
+}
+
+.diwan-appointments-root .drawer-footer button {
+  flex: 1;
+  border-radius: 7px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.diwan-appointments-root .drawer-footer .main {
+  background: #16b7d1;
+  color: #fff;
+  border-color: #16b7d1;
+}
+
+/* Chat Shell */
+.diwan-appointments-root .chat-shell {
+  width: min(1280px, 91vw);
+  height: 82vh;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 270px 1fr 270px;
+  direction: rtl;
+}
+
+.diwan-appointments-root .contacts {
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.diwan-appointments-root .contacts-head {
+  padding: 15px;
+  border-bottom: 1px solid var(--line);
+}
+
+.diwan-appointments-root .contacts-head h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.diwan-appointments-root .search {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #f7f8fa;
+  border-radius: 7px;
+  padding: 8px 10px;
+  outline: 0;
+  font-size: 11px;
+}
+
+.diwan-appointments-root .contact-list {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.diwan-appointments-root .contact {
+  padding: 11px 13px;
+  display: flex;
+  gap: 9px;
+  border-bottom: 1px solid #f2f3f5;
+  cursor: pointer;
+  transition: 0.14s background;
+}
+
+.diwan-appointments-root .contact:hover,
+.diwan-appointments-root .contact.active {
+  background: #f7f8fb;
+}
+
+.diwan-appointments-root .contact .ca {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 800;
+  flex: none;
+  color: #111;
+}
+
+.diwan-appointments-root .contact .ct {
+  min-width: 0;
+  flex: 1;
+}
+
+.diwan-appointments-root .contact b {
+  font-size: 11px;
+  font-weight: 800;
+  display: block;
+}
+
+.diwan-appointments-root .contact p {
+  margin: 3px 0 0;
+  color: #8c93a0;
+  font-size: 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diwan-appointments-root .chat-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.diwan-appointments-root .chat-top {
+  height: 55px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.diwan-appointments-root .chat-title {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.diwan-appointments-root .chat-title b {
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.diwan-appointments-root .online {
+  font-size: 9px;
+  color: #54b878;
+}
+
+.diwan-appointments-root .messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 28px;
+  background: #fff;
+}
+
+.diwan-appointments-root .message {
+  max-width: 72%;
+  margin: 8px 0;
+  font-size: 10px;
+  line-height: 1.7;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f3f4f6;
+}
+
+.diwan-appointments-root .message.me {
+  margin-right: auto;
+  background: #252a32;
+  color: #fff;
+}
+
+.diwan-appointments-root .message.system {
+  margin: 10px auto;
+  max-width: 86%;
+  background: #eef8fa;
+  color: #4d6470;
+  text-align: center;
+  border: 1px solid #d7eef2;
+}
+
+.diwan-appointments-root .message .stamp {
+  font-size: 8px;
+  opacity: 0.58;
+  margin-top: 4px;
+}
+
+.diwan-appointments-root .composer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+}
+
+.diwan-appointments-root .composebox {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 8px;
+  background: #fff;
+}
+
+.diwan-appointments-root .composebox textarea {
+  border: 0;
+  outline: 0;
+  resize: none;
+  width: 100%;
+  height: 44px;
+  font-size: 10px;
+}
+
+.diwan-appointments-root .compose-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.diwan-appointments-root .compose-actions button {
+  border: 0;
+  background: transparent;
+  color: #7e8592;
+  font-size: 13px;
+  padding: 4px 6px;
+}
+
+.diwan-appointments-root .send {
+  background: #11161e !important;
+  color: #fff !important;
+  border-radius: 7px !important;
+  padding: 7px 12px !important;
+  font-weight: 700 !important;
+  font-size: 11px !important;
+}
+
+.diwan-appointments-root .client-info {
+  border-right: 1px solid var(--line);
+  padding: 17px 16px;
+  overflow-y: auto;
+}
+
+.diwan-appointments-root .profile {
+  text-align: center;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.diwan-appointments-root .profile .bigava {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 8px;
+  font-weight: 900;
+  color: #111;
+}
+
+.diwan-appointments-root .profile h4 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.diwan-appointments-root .profile p {
+  margin: 4px 0;
+  color: #8a91a0;
+  font-size: 9px;
+}
+
+.diwan-appointments-root .info-section {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.diwan-appointments-root .info-section h5 {
+  font-size: 9px;
+  color: #9aa0ac;
+  margin: 0 0 8px;
+  font-weight: 800;
+}
+
+.diwan-appointments-root .info-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  margin: 7px 0;
+}
+
+.diwan-appointments-root .info-row b {
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.diwan-appointments-root .appt-mini {
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  margin-top: 7px;
+  font-size: 9px;
+  background: #fafbfc;
+  cursor: pointer;
+}
+
+/* Reschedule Layout */
+.diwan-appointments-root .resched-layout {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 14px;
+}
+
+.diwan-appointments-root .mini-cal {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.diwan-appointments-root .mini-cal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #fafbfc;
+  border-bottom: 1px solid var(--line);
+}
+
+.diwan-appointments-root .mini-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: #fafbfc;
+}
+
+.diwan-appointments-root .mini-week div {
+  text-align: center;
+  font-size: 9px;
+  padding: 8px 2px;
+  color: #8d94a1;
+}
+
+.diwan-appointments-root .mini-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: 8px;
+  gap: 4px;
+}
+
+.diwan-appointments-root .mini-day {
+  aspect-ratio: 1;
+  border: 0;
+  background: #fff;
+  border-radius: 7px;
+  font-size: 10px;
+  transition: 0.12s all;
+}
+
+.diwan-appointments-root .mini-day:hover {
+  background: #eefafd;
+}
+
+.diwan-appointments-root .mini-day.selected {
+  background: #1e2732;
+  color: #fff;
+  font-weight: 800;
+}
+
+.diwan-appointments-root .mini-day.disabled {
+  color: #c5c9d1;
+  cursor: not-allowed;
+}
+
+.diwan-appointments-root .slot-panel h4 {
+  font-size: 11px;
+  font-weight: 900;
+  margin: 0 0 8px;
+}
+
+.diwan-appointments-root .slots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.diwan-appointments-root .slot {
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  font-size: 10px;
+  transition: 0.12s all;
+}
+
+.diwan-appointments-root .slot:hover,
+.diwan-appointments-root .slot.selected {
+  border-color: #16b7d1;
+  background: #effcff;
+}
+
+.diwan-appointments-root .slot.busy {
+  background: #f4f5f7;
+  color: #b1b6c0;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.diwan-appointments-root .reasonbox {
+  margin-top: 14px;
+}
+
+.diwan-appointments-root .reasonbox textarea {
+  width: 100%;
+  min-height: 74px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px;
+  outline: 0;
+  font-size: 10px;
+}
+
+/* Status & Payment DnD */
+.diwan-appointments-root .status-dnd-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.diwan-appointments-root .status-dnd-card {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 13px 12px;
+  cursor: grab;
+  user-select: none;
+  transition: 0.16s transform, 0.16s box-shadow, 0.16s opacity;
+  position: relative;
+  min-height: 72px;
+}
+
+.diwan-appointments-root .status-dnd-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(23, 31, 48, 0.12);
+}
+
+.diwan-appointments-root .status-dnd-card.dragging {
+  opacity: 0.4;
+  transform: scale(0.97);
+}
+
+.diwan-appointments-root .status-dnd-card b {
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.diwan-appointments-root .status-dnd-card span {
+  font-size: 8px;
+  color: #6f7785;
+}
+
+.diwan-appointments-root .sd-confirmed { background: #dff6e6; border-color: #b9e6c7; }
+.diwan-appointments-root .sd-pending { background: #fff2bf; border-color: #ead684; }
+.diwan-appointments-root .sd-progress { background: #dff3ff; border-color: #b5def3; }
+.diwan-appointments-root .sd-rejected { background: #ffe0e5; border-color: #f1bdc6; }
+.diwan-appointments-root .sd-cancelled { background: #eff0f3; border-color: #d8dbe1; }
+.diwan-appointments-root .sd-completed { background: #e1dcff; border-color: #c5bdf4; }
+
+.diwan-appointments-root .status-drop-target {
+  min-height: 92px;
+  margin-top: 14px;
+  border: 2px dashed #c7cfda;
+  border-radius: 11px;
+  background: #fafbfc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  text-align: center;
+  color: #818999;
+  transition: 0.16s all;
+}
+
+.diwan-appointments-root .status-drop-target.over {
+  background: #eefaef;
+  border-color: #68bd82;
+  color: #286942;
+  transform: scale(1.01);
+}
+
+.diwan-appointments-root .status-drop-target.selected {
+  background: #effbfc;
+  border-color: #16b7d1;
+  color: #0d8094;
+}
+
+.diwan-appointments-root .status-apply-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.diwan-appointments-root .payment-badge {
+  display: inline-flex;
+  padding: 3px 6px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.diwan-appointments-root .pay-paid { background: var(--paid); color: #287244; }
+.diwan-appointments-root .pay-unpaid { background: var(--unpaid); color: #a33b48; }
+.diwan-appointments-root .pay-waiting { background: var(--paywait); color: #8b6a10; }
+.diwan-appointments-root .pay-rejected { background: var(--payreject); color: #8f3b78; }
+
+.diwan-appointments-root .payment-detail {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.diwan-appointments-root .payment-proof {
+  margin-top: 10px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #fafbfc;
+}
+
+.diwan-appointments-root .payment-methods {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 9px;
+}
+
+.diwan-appointments-root .payment-method {
+  border: 1px solid #cfd7e1;
+  border-radius: 11px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: 0.14s border-color, 0.14s transform, 0.14s box-shadow;
+}
+
+.diwan-appointments-root .payment-method:hover {
+  border-color: #78b8d3;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(30, 55, 75, 0.08);
+}
+
+.diwan-appointments-root .pay-logo {
+  width: 54px;
+  height: 42px;
+  border-radius: 9px;
+  background: #eef5ff;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: 15px;
+  color: #235b97;
+}
+
+.diwan-appointments-root .payment-method .text {
+  flex: 1;
+}
+
+.diwan-appointments-root .payment-method b {
+  font-size: 11px;
+}
+
+.diwan-appointments-root .payment-method p {
+  font-size: 8px;
+  color: #7f8795;
+  margin: 3px 0 0;
+}
+
+.diwan-appointments-root .payment-card-visual {
+  width: 310px;
+  height: 172px;
+  border-radius: 17px;
+  margin: 10px auto 14px;
+  padding: 17px 20px;
+  background: linear-gradient(135deg, #0877bd, #134ea5);
+  color: #fff;
+  box-shadow: 0 14px 30px rgba(19, 75, 145, 0.22);
+  position: relative;
+}
+
+.diwan-appointments-root .payment-card-visual .brand {
+  position: absolute;
+  left: 18px;
+  bottom: 15px;
+  font-size: 23px;
+  font-weight: 900;
+  padding: 0;
+  background: none;
+  color: #fff;
+}
+
+.diwan-appointments-root .payment-card-visual .chip {
+  width: 38px;
+  height: 27px;
+  border-radius: 5px;
+  background: #e9ddb9;
+  position: absolute;
+  right: 20px;
+  top: 47px;
+}
+
+.diwan-appointments-root .payment-card-visual .kind {
+  position: absolute;
+  right: 20px;
+  top: 15px;
+  font-size: 9px;
+}
+
+.diwan-appointments-root .payment-card-visual .number {
+  position: absolute;
+  right: 20px;
+  top: 87px;
+  font-size: 12px;
+  font-weight: 700;
+  direction: ltr;
+}
+
+.diwan-appointments-root .payment-card-form {
+  border: 1px solid #ccd6df;
+  border-radius: 10px;
+  padding: 11px;
+  background: #fff;
+}
+
+.diwan-appointments-root .payment-card-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.diwan-appointments-root .payment-back-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.diwan-appointments-root .payment-highlight {
+  background: #f7a516 !important;
+  color: #17202b !important;
+  font-weight: 800 !important;
+}
+
+.diwan-appointments-root .pay-step-card {
+  border: 1px solid #ccd6df;
+  border-radius: 10px;
+  padding: 12px;
+  background: #f4f7f8;
+  margin-bottom: 10px;
+}
+
+.diwan-appointments-root .pay-upload {
+  border: 1.5px dashed #b8c8d7;
+  border-radius: 9px;
+  padding: 18px;
+  text-align: center;
+  background: #fff;
+}
+
+.diwan-appointments-root .pay-success {
+  border: 1px solid #bdd3d9;
+  border-radius: 11px;
+  background: #eff5f6;
+  padding: 18px;
+  text-align: center;
+}
+
+.diwan-appointments-root .pay-success .check {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #fff0c8;
+  color: #d88a10;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 10px;
+  font-size: 20px;
+}
+
+.diwan-appointments-root .pay-success h3 {
+  font-size: 13px;
+  margin: 0;
+}
+
+.diwan-appointments-root .pay-success .receipt {
+  margin-top: 12px;
+  text-align: right;
+}
+
+.diwan-appointments-root .pay-success .receipt .r {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  margin-top: 7px;
+}
+
+/* Kanban Board */
+.diwan-appointments-root .kanban-shell {
+  width: min(1200px, 92vw);
+  height: 78vh;
+  background: #f7f8fb;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  direction: rtl;
+}
+
+.diwan-appointments-root .kan-head {
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  padding: 14px 17px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.diwan-appointments-root .kan-columns {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  padding: 12px;
+  overflow-x: auto;
+  flex: 1;
+}
+
+.diwan-appointments-root .kan-col {
+  background: #f0f2f5;
+  border-radius: 8px;
+  padding: 8px;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.diwan-appointments-root .kan-col h4 {
+  font-size: 9px;
+  color: #7f8795;
+  margin: 2px 3px 8px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.diwan-appointments-root .kan-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px;
+  margin: 7px 0;
+  cursor: grab;
+  transition: 0.15s all;
+}
+
+.diwan-appointments-root .kan-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.diwan-appointments-root .kan-card b {
+  font-size: 10px;
+  font-weight: 800;
+  display: block;
+}
+
+.diwan-appointments-root .kan-card p {
+  margin: 4px 0;
+  color: #838b99;
+  font-size: 9px;
+}
+
+.diwan-appointments-root .kan-card .kmeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+  color: #9da3ad;
+}
+
+.diwan-appointments-root .kan-confirm-card {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 11px;
+  background: #fafbfc;
+  margin-bottom: 10px;
+}
+
+/* AI Intel & Summary */
+.diwan-appointments-root .ai-hero {
+  border-radius: 12px;
+  background: linear-gradient(135deg, #111923, #253546);
+  color: #fff;
+  padding: 16px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.diwan-appointments-root .ai-hero h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.diwan-appointments-root .ai-hero p {
+  margin: 5px 0 0;
+  font-size: 9px;
+  opacity: 0.75;
+}
+
+.diwan-appointments-root .ai-summary-kpis {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.diwan-appointments-root .ai-summary-kpi {
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 9px;
+  padding: 9px;
+  text-align: center;
+}
+
+.diwan-appointments-root .ai-summary-kpi b {
+  display: block;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.diwan-appointments-root .ai-summary-kpi span {
+  font-size: 8px;
+  opacity: 0.72;
+}
+
+.diwan-appointments-root .ai-toolbar {
+  display: grid;
+  grid-template-columns: 180px 1fr auto;
+  gap: 8px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+
+.diwan-appointments-root .ai-toolbar label {
+  font-size: 8px;
+  color: #8c94a2;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.diwan-appointments-root .ai-toolbar input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px;
+  outline: 0;
+  background: #fff;
+  font-size: 10px;
+}
+
+.diwan-appointments-root .ai-layout {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 12px;
+}
+
+.diwan-appointments-root .ai-section {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.diwan-appointments-root .ai-section h4 {
+  margin: 0 0 9px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.diwan-appointments-root .ai-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-top: 7px;
+  transition: 0.14s background, 0.14s border-color;
+}
+
+.diwan-appointments-root .ai-action-row:hover {
+  background: #f7fcfd;
+  border-color: #b7e3ea;
+}
+
+.diwan-appointments-root .ai-action-row .txt b {
+  font-size: 10px;
+}
+
+.diwan-appointments-root .ai-action-row .txt div {
+  font-size: 8px;
+  color: #89919f;
+  margin-top: 3px;
+}
+
+.diwan-appointments-root .ai-action-row .acts {
+  display: flex;
+  gap: 5px;
+  flex: none;
+}
+
+.diwan-appointments-root .ai-chat {
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fafbfc;
+  padding: 10px;
+}
+
+.diwan-appointments-root .ai-chat-line {
+  display: flex;
+  gap: 7px;
+}
+
+.diwan-appointments-root .ai-chat-line input {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px;
+  outline: 0;
+  background: #fff;
+  font-size: 10px;
+}
+
+.diwan-appointments-root .ai-answer {
+  margin-top: 9px;
+  min-height: 58px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 10px;
+  font-size: 9px;
+  line-height: 1.7;
+  color: #596170;
+}
+
+.diwan-appointments-root .ai-inline-answer {
+  margin: 0 0 12px;
+  border: 1px solid #bfe3ea;
+  background: #f4fcfd;
+  border-radius: 9px;
+  padding: 11px 12px;
+  font-size: 10px;
+  line-height: 1.8;
+  color: #4f5d69;
+}
+
+.diwan-appointments-root .ai-note-addon {
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  background: #fafbfc;
+}
+
+.diwan-appointments-root .ai-note-addon h4 {
+  font-size: 11px;
+  font-weight: 900;
+  margin: 0 0 9px;
+}
+
+.diwan-appointments-root .ai-note-grid {
+  display: grid;
+  grid-template-columns: 260px 1fr auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.diwan-appointments-root .ai-note-grid select,
+.diwan-appointments-root .ai-note-grid textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  padding: 9px;
+  outline: 0;
+  font-size: 10px;
+}
+
+.diwan-appointments-root .ai-note-grid textarea {
+  min-height: 44px;
+  resize: vertical;
+}
+
+.diwan-appointments-root .ai-note-grid label {
+  display: block;
+  font-size: 8px;
+  color: #8b93a0;
+  margin-bottom: 4px;
+}
+
+.diwan-appointments-root .admin-signal-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.diwan-appointments-root .admin-signal-tab {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 999px;
+  padding: 5px 8px;
+  font-size: 8px;
+  color: #555e6c;
+}
+
+.diwan-appointments-root .admin-signal-tab b {
+  margin-right: 4px;
+  font-weight: 800;
+}
+
+.diwan-appointments-root .admin-signal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.diwan-appointments-root .admin-signal-row {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 10px;
+  background: #fff;
+  cursor: pointer;
+  transition: 0.14s transform, 0.14s box-shadow, 0.14s border-color;
+}
+
+.diwan-appointments-root .admin-signal-row:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 7px 16px rgba(25, 35, 50, 0.08);
+  border-color: #bfe2e8;
+}
+
+.diwan-appointments-root .admin-signal-row .top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.diwan-appointments-root .admin-signal-row b {
+  font-size: 10px;
+}
+
+.diwan-appointments-root .admin-signal-row small {
+  display: block;
+  font-size: 8px;
+  color: #89919e;
+  margin-top: 3px;
+}
+
+.diwan-appointments-root .signal-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.diwan-appointments-root .signal-badge {
+  font-size: 8px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: #f3f5f8;
+  color: #606a78;
+}
+
+.diwan-appointments-root .signal-badge.warn { background: #fff0c8; color: #8b6414; }
+.diwan-appointments-root .signal-badge.danger { background: #ffe1e5; color: #9e3e4c; }
+.diwan-appointments-root .signal-badge.good { background: #e6f7eb; color: #35734b; }
+.diwan-appointments-root .signal-badge.info { background: #e9f3ff; color: #38658d; }
+
+.diwan-appointments-root .admin-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.diwan-appointments-root .admin-detail-kpi {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 10px;
+  background: #fff;
+  text-align: center;
+}
+
+.diwan-appointments-root .admin-detail-kpi b {
+  font-size: 13px;
+  display: block;
+}
+
+.diwan-appointments-root .admin-detail-kpi span {
+  display: block;
+  font-size: 8px;
+  color: #8c94a0;
+  margin-top: 3px;
+}
+
+.diwan-appointments-root .admin-detail-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.diwan-appointments-root .admin-detail-section {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+}
+
+.diwan-appointments-root .admin-detail-section h4 {
+  font-size: 11px;
+  font-weight: 900;
+  margin: 0 0 9px;
+}
+
+.diwan-appointments-root .audit-line {
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f2f5;
+  font-size: 9px;
+  line-height: 1.65;
+}
+
+.diwan-appointments-root .audit-line:last-child {
+  border-bottom: 0;
+}
+
+.diwan-appointments-root .audit-line .time {
+  font-size: 8px;
+  color: #9299a5;
+  margin-top: 3px;
+}
+
+/* Video Room Simulation */
+.diwan-appointments-root .video-room {
+  width: min(1120px, 94vw);
+  height: 82vh;
+  background: #10151d;
+  border-radius: 14px;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.32);
+  overflow: hidden;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.diwan-appointments-root .video-head {
+  height: 56px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.diwan-appointments-root .video-head b {
+  font-size: 13px;
+}
+
+.diwan-appointments-root .video-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  min-height: 0;
+}
+
+.diwan-appointments-root .video-stage {
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-content: center;
+}
+
+.diwan-appointments-root .video-tile {
+  aspect-ratio: 16/10;
+  background: linear-gradient(135deg, #27313d, #151b24);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 11px;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.diwan-appointments-root .video-avatar {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: #d88deb;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.diwan-appointments-root .video-label {
+  position: absolute;
+  bottom: 9px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 6px;
+  padding: 4px 7px;
+  font-size: 9px;
+}
+
+.diwan-appointments-root .video-side {
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 13px;
+  overflow-y: auto;
+  background: #131a23;
+}
+
+.diwan-appointments-root .video-side h4 {
+  font-size: 10px;
+  margin: 0 0 9px;
+}
+
+.diwan-appointments-root .video-note {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 9px;
+  color: #cbd4df;
+  margin-top: 7px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.diwan-appointments-root .video-controls {
+  height: 66px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.diwan-appointments-root .video-control {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 0;
+  background: #293240;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+}
+
+.diwan-appointments-root .video-control.off {
+  background: #9d3344;
+}
+
+.diwan-appointments-root .video-end {
+  border: 0;
+  border-radius: 999px;
+  background: #d94355;
+  color: #fff;
+  padding: 10px 18px;
+  font-weight: 800;
+  font-size: 11px;
+}
+
+/* Context Menu */
+.diwan-appointments-root .context-menu {
+  position: fixed;
+  z-index: 80;
+  width: 252px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  box-shadow: 0 16px 40px rgba(18, 25, 40, 0.16);
+  padding: 8px;
+  direction: rtl;
+}
+
+.diwan-appointments-root .context-menu button {
+  width: 100%;
+  border: 0;
+  background: #fff;
+  padding: 11px 12px;
+  border-radius: 7px;
+  text-align: right;
+  font-size: 11px;
+  color: #4f5868;
+  position: relative;
+  transition: 0.14s background, 0.14s transform, 0.14s color;
+}
+
+.diwan-appointments-root .context-menu button:hover {
+  background: #eefafd;
+  color: #0d8297;
+  transform: translateX(-2px);
+}
+
+.diwan-appointments-root .context-menu .sep {
+  height: 1px;
+  background: var(--line);
+  margin: 4px 0;
+}
+
+/* Financial Bottom Bar */
+.diwan-appointments-root .financial-bar {
+  position: fixed;
+  z-index: 32;
+  right: 202px;
+  left: 18px;
+  bottom: 18px;
+  height: 52px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(22, 29, 48, 0.10);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  backdrop-filter: blur(10px);
+  direction: rtl;
+}
+
+.diwan-appointments-root .financial-bar .finance-group {
+  display: flex;
+  gap: 22px;
+  align-items: center;
+}
+
+.diwan-appointments-root .financial-bar .finance-item {
+  line-height: 1.25;
+}
+
+.diwan-appointments-root .financial-bar .finance-item span {
+  display: block;
+  font-size: 8px;
+  color: #9298a5;
+}
+
+.diwan-appointments-root .financial-bar .finance-item b {
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.diwan-appointments-root .financial-bar .finance-actions {
+  display: flex;
+  gap: 7px;
+}
+
+.diwan-appointments-root .pay-cta {
+  background: #11161e;
+  color: #fff;
+  border: 0;
+  border-radius: 7px;
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+/* Toast */
+.diwan-appointments-root .toast {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-12px);
+  background: #11161e;
+  color: #fff;
+  border-radius: 8px;
+  padding: 9px 13px;
+  font-size: 10px;
+  z-index: 90;
+  opacity: 0;
+  pointer-events: none;
+  transition: 0.2s;
+}
+
+.diwan-appointments-root .toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* New Consultation Modal Elements */
+.diwan-appointments-root .new-consult-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.diwan-appointments-root .new-consult-grid .full {
+  grid-column: 1 / -1;
+}
+
+.diwan-appointments-root .availability-preview {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 10px;
+  background: #fafbfc;
+  margin-top: 10px;
+}
+
+.diwan-appointments-root .availability-preview h5 {
+  margin: 0 0 8px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.diwan-appointments-root .new-slots {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.diwan-appointments-root .new-slot {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 8px;
+  background: #fff;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  transition: 0.12s all;
+}
+
+.diwan-appointments-root .new-slot:hover,
+.diwan-appointments-root .new-slot.selected {
+  border-color: #16b7d1;
+  background: #effcff;
+}
+
+.diwan-appointments-root .new-slot.busy {
+  opacity: 0.45;
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+.diwan-appointments-root .price-box {
+  border: 1px solid #bfe5ec;
+  background: #f3fcfd;
+  border-radius: 9px;
+  padding: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.diwan-appointments-root .price-box span {
+  font-size: 9px;
+  color: #64808a;
+}
+
+.diwan-appointments-root .price-box b {
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.diwan-appointments-root .service-note {
+  font-size: 8px;
+  color: #8d95a2;
+  margin-top: 4px;
+}
+
+.diwan-appointments-root .no-duration {
+  padding: 10px;
+  border-radius: 8px;
+  background: #f5f7fa;
+  font-size: 9px;
+  color: #7d8593;
+}
+
+.diwan-appointments-root .role-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: #fafbfc;
+  border-radius: 9px;
+  padding: 9px;
+  margin-bottom: 10px;
+}
+
+.diwan-appointments-root .role-banner b {
+  font-size: 10px;
+}
+
+.diwan-appointments-root .role-banner span {
+  font-size: 8px;
+  color: #8a92a0;
+}
+
+.diwan-appointments-root .audit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 6px;
+  font-size: 8px;
+  background: #fff;
+}
+
+.diwan-appointments-root .finance-alerts-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.diwan-appointments-root .finance-alert-kpi {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  padding: 10px;
+  text-align: center;
+}
+
+.diwan-appointments-root .finance-alert-kpi b {
+  display: block;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.diwan-appointments-root .finance-alert-kpi span {
+  display: block;
+  font-size: 8px;
+  color: #8c93a0;
+  margin-top: 3px;
+}
+
+.diwan-appointments-root .finance-alert-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px;
+  margin-top: 7px;
+  background: #fff;
+}
+
+.diwan-appointments-root .finance-alert-row:hover {
+  background: #f8fbfc;
+}
+
+.diwan-appointments-root .finance-alert-row b {
+  font-size: 10px;
+}
+
+.diwan-appointments-root .finance-alert-row small {
+  display: block;
+  font-size: 8px;
+  color: #8c93a0;
+  margin-top: 3px;
+}
+
+.diwan-appointments-root .finance-ai-box {
+  margin-top: 12px;
+  border: 1px solid #bfe2e8;
+  background: #f5fcfd;
+  border-radius: 9px;
+  padding: 10px;
+}
+
+.diwan-appointments-root .finance-ai-line {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 7px;
+}
+
+.diwan-appointments-root .finance-ai-line input {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px;
+  outline: 0;
+  font-size: 10px;
+}
+
+.diwan-appointments-root .finance-ai-answer {
+  font-size: 9px;
+  line-height: 1.75;
+  color: #566170;
+  margin-top: 8px;
+}
+
+.diwan-appointments-root .invoice-upload {
+  border: 1.5px dashed #c7d0db;
+  border-radius: 9px;
+  padding: 13px;
+  background: #fafbfc;
+}
+
+.diwan-appointments-root .payment-record {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px;
+  background: #fff;
+  margin-top: 8px;
+}
+
+.diwan-appointments-root .payment-record .row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  margin: 5px 0;
+}
+
+.diwan-appointments-root .reminder-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px;
+  margin-top: 8px;
+  background: #fff;
+}
+
+.diwan-appointments-root .reminder-card b {
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.diwan-appointments-root .reminder-card div {
+  font-size: 8px;
+  color: #8f96a3;
+  margin-top: 3px;
+}
+
+@media(max-width: 900px) {
+  .diwan-appointments-root .app-shell {
+    grid-template-columns: 62px 1fr;
+  }
+  .diwan-appointments-root .sidebar {
+    padding: 16px 8px;
+  }
+  .diwan-appointments-root .brand span,
+  .diwan-appointments-root .nav button span:last-child,
+  .diwan-appointments-root .nav-section {
+    display: none;
+  }
+  .diwan-appointments-root .nav button {
+    justify-content: center;
+  }
+  .diwan-appointments-root .chat-shell {
+    grid-template-columns: 220px 1fr;
+  }
+  .diwan-appointments-root .client-info {
+    display: none;
+  }
+  .diwan-appointments-root .drawer {
+    width: min(420px, 95vw);
+  }
+  .diwan-appointments-root .resched-layout {
+    grid-template-columns: 1fr;
+  }
+  .diwan-appointments-root .financial-bar {
+    right: 74px;
+    left: 10px;
+  }
+  .diwan-appointments-root .ai-toolbar,
+  .diwan-appointments-root .ai-layout,
+  .diwan-appointments-root .new-consult-grid,
+  .diwan-appointments-root .admin-detail-layout,
+  .diwan-appointments-root .ai-note-grid {
+    grid-template-columns: 1fr;
+  }
+  .diwan-appointments-root .ai-summary-kpis,
+  .diwan-appointments-root .finance-alerts-grid,
+  .diwan-appointments-root .admin-detail-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .diwan-appointments-root .video-body {
+    grid-template-columns: 1fr;
+  }
+  .diwan-appointments-root .video-side {
+    display: none;
+  }
+  .diwan-appointments-root .video-stage {
+    grid-template-columns: 1fr;
+  }
+}

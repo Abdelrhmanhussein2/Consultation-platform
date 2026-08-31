@@ -3,6 +3,13 @@ import sys
 from datetime import time
 from sqlalchemy import text
 
+# Ensure utf-8 output encoding for windows console
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+except Exception:
+    pass
+
 # Append the project root directory to sys.path to resolve relative imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -25,7 +32,7 @@ hash_password = _auth.hash_password
 
 def fix_sequences(db):
     try:
-        db.execute(text("SELECT setval('specializations_id_seq', (SELECT MAX(id) FROM specializations));"))
+        db.execute(text("SELECT setval('specializations_id_seq', COALESCE((SELECT MAX(id) FROM specializations), 1));"))
         db.commit()
         print("INFO: Reset specializations sequence successfully.")
     except Exception as e:
@@ -60,7 +67,7 @@ def seed_consultants():
         # 2. Consultants details
         advisors = [
             {
-                "email": "raafat@platform.com",
+                "email": "consultant@platform.com",
                 "password": "Password123!",
                 "full_name": "أ. رأفت حداد",
                 "phone": "+962790000001",
@@ -77,24 +84,6 @@ def seed_consultants():
                     (6, time(10, 0)), (6, time(12, 0)), (6, time(14, 0)), # Sunday
                     (0, time(10, 0)), (0, time(12, 0)), (0, time(14, 0)), # Monday
                     (1, time(10, 0)), (1, time(12, 0)), (1, time(14, 0))  # Tuesday
-                ]
-            },
-            {
-                "email": "mona@platform.com",
-                "password": "Password123!",
-                "full_name": "أ. منى العمري",
-                "phone": "+962790000002",
-                "spec_id": accounting_tax_spec.id,
-                "bio": "أخصائية في التخطيط والمحاسبة الضريبية وإعداد القوائم المالية والاقرارات الضريبية بكفاءة عالية للشركات الناشئة والمتوسطة.",
-                "years_exp": 15,
-                "activity_type": "مستشار مستقل",
-                "certs": "بكالوريوس علوم مالية ومصرفية - JCPA",
-                "services": [
-                    {"name": "استشارة محاسبة ضريبية", "price": 40.00, "duration": 45}
-                ],
-                "availabilities": [
-                    (6, time(11, 0)), (6, time(13, 0)), # Sunday
-                    (0, time(11, 0)), (0, time(13, 0))  # Monday
                 ]
             }
         ]

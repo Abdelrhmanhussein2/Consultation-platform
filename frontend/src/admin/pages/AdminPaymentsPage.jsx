@@ -1,73 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IconSearch, IconPayment, IconCheck, IconArrowLeft } from '../components/AdminIcons';
+import { getAdminPayouts, reviewPayout } from '../services/adminApi';
 
 export default function AdminPaymentsPage({ navigate }) {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTx, setSelectedTx] = useState(null);
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const transactions = [
-    {
-      id: 'tx_1',
-      customer: 'مستخدم تجريبي',
-      amountJod: 50,
-      currency: 'JOD',
-      status: 'pending',
-      method: 'bank_transfer',
-      refCode: 'DIWAN-BANK-7098',
-      dateStr: '22 • bank_transfer • DIWAN-BANK-7098 • 2026/8/22 7:49:38 م'
-    },
-    {
-      id: 'tx_2',
-      customer: 'مستخدم تجريبي',
-      amountJod: 50,
-      currency: 'JOD',
-      status: 'pending',
-      method: 'bank_transfer',
-      refCode: 'DIWAN-BANK-7849',
-      dateStr: '22 • bank_transfer • DIWAN-BANK-7849 • 2026/8/22 7:47:21 م'
-    },
-    {
-      id: 'tx_3',
-      customer: 'Saeed',
-      amountJod: 85,
-      currency: 'JOD',
-      status: 'pending',
-      method: 'bank_transfer',
-      refCode: 'DIWAN-BANK-5160',
-      dateStr: '30 • bank_transfer • DIWAN-BANK-5160 • 2026/7/30 1:09:02 ص'
-    },
-    {
-      id: 'tx_4',
-      customer: 'شركة أفق للتقنية',
-      amountJod: 45,
-      currency: 'JOD',
-      status: 'paid',
-      method: 'bank_transfer',
-      refCode: 'DIWAN-BANK-4012',
-      dateStr: '20 • bank_transfer • DIWAN-BANK-4012 • 2026/8/20 3:15:10 م'
-    },
-    {
-      id: 'tx_5',
-      customer: 'أ. سارة المجالي',
-      amountJod: 65.88,
-      currency: 'JOD',
-      status: 'paid',
-      method: 'card',
-      refCode: 'STRIPE-CH-9921',
-      dateStr: '18 • card • STRIPE-CH-9921 • 2026/8/18 11:20:00 ص'
-    },
-    {
-      id: 'tx_6',
-      customer: 'محمود الروسان',
-      amountJod: 55,
-      currency: 'JOD',
-      status: 'paid',
-      method: 'card',
-      refCode: 'STRIPE-CH-8832',
-      dateStr: '15 • card • STRIPE-CH-8832 • 2026/8/15 4:00:22 م'
+  const fetchTransactions = async () => {
+    setLoading(true);
+    try {
+      const data = await getAdminPayouts();
+      const formatted = (Array.isArray(data) ? data : []).map((p, idx) => ({
+        id: p.id || `tx_${idx}`,
+        customer: p.consultant_name || p.user_name || `مستشار #${p.id?.slice(0,6)}`,
+        amountJod: parseFloat(p.amount || 0),
+        currency: 'JOD',
+        status: p.status === 'transferred' ? 'paid' : p.status === 'pending' ? 'pending' : p.status,
+        method: p.bank_name ? `تحويل بنكي (${p.bank_name})` : 'تحويل بنكي',
+        refCode: p.transfer_reference || `PAYOUT-${p.id?.slice(0,8)}`,
+        dateStr: `${new Date(p.created_at || Date.now()).toLocaleDateString('ar-JO')} • ${p.status}`
+      }));
+      setTransactions(formatted);
+    } catch (err) {
+      console.warn('Admin payouts fetch notice:', err);
+      setTransactions([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
 
   const filteredTx = transactions.filter(t => {
     const matchSearch = t.customer.includes(searchTerm) || t.refCode.includes(searchTerm);

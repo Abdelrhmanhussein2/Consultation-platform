@@ -160,6 +160,7 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
 
   const clientNavItems = [
     { path: '/dashboard', label: 'لوحة التحكم', IconComponent: DashboardIcon },
+    { path: '/calendar', label: 'جدول المواعيد والتقويم', IconComponent: AppointmentsIcon },
     { path: '/quick-consultation', label: 'استشارة سريعة', IconComponent: QuickIcon },
     { path: '/consultants', label: 'المستشارون', IconComponent: ConsultantsIcon },
     { path: '/my-appointments', label: 'استشاراتي والمواعيد', IconComponent: AppointmentsIcon },
@@ -174,6 +175,7 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
 
   const consultantNavItems = [
     { path: '/consultant/dashboard', label: 'لوحة المستشار', IconComponent: ConsultantDashboardIcon },
+    { path: '/consultant/calendar', label: 'جدول المواعيد والتقويم', IconComponent: SessionsIcon },
     { path: '/consultant/sessions', label: 'الجلسات', IconComponent: SessionsIcon },
     { path: '/consultant/clients', label: 'العملاء', IconComponent: ClientsIcon },
     { path: '/consultant/profile', label: 'الملف الشخصي', IconComponent: ProfileIcon },

@@ -57,8 +57,11 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
       ]
     },
 
-    // 5. Sessions & Consultations
-    { id: 'sessions', label: 'الحجوزات والجلسات', path: '/admin/sessions', icon: IconSessions },
+    // 5. Calendar & Appointments
+    { id: 'calendar', label: 'إدارة المواعيد والتقويم', path: '/admin/calendar', icon: IconSessions },
+
+    // 6. Sessions & Consultations
+    { id: 'sessions', label: 'سجل الحجوزات والجلسات', path: '/admin/sessions', icon: IconSessions },
 
     // 6. AI & Knowledge - Grouped
     { 

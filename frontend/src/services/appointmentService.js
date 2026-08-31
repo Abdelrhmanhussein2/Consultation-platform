@@ -40,6 +40,14 @@ export const appointmentService = {
     }, token);
   },
 
+  // Reschedule an appointment
+  async rescheduleAppointment(id, data, token) {
+    return await apiFetch(`/api/appointments/${id}/reschedule`, {
+      method: 'POST',
+      body: data
+    }, token);
+  },
+
   // Join video meeting room token
   async joinVideoSession(appointmentId, token) {
     return await apiFetch(`/api/sessions/${appointmentId}/join`, {

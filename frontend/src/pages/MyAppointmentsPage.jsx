@@ -210,7 +210,7 @@ export default function MyAppointmentsPage({ navigate }) {
               >
                 <div>
                   <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#334155', margin: '0 0 4px 0' }}>
-                    {appt.service_name || 'جلسة تجريبية - اختبار الفيديو والملخص الذكي'}
+                    {appt.service_name || appt.notes || 'جلسة استشارية ضريبية'}
                   </h4>
                   <span style={{ fontSize: '11px', color: '#64748B' }}>
                     {formatDateStr(appt.scheduled_at)}

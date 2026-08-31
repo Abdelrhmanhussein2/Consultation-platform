@@ -534,12 +534,22 @@ class ConsultantService:
 
         if platform_only:
             query = query.join(User, ConsultantProfile.user_id == User.id).filter(
-                User.role == UserRole.platform_consultant
+                User.role.in_([UserRole.consultant, UserRole.platform_consultant])
             )
 
         if specialization_id is not None:
             query = query.filter(
-                ConsultantProfile.main_specialization_id == specialization_id
+                or_(
+                    ConsultantProfile.main_specialization_id == specialization_id,
+                    ConsultantProfile.id.in_(
+                        db.query(ConsultantServiceModel.consultant_id).filter(
+                            and_(
+                                ConsultantServiceModel.specialization_id == specialization_id,
+                                ConsultantServiceModel.is_active == True
+                            )
+                        )
+                    )
+                )
             )
 
         if min_rating is not None:
@@ -1184,10 +1194,9 @@ class AppointmentService:
         ).first()
         if not appointment:
             raise ValueError("Appointment not found or does not belong to you")
-        if appointment.status != AppointmentStatus.pending_payment:
+        if appointment.status not in (AppointmentStatus.pending_payment, AppointmentStatus.pending_approval):
             raise ValueError(
-                f"Cannot pay for appointment with status '{appointment.status.value}'. "
-                "The consultant must approve your booking before payment."
+                f"Cannot pay for appointment with status '{appointment.status.value}'."
             )
 
         # Mark appointment as confirmed

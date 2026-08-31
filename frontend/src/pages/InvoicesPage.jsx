@@ -177,7 +177,7 @@ export default function InvoicesPage() {
                       fontWeight: '800',
                       display: 'inline-block'
                     }}>
-                      {inv.status}
+                      {inv.status === 'paid' ? 'مدفوعة' : inv.status === 'issued' ? 'صادرة' : inv.status === 'cancelled' ? 'ملغاة' : inv.status === 'draft' ? 'مسودة' : 'معلقة'}
                     </span>
                   </td>
                   <td style={{ padding: '16px 16px', textAlign: 'center' }}>

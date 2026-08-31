@@ -20,6 +20,7 @@ import AdminReportsPage from './pages/AdminReportsPage';
 import AdminAuditLogsPage from './pages/AdminAuditLogsPage';
 import AdminSecurityPage from './pages/AdminSecurityPage';
 import AdminGenericPage from './pages/AdminGenericPage';
+import DiwanAppointmentsPage from '../pages/DiwanAppointmentsPage';
 
 export default function AdminApp({ currentPath = '/admin', navigate }) {
   const { user, isAuthenticated, loading } = useAuth();
@@ -75,6 +76,8 @@ export default function AdminApp({ currentPath = '/admin', navigate }) {
         return <AdminConsultantsPage navigate={navigate} />;
       case '/admin/financial':
         return <AdminFinancialPage navigate={navigate} />;
+      case '/admin/calendar':
+        return <DiwanAppointmentsPage initialRole="admin" navigate={navigate} />;
       case '/admin/sessions':
         return <AdminSessionsPage navigate={navigate} />;
       case '/admin/tickets':

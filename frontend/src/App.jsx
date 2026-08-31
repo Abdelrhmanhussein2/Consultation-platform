@@ -39,6 +39,7 @@ import ConsultantDocumentsPage from './pages/ConsultantDocumentsPage';
 import ConsultantTemplatesPage from './pages/ConsultantTemplatesPage';
 import ConsultantFavoritesPage from './pages/ConsultantFavoritesPage';
 import ConsultantDetailPage from './pages/ConsultantDetailPage';
+import DiwanAppointmentsPage from './pages/DiwanAppointmentsPage';
 
 function MainApp() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -75,6 +76,9 @@ function MainApp() {
   // List of paths belonging to the authenticated User Portal
   const userPortalPaths = [
     '/dashboard',
+    '/calendar',
+    '/appointments-management',
+    '/diwan-calendar',
     '/consultants',
     '/quick-consultation',
     '/my-appointments',
@@ -87,6 +91,7 @@ function MainApp() {
     '/settings',
     '/policies-portal',
     '/consultant/dashboard',
+    '/consultant/calendar',
     '/consultant/sessions',
     '/consultant/clients',
     '/consultant/profile',
@@ -105,6 +110,16 @@ function MainApp() {
 
   // Render User Portal content inside UserLayout
   const renderUserPortalContent = () => {
+    if (
+      currentPath === '/calendar' ||
+      currentPath === '/appointments-management' ||
+      currentPath === '/diwan-calendar'
+    ) {
+      return <DiwanAppointmentsPage initialRole="user" navigate={navigate} />;
+    }
+    if (currentPath === '/consultant/calendar') {
+      return <DiwanAppointmentsPage initialRole="consultant" navigate={navigate} />;
+    }
     if (currentPath === '/consultants') {
       return <ConsultantsPage navigate={navigate} />;
     }

@@ -84,7 +84,6 @@ export default function QuickConsultationPage({ navigate }) {
         setError('');
         try {
           const data = await consultantService.getConsultants({
-            platform_only: true,
             specialization_id: selectedSpec.id
           }, token);
           if (Array.isArray(data)) {

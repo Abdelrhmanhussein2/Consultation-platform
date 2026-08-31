@@ -34,3 +34,16 @@ class Appointment(Base):
     rating = relationship("Rating", back_populates="appointment", uselist=False)
     invoices = relationship("Invoice", back_populates="appointment")
     chat_messages = relationship("ChatMessage", back_populates="appointment", cascade="all, delete-orphan")
+
+    @property
+    def consultant_name(self):
+        return self.consultant.user.full_name if self.consultant and self.consultant.user else None
+
+    @property
+    def client_name(self):
+        return self.user.full_name if self.user else None
+
+    @property
+    def service_name(self):
+        return self.service.name if self.service else None
+

@@ -123,7 +123,7 @@ export default function BookingModal({ consultant, isOpen, onClose, onSuccess })
       const matchingService = services.find(s => s.name.includes(selectedChannel)) || services[0];
 
       const payload = {
-        consultant_id: consultant.profile_id,
+        consultant_id: consultant.profile_id || consultant.id,
         service_id: matchingService?.id || selectedServiceId || null,
         scheduled_at: selectedSlot.start_time,
         notes: notes.trim() || undefined
