@@ -1,19 +1,57 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { refreshAccessTokenSilently } from '../services/api';
 
 const AuthContext = createContext(null);
 
 // ---------------------------------------------------------------------------
-// Helpers for persisting tokens
+// Helpers for persisting tokens STRICTLY via Cookies (No localStorage / No sessionStorage)
 // ---------------------------------------------------------------------------
-const getStored = (key) => { try { return localStorage.getItem(key) || null; } catch { return null; } };
-const setStored = (key, val) => { try { localStorage.setItem(key, val); } catch {} };
-const removeStored = (key) => { try { localStorage.removeItem(key); } catch {} };
+const getCookie = (name) => {
+  try {
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
+  } catch {
+    return null;
+  }
+};
+
+const setCookie = (name, value, days = 7) => {
+  try {
+    let expires = '';
+    if (days) {
+      const date = new Date();
+      date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+      expires = '; expires=' + date.toUTCString();
+    }
+    document.cookie = `${name}=${encodeURIComponent(value || '')}${expires}; path=/; SameSite=Lax`;
+  } catch {}
+};
+
+const removeCookie = (name) => {
+  try {
+    document.cookie = `${name}=; Max-Age=-99999999; path=/; SameSite=Lax`;
+  } catch {}
+};
+
+// Purge any legacy auth tokens stored in localStorage to obey strict cookie security
+const purgeLocalStorageTokens = () => {
+  try {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('admin_token');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('refresh_token');
+  } catch {}
+};
 
 // ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(() => getStored('token'));
+  const [token, setToken] = useState(() => {
+    purgeLocalStorageTokens();
+    return getCookie('token');
+  });
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true); // always start loading
   const refreshTimerRef = useRef(null);
@@ -22,8 +60,9 @@ export const AuthProvider = ({ children }) => {
   // Clear everything
   // -------------------------------------------------------------------------
   const clearSession = useCallback(() => {
-    removeStored('token');
-    removeStored('refresh_token');
+    purgeLocalStorageTokens();
+    removeCookie('token');
+    removeCookie('refresh_token');
     setToken(null);
     setUser(null);
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
@@ -34,45 +73,42 @@ export const AuthProvider = ({ children }) => {
   // Returns new access token or null on failure
   // -------------------------------------------------------------------------
   const silentRefresh = useCallback(async () => {
-    const storedRefresh = getStored('refresh_token');
-    if (!storedRefresh) return null;
-
-    try {
-      const res = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ refresh_token: storedRefresh })
-      });
-
-      if (!res.ok) {
-        clearSession();
-        return null;
-      }
-
-      const data = await res.json();
-      const newAccess = data.access_token;
-      const newRefresh = data.refresh_token || storedRefresh;
-
-      setStored('token', newAccess);
-      setStored('refresh_token', newRefresh);
+    const newAccess = await refreshAccessTokenSilently();
+    if (newAccess) {
       setToken(newAccess);
       return newAccess;
-    } catch {
-      clearSession();
-      return null;
     }
+    clearSession();
+    return null;
   }, [clearSession]);
 
   // -------------------------------------------------------------------------
-  // Schedule a silent refresh ~2 minutes before token expires (13 min cycle)
+  // Proactive background interval check (runs every 2 minutes)
   // -------------------------------------------------------------------------
-  const scheduleRefresh = useCallback(() => {
-    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-    // Access token lives 15 min → refresh after 13 min
-    refreshTimerRef.current = setTimeout(async () => {
-      const newToken = await silentRefresh();
-      if (newToken) scheduleRefresh(); // keep the cycle going
-    }, 13 * 60 * 1000);
+  useEffect(() => {
+    const checkAndRefresh = async () => {
+      const currentToken = getCookie('token');
+      const refreshToken = getCookie('refresh_token');
+      if (!currentToken || !refreshToken) return;
+
+      try {
+        const payloadBase64 = currentToken.split('.')[1];
+        if (!payloadBase64) return;
+        const payloadJson = atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/'));
+        const payload = JSON.parse(payloadJson);
+        if (payload.exp) {
+          const nowInSec = Math.floor(Date.now() / 1000);
+          if (payload.exp - nowInSec < 180) { // Expires in under 3 minutes
+            const newAccess = await silentRefresh();
+            if (newAccess) setToken(newAccess);
+          }
+        }
+      } catch {}
+    };
+
+    checkAndRefresh();
+    const interval = setInterval(checkAndRefresh, 2 * 60 * 1000);
+    return () => clearInterval(interval);
   }, [silentRefresh]);
 
   // -------------------------------------------------------------------------
@@ -105,7 +141,6 @@ export const AuthProvider = ({ children }) => {
           const userData2 = await res2.json();
           setUser(userData2);
           setLoading(false);
-          scheduleRefresh();
           return userData2;
         }
       }
@@ -119,37 +154,34 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
       return null;
     }
-  }, [silentRefresh, scheduleRefresh, clearSession]);
+  }, [silentRefresh, clearSession]);
 
   // -------------------------------------------------------------------------
-  // On startup: restore session from localStorage
+  // On startup: restore session from Cookies
   // -------------------------------------------------------------------------
   useEffect(() => {
     const initAuth = async () => {
-      const storedToken = getStored('token');
+      purgeLocalStorageTokens();
+      const storedToken = getCookie('token');
       if (storedToken) {
         await fetchCurrentUser(storedToken);
-        scheduleRefresh();
       } else {
         setLoading(false);
       }
     };
     initAuth();
-
-    return () => { if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchCurrentUser]);
 
   // -------------------------------------------------------------------------
   // Login
   // -------------------------------------------------------------------------
   const login = async (accessToken, refreshToken) => {
     if (!accessToken) return null;
-    setStored('token', accessToken);
-    if (refreshToken) setStored('refresh_token', refreshToken);
+    purgeLocalStorageTokens();
+    setCookie('token', accessToken);
+    if (refreshToken) setCookie('refresh_token', refreshToken);
     setToken(accessToken);
     const userData = await fetchCurrentUser(accessToken);
-    if (userData) scheduleRefresh();
     return userData;
   };
 
@@ -157,8 +189,8 @@ export const AuthProvider = ({ children }) => {
   // Logout
   // -------------------------------------------------------------------------
   const logout = async () => {
-    const currentToken = getStored('token');
-    const currentRefresh = getStored('refresh_token');
+    const currentToken = getCookie('token');
+    const currentRefresh = getCookie('refresh_token');
 
     if (currentToken) {
       try {
@@ -176,7 +208,7 @@ export const AuthProvider = ({ children }) => {
   // Manual refresh user data
   // -------------------------------------------------------------------------
   const refreshUser = () => {
-    const t = getStored('token');
+    const t = getCookie('token');
     if (t) return fetchCurrentUser(t);
   };
 

@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { consultantService } from '../services/consultantService';
 import Toast, { useToast } from '../components/Toast/Toast';
+import VideoSessionModal from '../components/VideoSession/VideoSessionModal';
 
 export default function ConsultantSessionsPage({ navigate }) {
   const { token, user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState([]);
   const [availability, setAvailability] = useState([]);
+  const [activeVideoApptId, setActiveVideoApptId] = useState(null);
   const [savingAvail, setSavingAvail] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const { toast, showToast } = useToast();
@@ -157,8 +159,8 @@ export default function ConsultantSessionsPage({ navigate }) {
       
       <Toast {...toast} />
 
-      {/* Back Button */}
-      <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '20px' }}>
+      {/* Back Button + Test Video Button */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <button 
           onClick={() => navigate('/consultant/dashboard')}
           style={{
@@ -176,6 +178,26 @@ export default function ConsultantSessionsPage({ navigate }) {
           }}
         >
           <span>→</span> رجوع
+        </button>
+
+        <button
+          onClick={() => setActiveVideoApptId('test-session-id')}
+          style={{
+            background: '#FFFFFF',
+            border: '1px solid #CBD5E1',
+            color: '#64748B',
+            padding: '8px 18px',
+            borderRadius: '20px',
+            fontWeight: '700',
+            fontSize: '13px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          <span>⚙️</span>
+          <span>تجربة غرفة الفيديو الآن</span>
         </button>
       </div>
 
@@ -342,7 +364,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                   {/* Left part (Action buttons) */}
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <button
-                      onClick={() => navigate('/chat')}
+                      onClick={() => navigate(`/chat?apptId=${appt.id}`)}
                       style={{
                         backgroundColor: '#FFFFFF',
                         border: '1px solid #E2E8F0',
@@ -487,10 +509,10 @@ export default function ConsultantSessionsPage({ navigate }) {
                   gap: '20px',
                   flexWrap: 'wrap'
                 }}>
-                  {/* Left part (Enter Room Button) */}
+                  {/* Left part (Enter Room + Chat Buttons) */}
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <button
-                      onClick={() => navigate('/chat')} // mock chat trigger or navigate to session
+                      onClick={() => setActiveVideoApptId(appt.id)}
                       style={{
                         backgroundColor: '#F5A52A',
                         color: '#FFFFFF',
@@ -508,7 +530,25 @@ export default function ConsultantSessionsPage({ navigate }) {
                       onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#E0921B'}
                       onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#F5A52A'}
                     >
-                      🎥 دخول الغرفة
+                      دخول الفيديو
+                    </button>
+                    <button
+                      onClick={() => navigate(`/chat?apptId=${appt.id}`)}
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        border: '1px solid #CBD5E1',
+                        color: '#64748B',
+                        borderRadius: '6px',
+                        padding: '8px 14px',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      شات
                     </button>
                   </div>
 
@@ -543,6 +583,14 @@ export default function ConsultantSessionsPage({ navigate }) {
           </div>
         )}
       </div>
+
+      {/* Video Session Modal */}
+      <VideoSessionModal
+        appointmentId={activeVideoApptId}
+        isOpen={!!activeVideoApptId}
+        onClose={() => setActiveVideoApptId(null)}
+        onSessionEnd={() => fetchPageData()}
+      />
 
     </div>
   );

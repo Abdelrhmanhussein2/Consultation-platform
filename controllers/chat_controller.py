@@ -63,3 +63,20 @@ class ChatController:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
+    def delete_chat(db: Session, current_user: User, appointment_id: str):
+        """
+        Clears message history for an authorized user.
+        """
+        try:
+            appt_uuid = uuid.UUID(appointment_id)
+            count = ChatService.delete_messages(db, appt_uuid, current_user.id)
+            return {
+                "message": "تم حذف سجل المحادثة بنجاح",
+                "deleted_count": count,
+            }
+        except PermissionError as e:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

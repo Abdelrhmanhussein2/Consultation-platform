@@ -200,13 +200,10 @@ export default function ConsultantDetailPage({ profileId, navigate }) {
     setBookingLoading(true);
     try {
       if (profileId === 'mock-raafat-1') {
-        setCreatedAppointment({
-          id: 'mock-appt-1',
-          price: basePrice,
-          service_name: 'جلسة تجريبية - اختبار الفيديو والملخص الذكي',
-          consultant_name: fullName
-        });
-        setIsPaymentOpen(true);
+        showToast('تم إرسال طلب الحجز بنجاح! يسير طلبك الآن لموافقة المستشار.', 'success');
+        setTimeout(() => {
+          navigate('/my-appointments');
+        }, 1500);
         return;
       }
 
@@ -220,9 +217,11 @@ export default function ConsultantDetailPage({ profileId, navigate }) {
         notes: notes.trim() || undefined
       };
 
-      const createdAppt = await appointmentService.bookAppointment(payload, token);
-      setCreatedAppointment(createdAppt);
-      setIsPaymentOpen(true);
+      await appointmentService.bookAppointment(payload, token);
+      showToast('تم إرسال طلب الحجز بنجاح! يسير طلبك الآن لموافقة المستشار.', 'success');
+      setTimeout(() => {
+        navigate('/my-appointments');
+      }, 1500);
     } catch (err) {
       showToast(err.message || 'فشلت عملية حجز الموعد.', 'error');
     } finally {

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { consultantService } from '../../services/consultantService';
 import { appointmentService } from '../../services/appointmentService';
 import PaymentModal from './PaymentModal';
+import '../VideoSession/VideoSessionModal.css';
 
 export default function BookingModal({ consultant, isOpen, onClose, onSuccess }) {
   const { token } = useAuth();
@@ -18,6 +20,7 @@ export default function BookingModal({ consultant, isOpen, onClose, onSuccess })
   // Payment states
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [createdAppointment, setCreatedAppointment] = useState(null);
+  const [bookingSubmitted, setBookingSubmitted] = useState(false);
 
   // Styled card states
   const [selectedChannel, setSelectedChannel] = useState('فيديو');
@@ -25,6 +28,7 @@ export default function BookingModal({ consultant, isOpen, onClose, onSuccess })
 
   useEffect(() => {
     if (!isOpen || !consultant || !token) return;
+    setBookingSubmitted(false);
 
     const fetchConsultantData = async () => {
       setError('');
@@ -115,7 +119,7 @@ export default function BookingModal({ consultant, isOpen, onClose, onSuccess })
           service_name: 'جلسة تجريبية - اختبار الفيديو والملخص الذكي',
           consultant_name: consultant.full_name
         });
-        setIsPaymentOpen(true);
+        setBookingSubmitted(true);
         return;
       }
 
@@ -131,7 +135,7 @@ export default function BookingModal({ consultant, isOpen, onClose, onSuccess })
 
       const createdAppt = await appointmentService.bookAppointment(payload, token);
       setCreatedAppointment(createdAppt);
-      setIsPaymentOpen(true);
+      setBookingSubmitted(true);
     } catch (err) {
       setError(err.message || 'فشلت عملية حجز الموعد');
     } finally {
@@ -173,283 +177,361 @@ export default function BookingModal({ consultant, isOpen, onClose, onSuccess })
   const timesForSelectedDay = selectedDateStr ? groupedSlotsByDay[selectedDateStr] || [] : [];
   const basePrice = consultant.price || 50;
 
-  return (
-    <div className="video-modal-overlay" style={{ zIndex: 9999 }}>
+  return ReactDOM.createPortal(
+    <div
+      className="video-modal-overlay"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: 'rgba(15, 23, 42, 0.75)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
+        zIndex: 999999,
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        paddingTop: '85px',
+        paddingBottom: '30px',
+        paddingLeft: '16px',
+        paddingRight: '16px',
+        boxSizing: 'border-box',
+        overflowY: 'auto'
+      }}
+    >
       <div
         className="fade-in"
         style={{
           background: '#FFFFFF',
           borderRadius: '24px',
           width: '100%',
-          maxWidth: '380px',
+          maxWidth: '420px',
           padding: '24px',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           direction: 'rtl',
           border: '1px solid #E2E8F0',
-          position: 'relative'
+          position: 'relative',
+          boxSizing: 'border-box',
+          margin: 'auto 0'
         }}
       >
-        {/* Booking Card Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0D3C5C', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>📅 احجز جلستك</span>
-          </h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{
-              fontSize: '10px',
-              fontWeight: '700',
-              color: '#10B981',
+        {bookingSubmitted ? (
+          <div style={{ textAlign: 'center', padding: '16px 8px' }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
               backgroundColor: '#ECFDF5',
-              padding: '2px 8px',
-              borderRadius: '20px',
+              color: '#10B981',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '32px',
+              margin: '0 auto 16px auto',
               border: '1px solid #A7F3D0'
             }}>
-              متاح الآن
-            </span>
-            <button 
-              onClick={onClose} 
-              style={{ 
-                background: 'none', 
-                border: 'none', 
-                fontSize: '20px', 
-                cursor: 'pointer', 
-                color: '#64748B',
-                lineHeight: '1',
-                padding: '4px'
+              ⏳
+            </div>
+
+            <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0D3C5C', marginBottom: '8px' }}>
+              تم إرسال طلب الحجز بنجاح!
+            </h3>
+
+            <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6', marginBottom: '24px' }}>
+              طلبك الآن قيد الانتظار لموافقة المستشار <strong>{consultant.full_name}</strong>. عند موافقة المستشار، يمكنك إتمام عملية الدفع من صفحة <strong>استشاراتي</strong>.
+            </p>
+
+            <button
+              onClick={() => {
+                setBookingSubmitted(false);
+                onClose();
+                if (onSuccess) onSuccess();
               }}
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-
-        {error && (
-          <div style={{ background: '#FEE2E2', color: '#991B1B', padding: '10px 14px', borderRadius: '12px', fontSize: '12px', marginBottom: '16px' }}>
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleBookSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          
-          {/* Consultation Channel grid buttons */}
-          <div>
-            <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748B', display: 'block', marginBottom: '8px' }}>
-              قناة الاستشارة
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-              {[
-                {
-                  key: 'مكتوب',
-                  label: 'مكتوب',
-                  icon: (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 20h9" />
-                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                    </svg>
-                  )
-                },
-                {
-                  key: 'محادثة',
-                  label: 'محادثة',
-                  icon: (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                    </svg>
-                  )
-                },
-                {
-                  key: 'فيديو',
-                  label: 'فيديو',
-                  icon: (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polygon points="23 7 16 12 23 17 23 7" />
-                      <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-                    </svg>
-                  )
-                }
-              ].map(ch => {
-                const isSelected = selectedChannel === ch.key;
-                return (
-                  <button
-                    type="button"
-                    key={ch.key}
-                    onClick={() => setSelectedChannel(ch.key)}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      padding: '12px 6px',
-                      borderRadius: '12px',
-                      border: isSelected ? '1.5px solid #F5A52A' : '1px solid #E2E8F0',
-                      backgroundColor: isSelected ? '#FFFBEB' : '#FFFFFF',
-                      color: isSelected ? '#D97706' : '#64748B',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s'
-                    }}
-                  >
-                    {ch.icon}
-                    <span style={{ fontSize: '11px', fontWeight: '700' }}>{ch.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Select Day grid buttons */}
-          <div>
-            <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748B', display: 'block', marginBottom: '8px' }}>
-              اليوم
-            </label>
-            {loadingSlots ? (
-              <span style={{ fontSize: '11px', color: '#64748B' }}>جاري تحميل المواعيد...</span>
-            ) : availableDays.length > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                {availableDays.slice(0, 3).map(dayStr => {
-                  const isSelected = selectedDateStr === dayStr;
-                  return (
-                    <button
-                      type="button"
-                      key={dayStr}
-                      onClick={() => {
-                        setSelectedDateStr(dayStr);
-                        setSelectedSlot(null);
-                      }}
-                      style={{
-                        padding: '10px 4px',
-                        borderRadius: '12px',
-                        border: isSelected ? '1.5px solid #F5A52A' : '1px solid #E2E8F0',
-                        backgroundColor: isSelected ? '#FFFBEB' : '#FFFFFF',
-                        color: isSelected ? '#D97706' : '#64748B',
-                        fontWeight: '700',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        textAlign: 'center'
-                      }}
-                    >
-                      {getDayNameArabic(dayStr)}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <span style={{ fontSize: '11px', color: '#EF4444' }}>لا توجد مواعيد متاحة للحجز حالياً</span>
-            )}
-          </div>
-
-          {/* Available Time slots */}
-          {selectedDateStr && timesForSelectedDay.length > 0 && (
-            <div>
-              <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748B', display: 'block', marginBottom: '8px' }}>
-                الموعد المتاح
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                {timesForSelectedDay.slice(0, 3).map((slot, idx) => {
-                  const isSelected = selectedSlot && selectedSlot.start_time === slot.start_time;
-                  return (
-                    <button
-                      type="button"
-                      key={idx}
-                      onClick={() => setSelectedSlot(slot)}
-                      style={{
-                        padding: '10px 4px',
-                        borderRadius: '12px',
-                        border: isSelected ? '1.5px solid #F5A52A' : '1px solid #E2E8F0',
-                        backgroundColor: isSelected ? '#FFFBEB' : '#FFFFFF',
-                        color: isSelected ? '#D97706' : '#475569',
-                        fontWeight: '700',
-                        fontSize: '12px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {formatTime(slot.start_time)}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Consultation Topic */}
-          <div>
-            <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748B', display: 'block', marginBottom: '8px' }}>
-              موضوع الاستشارة
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="اكتب باختصار الموضوع الذي ترغب باستشارته..."
-              rows="3"
               style={{
                 width: '100%',
-                padding: '10px 12px',
-                borderRadius: '10px',
-                border: '1px solid #E2E8F0',
-                fontSize: '13px',
-                outline: 'none',
-                resize: 'none',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          {/* Fee summary & submit */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #F1F5F9', paddingTop: '12px' }}>
-            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '700' }}>رسوم الجلسة</span>
-            <span style={{ fontSize: '16px', fontWeight: '800', color: '#F5A52A' }}>{basePrice} د.أ</span>
-          </div>
-
-          <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
-            {/* Heart bookmark icon button */}
-            <button
-              type="button"
-              style={{
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #E2E8F0',
-                width: '42px',
-                height: '42px',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: '#64748B',
-                transition: 'all 0.2s',
-                flexShrink: 0
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-              </svg>
-            </button>
-
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                flex: 1,
                 background: 'linear-gradient(135deg, #F5A52A, #E0921B)',
                 color: '#FFFFFF',
                 border: 'none',
+                padding: '12px',
                 borderRadius: '12px',
                 fontWeight: '700',
-                fontSize: '13px',
-                height: '42px',
+                fontSize: '14px',
                 cursor: 'pointer',
-                transition: 'opacity 0.2s',
-                boxShadow: '0 4px 10px rgba(245, 165, 42, 0.15)'
+                boxShadow: '0 4px 10px rgba(245, 165, 42, 0.2)'
               }}
             >
-              {loading ? 'جاري إرسال طلب الحجز...' : 'تأكيد طلب الحجز'}
+              حسناً، فهمت
             </button>
           </div>
+        ) : (
+          <>
+            {/* Booking Card Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0D3C5C', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>📅 احجز جلستك</span>
+              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{
+                  fontSize: '10px',
+                  fontWeight: '700',
+                  color: '#10B981',
+                  backgroundColor: '#ECFDF5',
+                  padding: '2px 8px',
+                  borderRadius: '20px',
+                  border: '1px solid #A7F3D0'
+                }}>
+                  متاح الآن
+                </span>
+                <button 
+                  onClick={onClose} 
+                  style={{ 
+                    background: 'none', 
+                    border: 'none', 
+                    fontSize: '20px', 
+                    cursor: 'pointer', 
+                    color: '#64748B',
+                    lineHeight: '1',
+                    padding: '4px'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
 
-          {/* Sub text warning */}
-          <span style={{ fontSize: '11px', color: '#94A3B8', textAlign: 'center', display: 'block' }}>
-            سيتم التواصل معك خلال 24 ساعة لتأكيد الموعد
-          </span>
-        </form>
+            {error && (
+              <div style={{ background: '#FEE2E2', color: '#991B1B', padding: '10px 14px', borderRadius: '12px', fontSize: '12px', marginBottom: '16px' }}>
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleBookSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              
+              {/* Consultation Channel grid buttons */}
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748B', display: 'block', marginBottom: '8px' }}>
+                  قناة الاستشارة
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                  {[
+                    {
+                      key: 'مكتوب',
+                      label: 'مكتوب',
+                      icon: (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                        </svg>
+                      )
+                    },
+                    {
+                      key: 'محادثة',
+                      label: 'محادثة',
+                      icon: (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                        </svg>
+                      )
+                    },
+                    {
+                      key: 'فيديو',
+                      label: 'فيديو',
+                      icon: (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polygon points="23 7 16 12 23 17 23 7" />
+                          <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                        </svg>
+                      )
+                    }
+                  ].map(ch => {
+                    const isSelected = selectedChannel === ch.key;
+                    return (
+                      <button
+                        type="button"
+                        key={ch.key}
+                        onClick={() => setSelectedChannel(ch.key)}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          padding: '12px 6px',
+                          borderRadius: '12px',
+                          border: isSelected ? '1.5px solid #F5A52A' : '1px solid #E2E8F0',
+                          backgroundColor: isSelected ? '#FFFBEB' : '#FFFFFF',
+                          color: isSelected ? '#D97706' : '#64748B',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        {ch.icon}
+                        <span style={{ fontSize: '11px', fontWeight: '700' }}>{ch.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Select Day grid buttons */}
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748B', display: 'block', marginBottom: '8px' }}>
+                  اليوم
+                </label>
+                {loadingSlots ? (
+                  <span style={{ fontSize: '11px', color: '#64748B' }}>جاري تحميل المواعيد...</span>
+                ) : availableDays.length > 0 ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                    {availableDays.slice(0, 3).map(dayStr => {
+                      const isSelected = selectedDateStr === dayStr;
+                      return (
+                        <button
+                          type="button"
+                          key={dayStr}
+                          onClick={() => {
+                            setSelectedDateStr(dayStr);
+                            setSelectedSlot(null);
+                          }}
+                          style={{
+                            padding: '10px 4px',
+                            borderRadius: '12px',
+                            border: isSelected ? '1.5px solid #F5A52A' : '1px solid #E2E8F0',
+                            backgroundColor: isSelected ? '#FFFBEB' : '#FFFFFF',
+                            color: isSelected ? '#D97706' : '#64748B',
+                            fontWeight: '700',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            textAlign: 'center'
+                          }}
+                        >
+                          {getDayNameArabic(dayStr)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <span style={{ fontSize: '11px', color: '#EF4444' }}>لا توجد مواعيد متاحة للحجز حالياً</span>
+                )}
+              </div>
+
+              {/* Available Time slots */}
+              {selectedDateStr && timesForSelectedDay.length > 0 && (
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748B', display: 'block', marginBottom: '8px' }}>
+                    الموعد المتاح
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                    {timesForSelectedDay.slice(0, 3).map((slot, idx) => {
+                      const isSelected = selectedSlot && selectedSlot.start_time === slot.start_time;
+                      return (
+                        <button
+                          type="button"
+                          key={idx}
+                          onClick={() => setSelectedSlot(slot)}
+                          style={{
+                            padding: '10px 4px',
+                            borderRadius: '12px',
+                            border: isSelected ? '1.5px solid #F5A52A' : '1px solid #E2E8F0',
+                            backgroundColor: isSelected ? '#FFFBEB' : '#FFFFFF',
+                            color: isSelected ? '#D97706' : '#475569',
+                            fontWeight: '700',
+                            fontSize: '12px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {formatTime(slot.start_time)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Consultation Topic */}
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748B', display: 'block', marginBottom: '8px' }}>
+                  موضوع الاستشارة
+                </label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="اكتب باختصار الموضوع الذي ترغب باستشارته..."
+                  rows="3"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    border: '1px solid #E2E8F0',
+                    fontSize: '13px',
+                    outline: 'none',
+                    resize: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {/* Fee summary & submit */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #F1F5F9', paddingTop: '12px' }}>
+                <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '700' }}>رسوم الجلسة</span>
+                <span style={{ fontSize: '16px', fontWeight: '800', color: '#F5A52A' }}>{basePrice} د.أ</span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                {/* Heart bookmark icon button */}
+                <button
+                  type="button"
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #E2E8F0',
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#64748B',
+                    transition: 'all 0.2s',
+                    flexShrink: 0
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                  </svg>
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    flex: 1,
+                    background: 'linear-gradient(135deg, #F5A52A, #E0921B)',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontWeight: '700',
+                    fontSize: '13px',
+                    height: '42px',
+                    cursor: 'pointer',
+                    transition: 'opacity 0.2s',
+                    boxShadow: '0 4px 10px rgba(245, 165, 42, 0.15)'
+                  }}
+                >
+                  {loading ? 'جاري إرسال طلب الحجز...' : 'تأكيد طلب الحجز'}
+                </button>
+              </div>
+
+              {/* Sub text warning */}
+              <span style={{ fontSize: '11px', color: '#94A3B8', textAlign: 'center', display: 'block' }}>
+                سيتم التواصل معك خلال 24 ساعة لتأكيد الموعد
+              </span>
+            </form>
+          </>
+        )}
       </div>
 
       {isPaymentOpen && (
@@ -469,6 +551,7 @@ export default function BookingModal({ consultant, isOpen, onClose, onSuccess })
           isMock={consultant.profile_id === 'mock-raafat-1' || consultant.id === 'mock-raafat-1'}
         />
       )}
-    </div>
+    </div>,
+    document.body
   );
 }

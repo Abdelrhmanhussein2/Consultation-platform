@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function SupportTicketsPage() {
@@ -105,9 +106,30 @@ export default function SupportTicketsPage() {
       )}
 
       {/* Modal */}
-      {showCreateModal && (
-        <div className="video-modal-overlay">
-          <div style={{ background: '#FFFFFF', borderRadius: '20px', width: '100%', maxWidth: '500px', padding: '28px', direction: 'rtl' }}>
+      {showCreateModal && ReactDOM.createPortal(
+        <div
+          className="video-modal-overlay"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            padding: '32px 16px',
+            boxSizing: 'border-box',
+            overflowY: 'auto'
+          }}
+        >
+          <div style={{ background: '#FFFFFF', borderRadius: '20px', width: '100%', maxWidth: '500px', padding: '28px', direction: 'rtl', margin: 'auto 0' }}>
             <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '16px' }}>فتح تذكرة دعم جديدة</h3>
             <form onSubmit={handleCreateTicket} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <input
@@ -130,7 +152,8 @@ export default function SupportTicketsPage() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

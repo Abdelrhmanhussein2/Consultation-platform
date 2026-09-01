@@ -161,7 +161,7 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
 
   // Fetch live appointments from backend
   const fetchBackendAppointments = useCallback(async () => {
-    const token = auth?.token || localStorage.getItem('token');
+    const token = auth?.token;
     if (!token) return;
     try {
       setLoadingBackend(true);
@@ -218,12 +218,34 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
     }
   }, [auth?.token, role, user?.full_name]);
 
+  const [consultantList, setConsultantList] = useState([]);
+
+  // Fetch consultants list from backend for booking dropdowns
+  useEffect(() => {
+    const token = auth?.token;
+    if (!token) return;
+    consultantService.getConsultants({}, token).then(all => {
+      const list = Array.isArray(all) ? all : (all?.consultants || all?.data || []);
+      setConsultantList(list);
+      if (list.length > 0) {
+        const first = list[0];
+        const firstName = first.display_name || first.full_name || first.user?.full_name || `مستشار #${first.id}`;
+        setNewAdvisor(firstName);
+      }
+    }).catch(err => console.warn('Fetch consultants:', err));
+  }, [auth?.token]);
+
   useEffect(() => {
     fetchBackendAppointments();
   }, [fetchBackendAppointments]);
 
   // Helper getters
-  const getClient = useCallback((id) => clients.find(x => x.id === id) || { name: 'عميل غير معروف', company: '', color: '#ccc', email: '', phone: '', tax: '' }, [clients]);
+  const getClient = useCallback((id, fallbackName = '') => {
+    const found = clients.find(x => x.id === id);
+    if (found) return found;
+    const nameToUse = fallbackName || (user?.full_name ? user.full_name : 'عميل منصة ديوان');
+    return { name: nameToUse, company: '', color: '#0D3C5C', email: user?.email || '', phone: user?.phone || '', tax: '' };
+  }, [clients, user]);
 
   const isAllowed = useCallback((e) => {
     if (role === 'admin') return true;
@@ -392,7 +414,7 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
     const oldTime = selectedEvent.start;
 
     // Backend API sync
-    const token = auth?.token || localStorage.getItem('token');
+    const token = auth?.token;
     if (token && typeof selectedEvent.id === 'string' && selectedEvent.id.includes('-')) {
       try {
         const [y, m, d] = reschedDate.split('-').map(Number);
@@ -453,7 +475,7 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
     }
 
     // Backend API sync
-    const token = auth?.token || localStorage.getItem('token');
+    const token = auth?.token;
     if (token && typeof selectedEvent.id === 'string' && selectedEvent.id.includes('-')) {
       try {
         if (pendingStatus === 'confirmed') {
@@ -544,7 +566,7 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
     setLastTxn(txn);
 
     // Backend API sync
-    const token = auth?.token || localStorage.getItem('token');
+    const token = auth?.token;
     if (token && typeof selectedEvent.id === 'string' && selectedEvent.id.includes('-')) {
       try {
         await appointmentService.payAppointment(selectedEvent.id, token, userPayMethod === 'card' ? 'card' : 'wallet');
@@ -693,7 +715,7 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
 
   // Fetch other consultants (different specialization) when consultant opens modal
   const fetchCrossConsultants = useCallback(async () => {
-    const token = auth?.token || localStorage.getItem('token');
+    const token = auth?.token;
     if (!token || role !== 'consultant') return;
     try {
       setCrossLoading(true);
@@ -726,7 +748,7 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
   // Fetch services when a cross consultant is selected
   useEffect(() => {
     if (!crossSelectedId || role !== 'consultant') return;
-    const token = auth?.token || localStorage.getItem('token');
+    const token = auth?.token;
     if (!token) return;
     consultantService.getConsultantServices(crossSelectedId, token).then(res => {
       const list = Array.isArray(res) ? res : [];
@@ -741,7 +763,7 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
     if (!crossSelectedId) { showToast('اختر المستشار'); return; }
     if (!newDate) { showToast('اختر التاريخ'); return; }
     if (newSlot === null) { showToast('اختر الوقت المتاح'); return; }
-    const token = auth?.token || localStorage.getItem('token');
+    const token = auth?.token;
     if (!token) { showToast('يجب تسجيل الدخول أولاً'); return; }
     try {
       setCrossBooking(true);
@@ -2743,9 +2765,20 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
                     <div className="field">
                       <label>المستشار</label>
                       <select value={newAdvisor} onChange={(e) => setNewAdvisor(e.target.value)}>
-                        {advisors.map(a => (
-                          <option key={a} value={a}>{a}</option>
-                        ))}
+                        {consultantList.length > 0 ? (
+                          consultantList.map(c => {
+                            const name = c.display_name || c.full_name || c.user?.full_name || `مستشار #${c.id}`;
+                            return (
+                              <option key={c.id} value={name}>
+                                {name} {c.specialization_name ? ` — ${c.specialization_name}` : ''}
+                              </option>
+                            );
+                          })
+                        ) : (
+                          ['أحمد نصار', 'أ. رأفت حداد', 'د. محمد العتيبي'].map(a => (
+                            <option key={a} value={a}>{a}</option>
+                          ))
+                        )}
                       </select>
                     </div>
                     <div className="field">

@@ -245,8 +245,12 @@ class LegalGraphService:
         """
         query = """
         MATCH (l:Law)
-        RETURN l.law_id AS law_id, l.title AS title, l.number AS number, l.year AS year
-        ORDER BY l.year DESC, l.number ASC
+        WITH l, properties(l) AS p
+        RETURN l.law_id AS law_id, 
+               coalesce(p.title, l.law_id, 'تشريع ضريبي') AS title, 
+               coalesce(p.number, 0) AS number, 
+               coalesce(p.year, 0) AS year
+        ORDER BY year DESC, number ASC
         """
         with neo4j_db.get_session() as session:
             return session.execute_read(lambda tx: tx.run(query).data())

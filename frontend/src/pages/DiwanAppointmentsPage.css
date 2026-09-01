@@ -695,12 +695,15 @@
 .diwan-appointments-root .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(20, 24, 32, 0.45);
-  z-index: 50;
+  background: rgba(20, 24, 32, 0.55);
+  z-index: 999999;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  backdrop-filter: blur(2px);
+  padding-top: 85px;
+  padding-bottom: 30px;
+  backdrop-filter: blur(4px);
+  overflow-y: auto;
 }
 
 .diwan-appointments-root .modal {

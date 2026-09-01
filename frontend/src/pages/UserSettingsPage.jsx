@@ -78,7 +78,7 @@ export default function UserSettingsPage() {
   };
 
   return (
-    <div className="fade-in" style={{ maxWidth: '840px' }}>
+    <div className="fade-in" style={{ maxWidth: '840px', margin: '0 auto', width: '100%', paddingBottom: '40px' }}>
       <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
         <div style={{ background: '#E5EFF5', padding: '10px', borderRadius: '12px', color: '#005D9C' }}>
           <SettingsIcon size={24} color="#005D9C" />

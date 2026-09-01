@@ -35,7 +35,7 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
     };
 
     fetchNotifs();
-    const interval = setInterval(fetchNotifs, 15000);
+    const interval = setInterval(fetchNotifs, 60000); // Poll every 60s
     return () => clearInterval(interval);
   }, [token]);
 
@@ -57,6 +57,111 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     } catch (e) {
       // Ignore
+    }
+  };
+
+  const handleNotificationClick = async (notif) => {
+    if (!notif) return;
+
+    // Mark as read
+    if (!notif.is_read && token) {
+      try {
+        await notificationService.markAsRead(notif.id, token);
+        setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      } catch (err) {
+        // Silently handle error
+      }
+    }
+
+    setShowNotifications(false);
+
+    // Explicit target URL if provided by backend
+    if (notif.target_url) {
+      navigate(notif.target_url);
+      return;
+    }
+
+    const rawTitle = notif.title || '';
+    const rawMsg = notif.message || '';
+    const title = rawTitle.toLowerCase();
+    const msg = rawMsg.toLowerCase();
+    const type = (notif.type || notif.notification_type || '').toLowerCase();
+    const isConsultant = user?.role === 'consultant';
+
+    // 1. Session Links & Appointments FIRST (e.g. "رابط جلسة الاستشارة جاهز", "طلب حجز موعد جديد")
+    if (
+      type.includes('session') ||
+      type.includes('appointment') ||
+      title.includes('رابط') ||
+      title.includes('جلسة') ||
+      title.includes('موعد') ||
+      title.includes('حجز')
+    ) {
+      if (isConsultant) {
+        navigate('/consultant/sessions');
+      } else {
+        navigate('/my-appointments');
+      }
+      return;
+    }
+
+    // 2. Chat / Direct Messages SECOND (e.g. "رسالة جديدة من محمد مسعد")
+    if (
+      type.includes('chat') ||
+      type.includes('message') ||
+      title.includes('رسالة') ||
+      title.includes('محادثة') ||
+      msg.includes('رسالة جديدة')
+    ) {
+      let senderName = '';
+      if (rawTitle.includes('من ')) {
+        senderName = rawTitle.split('من ')[1]?.trim() || '';
+      } else if (rawMsg.includes('من ')) {
+        senderName = rawMsg.split('من ')[1]?.trim() || '';
+      }
+
+      const entityId = notif.related_entity_id || '';
+      let chatUrl = '/chat';
+      const params = new URLSearchParams();
+      if (entityId) params.append('apptId', entityId);
+      if (senderName) params.append('user', senderName);
+
+      const paramStr = params.toString();
+      if (paramStr) chatUrl += `?${paramStr}`;
+
+      navigate(chatUrl);
+      return;
+    }
+
+    // 3. Earnings / Invoices / Payments
+    if (
+      type.includes('payment') ||
+      type.includes('payout') ||
+      title.includes('تحويل') ||
+      title.includes('دفع') ||
+      title.includes('فاتورة') ||
+      msg.includes('أرباح')
+    ) {
+      if (isConsultant) {
+        navigate('/consultant/earnings');
+      } else {
+        navigate('/invoices');
+      }
+      return;
+    }
+
+    // 4. Support Tickets
+    if (type.includes('ticket') || title.includes('تذكرة') || msg.includes('تذكرة')) {
+      navigate('/support/tickets');
+      return;
+    }
+
+    // 5. Default fallback
+    if (isConsultant) {
+      navigate('/consultant/sessions');
+    } else {
+      navigate('/my-appointments');
     }
   };
 
@@ -107,11 +212,6 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
 
       {/* Action Buttons & User Badge */}
       <div className="header-actions">
-        {/* Quick AI Ask Button */}
-        <button className="ask-ai-quick-btn" onClick={() => navigate('/ai-assistant')}>
-          <AiIcon size={16} color="#FFFFFF" />
-          <span>اسأل ديوان AI</span>
-        </button>
 
         {/* Notifications */}
         <div className="notification-container" ref={notifRef}>
@@ -129,6 +229,7 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
               notifications={notifications}
               unreadCount={unreadCount}
               onMarkAllRead={handleMarkAllRead}
+              onItemClick={handleNotificationClick}
               onClose={() => setShowNotifications(false)}
             />
           )}

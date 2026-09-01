@@ -180,7 +180,6 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
     { path: '/consultant/clients', label: 'العملاء', IconComponent: ClientsIcon },
     { path: '/consultant/profile', label: 'الملف الشخصي', IconComponent: ProfileIcon },
     { path: '/consultant/earnings', label: 'الأرباح', IconComponent: EarningsIcon },
-    { path: '/dashboard', label: 'لوحة التحكم', IconComponent: DashboardIcon },
     { path: '/ai-assistant', label: 'المساعد الذكي', IconComponent: AiIcon },
     { path: '/consultant/semantic-search', label: 'البحث الدلالي', IconComponent: SemanticSearchIcon },
     { path: '/regulations', label: 'التشريعات والقوانين', IconComponent: RegulationsIcon },
@@ -222,10 +221,10 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
           }}
         >
           <img
-            src={isCollapsed ? '/favicon.svg' : '/logo_white.png'}
+            src="/logo_white.png"
             alt="شعار منصة ديوان"
             style={{ height: isCollapsed ? '28px' : '36px', width: 'auto', objectFit: 'contain' }}
-            onError={(e) => { e.target.src = '/favicon.svg'; }}
+            onError={(e) => { e.target.src = '/logo.png'; }}
           />
           {!isCollapsed && (
             <div className="brand-text-box">

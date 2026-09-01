@@ -33,7 +33,7 @@ export default function SupportTicketDetailPage({ ticketId, navigate }) {
 
   useEffect(() => {
     fetchTicketDetails();
-    const interval = setInterval(fetchTicketDetails, 15000);
+    const interval = setInterval(fetchTicketDetails, 30000);
     return () => clearInterval(interval);
   }, [token, ticketId]);
 

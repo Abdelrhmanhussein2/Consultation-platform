@@ -3,6 +3,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from services.ticket_service import TicketService
 from helpers.enums import TicketCategory, TicketPriority, TicketStatus
+from helpers.encryption import decrypt_text
 
 class TicketController:
     @staticmethod
@@ -43,12 +44,12 @@ class TicketController:
             return {
                 "id": ticket.id,
                 "submitted_by": ticket.submitted_by,
-                "submitter_name": ticket.submitter.full_name,
+                "submitter_name": ticket.submitter.full_name if ticket.submitter else "",
                 "assigned_to": ticket.assigned_to,
                 "assignee_name": ticket.assignee.full_name if ticket.assignee else None,
                 "ticket_number": ticket.ticket_number,
                 "subject": ticket.subject,
-                "description": ticket.description,
+                "description": decrypt_text(ticket.description),
                 "category": ticket.category,
                 "sub_category": ticket.sub_category,
                 "priority": ticket.priority,
@@ -62,9 +63,9 @@ class TicketController:
                         "id": r.id,
                         "ticket_id": r.ticket_id,
                         "author_id": r.author_id,
-                        "author_name": r.author.full_name,
-                        "author_role": r.author.role,
-                        "message": r.message,
+                        "author_name": r.author.full_name if r.author else "",
+                        "author_role": r.author.role if r.author else "user",
+                        "message": decrypt_text(r.message),
                         "is_internal": r.is_internal,
                         "created_at": r.created_at
                     } for r in public_replies
@@ -145,12 +146,12 @@ class TicketController:
             return {
                 "id": ticket.id,
                 "submitted_by": ticket.submitted_by,
-                "submitter_name": ticket.submitter.full_name,
+                "submitter_name": ticket.submitter.full_name if ticket.submitter else "",
                 "assigned_to": ticket.assigned_to,
                 "assignee_name": ticket.assignee.full_name if ticket.assignee else None,
                 "ticket_number": ticket.ticket_number,
                 "subject": ticket.subject,
-                "description": ticket.description,
+                "description": decrypt_text(ticket.description),
                 "category": ticket.category,
                 "sub_category": ticket.sub_category,
                 "priority": ticket.priority,
@@ -164,9 +165,9 @@ class TicketController:
                         "id": r.id,
                         "ticket_id": r.ticket_id,
                         "author_id": r.author_id,
-                        "author_name": r.author.full_name,
-                        "author_role": r.author.role,
-                        "message": r.message,
+                        "author_name": r.author.full_name if r.author else "",
+                        "author_role": r.author.role if r.author else "admin",
+                        "message": decrypt_text(r.message),
                         "is_internal": r.is_internal,
                         "created_at": r.created_at
                     } for r in ticket.replies

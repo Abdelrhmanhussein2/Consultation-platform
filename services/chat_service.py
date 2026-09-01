@@ -177,3 +177,20 @@ class ChatService:
         ).update({"is_read": True})
         db.commit()
         return updated
+
+    @staticmethod
+    def delete_messages(
+        db: Session,
+        appointment_id: uuid.UUID,
+        user_id: uuid.UUID,
+    ) -> int:
+        """
+        Deletes all messages associated with this appointment consultation chat.
+        """
+        ChatService._verify_appointment_access(db, appointment_id, user_id)
+
+        deleted_count = db.query(ChatMessage).filter(
+            ChatMessage.appointment_id == appointment_id
+        ).delete(synchronize_session=False)
+        db.commit()
+        return deleted_count

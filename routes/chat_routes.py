@@ -73,6 +73,21 @@ def mark_chat_as_read(
     return ChatController.mark_as_read(db, current_user, appointment_id)
 
 
+@router.delete(
+    "/{appointment_id}",
+    summary="Delete appointment chat history",
+)
+def delete_chat_messages(
+    appointment_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Deletes the message history for a specific appointment consultation chat.
+    """
+    return ChatController.delete_chat(db, current_user, appointment_id)
+
+
 # =====================================================================
 # WEBSOCKET REAL-TIME CHAT ENDPOINT
 # =====================================================================

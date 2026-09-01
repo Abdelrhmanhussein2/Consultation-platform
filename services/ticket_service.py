@@ -5,6 +5,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from models import User, SupportTicket, TicketReply, Notification
 from helpers.enums import TicketCategory, TicketPriority, TicketStatus, NotificationType
+from helpers.encryption import encrypt_text, decrypt_text
 
 class TicketService:
     @staticmethod
@@ -12,17 +13,19 @@ class TicketService:
         """
         Creates a new support ticket by a client/consultant.
         """
-        # Generate ticket number (e.g. #2026000001)
         current_year = datetime.now(timezone.utc).year
         year_start = datetime(current_year, 1, 1, tzinfo=timezone.utc)
         count = db.query(SupportTicket).filter(SupportTicket.created_at >= year_start).count()
         ticket_num = f"#{current_year}{str(count + 1).zfill(6)}"
 
+        raw_desc = ticket_in.description
+        encrypted_desc = encrypt_text(raw_desc) if raw_desc else None
+
         ticket = SupportTicket(
             submitted_by=client_id,
             ticket_number=ticket_num,
             subject=ticket_in.subject,
-            description=ticket_in.description,
+            description=encrypted_desc,
             category=ticket_in.category,
             sub_category=ticket_in.sub_category,
             priority=ticket_in.priority or TicketPriority.medium,
@@ -32,6 +35,7 @@ class TicketService:
         db.add(ticket)
         db.commit()
         db.refresh(ticket)
+        ticket.description = raw_desc
         return ticket
 
     @staticmethod
@@ -39,7 +43,6 @@ class TicketService:
         """
         Allows an admin to manually create a ticket for any user.
         """
-        # Validate that submitter exists
         user = db.query(User).filter(User.id == ticket_in.submitted_by).first()
         if not user:
             raise ValueError("Submitter user not found")
@@ -49,11 +52,14 @@ class TicketService:
         count = db.query(SupportTicket).filter(SupportTicket.created_at >= year_start).count()
         ticket_num = f"#{current_year}{str(count + 1).zfill(6)}"
 
+        raw_desc = ticket_in.description
+        encrypted_desc = encrypt_text(raw_desc) if raw_desc else None
+
         ticket = SupportTicket(
             submitted_by=ticket_in.submitted_by,
             ticket_number=ticket_num,
             subject=ticket_in.subject,
-            description=ticket_in.description,
+            description=encrypted_desc,
             category=ticket_in.category,
             priority=ticket_in.priority,
             status=TicketStatus.new,
@@ -62,6 +68,7 @@ class TicketService:
         db.add(ticket)
         db.commit()
         db.refresh(ticket)
+        ticket.description = raw_desc
         return ticket
 
     @staticmethod
@@ -99,9 +106,11 @@ class TicketService:
         offset = (page - 1) * limit
         tickets = query.order_by(SupportTicket.created_at.desc()).offset(offset).limit(limit).all()
 
-        # Strip internal replies so the user never sees admin-internal notes
         for ticket in tickets:
+            ticket.description = decrypt_text(ticket.description)
             ticket.replies = [r for r in ticket.replies if not r.is_internal]
+            for r in ticket.replies:
+                r.message = decrypt_text(r.message)
 
         return tickets
 
@@ -117,7 +126,7 @@ class TicketService:
         if not ticket:
             raise ValueError("Ticket not found or access denied")
         
-        # We will filter out internal replies dynamically in the response
+        ticket.description = decrypt_text(ticket.description)
         return ticket
 
     @staticmethod
@@ -153,7 +162,14 @@ class TicketService:
             )
 
         offset = (page - 1) * limit
-        return query.order_by(SupportTicket.created_at.desc()).offset(offset).limit(limit).all()
+        tickets = query.order_by(SupportTicket.created_at.desc()).offset(offset).limit(limit).all()
+
+        for t in tickets:
+            t.description = decrypt_text(t.description)
+            for r in t.replies:
+                r.message = decrypt_text(r.message)
+
+        return tickets
 
     @staticmethod
     def get_ticket_for_admin(db: Session, ticket_id: uuid.UUID) -> SupportTicket:
@@ -163,6 +179,7 @@ class TicketService:
         ticket = db.query(SupportTicket).filter(SupportTicket.id == ticket_id).first()
         if not ticket:
             raise ValueError("Ticket not found")
+        ticket.description = decrypt_text(ticket.description)
         return ticket
 
     @staticmethod
@@ -180,21 +197,24 @@ class TicketService:
         if ticket.status == TicketStatus.closed:
             raise ValueError("لا يمكن الرد على تذكرة مغلقة")
 
-        # Create reply
+        raw_msg = message.strip() if message else ""
+        encrypted_msg = encrypt_text(raw_msg) if raw_msg else ""
+
+        # Create reply with encrypted message
         reply = TicketReply(
             ticket_id=ticket_id,
             author_id=author_id,
-            message=message,
+            message=encrypted_msg,
             is_internal=False
         )
         db.add(reply)
         
-        # If user replies, change status to open or in_progress to notify admin
         if ticket.status == TicketStatus.resolved:
             ticket.status = TicketStatus.in_progress
 
         db.commit()
         db.refresh(reply)
+        reply.message = raw_msg
         return reply
 
     @staticmethod
@@ -208,14 +228,16 @@ class TicketService:
         if not ticket:
             raise ValueError("Ticket not found")
 
-        # Allow admin to reply even if closed, but open/in_progress it
         if ticket.status == TicketStatus.closed and not is_internal:
             ticket.status = TicketStatus.in_progress
+
+        raw_msg = message.strip() if message else ""
+        encrypted_msg = encrypt_text(raw_msg) if raw_msg else ""
 
         reply = TicketReply(
             ticket_id=ticket_id,
             author_id=admin_id,
-            message=message,
+            message=encrypted_msg,
             is_internal=is_internal
         )
         db.add(reply)
@@ -247,6 +269,7 @@ class TicketService:
             except Exception:
                 pass
 
+        reply.message = raw_msg
         return reply
 
 

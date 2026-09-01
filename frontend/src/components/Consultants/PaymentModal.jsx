@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { appointmentService } from '../../services/appointmentService';
 import Toast, { useToast } from '../Toast/Toast';
+import '../VideoSession/VideoSessionModal.css';
 
 export default function PaymentModal({ 
   isOpen, 
@@ -103,8 +105,32 @@ export default function PaymentModal({
     </button>
   );
 
-  return (
-    <div className="video-modal-overlay" style={{ zIndex: 10000 }}>
+  return ReactDOM.createPortal(
+    <div
+      className="video-modal-overlay"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: 'rgba(15, 23, 42, 0.75)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
+        zIndex: 9999999,
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        paddingTop: '85px',
+        paddingBottom: '30px',
+        paddingLeft: '16px',
+        paddingRight: '16px',
+        boxSizing: 'border-box',
+        overflowY: 'auto'
+      }}
+    >
       <Toast {...toast} />
       <div
         className="fade-in"
@@ -114,11 +140,12 @@ export default function PaymentModal({
           width: '100%',
           maxWidth: '440px',
           padding: '28px',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           direction: 'rtl',
           border: '1px solid #E2E8F0',
           position: 'relative',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          margin: 'auto 0'
         }}
       >
         {/* Header */}
@@ -671,7 +698,8 @@ export default function PaymentModal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 
   function renderUploadSection() {

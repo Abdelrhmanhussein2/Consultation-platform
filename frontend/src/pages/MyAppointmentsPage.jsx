@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { appointmentService } from '../services/appointmentService';
 import VideoSessionModal from '../components/VideoSession/VideoSessionModal';
+import PaymentModal from '../components/Consultants/PaymentModal';
 
 export default function MyAppointmentsPage({ navigate }) {
   const { token } = useAuth();
@@ -11,6 +12,7 @@ export default function MyAppointmentsPage({ navigate }) {
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'active', 'completed', 'cancelled'
   const [loading, setLoading] = useState(true);
   const [activeVideoApptId, setActiveVideoApptId] = useState(null);
+  const [payingAppt, setPayingAppt] = useState(null);
 
   const fetchAppointments = async () => {
     if (!token) return;
@@ -61,6 +63,10 @@ export default function MyAppointmentsPage({ navigate }) {
     switch (activeTab) {
       case 'active':
         return appointments.filter(a => ['confirmed', 'pending_payment', 'pending_approval'].includes(a.status));
+      case 'pending_approval':
+        return appointments.filter(a => a.status === 'pending_approval');
+      case 'pending_payment':
+        return appointments.filter(a => a.status === 'pending_payment');
       case 'completed':
         return appointments.filter(a => a.status === 'completed');
       case 'cancelled':
@@ -75,19 +81,20 @@ export default function MyAppointmentsPage({ navigate }) {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'confirmed':
-        return <span style={{ background: '#D1FAE5', color: '#065F46', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>مؤكدة</span>;
+        return <span style={{ background: '#D1FAE5', color: '#065F46', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>مؤكدة (تم الدفع)</span>;
       case 'pending_payment':
+        return <span style={{ background: '#DBEAFE', color: '#1E40AF', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>مقبولة (بانتظار الدفع)</span>;
       case 'pending_approval':
-        return <span style={{ background: '#DBEAFE', color: '#1E40AF', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>مقبولة</span>;
+        return <span style={{ background: '#FEF3C7', color: '#D97706', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>معلقة (بانتظار موافقة المستشار)</span>;
       case 'completed':
         return <span style={{ background: '#E0E7FF', color: '#3730A3', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>مكتملة</span>;
       case 'cancelled':
       case 'cancelled_by_user':
       case 'cancelled_by_consultant':
       case 'rejected':
-        return <span style={{ background: '#FEE2E2', color: '#991B1B', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>ملغاة</span>;
+        return <span style={{ background: '#FEE2E2', color: '#991B1B', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>ملغاة / مرفوضة</span>;
       default:
-        return <span style={{ background: '#FEF3C7', color: '#92400E', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>معلقة</span>;
+        return <span style={{ background: '#F1F5F9', color: '#64748B', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>معلقة</span>;
     }
   };
 
@@ -259,6 +266,8 @@ export default function MyAppointmentsPage({ navigate }) {
         {[
           { id: 'all', label: 'الكل' },
           { id: 'active', label: 'النشطة' },
+          { id: 'pending_approval', label: 'بانتظار موافقة المستشار' },
+          { id: 'pending_payment', label: 'بانتظار الدفع' },
           { id: 'completed', label: 'المكتملة' },
           { id: 'cancelled', label: 'الملغاة/المرفوضة' }
         ].map(tab => {
@@ -369,7 +378,7 @@ export default function MyAppointmentsPage({ navigate }) {
 
                   {isPendingPayment && (
                     <button
-                      onClick={() => handlePay(appt.id)}
+                      onClick={() => setPayingAppt(appt)}
                       style={{
                         backgroundColor: '#10B981',
                         color: '#FFFFFF',
@@ -378,7 +387,8 @@ export default function MyAppointmentsPage({ navigate }) {
                         borderRadius: '20px',
                         fontWeight: '700',
                         fontSize: '13px',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)'
                       }}
                     >
                       دفع {appt.amount || appt.price || 50} د.أ
@@ -387,7 +397,7 @@ export default function MyAppointmentsPage({ navigate }) {
 
                   {(isPendingApproval || isPendingPayment || isConfirmed) && (
                     <button
-                      onClick={() => navigate('/chat')}
+                      onClick={() => navigate(`/chat?apptId=${appt.id}`)}
                       style={{
                         backgroundColor: '#FFFFFF',
                         border: '1px solid #CBD5E1',
@@ -440,6 +450,22 @@ export default function MyAppointmentsPage({ navigate }) {
         onClose={() => setActiveVideoApptId(null)}
         onSessionEnd={fetchAppointments}
       />
+
+      {/* Payment Modal for Pending Payment Appointments */}
+      {payingAppt && (
+        <PaymentModal
+          isOpen={!!payingAppt}
+          onClose={() => setPayingAppt(null)}
+          onSuccess={() => {
+            setPayingAppt(null);
+            fetchAppointments();
+          }}
+          appointmentId={payingAppt.id}
+          price={payingAppt.amount || payingAppt.price || 50}
+          consultantName={payingAppt.consultant_name || 'المستشار'}
+          serviceName={payingAppt.service_name || 'جلسة استشارية ضريبية'}
+        />
+      )}
 
     </div>
   );

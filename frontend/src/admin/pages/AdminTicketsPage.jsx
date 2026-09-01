@@ -278,6 +278,7 @@ export default function AdminTicketsPage({ navigate }) {
         if (res && Array.isArray(res) && res.length > 0) {
           // Normalize backend tickets format
           const formatted = res.map(t => ({
+            realId: t.id,
             id: `#${t.ticket_number || t.id.slice(0, 8)}`,
             subject: t.subject,
             category: t.category || 'عام',
@@ -292,15 +293,18 @@ export default function AdminTicketsPage({ navigate }) {
             slaPercent: 50,
             isDelayed: false,
             slaBreached: false,
-            messages: (t.replies || []).map(r => ({
-              from: r.is_internal ? 'agent' : (r.user_id ? 'user' : 'agent'),
-              name: r.user_name || 'مشرف الدعم',
-              role: r.is_internal ? 'ملاحظة داخلية' : 'موظف الدعم',
-              date: r.created_at ? new Date(r.created_at).toLocaleDateString('ar-EG') : '20/08/2026',
-              time: r.created_at ? new Date(r.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '10:00 ص',
-              text: r.reply_text,
-              internal: r.is_internal
-            })),
+            messages: (t.replies || []).map(r => {
+              const isUser = r.author_role === 'user' || r.author_role === 'client' || r.author_role === 'company' || r.author_role === 'researcher' || (r.author_id && r.author_id === t.submitted_by) || (r.user_id && !r.is_internal);
+              return {
+                from: isUser ? 'user' : 'agent',
+                name: r.author_name || r.user_name || (isUser ? (t.user_name || 'المستخدم') : 'مشرف الدعم'),
+                role: r.is_internal ? 'ملاحظة داخلية' : (isUser ? 'المستفيد' : 'موظف الدعم'),
+                date: r.created_at ? new Date(r.created_at).toLocaleDateString('ar-EG') : '20/08/2026',
+                time: r.created_at ? new Date(r.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '10:00 ص',
+                text: r.message || r.reply_text,
+                internal: r.is_internal
+              };
+            }),
             attachments: (t.attachments || []).map(a => ({ name: a.file_name, size: '1.2 MB' })),
             timeline: [{ action: 'تم جلب الطلب من قاعدة البيانات', date: 'الآن', by: 'نظام ديوان' }],
             rating: null
@@ -462,7 +466,9 @@ export default function AdminTicketsPage({ navigate }) {
 
     // 2. Persist to Backend API
     try {
-      await replyAdminTicket(ticketId.replace('#', ''), {
+      const targetTicket = tickets.find(t => t.id === ticketId);
+      const dbId = targetTicket?.realId || ticketId.replace('#', '');
+      await replyAdminTicket(dbId, {
         reply_text: sentText,
         is_internal: replyInternal
       });
@@ -608,7 +614,9 @@ export default function AdminTicketsPage({ navigate }) {
     showToast('تم حفظ الملاحظة الداخلية بنجاح (سرية لا يراها العميل).');
 
     try {
-      await replyAdminTicket(selectedTicketId.replace('#', ''), {
+      const targetTicket = tickets.find(t => t.id === selectedTicketId);
+      const dbId = targetTicket?.realId || selectedTicketId.replace('#', '');
+      await replyAdminTicket(dbId, {
         reply_text: noteToSave,
         is_internal: true
       });

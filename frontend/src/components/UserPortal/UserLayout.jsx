@@ -11,7 +11,7 @@ export default function UserLayout({ currentPath, navigate, children }) {
   };
 
   return (
-    <div className="portal-container fade-in">
+    <div className="portal-container">
       {/* Sidebar Navigation */}
       <UserSidebar
         currentPath={currentPath}

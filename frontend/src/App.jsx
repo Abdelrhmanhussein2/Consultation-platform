@@ -110,31 +110,33 @@ function MainApp() {
 
   // Render User Portal content inside UserLayout
   const renderUserPortalContent = () => {
+    const pathname = currentPath.split('?')[0];
+
     if (
-      currentPath === '/calendar' ||
-      currentPath === '/appointments-management' ||
-      currentPath === '/diwan-calendar'
+      pathname === '/calendar' ||
+      pathname === '/appointments-management' ||
+      pathname === '/diwan-calendar'
     ) {
       return <DiwanAppointmentsPage initialRole="user" navigate={navigate} />;
     }
-    if (currentPath === '/consultant/calendar') {
+    if (pathname === '/consultant/calendar') {
       return <DiwanAppointmentsPage initialRole="consultant" navigate={navigate} />;
     }
-    if (currentPath === '/consultants') {
+    if (pathname === '/consultants') {
       return <ConsultantsPage navigate={navigate} />;
     }
-    if (currentPath.startsWith('/consultants/')) {
-      const parts = currentPath.split('/');
+    if (pathname.startsWith('/consultants/')) {
+      const parts = pathname.split('/');
       const id = parts[parts.length - 1];
       return <ConsultantDetailPage profileId={id} navigate={navigate} />;
     }
-    if (currentPath === '/quick-consultation') {
+    if (pathname === '/quick-consultation') {
       return <QuickConsultationPage navigate={navigate} />;
     }
-    if (currentPath === '/my-appointments') {
+    if (pathname === '/my-appointments') {
       return <MyAppointmentsPage navigate={navigate} />;
     }
-    if (currentPath === '/chat') {
+    if (pathname === '/chat') {
       return <ChatPage navigate={navigate} />;
     }
     if (currentPath.startsWith('/regulations')) {

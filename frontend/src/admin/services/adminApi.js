@@ -8,14 +8,23 @@ const API_BASE = '/api';
 // Strictly In-Memory Token Reference (No localStorage / No sessionStorage for maximum security)
 let inMemoryAdminToken = '';
 
+const getCookie = (name) => {
+  try {
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
+  } catch {
+    return null;
+  }
+};
+
 /**
- * Get current Auth Token from in-memory state
+ * Get current Auth Token from in-memory state or Cookies
  */
 export function getAdminToken() {
   if (typeof window !== 'undefined') {
     if (window.__ADMIN_TOKEN__) return window.__ADMIN_TOKEN__;
     try {
-      const storedToken = localStorage.getItem('token') || localStorage.getItem('admin_token');
+      const storedToken = getCookie('token') || getCookie('admin_token');
       if (storedToken) return storedToken;
     } catch {}
   }
