@@ -5,8 +5,7 @@ import {
   IconBookmark,
   IconCalendar,
   IconMessage,
-  IconNotifications,
-  IconArrowLeft
+  IconNotifications
 } from './AdminIcons';
 
 export default function AdminHeader({ navigate, onOpenAiModal }) {
@@ -87,7 +86,7 @@ export default function AdminHeader({ navigate, onOpenAiModal }) {
         </div>
       </div>
 
-      {/* Left side: AI Button & Exit/Arrow button */}
+      {/* Left side: AI Button */}
       <div className="admin-topbar-left-group">
         <button 
           className="admin-btn-ask-ai"
@@ -95,14 +94,6 @@ export default function AdminHeader({ navigate, onOpenAiModal }) {
         >
           <IconSparkles size={15} />
           <span>اسأل ديوان AI</span>
-        </button>
-
-        <button 
-          className="admin-icon-btn-minimal"
-          title="العودة للرئيسية"
-          onClick={() => navigate('/')}
-        >
-          <IconArrowLeft size={16} />
         </button>
       </div>
     </header>

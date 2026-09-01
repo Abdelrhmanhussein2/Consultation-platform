@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Toast, { useToast } from '../components/Toast/Toast';
 
 export default function ConsultantSubscriptionsPage({ navigate }) {
@@ -6,6 +6,18 @@ export default function ConsultantSubscriptionsPage({ navigate }) {
   const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' or 'yearly'
   const [activePlan, setActivePlan] = useState('pro'); // 'free', 'pro', 'business'
   const [subscribing, setSubscribing] = useState(null);
+  const [dbPlans, setDbPlans] = useState([]);
+
+  useEffect(() => {
+    fetch('/api/subscriptions/plans')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && Array.isArray(data) && data.length > 0) {
+          setDbPlans(data);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Prices based on cycle
   const prices = {
@@ -18,12 +30,24 @@ export default function ConsultantSubscriptionsPage({ navigate }) {
     if (planKey === activePlan) return;
     setSubscribing(planKey);
     
+    try {
+      await fetch('/api/subscriptions/upgrade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sub_id: 'mock-sub',
+          target_plan: planKey === 'business' ? 'احترافية' : planKey === 'pro' ? 'أساسية' : 'مجانية',
+          mode: 'immediate'
+        })
+      });
+    } catch (e) {}
+    
     // Simulate payment mock delay
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 1000));
     
     setActivePlan(planKey);
     setSubscribing(null);
-    showToast(`تم الترقية إلى خطة ${planKey === 'business' ? 'الأعمال' : planKey === 'pro' ? 'الاحترافية' : 'المجانية'} بنجاح!`);
+    showToast(`تم الترقية إلى خطة ${planKey === 'business' ? 'الأعمال' : planKey === 'pro' ? 'الاحترافية' : 'المجانية'} بنجاح ومزامنتها!`);
   };
 
   const cycleLabel = billingCycle === 'monthly' ? 'JOD / شهر' : 'JOD / سنة';

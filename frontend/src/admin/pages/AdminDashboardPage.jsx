@@ -48,10 +48,10 @@ export default function AdminDashboardPage({ navigate }) {
           <div className="admin-banner-actions">
             <button 
               className="admin-btn-action-primary"
-              onClick={() => navigate('/admin/financial')}
+              onClick={() => navigate('/admin/payments')}
             >
               <IconFinancial size={15} />
-              <span>فتح الماليات</span>
+              <span>طلبات الدفع والتحويلات</span>
             </button>
 
             <button 

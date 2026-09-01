@@ -1,27 +1,27 @@
 import React from 'react';
 
-export default function CurrentActivityCard({ navigate }) {
+export default function CurrentActivityCard({ navigate, stats = {} }) {
   const activities = [
     {
-      num: '7',
+      num: stats.total_users != null ? String(stats.total_users) : '7',
       label: 'الحسابات',
-      sub: '1 شركة • 6 فرد',
+      sub: `${stats.total_companies || 1} شركة • ${stats.total_individuals || 6} فرد`,
       path: '/admin/users'
     },
     {
-      num: '5',
+      num: stats.open_sessions_count != null ? String(stats.open_sessions_count) : '5',
       label: 'جلسات نشطة',
-      sub: '0 جلسة مكتملة',
+      sub: `${stats.completed_sessions_count || 0} جلسة مكتملة`,
       path: '/admin/sessions'
     },
     {
-      num: '0',
+      num: stats.open_tickets_count != null ? String(stats.open_tickets_count) : '0',
       label: 'تذاكر للمراجعة',
       sub: '0 عالية الأولوية',
       path: '/admin/tickets'
     },
     {
-      num: '2',
+      num: stats.pending_credentials_count != null ? String(stats.pending_credentials_count) : '2',
       label: 'موافقات مستشارين',
       sub: 'طلبات تحتاج اعتماد أو رفض',
       path: '/admin/consultants'

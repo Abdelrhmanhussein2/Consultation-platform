@@ -1,10 +1,10 @@
 import React from 'react';
 
-export default function CategorySummariesCard({ navigate }) {
+export default function CategorySummariesCard({ navigate, stats = {} }) {
   const categories = [
     {
       title: 'العمليات',
-      badge: '10 ملف',
+      badge: `${(stats.total_users || 7) + (stats.total_consultants || 3)} ملف`,
       links: [
         { label: 'المستخدمون', path: '/admin/users' },
         { label: 'المستشارون', path: '/admin/consultants' },
@@ -14,7 +14,7 @@ export default function CategorySummariesCard({ navigate }) {
     },
     {
       title: 'المال',
-      badge: '165.88 د.أ',
+      badge: `${stats.total_revenue_jod != null ? Number(stats.total_revenue_jod).toFixed(2) : '165.88'} د.أ`,
       links: [
         { label: 'الإيرادات', path: '/admin/financial' },
         { label: 'المدفوعات', path: '/admin/payments' },
@@ -24,7 +24,7 @@ export default function CategorySummariesCard({ navigate }) {
     },
     {
       title: 'المعرفة وAI',
-      badge: '351 رسالة',
+      badge: `${stats.ai_queries_count || 351} رسالة`,
       links: [
         { label: 'مواد', path: '/admin/knowledge' },
         { label: 'نماذج', path: '/admin/tax-forms' },

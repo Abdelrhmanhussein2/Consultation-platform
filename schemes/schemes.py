@@ -660,11 +660,20 @@ class ClientSummaryOut(BaseModel):
     total_sessions: int
     completed_sessions: int
     cancelled_sessions: int
+    video_sessions: Optional[int] = 0
+    chat_sessions: Optional[int] = 0
     total_paid: Decimal
     average_rating_given: Optional[float]
     last_appointment_at: Optional[datetime]
     next_appointment_at: Optional[datetime]
     first_session_at: Optional[datetime]
+    entity_type: Optional[EntityType] = None
+    legal_form: Optional[LegalForm] = None
+    company_name: Optional[str] = None
+    tax_number: Optional[str] = None
+    sector: Optional[BusinessSector] = None
+    address: Optional[str] = None
+    is_active: Optional[bool] = True
 
 
 # =====================================================================

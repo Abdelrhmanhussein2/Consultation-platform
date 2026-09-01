@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { IconExcel } from './AdminIcons';
 
-export default function RevenueGrowthChart() {
+export default function RevenueGrowthChart({ stats = {} }) {
   const [period, setPeriod] = useState('year');
 
   // Months labels matching screenshot

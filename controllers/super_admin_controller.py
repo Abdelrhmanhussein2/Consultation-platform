@@ -330,5 +330,31 @@ class SuperAdminController:
                 detail=f"Failed to generate reports analytics: {str(e)}"
             )
 
+    @staticmethod
+    def get_dashboard_stats(db: Session):
+        """
+        Retrieves live operational metrics and chart series for the Admin Command Center dashboard.
+        """
+        try:
+            return SuperAdminService.get_dashboard_stats(db)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to load dashboard stats: {str(e)}"
+            )
+
+    @staticmethod
+    def list_all_payments_transfers(db: Session):
+        """
+        Retrieves all payments and payout transfers combined from the database.
+        """
+        try:
+            return SuperAdminService.list_all_payments_transfers(db)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to load payments: {str(e)}"
+            )
+
 
 

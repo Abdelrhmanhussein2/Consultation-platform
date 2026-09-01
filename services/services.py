@@ -865,9 +865,18 @@ class ConsultantService:
                 User.full_name.label("full_name"),
                 User.email.label("email"),
                 User.phone.label("phone"),
+                User.entity_type.label("entity_type"),
+                User.legal_form.label("legal_form"),
+                User.company_name.label("company_name"),
+                User.tax_number.label("tax_number"),
+                User.sector.label("sector"),
+                User.address.label("address"),
+                User.is_active.label("is_active"),
                 func.count(Appointment.id).label("total_sessions"),
                 func.sum(case((Appointment.status == AppointmentStatus.completed, 1), else_=0)).label("completed_sessions"),
                 func.sum(case((Appointment.status.in_([AppointmentStatus.cancelled_by_user, AppointmentStatus.cancelled_by_consultant]), 1), else_=0)).label("cancelled_sessions"),
+                func.sum(case((Appointment.session_type == SessionType.video_call, 1), else_=0)).label("video_sessions"),
+                func.sum(case((Appointment.session_type == SessionType.chat_session, 1), else_=0)).label("chat_sessions"),
                 func.coalesce(func.sum(Invoice.total_amount), Decimal("0.00")).label("total_paid"),
                 func.avg(Rating.stars).label("average_rating_given"),
                 func.max(case((Appointment.scheduled_at < now, Appointment.scheduled_at), else_=None)).label("last_appointment_at"),
@@ -878,7 +887,7 @@ class ConsultantService:
             .outerjoin(Rating, Rating.appointment_id == Appointment.id)
             .outerjoin(Invoice, and_(Invoice.appointment_id == Appointment.id, Invoice.status == InvoiceStatus.paid))
             .filter(Appointment.consultant_id == consultant_id)
-            .group_by(User.id, User.full_name, User.email, User.phone)
+            .group_by(User.id, User.full_name, User.email, User.phone, User.entity_type, User.legal_form, User.company_name, User.tax_number, User.sector, User.address, User.is_active)
             .order_by(func.max(Appointment.scheduled_at).desc())
             .offset((page - 1) * limit)
             .limit(limit)
@@ -893,15 +902,52 @@ class ConsultantService:
                 "full_name": r.full_name,
                 "email": r.email,
                 "phone": r.phone,
-                "total_sessions": r.total_sessions,
-                "completed_sessions": r.completed_sessions,
-                "cancelled_sessions": r.cancelled_sessions,
+                "entity_type": r.entity_type,
+                "legal_form": r.legal_form,
+                "company_name": r.company_name,
+                "tax_number": r.tax_number,
+                "sector": r.sector,
+                "address": r.address,
+                "is_active": r.is_active,
+                "total_sessions": r.total_sessions or 0,
+                "completed_sessions": r.completed_sessions or 0,
+                "cancelled_sessions": r.cancelled_sessions or 0,
+                "video_sessions": r.video_sessions or 0,
+                "chat_sessions": r.chat_sessions or 0,
                 "total_paid": r.total_paid,
                 "average_rating_given": r.average_rating_given,
                 "last_appointment_at": r.last_appointment_at,
                 "next_appointment_at": r.next_appointment_at,
                 "first_session_at": r.first_session_at,
             })
+            
+        # If this consultant does not have any direct appointments yet, also include registered users so they see the client base
+        if not clients_list:
+            all_users = db.query(User).filter(User.role.in_([UserRole.user, UserRole.client])).limit(limit).all()
+            for u in all_users:
+                clients_list.append({
+                    "user_id": u.id,
+                    "full_name": u.full_name,
+                    "email": u.email,
+                    "phone": u.phone,
+                    "entity_type": u.entity_type,
+                    "legal_form": u.legal_form,
+                    "company_name": u.company_name,
+                    "tax_number": u.tax_number,
+                    "sector": u.sector,
+                    "address": u.address,
+                    "is_active": u.is_active,
+                    "total_sessions": 0,
+                    "completed_sessions": 0,
+                    "cancelled_sessions": 0,
+                    "video_sessions": 0,
+                    "chat_sessions": 0,
+                    "total_paid": Decimal("0.00"),
+                    "average_rating_given": None,
+                    "last_appointment_at": None,
+                    "next_appointment_at": None,
+                    "first_session_at": None,
+                })
         return clients_list
 
 

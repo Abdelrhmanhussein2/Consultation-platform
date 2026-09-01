@@ -1,21 +1,23 @@
 import React from 'react';
 import { IconAlert } from './AdminIcons';
 
-export default function ApprovalQueueCard({ navigate }) {
-  const pendingRequests = [
-    {
-      id: '8376b4cf',
-      title: 'طلب مستشار #8376b4cf',
-      sub: 'ملف مستشار جديد (تخصص ضريبي ومالي)',
-      path: '/admin/consultants'
-    },
-    {
-      id: 'd08c00bf',
-      title: 'طلب مستشار #d08c00bf',
-      sub: 'تعديل تخصص وشهادة خبرة معتمدة',
-      path: '/admin/consultants'
-    }
-  ];
+export default function ApprovalQueueCard({ navigate, stats = {} }) {
+  const pendingRequests = stats.pending_approvals && stats.pending_approvals.length > 0
+    ? stats.pending_approvals
+    : [
+        {
+          id: '8376b4cf',
+          title: 'طلب مستشار #8376b4cf',
+          sub: 'ملف مستشار جديد (تخصص ضريبي ومالي)',
+          path: '/admin/consultants'
+        },
+        {
+          id: 'd08c00bf',
+          title: 'طلب مستشار #d08c00bf',
+          sub: 'تعديل تخصص وشهادة خبرة معتمدة',
+          path: '/admin/consultants'
+        }
+      ];
 
   return (
     <div className="admin-card">

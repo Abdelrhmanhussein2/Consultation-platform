@@ -39,7 +39,7 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
       icon: IconUsers,
       defaultPath: '/admin/users',
       subItems: [
-        { id: 'users', label: 'المستخدمون والشركات', path: '/admin/users' },
+        { id: 'users', label: 'المستخدمون والعملاء', path: '/admin/users' },
         { id: 'consultants', label: 'المستشارون المعتمدون', path: '/admin/consultants' }
       ]
     },
@@ -49,11 +49,11 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
       id: 'finance_group', 
       label: 'المالية والاشتراكات', 
       icon: IconFinancial,
-      defaultPath: '/admin/financial',
+      defaultPath: '/admin/payments',
       subItems: [
-        { id: 'financial', label: 'النظام المالي والمحافظ', path: '/admin/financial' },
-        { id: 'payments', label: 'المدفوعات والفواتير', path: '/admin/payments' },
-        { id: 'subscriptions', label: 'الباقات والاشتراكات', path: '/admin/subscriptions' }
+        { id: 'payments', label: 'طلبات الدفع والتحويلات', path: '/admin/payments' },
+        { id: 'subscriptions', label: 'الباقات والاشتراكات', path: '/admin/subscriptions' },
+        { id: 'financial', label: 'النظام المالي والمحافظ', path: '/admin/financial' }
       ]
     },
 
@@ -148,6 +148,22 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
     }
   };
 
+  // Logout handler
+  const handleLogout = (e) => {
+    e.preventDefault();
+    if (window.confirm('هل تريد تسجيل الخروج من لوحة التحكم؟')) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('role');
+      localStorage.removeItem('admin');
+      if (navigate) {
+        navigate('/login');
+      } else {
+        window.location.href = '/login';
+      }
+    }
+  };
+
   return (
     <aside className="admin-sidebar">
       {/* Brand Header */}
@@ -231,6 +247,25 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
           );
         })}
       </nav>
+
+      {/* Sidebar Footer: Logout Button */}
+      <div className="admin-sidebar-footer">
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="admin-logout-btn"
+          title="تسجيل الخروج من لوحة التحكم"
+        >
+          <span className="admin-logout-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </span>
+          <span>تسجيل الخروج</span>
+        </button>
+      </div>
     </aside>
   );
 }

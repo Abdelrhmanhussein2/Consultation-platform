@@ -148,18 +148,29 @@ def review_expansion_request(
 
 @router.get(
     "/users",
-    response_model=List[UserOut],
-    summary="List all users (with optional role filter)",
+    response_model=List[AdminUserListOut],
+    summary="List all users with full metadata",
 )
 def list_users(
-    role: Optional[UserRole] = None,
-    page: int = 1,
-    limit: int = 20,
+    search: Optional[str] = Query(None, description="Search by name, email, or phone"),
+    role: Optional[UserRole] = Query(None, description="Filter by User Role"),
+    entity_type: Optional[EntityType] = Query(None, description="Filter by Entity Type"),
+    is_active: Optional[bool] = Query(None, description="Filter by active status"),
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(50, ge=1, le=200, description="Results per page"),
     db: Session = Depends(get_db),
-    current_super_admin: User = Depends(require_super_admin),
+    current_admin: User = Depends(require_perm_manage_users),
 ):
-    """Returns a paginated list of all users, optionally filtered by role."""
-    return SuperAdminController.list_users(db, role, page, limit)
+    """Returns a paginated list of all users with full profile metadata."""
+    return SuperAdminController.list_all_users_admin(
+        db=db,
+        search=search,
+        role=role,
+        entity_type=entity_type,
+        is_active=is_active,
+        page=page,
+        limit=limit
+    )
 
 
 @router.post(
@@ -170,10 +181,10 @@ def list_users(
 def toggle_user_active(
     user_id: str,
     db: Session = Depends(get_db),
-    current_super_admin: User = Depends(require_super_admin),
+    current_admin: User = Depends(require_perm_manage_users),
 ):
     """Toggles a user's active state. Super admin cannot deactivate their own account."""
-    return SuperAdminController.toggle_user_active(db, user_id, current_super_admin.id)
+    return SuperAdminController.toggle_user_active(db, user_id, current_admin.id)
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -209,6 +220,20 @@ def get_reports_analytics(
         city=city,
         status=status
     )
+
+
+@router.get(
+    "/dashboard/stats",
+    summary="Get live aggregated KPI stats, queue, and charts for Admin Command Center",
+)
+def get_dashboard_stats(
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_view_analytics)
+):
+    """
+    Returns live aggregated stats from the database for the Admin Command Center dashboard.
+    """
+    return SuperAdminController.get_dashboard_stats(db)
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -617,6 +642,20 @@ def admin_process_payout(
     Automatically sends an in-app notification to the consultant.
     """
     return SuperAdminController.process_payout(db, payout_id, current_admin, action_in)
+
+
+@router.get(
+    "/payments",
+    summary="List all payments, invoices, and payout transfers combined",
+)
+def admin_list_payments(
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_payouts),
+):
+    """
+    Returns unified list of customer payments, invoices, and consultant payouts.
+    """
+    return SuperAdminController.list_all_payments_transfers(db)
 
 
 # ─────────────────────────────────────────────────────────────────────

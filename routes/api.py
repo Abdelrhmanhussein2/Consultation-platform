@@ -15,6 +15,7 @@ from routes.settings_routes import router as settings_router
 from routes.user_document_routes import router as user_document_router
 from routes.template_routes import router as template_router
 from routes.favorite_routes import router as favorite_router
+from routes.subscription_routes import router as subscription_router
 
 api_router = APIRouter(prefix="/api")
 
@@ -35,6 +36,7 @@ api_router.include_router(settings_router)
 api_router.include_router(user_document_router)
 api_router.include_router(template_router)
 api_router.include_router(favorite_router)
+api_router.include_router(subscription_router)
 
 
 
