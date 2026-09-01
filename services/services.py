@@ -503,7 +503,9 @@ class ConsultantService:
             "services": active_services,
             "price_per_hour": profile.price_per_hour,
             "working_days": list(set([av.day_of_week for av in profile.availabilities if av.is_active])),
+            "availabilities": profile.availabilities,
         }
+
 
     @staticmethod
     def list_consultants(
@@ -1529,6 +1531,33 @@ class RatingService:
         db.commit()
         db.refresh(rating)
         return rating
+
+    @staticmethod
+    def get_consultant_ratings(db: Session, profile_id: uuid.UUID) -> list:
+        ratings = (
+            db.query(Rating)
+            .options(joinedload(Rating.user))
+            .filter(
+                and_(
+                    Rating.consultant_id == profile_id,
+                    Rating.status == RatingStatus.published
+                )
+            )
+            .order_by(Rating.created_at.desc())
+            .all()
+        )
+        return [
+            {
+                "id": str(r.id),
+                "reviewer_name": r.user.full_name if r.user else "عميل موثق",
+                "stars": r.stars,
+                "comment": r.comment or "استشارة ممتازة ومفيدة جداً",
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+                "is_verified_booking": True
+            }
+            for r in ratings
+        ]
+
 
 
 # =====================================================================

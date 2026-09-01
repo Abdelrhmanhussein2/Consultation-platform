@@ -33,6 +33,14 @@ export const consultantService = {
     }, token);
   },
 
+  // Get consultant reviews and ratings from database
+  async getConsultantRatings(profileId, token) {
+    return await apiFetch(`/api/consultants/${profileId}/ratings`, {
+      method: 'GET'
+    }, token);
+  },
+
+
   // Get available time slots for a consultant
   async getAvailableSlots(profileId, startDate, endDate, durationMinutes = 60, token) {
     const params = new URLSearchParams({

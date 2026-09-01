@@ -17,7 +17,7 @@ from schemes import (
     SupportedBankOut, ConsultantBankAccountCreate, ConsultantBankAccountOut,
     ConsultantWalletOut, PayoutRequestCreate, PayoutRequestOut
 )
-from controllers import ConsultantController
+from controllers import ConsultantController, RatingController
 from routes.deps import get_current_active_user, require_consultant, require_super_admin
 
 router = APIRouter(prefix="/consultants", tags=["Consultants"])
@@ -95,6 +95,22 @@ def get_consultant_services_public(
     Visible to both users and consultants.
     """
     return ConsultantController.get_consultant_services_public(db, profile_id)
+
+
+@router.get(
+    "/{profile_id}/ratings",
+    summary="List all published ratings for a consultant",
+)
+def get_consultant_ratings_public(
+    profile_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Returns all published ratings and reviews for a specific consultant.
+    Visible to both users and consultants.
+    """
+    return RatingController.get_consultant_ratings(db, profile_id)
 
 
 # ─────────────────────────────────────────────────────────────────────

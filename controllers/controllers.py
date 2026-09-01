@@ -637,6 +637,16 @@ class RatingController:
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
+    @staticmethod
+    def get_consultant_ratings(db: Session, profile_id: str):
+        """Retrieves all published ratings for a consultant profile."""
+        try:
+            profile_uuid = uuid.UUID(profile_id)
+            return RatingService.get_consultant_ratings(db, profile_uuid)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid profile ID format")
+
+
 
 # =====================================================================
 # NOTIFICATION CONTROLLER

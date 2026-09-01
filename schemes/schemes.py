@@ -389,6 +389,7 @@ class ConsultantPublicProfileOut(BaseModel):
     certificates_licenses: Optional[str] = None
     price_per_hour: Optional[Decimal] = None
     working_days: List[int] = []
+    availabilities: List[Any] = []
 
     class Config:
         from_attributes = True
