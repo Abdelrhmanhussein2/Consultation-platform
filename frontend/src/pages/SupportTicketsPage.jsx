@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { useAuth } from '../context/AuthContext';
+import { apiFetch } from '../services/api';
 
 export default function SupportTicketsPage() {
   const { token } = useAuth();
@@ -12,16 +13,10 @@ export default function SupportTicketsPage() {
   const [loading, setLoading] = useState(true);
 
   const fetchTickets = async () => {
-    if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch('/api/tickets/my', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setTickets(data || []);
-      }
+      const data = await apiFetch('/api/tickets/my', {}, token);
+      setTickets(data || []);
     } catch (e) {
       // Handle error
     } finally {
@@ -35,29 +30,23 @@ export default function SupportTicketsPage() {
 
   const handleCreateTicket = async (e) => {
     e.preventDefault();
-    if (!subject.trim() || !description.trim() || !token) return;
+    if (!subject.trim() || !description.trim()) return;
 
     try {
-      const res = await fetch('/api/tickets/', {
+      await apiFetch('/api/tickets/', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+        body: {
           subject: subject.trim(),
           description: description.trim(),
           category
-        })
-      });
+        }
+      }, token);
 
-      if (res.ok) {
-        alert('تم إرسال تذكرة الدعم الفني بنجاح!');
-        setShowCreateModal(false);
-        setSubject('');
-        setDescription('');
-        fetchTickets();
-      }
+      alert('تم إرسال تذكرة الدعم الفني بنجاح!');
+      setShowCreateModal(false);
+      setSubject('');
+      setDescription('');
+      fetchTickets();
     } catch (e) {
       alert('حدث خطأ أثناء إنشاء التذكرة');
     }

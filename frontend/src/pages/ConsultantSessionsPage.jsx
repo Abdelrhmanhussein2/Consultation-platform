@@ -459,10 +459,10 @@ export default function ConsultantSessionsPage({ navigate }) {
                         </span>
                       </div>
                       <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0D3C5C', margin: '4px 0' }}>
-                        {appt.service?.name || 'استشارة تجريبية - اختبار الفيديو والملخص الذكي'}
+                        {appt.client_name || appt.user?.full_name || appt.user_name || 'عميل'}
                       </h4>
                       <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>
-                        الموعد المفضل: {dateVal} الساعة {timeVal} القناة: فيديو المستشار المطلوب: {user?.full_name}
+                        {appt.session_type === 'video_call' ? 'جلسة فيديو' : appt.session_type === 'audio_call' ? 'جلسة صوتية' : appt.session_type === 'text_chat' ? 'محادثة نصية' : 'استشارة'} • {dateVal} الساعة {timeVal}
                       </p>
                     </div>
                   </div>
@@ -569,10 +569,10 @@ export default function ConsultantSessionsPage({ navigate }) {
                         </span>
                       </div>
                       <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0D3C5C', margin: '4px 0' }}>
-                        {appt.service?.name || 'استشارة تجريبية - اختبار الفيديو والملخص الذكي'}
+                        {appt.client_name || appt.user?.full_name || appt.user_name || 'عميل'}
                       </h4>
                       <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>
-                        مع العميل: {appt.user?.full_name} • التاريخ: {dateVal} الساعة {timeVal}
+                        {appt.session_type === 'video_call' ? 'جلسة فيديو' : appt.session_type === 'audio_call' ? 'جلسة صوتية' : appt.session_type === 'text_chat' ? 'محادثة نصية' : 'استشارة'} • {dateVal} الساعة {timeVal}
                       </p>
                     </div>
                   </div>

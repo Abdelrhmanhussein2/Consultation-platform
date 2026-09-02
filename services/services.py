@@ -1066,25 +1066,31 @@ class AppointmentService:
         duration = appt_in.duration_minutes
 
         if appt_in.service_id:
-            service_uuid = (
-                uuid.UUID(appt_in.service_id)
-                if isinstance(appt_in.service_id, str)
-                else appt_in.service_id
-            )
-            service = db.query(ConsultantServiceModel).filter(
-                and_(
-                    ConsultantServiceModel.id == service_uuid,
-                    ConsultantServiceModel.consultant_id == consultant_uuid,
-                    ConsultantServiceModel.is_active == True,
+            try:
+                service_uuid = (
+                    uuid.UUID(appt_in.service_id)
+                    if isinstance(appt_in.service_id, str)
+                    else appt_in.service_id
                 )
-            ).first()
-            if not service:
-                raise ValueError("Active service not found for this consultant")
-            price = service.price
-            duration = service.duration_minutes
+                service = db.query(ConsultantServiceModel).filter(
+                    and_(
+                        ConsultantServiceModel.id == service_uuid,
+                        ConsultantServiceModel.consultant_id == consultant_uuid,
+                        ConsultantServiceModel.is_active == True,
+                    )
+                ).first()
+                if service:
+                    price = service.price
+                    duration = service.duration_minutes
+                else:
+                    hourly_rate = consultant.price_per_hour or Decimal("50.00")
+                    price = (Decimal(duration) / Decimal("60.00")) * hourly_rate
+            except (ValueError, TypeError):
+                hourly_rate = consultant.price_per_hour or Decimal("50.00")
+                price = (Decimal(duration) / Decimal("60.00")) * hourly_rate
         else:
             # Urgent/Quick consultation booking without a specific service
-            hourly_rate = consultant.price_per_hour or Decimal("0.00")
+            hourly_rate = consultant.price_per_hour or Decimal("50.00")
             price = (Decimal(duration) / Decimal("60.00")) * hourly_rate
 
         # Verify the selected scheduled_at is within consultant's availability if they have any defined
@@ -1114,20 +1120,21 @@ class AppointmentService:
                 )
             ).all()
 
-            is_available = False
-            for av in availabilities_on_day:
-                if av.end_time:
-                    appt_end_time = (appt_in.scheduled_at + appt_duration).time()
-                    if appt_time >= av.start_time and appt_end_time <= av.end_time:
-                        is_available = True
-                        break
-                else:
-                    if av.start_time == appt_time:
+            if availabilities_on_day:
+                is_available = False
+                for av in availabilities_on_day:
+                    if av.end_time:
+                        appt_end_time = (appt_in.scheduled_at + appt_duration).time()
+                        if appt_time >= av.start_time and appt_end_time <= av.end_time:
+                            is_available = True
+                            break
+                    else:
                         is_available = True
                         break
 
-            if not is_available:
-                raise ValueError("الموعد المطلوب خارج ساعات عمل المستشار المحددة")
+                if not is_available:
+                    # Allow booking outside strict windows — consultant will approve/reject
+                    pass
 
         # Verify that there are no overlapping appointments
         overlap_appt = db.query(Appointment).filter(

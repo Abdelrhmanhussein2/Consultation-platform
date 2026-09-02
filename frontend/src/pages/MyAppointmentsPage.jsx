@@ -5,8 +5,8 @@ import VideoSessionModal from '../components/VideoSession/VideoSessionModal';
 import PaymentModal from '../components/Consultants/PaymentModal';
 
 export default function MyAppointmentsPage({ navigate }) {
-  const { token } = useAuth();
-  
+  const { token, user } = useAuth();
+
   // States
   const [appointments, setAppointments] = useState([]);
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'active', 'completed', 'cancelled'
@@ -51,6 +51,27 @@ export default function MyAppointmentsPage({ navigate }) {
     } catch (err) {
       alert(err.message || 'فشلت عملية الإلغاء');
     }
+  };
+
+  // Video Room Join Time Protection
+  const handleJoinVideoRoom = (appt) => {
+    if (!appt.scheduled_at) {
+      setActiveVideoApptId(appt.id);
+      return;
+    }
+
+    const now = new Date();
+    const sessionTime = new Date(appt.scheduled_at);
+    // Allow joining 15 minutes before scheduled time up to 2 hours after
+    const minJoinTime = new Date(sessionTime.getTime() - 15 * 60 * 1000);
+    const maxJoinTime = new Date(sessionTime.getTime() + 120 * 60 * 1000);
+
+    if (now < minJoinTime) {
+      alert(`عفواً، لا يمكنك دخول غرفة الفيديو إلا في موعد الجلسة المحدّد (${formatDateStr(appt.scheduled_at)}).`);
+      return;
+    }
+
+    setActiveVideoApptId(appt.id);
   };
 
   // Stats Calculations
@@ -107,6 +128,14 @@ export default function MyAppointmentsPage({ navigate }) {
     return `${dateFormatted} ، ${timeFormatted}`;
   };
 
+  // Helper to get Partner Name based on user role
+  const getPartnerName = (appt) => {
+    if (user?.role === 'consultant') {
+      return appt.client_name || appt.user?.full_name || appt.user_name || 'العميل';
+    }
+    return appt.consultant_name || appt.consultant?.user?.full_name || 'د. مستشار المنصة';
+  };
+
   const filteredAppointments = getFilteredAppointments();
   
   // Show first 5 upcoming confirmed appointments
@@ -128,7 +157,7 @@ export default function MyAppointmentsPage({ navigate }) {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '24px' }}>📅</span>
-            <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#0D3C5C', margin: 0 }}>استشاراتي</h1>
+            <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#0D3C5C', margin: 0 }}>استشاراتي ومواعيدي</h1>
           </div>
           <p style={{ color: '#64748B', fontSize: '13px', margin: '6px 0 0 0' }}>جميع طلبات الاستشارة ومواعيدك في مكان واحد.</p>
         </div>
@@ -216,6 +245,9 @@ export default function MyAppointmentsPage({ navigate }) {
                 }}
               >
                 <div>
+                  <div style={{ fontSize: '12px', color: '#005D9C', fontWeight: '800', marginBottom: '2px' }}>
+                    {user?.role === 'consultant' ? `العميل: ${getPartnerName(appt)}` : `المستشار: ${getPartnerName(appt)}`}
+                  </div>
                   <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#334155', margin: '0 0 4px 0' }}>
                     {appt.service_name || appt.notes || 'جلسة استشارية ضريبية'}
                   </h4>
@@ -227,7 +259,7 @@ export default function MyAppointmentsPage({ navigate }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   {getStatusBadge(appt.status)}
                   <button
-                    onClick={() => setActiveVideoApptId(appt.id)}
+                    onClick={() => handleJoinVideoRoom(appt)}
                     style={{
                       backgroundColor: '#F5A52A',
                       color: '#FFFFFF',
@@ -331,22 +363,26 @@ export default function MyAppointmentsPage({ navigate }) {
                 
                 {/* Details Section */}
                 <div style={{ flex: 1, minWidth: '280px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                     {getStatusBadge(appt.status)}
                     <span style={{ fontSize: '11px', color: '#94A3B8' }}>رقم المعاملة: #{appt.id.substring(0, 8)}</span>
                   </div>
                   
+                  <div style={{ fontSize: '13px', color: '#005D9C', fontWeight: '800', marginBottom: '4px' }}>
+                    {user?.role === 'consultant' ? `العميل: ${getPartnerName(appt)}` : `المستشار: ${getPartnerName(appt)}`}
+                  </div>
+
                   <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0D3C5C', margin: '0 0 6px 0' }}>
                     {appt.service_name || 'جلسة تجريبية - اختبار الفيديو والملخص الذكي'}
                   </h3>
 
                   <p style={{ fontSize: '12px', color: '#64748B', lineHeight: '1.6', margin: 0 }}>
                     {isConfirmed ? (
-                      `جلسة فيديو - يمكن الدخول ومراجعة السجل في أي حالة (${formatDateStr(appt.scheduled_at)})`
+                      `جلسة فيديو - موعد الجلسة: (${formatDateStr(appt.scheduled_at)})`
                     ) : isPendingPayment || isPendingApproval ? (
-                      `غرفة تجريبية لاختيار المكالمة، التفريغ الصوتي، والملخص الذكي. الموعد المختار: ${formatDateStr(appt.scheduled_at)}`
+                      `الموعد المختار: ${formatDateStr(appt.scheduled_at)}`
                     ) : (
-                      `الموعد المفضل: ${formatDateStr(appt.scheduled_at)} القناة: فيديو المستشار المطلوب`
+                      `الموعد المفضل: ${formatDateStr(appt.scheduled_at)}`
                     )}
                   </p>
                 </div>
@@ -356,7 +392,7 @@ export default function MyAppointmentsPage({ navigate }) {
                   
                   {isConfirmed && (
                     <button
-                      onClick={() => setActiveVideoApptId(appt.id)}
+                      onClick={() => handleJoinVideoRoom(appt)}
                       style={{
                         backgroundColor: '#F5A52A',
                         color: '#FFFFFF',
@@ -413,7 +449,7 @@ export default function MyAppointmentsPage({ navigate }) {
                       }}
                     >
                       <span>💬</span>
-                      <span>راسل المستشار</span>
+                      <span>{user?.role === 'consultant' ? 'راسل العميل' : 'راسل المستشار'}</span>
                     </button>
                   )}
 

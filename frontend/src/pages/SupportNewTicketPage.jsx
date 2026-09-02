@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { apiFetch } from '../services/api';
 import { CATEGORIES } from './supportFormConfig';
 
 export default function SupportNewTicketPage({ navigate }) {
@@ -145,7 +146,6 @@ export default function SupportNewTicketPage({ navigate }) {
 
   // Submit Ticket to Backend
   const handleSubmitTicket = async () => {
-    if (!token) return;
     if (!agreeConfirm) {
       alert('يرجى التأكد من صحة المعلومات وتأكيد الإقرار أسفل شاشة المراجعة.');
       return;
@@ -167,21 +167,10 @@ export default function SupportNewTicketPage({ navigate }) {
         extra_fields: extraFieldsData
       };
 
-      const res = await fetch('/api/tickets/', {
+      const ticket = await apiFetch('/api/tickets/', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(ticketPayload)
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.detail || 'فشل إرسال التذكرة');
-      }
-
-      const ticket = await res.json();
+        body: ticketPayload
+      }, token);
 
       // Upload attachments sequentially
       if (selectedFiles.length > 0) {
@@ -189,16 +178,13 @@ export default function SupportNewTicketPage({ navigate }) {
           const formData = new FormData();
           formData.append('file', fileObj.file);
 
-          const uploadRes = await fetch(`/api/tickets/${ticket.id}/attachments`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`
-            },
-            body: formData
-          });
-
-          if (!uploadRes.ok) {
-            console.error(`Failed to upload ${fileObj.name}`);
+          try {
+            await apiFetch(`/api/tickets/${ticket.id}/attachments`, {
+              method: 'POST',
+              body: formData
+            }, token);
+          } catch (err) {
+            console.error(`Failed to upload ${fileObj.name}`, err);
           }
         }
       }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { apiFetch } from '../services/api';
 import { CATEGORIES, STATUS_CONFIG, PRIORITY_CONFIG } from './supportFormConfig';
 
 export default function SupportTicketDetailPage({ ticketId, navigate }) {
@@ -12,20 +13,13 @@ export default function SupportTicketDetailPage({ ticketId, navigate }) {
   const chatEndRef = useRef(null);
 
   const fetchTicketDetails = async () => {
-    if (!token || !ticketId) return;
+    if (!ticketId) return;
     try {
-      const res = await fetch(`/api/tickets/${ticketId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setTicket(data);
-      } else {
-        setError('فشل في تحميل تفاصيل التذكرة. قد لا تملك الصلاحية لعرضها.');
-      }
+      const data = await apiFetch(`/api/tickets/${ticketId}`, {}, token);
+      setTicket(data);
     } catch (e) {
       console.error(e);
-      setError('حدث خطأ بالاتصال بالخادم.');
+      setError('فشل في تحميل تفاصيل التذكرة. قد لا تملك الصلاحية لعرضها.');
     } finally {
       setLoading(false);
     }
@@ -45,28 +39,19 @@ export default function SupportTicketDetailPage({ ticketId, navigate }) {
 
   const handleSendReply = async (e) => {
     if (e) e.preventDefault();
-    if (!replyText.trim() || sendingReply || !token) return;
+    if (!replyText.trim() || sendingReply) return;
 
     setSendingReply(true);
     try {
-      const res = await fetch(`/api/tickets/${ticketId}/reply`, {
+      await apiFetch(`/api/tickets/${ticketId}/reply`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ message: replyText.trim() })
-      });
+        body: { message: replyText.trim() }
+      }, token);
 
-      if (res.ok) {
-        setReplyText('');
-        await fetchTicketDetails();
-      } else {
-        const err = await res.json();
-        alert(err.detail || 'فشل إرسال الرد');
-      }
+      setReplyText('');
+      await fetchTicketDetails();
     } catch (e) {
-      alert('خطأ في الاتصال بالخادم');
+      alert(e.message || 'خطأ في الاتصال بالخادم');
     } finally {
       setSendingReply(false);
     }

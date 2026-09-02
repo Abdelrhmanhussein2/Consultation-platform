@@ -1,7 +1,8 @@
 import json
+import os
 import uuid
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query, status, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, Query, status, WebSocket, WebSocketDisconnect, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
 
 from helpers.database import get_db, SessionLocal
@@ -86,6 +87,85 @@ def delete_chat_messages(
     Deletes the message history for a specific appointment consultation chat.
     """
     return ChatController.delete_chat(db, current_user, appointment_id)
+
+
+@router.post(
+    "/{appointment_id}/upload",
+    summary="Upload a file attachment for appointment chat",
+)
+async def upload_chat_attachment(
+    appointment_id: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    try:
+        appt_uuid = uuid.UUID(appointment_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="معرف الاستشارة غير صالح")
+
+    raw_filename = os.path.basename(file.filename)
+    _, ext = os.path.splitext(raw_filename)
+    ext = ext.lower()
+
+    allowed_extensions = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.png', '.jpg', '.jpeg', '.txt', '.zip']
+    if ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"صيغة الملف غير مسموح بها. الصيغ المسموح بها: {', '.join(allowed_extensions)}"
+        )
+
+    upload_dir = os.path.join("static", "chat_attachments")
+    os.makedirs(upload_dir, exist_ok=True)
+
+    new_filename = f"{uuid.uuid4().hex}{ext}"
+    file_path = f"/static/chat_attachments/{new_filename}"
+    full_path = os.path.join(upload_dir, new_filename)
+
+    try:
+        content = await file.read()
+        file_size = len(content)
+        if file_size > 25 * 1024 * 1024:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="حجم الملف يجب أن لا يتجاوز 25 ميجابايت"
+            )
+
+        with open(full_path, "wb") as f:
+            f.write(content)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"فشل حفظ الملف: {e}"
+        )
+
+    new_msg = ChatService.send_message(
+        db=db,
+        appointment_id=appt_uuid,
+        sender=current_user,
+        message_text=f"إرفاق مستند: {raw_filename}",
+        attachment_url=file_path,
+    )
+
+    created_at_str = new_msg["created_at"].isoformat() if hasattr(new_msg["created_at"], "isoformat") else str(new_msg["created_at"])
+
+    return {
+        "detail": "تم رفع الملف بنجاح",
+        "attachment_url": file_path,
+        "message": {
+            "id": str(new_msg["id"]),
+            "appointment_id": str(new_msg["appointment_id"]),
+            "sender_id": str(new_msg["sender_id"]),
+            "sender_name": current_user.full_name,
+            "receiver_id": str(new_msg["receiver_id"]),
+            "message_text": new_msg["message_text"],
+            "attachment_url": new_msg["attachment_url"],
+            "is_read": new_msg["is_read"],
+            "created_at": created_at_str,
+        }
+    }
 
 
 # =====================================================================

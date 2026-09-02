@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { consultantService } from '../services/consultantService';
+import { appointmentService } from '../services/appointmentService';
 import BookingModal from '../components/Consultants/BookingModal';
 import PaymentModal from '../components/Consultants/PaymentModal';
 
@@ -181,7 +182,49 @@ const CSS = `
   .cp-spinner { width: 36px; height: 36px; border: 3px solid #E2E8F0; border-top-color: #F59A23; border-radius: 50%; animation: cp-spin .7s linear infinite; }
   @keyframes cp-spin { to { transform: rotate(360deg); } }
 
-  .cp-toast { position: fixed; left: 20px; bottom: 20px; background: #0B2E4B; color: #fff; padding: 12px 20px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 1100; font-size: 13px; font-weight: 700; }
+  .cp-toast-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(13, 60, 92, 0.45);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: cpFadeIn 0.2s ease forwards;
+  }
+  .cp-toast {
+    background: #0D3C5C;
+    color: #FFFFFF;
+    padding: 28px 36px;
+    border-radius: 20px;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(245, 165, 42, 0.35);
+    font-size: 17px;
+    font-weight: 800;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    max-width: 460px;
+    width: 90%;
+    line-height: 1.6;
+    animation: cpPopIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+  .cp-toast-icon {
+    width: 52px;
+    height: 52px;
+    background: rgba(245, 165, 42, 0.15);
+    border: 1px solid rgba(245, 165, 42, 0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #F5A52A;
+  }
+  @keyframes cpFadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes cpPopIn { from { opacity: 0; transform: scale(0.88); } to { opacity: 1; transform: scale(1); } }
 
   /* ===== SPA Full Profile View ===== */
   .profile-spa-view {
@@ -491,8 +534,8 @@ function getDaysForWeek(offset, dbAvailabilities = [], dbWorkingDays = []) {
   const dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
   const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
   
-  // Base reference date (August 27, 2026 Thursday)
-  const baseDate = new Date(2026, 7, 27);
+  // Base reference date starts dynamically from TODAY
+  const baseDate = new Date();
   baseDate.setDate(baseDate.getDate() + offset * 7);
 
   const daysList = [];
@@ -550,7 +593,8 @@ function getDaysForWeek(offset, dbAvailabilities = [], dbWorkingDays = []) {
       label: dayName,
       month: monthName,
       fullDate: `${dayName}، ${d.getDate()} ${monthName}`,
-      isoDate: d.toISOString().split('T')[0],
+      // Use local date components (NOT toISOString which converts to UTC and shifts date for UTC+3)
+      isoDate: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
       avail: isAvailable,
       timeRange: timeRangeText
     });
@@ -559,7 +603,7 @@ function getDaysForWeek(offset, dbAvailabilities = [], dbWorkingDays = []) {
 }
 
 /* ── SPA Full Profile View Component ───────────────────────────── */
-function FullProfileView({ consultant, onClose, onBook, onOpenPayment, scrollToBookingOnMount }) {
+function FullProfileView({ consultant, onClose, onBook, onOpenPayment, onBookRequest, scrollToBookingOnMount }) {
   const { token } = useAuth();
   const [activeTab, setActiveTab] = useState('about');
   const [selectedServiceId, setSelectedServiceId] = useState(null);
@@ -738,31 +782,63 @@ function FullProfileView({ consultant, onClose, onBook, onOpenPayment, scrollToB
   const isVerified = activeProfile.verification_status === 'approved' || activeProfile.is_verified === true;
   const tier = activeProfile.tier || 'مستشار VIP معتمد';
 
-  // Dynamic slots from backend or default timeslots
-  const defaultTimeslots = ['11:30', '12:00', '12:30', '1:00', '1:30', '2:00', '2:30', '3:00', '3:30', '4:00', '4:30'];
-  const daySlotsFromBackend = liveSlots.filter(s => s.start_time?.startsWith(currentDayObj.isoDate));
-  const timeslots = daySlotsFromBackend.length > 0 
-    ? daySlotsFromBackend.map(s => {
-        const d = new Date(s.start_time);
-        return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-      })
-    : defaultTimeslots;
+  // Build timeslots from the consultant's DB availability for the selected day
+  // This avoids UTC conversion issues from the backend available-slots API
+  const buildSlotsFromAvailability = () => {
+    const pythonDow = (new Date(currentDayObj.isoDate + 'T12:00:00').getDay() + 6) % 7;
+    const avails = Array.isArray(liveProfile?.availabilities)
+      ? liveProfile.availabilities.filter(a => a.day_of_week === pythonDow && a.is_active !== false)
+      : [];
 
-  // Trigger Direct Payment Checkout with Selected Booking Details from Database
-  const handleProceedToPayment = () => {
-    const priceVal = selectedService?.price || 42.50;
-    const serviceTitle = `${selectedService?.name || 'جلسة فيديو'} - ${currentDayObj.fullDate} ${selectedTime ? 'الساعة ' + selectedTime : ''}`;
+    if (avails.length === 0) return null; // fallback to defaults
 
-    if (onOpenPayment) {
-      onOpenPayment({
-        consultantName: name,
-        serviceName: serviceTitle,
-        price: priceVal,
-        consultant_id: profileId,
-        service_id: selectedService?.id
-      });
-    } else {
-      onBook(consultant);
+    const slots = [];
+    for (const av of avails) {
+      const [startH, startM] = (av.start_time || '09:00').split(':').map(Number);
+      const [endH, endM] = (av.end_time || '17:00').split(':').map(Number);
+      let cur = startH * 60 + startM;
+      const end = endH * 60 + endM;
+      while (cur + 30 <= end) {
+        slots.push(`${String(Math.floor(cur / 60)).padStart(2, '0')}:${String(cur % 60).padStart(2, '0')}`);
+        cur += 30;
+      }
+    }
+    return slots.length > 0 ? [...new Set(slots)].sort() : null;
+  };
+
+  const defaultTimeslots = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'];
+  const timeslots = buildSlotsFromAvailability() || defaultTimeslots;
+
+  // Trigger Booking Request directly using selected widget choices (NO popup modal at all!)
+  const handleProceedToBookingRequest = () => {
+    try {
+      const timeToUse = selectedTime || (timeslots && timeslots.length > 0 ? timeslots[0] : '10:00');
+      const dayObj = currentDayObj || { fullDate: 'اليوم', isoDate: new Date().toISOString().split('T')[0] };
+      const serviceTitle = `${selectedService?.name || 'جلسة فيديو'} - ${dayObj.fullDate || ''} الساعة ${timeToUse}`;
+
+      // Build datetime from LOCAL browser time, then convert to UTC via toISOString()
+      // This ensures Jordan (UTC+3) time is correctly sent as UTC to backend
+      const timeParts = (timeToUse.includes(':') ? timeToUse : '10:00').split(':');
+      const hh = parseInt(timeParts[0] || '10', 10);
+      const mm = parseInt(timeParts[1] || '0', 10);
+      const isoDate = dayObj.isoDate || new Date().toISOString().split('T')[0];
+      // Build Date in local time (no Z suffix → browser interprets as local time)
+      const localDt = new Date(`${isoDate}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:00`);
+      const scheduledIso = localDt.toISOString(); // Converts local → UTC automatically
+
+      if (typeof onBookRequest === 'function') {
+        onBookRequest({
+          consultantName: name,
+          serviceName: serviceTitle,
+          price: selectedService?.price || 42.50,
+          consultant_id: profileId,
+          service_id: selectedService?.id,
+          scheduled_at: scheduledIso
+        });
+      }
+    } catch (err) {
+      console.error('Error proceeding to booking request:', err);
     }
   };
 
@@ -1278,38 +1354,34 @@ function FullProfileView({ consultant, onClose, onBook, onOpenPayment, scrollToB
             <div style={{ marginTop: '16px' }}>
               {/* Primary Action Button: Triggers direct Payment Gateway */}
               <button 
-                onClick={() => {
-                  if (selectedTime && currentDayObj.avail) {
-                    handleProceedToPayment();
-                  }
-                }}
+                onClick={handleProceedToBookingRequest}
                 style={{
                   width: '100%',
-                  background: (selectedTime && currentDayObj.avail) ? '#F59A23' : '#E2E8F0',
-                  color: (selectedTime && currentDayObj.avail) ? '#FFFFFF' : '#64748B',
+                  background: '#F59A23',
+                  color: '#FFFFFF',
                   border: 'none',
                   borderRadius: '25px',
                   padding: '12px',
                   fontWeight: '800',
-                  fontSize: '14px',
-                  cursor: (selectedTime && currentDayObj.avail) ? 'pointer' : 'default',
+                  fontSize: '13px',
+                  cursor: 'pointer',
                   fontFamily: 'inherit',
                   transition: 'all .2s ease',
-                  boxShadow: (selectedTime && currentDayObj.avail) ? '0 4px 14px rgba(245,154,35,0.35)' : 'none'
+                  boxShadow: '0 4px 14px rgba(245,154,35,0.35)'
                 }}
               >
-                {(selectedTime && currentDayObj.avail) ? 'متابعة ←' : 'اختر وقتاً'}
+                إرسال طلب الحجز (بانتظار موافقة المستشار) ←
               </button>
 
               <button 
-                onClick={handleProceedToPayment}
+                onClick={handleProceedToBookingRequest}
                 style={{
                   width: '100%', background: '#fff', color: '#0B2E4B', border: '1px solid #0B2E4B',
                   borderRadius: '30px', padding: '12px', fontWeight: '800',
                   fontSize: '12.5px', cursor: 'pointer', fontFamily: 'inherit', marginTop: '10px'
                 }}
               >
-                احجز الخدمة المختارة • {selectedService?.price || 42.50} د.أ
+                إرسال طلب الحجز • {selectedService?.price || 42.50} د.أ
               </button>
 
               <p style={{ fontSize: '11px', color: '#64748B', textAlign: 'center', marginTop: '10px', margin: '10px 0 0' }}>
@@ -1416,6 +1488,7 @@ export default function ConsultantsPage({ navigate }) {
   const [scrollToBooking,setScrollToBooking] = useState(false);
   const [toast,setToast]     = useState('');
   const [paymentData,setPaymentData] = useState(null);
+  const [errorModal,setErrorModal] = useState(''); // booking error modal
 
   const [search,setSearch]   = useState('');
   const [cityF,setCityF]     = useState('');
@@ -1467,11 +1540,15 @@ export default function ConsultantsPage({ navigate }) {
   const showToast=msg=>{ setToast(msg); setTimeout(()=>setToast(''),3000); };
 
   const handleBookNowFromCatalog = (consultantObj) => {
+    const profileId = consultantObj?.profile_id || consultantObj?.id;
+    if (profileId) window.history.pushState({ consultantId: profileId }, '', `/consultants/${profileId}`);
     setViewProfile(consultantObj);
     setScrollToBooking(true);
   };
 
   const handleViewProfileFromCatalog = (consultantObj) => {
+    const profileId = consultantObj?.profile_id || consultantObj?.id;
+    if (profileId) window.history.pushState({ consultantId: profileId }, '', `/consultants/${profileId}`);
     setViewProfile(consultantObj);
     setScrollToBooking(false);
   };
@@ -1480,6 +1557,59 @@ export default function ConsultantsPage({ navigate }) {
     .filter(p=>p===1||p===totalPages||Math.abs(p-page)<=1)
     .reduce((a,p,i,arr)=>{ if(i>0&&arr[i-1]!==p-1) a.push('…'); a.push(p); return a; },[]);
 
+  const handleBookRequest = async (pData) => {
+    const getCookie = (name) => {
+      try {
+        const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? decodeURIComponent(match[2]) : null;
+      } catch { return null; }
+    };
+
+    showToast('جاري تسجيل طلب الحجز...');
+
+    try {
+      const activeAuthToken = token || getCookie('token');
+      const isUuid = (val) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+      let targetConsultantId = pData?.consultant_id;
+      if (!isUuid(targetConsultantId)) {
+        targetConsultantId = 'c2264e0d-7229-481a-9718-8657077c42fe';
+      }
+
+      // Timestamp comes as valid UTC ISO string from toISOString() - use as-is
+      const scheduledAt = pData?.scheduled_at || new Date().toISOString();
+
+      console.log('[Booking] POST /api/appointments/', {
+        consultant_id: targetConsultantId,
+        service_id: isUuid(pData?.service_id) ? pData.service_id : null,
+        scheduled_at: scheduledAt,
+        token_present: !!activeAuthToken
+      });
+
+      await appointmentService.bookAppointment({
+        consultant_id: targetConsultantId,
+        service_id: isUuid(pData?.service_id) ? pData.service_id : null,
+        scheduled_at: scheduledAt,
+        notes: pData?.serviceName || 'طلب حجز استشارة'
+      }, activeAuthToken);
+
+      setToast(''); // clear loading toast immediately on success
+      showToast('تم إرسال طلب الحجز بنجاح. الاستشارة الآن قيد انتظار موافقة المستشار.');
+      setTimeout(() => {
+        if (typeof navigate === 'function') {
+          navigate('/my-appointments');
+        } else {
+          window.location.href = '/my-appointments';
+        }
+      }, 1200);
+    } catch (err) {
+      console.error('[Booking] Error:', err);
+      const errMsg = err?.detail || err?.message || 'حدث خطأ أثناء الحجز';
+      setToast(''); // clear loading toast immediately on error
+      setErrorModal(errMsg);
+    }
+  };
+
   if (viewProfile) {
     return (
       <>
@@ -1487,23 +1617,23 @@ export default function ConsultantsPage({ navigate }) {
         <div className="cp-root">
           <FullProfileView 
             consultant={viewProfile} 
-            onClose={() => { setViewProfile(null); setScrollToBooking(false); }}
+            onClose={() => { window.history.replaceState({}, '', '/consultants'); setViewProfile(null); setScrollToBooking(false); }}
             onBook={(c) => setSelected(c)}
-            onOpenPayment={(pData) => setPaymentData(pData)}
+            onBookRequest={handleBookRequest}
             scrollToBookingOnMount={scrollToBooking}
           />
           <BookingModal
             consultant={selected}
             isOpen={!!selected}
             onClose={() => setSelected(null)}
-            onSuccess={() => { setSelected(null); showToast('✅ تم حجز الاستشارة بنجاح!'); navigate && navigate('/my-appointments'); }}
+            onSuccess={() => { setSelected(null); showToast('تم حجز الاستشارة بنجاح'); navigate && navigate('/my-appointments'); }}
           />
           <PaymentModal
             isOpen={!!paymentData}
             onClose={() => setPaymentData(null)}
             onSuccess={() => {
               setPaymentData(null);
-              showToast('✅ تم دفع الاستشارة بنجاح وتأكيد الحجز!');
+              showToast('تم دفع الاستشارة بنجاح وتأكيد الحجز');
               if (navigate) navigate('/my-appointments');
             }}
             price={paymentData?.price || 42.50}
@@ -1511,7 +1641,68 @@ export default function ConsultantsPage({ navigate }) {
             serviceName={paymentData?.serviceName || 'استشارة ضريبية'}
             isMock={true}
           />
-          {toast && <div className="cp-toast">{toast}</div>}
+          {toast && (
+            <div className="cp-toast-backdrop">
+              <div className="cp-toast">
+                <div className="cp-toast-icon">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+                <div>{toast}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Booking Error Modal */}
+          {errorModal && (
+            <div onClick={() => setErrorModal('')} style={{
+              position: 'fixed', inset: 0, zIndex: 9999,
+              background: 'rgba(13, 60, 92, 0.5)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <div onClick={e => e.stopPropagation()} style={{
+                background: '#FFFFFF', borderRadius: '18px',
+                padding: '36px 32px', maxWidth: '400px', width: '90%',
+                boxShadow: '0 24px 64px rgba(239,68,68,0.15)',
+                textAlign: 'center', direction: 'rtl'
+              }}>
+                {/* X Icon */}
+                <div style={{
+                  width: '64px', height: '64px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg,#FEE2E2,#FECACA)',
+                  border: '3px solid #FECACA',
+                  margin: '0 auto 18px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="3" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </div>
+                <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0D3C5C', margin: '0 0 10px' }}>
+                  فشل الحجز
+                </h3>
+                <p style={{ fontSize: '14px', color: '#64748B', margin: '0 0 24px', lineHeight: 1.7 }}>
+                  {errorModal}
+                </p>
+                <button
+                  onClick={() => setErrorModal('')}
+                  style={{
+                    width: '100%', padding: '12px 0', borderRadius: '10px',
+                    border: 'none', background: '#EF4444',
+                    color: '#FFFFFF', fontWeight: '700', fontSize: '14px',
+                    cursor: 'pointer', boxShadow: '0 4px 14px rgba(239,68,68,0.3)'
+                  }}
+                  onMouseOver={e => e.currentTarget.style.background='#DC2626'}
+                  onMouseOut={e => e.currentTarget.style.background='#EF4444'}
+                >
+                  حسناً، سأختار وقتاً آخر
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </>
     );
@@ -1698,7 +1889,7 @@ export default function ConsultantsPage({ navigate }) {
           consultant={selected}
           isOpen={!!selected}
           onClose={()=>setSelected(null)}
-          onSuccess={()=>{ setSelected(null); showToast('✅ تم حجز الاستشارة بنجاح!'); navigate&&navigate('/my-appointments'); }}
+          onSuccess={()=>{ setSelected(null); showToast('تم حجز الاستشارة بنجاح'); navigate&&navigate('/my-appointments'); }}
         />
 
         <PaymentModal
@@ -1706,7 +1897,7 @@ export default function ConsultantsPage({ navigate }) {
           onClose={() => setPaymentData(null)}
           onSuccess={() => {
             setPaymentData(null);
-            showToast('✅ تم دفع الاستشارة بنجاح وتأكيد الحجز!');
+            showToast('تم دفع الاستشارة بنجاح وتأكيد الحجز');
             if (navigate) navigate('/my-appointments');
           }}
           price={paymentData?.price || 42.50}
@@ -1715,7 +1906,18 @@ export default function ConsultantsPage({ navigate }) {
           isMock={true}
         />
 
-        {toast && <div className="cp-toast">{toast}</div>}
+        {toast && (
+          <div className="cp-toast-backdrop">
+            <div className="cp-toast">
+              <div className="cp-toast-icon">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+              <div>{toast}</div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

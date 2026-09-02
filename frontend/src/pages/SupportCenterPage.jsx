@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { apiFetch } from '../services/api';
 import { CATEGORIES, STATUS_CONFIG, PRIORITY_CONFIG } from './supportFormConfig';
 
 export default function SupportCenterPage({ navigate }) {
@@ -10,15 +11,9 @@ export default function SupportCenterPage({ navigate }) {
 
   useEffect(() => {
     const fetchRecentTickets = async () => {
-      if (!token) return;
       try {
-        const res = await fetch('/api/tickets/my?limit=5', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setRecentTickets(data || []);
-        }
+        const data = await apiFetch('/api/tickets/my?limit=5', {}, token);
+        setRecentTickets(data || []);
       } catch (e) {
         console.error('Error fetching tickets:', e);
       } finally {

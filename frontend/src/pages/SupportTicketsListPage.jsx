@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { apiFetch } from '../services/api';
 import { CATEGORIES, STATUS_CONFIG, PRIORITY_CONFIG } from './supportFormConfig';
 
 export default function SupportTicketsListPage({ navigate }) {
@@ -14,7 +15,6 @@ export default function SupportTicketsListPage({ navigate }) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const fetchTickets = async () => {
-    if (!token) return;
     setLoading(true);
     try {
       let url = `/api/tickets/my?page=${page}&limit=${limit}`;
@@ -23,13 +23,8 @@ export default function SupportTicketsListPage({ navigate }) {
       if (priorityFilter) url += `&priority=${priorityFilter}`;
       if (searchQuery.trim()) url += `&search=${encodeURIComponent(searchQuery.trim())}`;
 
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setTickets(data || []);
-      }
+      const data = await apiFetch(url, {}, token);
+      setTickets(data || []);
     } catch (e) {
       console.error('Error fetching tickets:', e);
     } finally {

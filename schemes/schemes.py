@@ -373,6 +373,19 @@ class ConsultantServiceSummary(BaseModel):
     class Config:
         from_attributes = True
 
+from datetime import time
+
+class ConsultantAvailabilityOut(BaseModel):
+    id: uuid.UUID
+    consultant_id: uuid.UUID
+    day_of_week: int
+    start_time: time
+    end_time: Optional[time] = None
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
 class ConsultantPublicProfileOut(BaseModel):
     """Full public-facing consultant profile — visible to all authenticated users."""
     id: uuid.UUID
@@ -389,7 +402,7 @@ class ConsultantPublicProfileOut(BaseModel):
     certificates_licenses: Optional[str] = None
     price_per_hour: Optional[Decimal] = None
     working_days: List[int] = []
-    availabilities: List[Any] = []
+    availabilities: List[ConsultantAvailabilityOut] = []
 
     class Config:
         from_attributes = True

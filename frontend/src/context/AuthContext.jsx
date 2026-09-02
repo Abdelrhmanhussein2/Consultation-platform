@@ -15,7 +15,7 @@ const getCookie = (name) => {
   }
 };
 
-const setCookie = (name, value, days = 7) => {
+const setCookie = (name, value, days = null) => {
   try {
     let expires = '';
     if (days) {
