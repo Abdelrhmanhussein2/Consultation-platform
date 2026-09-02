@@ -1336,6 +1336,11 @@ class AppointmentService:
         """Returns a paginated list of appointments for a user/client."""
         return (
             db.query(Appointment)
+            .options(
+                joinedload(Appointment.user),
+                joinedload(Appointment.consultant).joinedload(ConsultantProfile.user),
+                joinedload(Appointment.service),
+            )
             .filter(Appointment.user_id == user_id)
             .order_by(Appointment.scheduled_at.desc())
             .offset((page - 1) * limit)
@@ -1350,6 +1355,11 @@ class AppointmentService:
         """Returns a paginated list of appointments for a consultant profile."""
         return (
             db.query(Appointment)
+            .options(
+                joinedload(Appointment.user),
+                joinedload(Appointment.consultant).joinedload(ConsultantProfile.user),
+                joinedload(Appointment.service),
+            )
             .filter(Appointment.consultant_id == consultant_id)
             .order_by(Appointment.scheduled_at.desc())
             .offset((page - 1) * limit)

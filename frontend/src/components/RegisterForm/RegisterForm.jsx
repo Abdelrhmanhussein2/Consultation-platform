@@ -110,8 +110,13 @@ export default function RegisterForm({ openPolicy, navigate }) {
         return false;
       }
       // Check password complexity (Uppercase, Lowercase, Number, Special)
-      if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
-        setError('كلمة المرور يجب أن تحتوي على حرف كبير وحرف صغير ورقم على الأقل');
+      const hasUpper = /[A-Z]/.test(password);
+      const hasLower = /[a-z]/.test(password);
+      const hasDigit = /[0-9]/.test(password);
+      const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password);
+
+      if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+        setError('كلمة المرور يجب أن تحتوي على حرف كبير، حرف صغير، رقم، ورمز خاص واحد على الأقل (مثل @ # $ % ! & *)');
         return false;
       }
       if (password !== confirmPassword) {
@@ -273,6 +278,32 @@ export default function RegisterForm({ openPolicy, navigate }) {
             errorMessage = data.detail.map((err) => err.msg || err.detail).join(' | ');
           }
         }
+
+        // Map backend validation messages to clear Arabic messages
+        if (errorMessage.includes('Password must contain at least one special character')) {
+          errorMessage = 'كلمة المرور يجب أن تحتوي على رمز خاص واحد على الأقل (مثل @ # $ % ! & *)';
+        } else if (errorMessage.includes('Password must contain at least one uppercase letter')) {
+          errorMessage = 'كلمة المرور يجب أن تحتوي على حرف كبير واحد على الأقل (A-Z)';
+        } else if (errorMessage.includes('Password must contain at least one lowercase letter')) {
+          errorMessage = 'كلمة المرور يجب أن تحتوي على حرف صغير واحد على الأقل (a-z)';
+        } else if (errorMessage.includes('Password must contain at least one digit')) {
+          errorMessage = 'كلمة المرور يجب أن تحتوي على رقم واحد على الأقل (0-9)';
+        } else if (errorMessage.includes('Password must be at least 8 characters long')) {
+          errorMessage = 'كلمة المرور يجب أن لا تقل عن 8 خانات';
+        } else if (errorMessage.includes('Email already registered') || errorMessage.includes('already exists')) {
+          errorMessage = 'البريد الإلكتروني أو رقم الهاتف مستخدم بالفعل في حساب آخر';
+        }
+
+        // Auto-redirect user back to the step containing the field with error
+        const isStep1Error = /password|Password|email|Email|phone|Phone|full_name|name/i.test(errorMessage) || /password|email|phone/i.test(JSON.stringify(data.detail || ''));
+        const isStep2Error = /company|tax|title|sector|legal_form|commercial_register/i.test(errorMessage) || /company|tax|title/i.test(JSON.stringify(data.detail || ''));
+
+        if (isStep1Error) {
+          setCurrentStep(1);
+        } else if (isStep2Error) {
+          setCurrentStep(2);
+        }
+
         setError(errorMessage);
       }
     } catch (err) {
@@ -454,7 +485,7 @@ export default function RegisterForm({ openPolicy, navigate }) {
                     <input
                       type={showPassword ? 'text' : 'password'}
                       id="password"
-                      placeholder="8 خانات على الأقل (حروف كبيرة وصغيرة وأرقام)"
+                      placeholder="8 خانات (حروف كبيرة وصغيرة وأرقام ورموز خاصة)"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                     />
@@ -466,6 +497,24 @@ export default function RegisterForm({ openPolicy, navigate }) {
                     >
                       {showPassword ? '👁️' : '🔒'}
                     </button>
+                  </div>
+                  {/* Real-time Password Requirements Checklist */}
+                  <div className="password-rules-hints" style={{ marginTop: '8px', fontSize: '0.78rem', color: '#64748B', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', background: 'rgba(13,60,92,0.03)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(13,60,92,0.08)' }}>
+                    <span style={{ color: password.length >= 8 ? '#166534' : '#94A3B8', fontWeight: password.length >= 8 ? '700' : '500' }}>
+                      {password.length >= 8 ? '✓' : '○'} 8 خانات على الأقل
+                    </span>
+                    <span style={{ color: /[A-Z]/.test(password) ? '#166534' : '#94A3B8', fontWeight: /[A-Z]/.test(password) ? '700' : '500' }}>
+                      {/[A-Z]/.test(password) ? '✓' : '○'} حرف كبير (A-Z)
+                    </span>
+                    <span style={{ color: /[a-z]/.test(password) ? '#166534' : '#94A3B8', fontWeight: /[a-z]/.test(password) ? '700' : '500' }}>
+                      {/[a-z]/.test(password) ? '✓' : '○'} حرف صغير (a-z)
+                    </span>
+                    <span style={{ color: /[0-9]/.test(password) ? '#166534' : '#94A3B8', fontWeight: /[0-9]/.test(password) ? '700' : '500' }}>
+                      {/[0-9]/.test(password) ? '✓' : '○'} رقم (0-9)
+                    </span>
+                    <span style={{ color: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password) ? '#166534' : '#94A3B8', fontWeight: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password) ? '700' : '500', gridColumn: 'span 2' }}>
+                      {/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password) ? '✓' : '○'} رمز خاص (@ # $ % ! & * _ -)
+                    </span>
                   </div>
                 </div>
 

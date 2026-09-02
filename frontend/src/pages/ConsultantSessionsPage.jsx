@@ -84,10 +84,17 @@ export default function ConsultantSessionsPage({ navigate }) {
       // Format payload: only active slots
       const activeAvailabilities = availability
         .filter(avail => avail.is_active)
-        .map(avail => ({
-          day_of_week: avail.day_of_week,
-          start_time: avail.start_time.substring(0, 5) // ensure HH:MM
-        }));
+        .map(avail => {
+          const startTimeStr = avail.start_time.substring(0, 5);
+          const [startH, startM] = startTimeStr.split(':').map(Number);
+          const endH = String(startH + 1).padStart(2, '0');
+          const endM = String(startM).padStart(2, '0');
+          return {
+            day_of_week: avail.day_of_week,
+            start_time: startTimeStr,
+            end_time: `${endH}:${endM}`
+          };
+        });
 
       await consultantService.setAvailability(activeAvailabilities, token);
       showToast("تم حفظ أوقات التوفر بنجاح!");

@@ -155,7 +155,7 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
   const userRole = user?.role;
 
   const [supportOpen, setSupportOpen] = useState(
-    currentPath.startsWith('/support')
+    Boolean(currentPath && typeof currentPath === 'string' && currentPath.startsWith('/support'))
   );
 
   const clientNavItems = [
@@ -309,7 +309,7 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
           }
 
           const isActive = currentPath === item.path;
-          const { IconComponent } = item;
+          const IconComponent = item.IconComponent || DashboardIcon;
           return (
             <button
               key={item.path}

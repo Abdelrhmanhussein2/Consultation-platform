@@ -136,8 +136,8 @@ export default function ConsultantDetailPage({ profileId, navigate }) {
   const specName = consultant.specialization_name || 'ضريبة دخل';
   const ratingAvg = typeof consultant.average_rating === 'number' ? consultant.average_rating.toFixed(1) : (consultant.average_rating || '0.0');
   const ratingCount = consultant.ratings_count || 0;
-  const yearsExp = consultant.years_of_experience || 20;
-  const basePrice = consultant.price || 50;
+  const yearsExp = (consultant.years_of_experience !== undefined && consultant.years_of_experience !== null) ? consultant.years_of_experience : 8;
+  const basePrice = (consultant.price !== undefined && consultant.price !== null) ? consultant.price : (services[0]?.price ? Math.round(services[0].price) : 50);
 
   // Favorites logic
   const isFav = favorites.some(f => f.item_id === String(consultant.id));
@@ -413,7 +413,7 @@ export default function ConsultantDetailPage({ profileId, navigate }) {
             {activeTab === 'نبذة' && (
               <div>
                 <p style={{ fontSize: '14px', color: '#475569', lineHeight: '1.8', margin: '0 0 24px 0' }}>
-                  {consultant.bio || 'خبير ضريبي بخبرة 20 سنة في الاستشارات الضريبية و التدقيق.'}
+                  {consultant.bio || `خبير ومستشار ضريبي بخبرة تزيد عن ${yearsExp} سنة في الاستشارات الضريبية و التدقيق.`}
                 </p>
 
                 <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#0D3C5C', marginBottom: '12px' }}>التخصصات</h3>

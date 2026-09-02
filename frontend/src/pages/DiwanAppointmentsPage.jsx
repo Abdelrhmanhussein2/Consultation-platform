@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext';
 import { appointmentService } from '../services/appointmentService';
 import { consultantService } from '../services/consultantService';
+import { apiFetch } from '../services/api';
 import './DiwanAppointmentsPage.css';
 
 const dayNames = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -42,35 +43,49 @@ const serviceLabels = {
 };
 
 // No mock clients — populated from backend
-const initialClients = [];
+const initialClients = [
+  { id: 1, name: 'رانيا الخطيب', company: 'مؤسسة تجارية', color: '#0D3C5C', email: 'rania.khateeb@example.com', phone: '0791234567', tax: '102938475' }
+];
 
 // No mock events — loaded from backend
 const initialEvents = [];
 
 // Helper Date Functions
-const pad = (n) => String(n).padStart(2, '0');
-const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const parseISO = (s) => {
-  const [y, m, d] = s.split('-').map(Number);
-  return new Date(y, m - 1, d, 12);
+const pad = (n) => String(n || 0).padStart(2, '0');
+const iso = (d) => {
+  if (!d || !(d instanceof Date) || isNaN(d.getTime())) return '2026-09-03';
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
-const fmtDate = (d) => `${pad(d.getDate())} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
-const fmtShort = (d) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+const parseISO = (s) => {
+  if (!s || typeof s !== 'string' || !s.includes('-')) return new Date();
+  const parts = s.split('-').map(Number);
+  if (parts.length < 3 || parts.some(isNaN)) return new Date();
+  return new Date(parts[0], parts[1] - 1, parts[2], 12);
+};
+const fmtDate = (d) => {
+  if (!d || !(d instanceof Date) || isNaN(d.getTime())) return '';
+  return `${pad(d.getDate())} ${monthNames[d.getMonth()] || ''} ${d.getFullYear()}`;
+};
+const fmtShort = (d) => {
+  if (!d || !(d instanceof Date) || isNaN(d.getTime())) return '';
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+};
 const timeFmt = (x) => {
+  if (x === undefined || x === null || isNaN(x)) return '09:00';
   const h = Math.floor(x);
   const m = Math.round((x - h) * 60);
   return `${pad(h)}:${pad(m)}`;
 };
-const initials = (name) => name.split(' ').map(x => x[0]).slice(0, 2).join('');
+const initials = (name) => String(name || 'عميل').trim().split(/\s+/).filter(Boolean).map(x => x[0]).slice(0, 2).join('').toUpperCase() || 'ع';
 const startOfWeek = (d) => {
-  const x = new Date(d);
+  const x = (d && d instanceof Date && !isNaN(d.getTime())) ? new Date(d) : new Date();
   const day = (x.getDay() + 6) % 7;
   x.setDate(x.getDate() - day);
   return x;
 };
 const addDays = (d, n) => {
-  const x = new Date(d);
-  x.setDate(x.getDate() + n);
+  const x = (d && d instanceof Date && !isNaN(d.getTime())) ? new Date(d) : new Date();
+  x.setDate(x.getDate() + (n || 0));
   return x;
 };
 
@@ -102,7 +117,7 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedClient, setSelectedClient] = useState(1);
   const [events, setEvents] = useState(initialEvents);
-  const [clients] = useState(initialClients);
+  const [clients, setClients] = useState(initialClients);
 
   // Filters state
   const [showFilters, setShowFilters] = useState(false);
@@ -175,10 +190,13 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
       if (res && Array.isArray(res) && res.length > 0) {
         const formatted = res.map((item, idx) => {
           const dt = new Date(item.scheduled_at);
-          const dateStr = item.scheduled_at ? item.scheduled_at.split('T')[0] : iso(new Date());
+          const yyyy = dt.getFullYear();
+          const mm = pad(dt.getMonth() + 1);
+          const dd = pad(dt.getDate());
+          const dateStr = `${yyyy}-${mm}-${dd}`;
           const startHour = dt.getHours() + dt.getMinutes() / 60;
           const durHours = (item.duration_minutes || 60) / 60;
-          
+
           let mappedStatus = 'confirmed';
           if (item.status === 'pending_approval' || item.status === 'pending_payment') mappedStatus = 'pending';
           else if (item.status === 'confirmed') mappedStatus = 'confirmed';
@@ -189,16 +207,26 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
           if (item.status === 'pending_payment' || item.status === 'pending_approval') mappedPayment = 'waiting';
           else if (item.status === 'confirmed' || item.status === 'completed') mappedPayment = 'paid';
 
+          const cId = item.user_id || item.user?.id || (100 + idx);
+          const cName = item.client_name || item.user?.full_name || item.user_name || 'رانيا الخطيب';
+          const cEmail = item.user?.email || item.client_email || 'client@platform.com';
+          const cPhone = item.user?.phone || item.client_phone || '0791234567';
+          const cTax = item.user?.tax_number || '102938475';
+          const advisorName = item.consultant_name || item.consultant?.user?.full_name || user?.full_name || 'أحمد نصار';
+
           return {
             id: item.id || (200 + idx),
             date: dateStr,
             start: isNaN(startHour) ? 9 : startHour,
             dur: durHours || 1,
-            client: 1,
-            clientName: item.client_name || 'عميل منصة ديوان',
+            client: cId,
+            clientName: cName,
+            clientEmail: cEmail,
+            clientPhone: cPhone,
+            clientTax: cTax,
             title: item.notes || item.service_name || 'استشارة ضريبية',
             type: item.service_name || 'استشارة متخصصة',
-            advisor: role === 'consultant' ? (user?.full_name || 'أحمد نصار') : (item.consultant_name || 'أحمد نصار'),
+            advisor: advisorName,
             status: mappedStatus,
             payment: mappedPayment,
             amount: item.price ? Number(item.price) : 50,
@@ -210,6 +238,28 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
           };
         });
         setEvents(formatted);
+
+        const derivedClients = [];
+        const seen = new Set();
+        formatted.forEach(f => {
+          if (!seen.has(f.client)) {
+            seen.add(f.client);
+            derivedClients.push({
+              id: f.client,
+              name: f.clientName,
+              company: 'مؤسسة تجارية',
+              color: '#0D3C5C',
+              email: f.clientEmail,
+              phone: f.clientPhone,
+              tax: f.clientTax
+            });
+          }
+        });
+
+        if (derivedClients.length > 0) {
+          setClients(derivedClients);
+          setSelectedClient(derivedClients[0].id);
+        }
       }
     } catch (err) {
       console.warn('Backend appointments fetch notice:', err);
@@ -241,11 +291,21 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
 
   // Helper getters
   const getClient = useCallback((id, fallbackName = '') => {
-    const found = clients.find(x => x.id === id);
-    if (found) return found;
-    const nameToUse = fallbackName || (user?.full_name ? user.full_name : 'عميل منصة ديوان');
-    return { name: nameToUse, company: '', color: '#0D3C5C', email: user?.email || '', phone: user?.phone || '', tax: '' };
-  }, [clients, user]);
+    const defaultClient = { name: fallbackName || 'رانيا الخطيب', company: 'مؤسسة تجارية', color: '#0D3C5C', email: 'rania.khateeb@example.com', phone: '0791234567', tax: '102938475' };
+    if (!id && !fallbackName) return defaultClient;
+    const found = (clients || []).find(x => x && (x.id === id || String(x.id) === String(id)));
+    if (found) {
+      return {
+        name: found.name || 'عميل منصة ديوان',
+        company: found.company || 'مؤسسة تجارية',
+        color: found.color || '#0D3C5C',
+        email: found.email || 'client@platform.com',
+        phone: found.phone || '0791234567',
+        tax: found.tax || '102938475'
+      };
+    }
+    return defaultClient;
+  }, [clients]);
 
   const isAllowed = useCallback((e) => {
     if (role === 'admin') return true;
@@ -901,20 +961,54 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
     showToast('تم حفظ التذكير والمتابعة');
   };
 
-  // Chat message input
-  const [chatMsgInput, setChatMsgInput] = useState('');
-  const [contactSearch, setContactSearch] = useState('');
+  // Fetch chat messages from backend when chat is open
+  useEffect(() => {
+    if (!chatOpen || !selectedClient || !auth?.token) return;
+    const ev = events.find(x => x.client === selectedClient);
+    if (!ev || typeof ev.id !== 'string' || !ev.id.includes('-')) return;
 
-  const sendChatMessage = () => {
+    apiFetch(`/api/chat/${ev.id}/messages`, { method: 'GET' }, auth.token)
+      .then(res => {
+        if (Array.isArray(res)) {
+          const formattedMsgs = res.map(m => ({
+            kind: 'user',
+            me: m.sender_id === user?.id,
+            t: m.content,
+            time: m.created_at ? new Date(m.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : ''
+          }));
+          setMessagesStore(prev => ({ ...prev, [selectedClient]: formattedMsgs }));
+        }
+      })
+      .catch(err => console.warn('Fetch chat messages notice:', err));
+  }, [chatOpen, selectedClient, auth?.token, events, user?.id]);
+
+  const sendChatMessage = async () => {
     if (!chatMsgInput.trim()) return;
+    const textToSend = chatMsgInput.trim();
+    setChatMsgInput('');
+
+    // Optimistically add to UI
     setMessagesStore(prev => ({
       ...prev,
       [selectedClient]: [
         ...(prev[selectedClient] || []),
-        { kind: 'user', me: true, t: chatMsgInput.trim(), time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) }
+        { kind: 'user', me: true, t: textToSend, time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) }
       ]
     }));
-    setChatMsgInput('');
+
+    // Send to persistent backend API
+    const ev = events.find(x => x.client === selectedClient);
+    const token = auth?.token;
+    if (ev && token && typeof ev.id === 'string' && ev.id.includes('-')) {
+      try {
+        await apiFetch(`/api/chat/${ev.id}/messages`, {
+          method: 'POST',
+          body: JSON.stringify({ content: textToSend })
+        }, token);
+      } catch (err) {
+        console.warn('Send chat message backend notice:', err);
+      }
+    }
   };
 
   // Save drawer note
@@ -1328,7 +1422,7 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
             </div>
           </div>
           <div className="pop-actions">
-            <button onClick={() => { setSelectedClient(popover.event.client); setChatOpen(true); setPopover(p => ({ ...p, open: false })); }}>مراسلة</button>
+            <button onClick={() => { if (popover?.event?.client) setSelectedClient(popover.event.client); setChatOpen(true); setPopover(p => ({ ...p, open: false })); }}>مراسلة</button>
             <button onClick={() => { openRescheduleModal(popover.event); setPopover(p => ({ ...p, open: false })); }}>إعادة جدولة</button>
             <button className="main" onClick={() => openDrawer(popover.event)}>فتح</button>
           </div>
@@ -1339,7 +1433,7 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
       {contextMenu.open && contextMenu.event && (
         <div className="context-menu" style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}>
           <button onClick={() => { openDrawer(contextMenu.event); setContextMenu(c => ({ ...c, open: false })); }}>فتح تفاصيل الجلسة</button>
-          <button onClick={() => { setSelectedClient(contextMenu.event.client); setChatOpen(true); setContextMenu(c => ({ ...c, open: false })); }}>مراسلة العميل</button>
+          <button onClick={() => { if (contextMenu?.event?.client) setSelectedClient(contextMenu.event.client); setChatOpen(true); setContextMenu(c => ({ ...c, open: false })); }}>مراسلة العميل</button>
           <button onClick={() => { openRescheduleModal(contextMenu.event); setContextMenu(c => ({ ...c, open: false })); }}>إعادة جدولة</button>
           <div className="sep"></div>
           <button onClick={() => { openStatusModal(contextMenu.event); setContextMenu(c => ({ ...c, open: false })); }}>تغيير حالة الجلسة</button>
@@ -1363,7 +1457,7 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
           <div className="dh-top">
             <div>
               <h2>{selectedEvent?.title || 'تفاصيل الاستشارة'}</h2>
-              <p>{selectedEvent ? `${getClient(selectedEvent.client).name} · ${selectedEvent.type}` : ''}</p>
+              <p>{selectedEvent ? `${getClient(selectedEvent.client, selectedEvent.clientName).name} · ${selectedEvent.type}` : ''}</p>
             </div>
             <button className="xbtn" onClick={() => setIsDrawerOpen(false)}>×</button>
           </div>
@@ -1398,7 +1492,7 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
                     <div className="two">
                       <div className="field">
                         <label>العميل</label>
-                        <div>{getClient(selectedEvent.client).name}</div>
+                        <div>{getClient(selectedEvent.client, selectedEvent.clientName).name}</div>
                       </div>
                       <div className="field">
                         <label>الحالة</label>
@@ -1568,13 +1662,13 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
                 <>
                   <button onClick={() => openStatusModal(selectedEvent)}>تغيير الحالة</button>
                   <button onClick={() => openRescheduleModal(selectedEvent)}>إعادة جدولة</button>
-                  <button className="main" onClick={() => { setSelectedClient(selectedEvent.client); setChatOpen(true); }}>مراسلة العميل</button>
+                  <button className="main" onClick={() => { if (selectedEvent?.client) setSelectedClient(selectedEvent.client); setChatOpen(true); }}>مراسلة العميل</button>
                 </>
               ) : (
                 <>
                   <button onClick={() => openRescheduleModal(selectedEvent)}>طلب إعادة جدولة</button>
                   <button onClick={() => openPaymentModal(selectedEvent)}>الدفع</button>
-                  <button className="main" onClick={() => { setSelectedClient(selectedEvent.client); setChatOpen(true); }}>مراسلة المستشار</button>
+                  <button className="main" onClick={() => { if (selectedEvent?.client) setSelectedClient(selectedEvent.client); setChatOpen(true); }}>مراسلة المستشار</button>
                 </>
               )}
             </>
@@ -1683,7 +1777,7 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
               </div>
               <div className="contact-list">
                 {clients
-                  .filter(x => !contactSearch || x.name.includes(contactSearch) || x.company.includes(contactSearch))
+                  .filter(x => !contactSearch || (x.name && x.name.includes(contactSearch)) || (x.company && x.company.includes(contactSearch)))
                   .map(cl => {
                     const msgs = messagesStore[cl.id] || [];
                     const lastMsg = msgs[msgs.length - 1]?.t || 'لا توجد رسائل';
@@ -1693,7 +1787,7 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
                         className={`contact ${selectedClient === cl.id ? 'active' : ''}`}
                         onClick={() => setSelectedClient(cl.id)}
                       >
-                        <div className="ca" style={{ background: cl.color }}>
+                        <div className="ca" style={{ background: cl.color || '#0D3C5C' }}>
                           {initials(cl.name)}
                         </div>
                         <div className="ct">

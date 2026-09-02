@@ -44,7 +44,7 @@ const CSS = `
   .cp-content { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 24px; align-items: start; width: 100%; }
   
   /* Sidebar Filters */
-  .cp-filters { position: sticky; top: 20px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; padding: 18px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+  .cp-filters { position: sticky; top: 85px; max-height: calc(100vh - 100px); overflow-y: auto; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; padding: 18px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
   .cp-filter-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #F1F5F9; }
   .cp-filter-top h2 { margin: 0; font-size: 17px; font-weight: 800; color: #0B2E4B; }
   .cp-clear-btn { border: 0; background: transparent; color: #EF4444; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
@@ -294,7 +294,7 @@ const CSS = `
 
   /* Navigation Tabs at Bottom of Hero Card */
   .profile-nav-tabs {
-    position: sticky; top: 15px; z-index: 90;
+    position: sticky; top: 85px; z-index: 90;
     border-top: 1px solid #F1F5F9; padding: 10px 24px; display: flex; gap: 8px; flex-wrap: wrap; background: #ffffff; justify-content: flex-start;
     box-shadow: 0 4px 12px rgba(0,0,0,0.03); border-radius: 0 0 24px 24px;
   }
@@ -490,14 +490,14 @@ const COMM   = [{v:'video',l:'جلسة فيديو'},{v:'chat',l:'جلسة محا
 const CHIPS  = [{label:'≤ 50 د.أ',max:50},{label:'≤ 75 د.أ',max:75},{label:'≤ 100 د.أ',max:100},{label:'100+ د.أ',min:100}];
 const PAGE_SIZE = 9;
 
-function CCard({ c, idx, onBook, onView, list }) {
+function CCard({ c, idx, onBook, onView, list, isMe }) {
   const name    = c.full_name || c.name || 'مستشار';
   const init    = name.slice(0,2);
   const rating  = typeof c.average_rating==='number' ? c.average_rating.toFixed(1) : c.average_rating||'5.0';
   const avail   = c.is_available !== false;
 
   return (
-    <div className="cp-card" onClick={()=>onView&&onView(c)}>
+    <div className={`cp-card ${isMe ? 'is-me-card' : ''}`} onClick={()=>onView&&onView(c)} style={isMe ? { border: '2px solid #005D9C', background: '#F0F9FF' } : {}}>
       <div className="cp-photo-wrap">
         {c.profile_image_url||c.img
           ? <img src={c.profile_image_url||c.img} alt={name}/>
@@ -508,15 +508,18 @@ function CCard({ c, idx, onBook, onView, list }) {
       </div>
       <div className="cp-card-body">
         <div className="cp-name-price">
-          <h3>{name}</h3>
+          <h3>
+            {name}
+            {isMe && <span style={{ marginRight: '8px', fontSize: '11px', background: '#005D9C', color: '#fff', padding: '2px 8px', borderRadius: '12px', fontWeight: '800' }}>أنت (حسابك)</span>}
+          </h3>
           <div className="cp-price">{c.price??c.price_per_hour??50} <span>د.أ/جلسة</span></div>
         </div>
         <div className="cp-meta">📍 {c.city||'الأردن'} · 💼 {c.years_of_experience||10} سنة · {c.ratings_count||0} تقييم</div>
-        <span className="cp-tier">{c.tier||'مستشار معتمد'}</span>
+        <span className="cp-tier">{isMe ? 'حسابك الشخصي' : (c.tier||'مستشار معتمد')}</span>
         <p className="cp-desc">{c.bio||'خبير ومستشار ضريبي بخبرة تزيد عن 20 سنة في الاستشارات الضريبية والتدقيق.'}</p>
         <div className="cp-card-actions" onClick={e=>e.stopPropagation()}>
           <button className="cp-view-btn" onClick={()=>onView&&onView(c)}>الملف الكامل</button>
-          <button className="cp-book-btn" onClick={()=>onBook&&onBook(c)}>احجز الآن</button>
+          <button className="cp-book-btn" onClick={()=>onBook&&onBook(c)}>{isMe ? 'معاينة ملفك' : 'احجز الآن'}</button>
         </div>
       </div>
     </div>
@@ -530,7 +533,7 @@ function getWeekTitle(offset) {
   return `بعد ${offset} أسابيع`;
 }
 
-function getDaysForWeek(offset, dbAvailabilities = [], dbWorkingDays = []) {
+function getDaysForWeek(offset, dbAvailabilities = null, dbWorkingDays = null) {
   const dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
   const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
   
@@ -539,6 +542,9 @@ function getDaysForWeek(offset, dbAvailabilities = [], dbWorkingDays = []) {
   baseDate.setDate(baseDate.getDate() + offset * 7);
 
   const daysList = [];
+  const hasAvailabilitiesData = Array.isArray(dbAvailabilities);
+  const hasWorkingDaysData = Array.isArray(dbWorkingDays);
+
   for (let i = 0; i < 7; i++) {
     const d = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate() + i);
     const dayNum = String(d.getDate()).padStart(2, '0');
@@ -551,38 +557,52 @@ function getDaysForWeek(offset, dbAvailabilities = [], dbWorkingDays = []) {
     let isAvailable = false;
     let timeRangeText = 'غير متاح (عطلة)';
 
-    if (Array.isArray(dbAvailabilities) && dbAvailabilities.length > 0) {
+    if (hasAvailabilitiesData) {
       const activeSlotsForDay = dbAvailabilities.filter(
         a => a && a.day_of_week === pythonDayOfWeek && a.is_active !== false
       );
 
       if (activeSlotsForDay.length > 0) {
         isAvailable = true;
-        const times = activeSlotsForDay
-          .map(a => a.start_time ? String(a.start_time).slice(0, 5) : '09:00')
-          .sort();
-        const minTime = times[0];
-        const lastStart = times[times.length - 1];
-        
-        let maxEndTime = '17:00';
-        const lastSlot = activeSlotsForDay.find(a => a.start_time && String(a.start_time).startsWith(lastStart));
-        if (lastSlot && lastSlot.end_time) {
-          maxEndTime = String(lastSlot.end_time).slice(0, 5);
-        } else {
-          const [h, m] = lastStart.split(':').map(Number);
-          maxEndTime = `${String(h + 1).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-        }
+        const sortedSlots = [...activeSlotsForDay].sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
+        const ranges = sortedSlots.map(av => {
+          const sTime = av.start_time ? String(av.start_time).slice(0, 5) : '09:00';
+          let eTime = '10:00';
+          if (av.end_time) {
+            eTime = String(av.end_time).slice(0, 5);
+          } else {
+            const [h, m] = sTime.split(':').map(Number);
+            eTime = `${String(h + 1).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+          }
+          return `${sTime}-${eTime}`;
+        });
 
-        timeRangeText = `متاح من ${minTime} إلى ${maxEndTime}`;
+        if (ranges.length === 1) {
+          const [s, e] = ranges[0].split('-');
+          timeRangeText = `متاح من ${s} إلى ${e}`;
+        } else if (ranges.length <= 3) {
+          timeRangeText = `متاح (${ranges.join('، ')})`;
+        } else {
+          const firstStart = sortedSlots[0].start_time ? String(sortedSlots[0].start_time).slice(0, 5) : '09:00';
+          const lastSlot = sortedSlots[sortedSlots.length - 1];
+          let lastEnd = '17:00';
+          if (lastSlot.end_time) {
+            lastEnd = String(lastSlot.end_time).slice(0, 5);
+          } else {
+            const [h, m] = (lastSlot.start_time || '16:00').slice(0, 5).split(':').map(Number);
+            lastEnd = `${String(h + 1).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+          }
+          timeRangeText = `متاح (ساعات متفرقة بين ${firstStart} و ${lastEnd})`;
+        }
       } else {
         isAvailable = false;
         timeRangeText = 'غير متاح (عطلة)';
       }
-    } else if (Array.isArray(dbWorkingDays) && dbWorkingDays.length > 0) {
+    } else if (hasWorkingDaysData && dbWorkingDays.length > 0) {
       isAvailable = dbWorkingDays.includes(pythonDayOfWeek);
       timeRangeText = isAvailable ? 'متاح من 09:00 إلى 17:00' : 'غير متاح (عطلة)';
     } else {
-      // Default fallback: Friday & Thursday active, or all days except weekend
+      // Default fallback ONLY when profile availability data has not been fetched yet
       const isWeekend = d.getDay() === 0 || d.getDay() === 6;
       isAvailable = !isWeekend;
       timeRangeText = isAvailable ? 'متاح من 09:00 إلى 17:00' : 'غير متاح (عطلة)';
@@ -676,10 +696,10 @@ function FullProfileView({ consultant, onClose, onBook, onOpenPayment, onBookReq
           setSelectedServiceId(profData.services[0].id);
         }
 
-        // 3. Fetch live available slots from backend for next 14 days
+        // 3. Fetch live available slots from backend for next 14 days (30 min granularity)
         const startDate = new Date().toISOString().split('T')[0];
         const endDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        const slotsData = await consultantService.getAvailableSlots(profileId, startDate, endDate, 60, token).catch(() => []);
+        const slotsData = await consultantService.getAvailableSlots(profileId, startDate, endDate, 30, token).catch(() => []);
         if (Array.isArray(slotsData)) setLiveSlots(slotsData);
 
         // 4. Fetch live published ratings & reviews from database
@@ -783,32 +803,76 @@ function FullProfileView({ consultant, onClose, onBook, onOpenPayment, onBookReq
   const tier = activeProfile.tier || 'مستشار VIP معتمد';
 
   // Build timeslots from the consultant's DB availability for the selected day
-  // This avoids UTC conversion issues from the backend available-slots API
   const buildSlotsFromAvailability = () => {
     const pythonDow = (new Date(currentDayObj.isoDate + 'T12:00:00').getDay() + 6) % 7;
-    const avails = Array.isArray(liveProfile?.availabilities)
-      ? liveProfile.availabilities.filter(a => a.day_of_week === pythonDow && a.is_active !== false)
-      : [];
+    
+    if (Array.isArray(activeProfile?.availabilities)) {
+      const avails = activeProfile.availabilities.filter(a => a && a.day_of_week === pythonDow && a.is_active !== false);
+      if (avails.length === 0) return []; // NO SLOTS for this day
 
-    if (avails.length === 0) return null; // fallback to defaults
+      const slotDuration = parseInt(selectedService?.duration_minutes || 30, 10);
+      const slots = [];
 
-    const slots = [];
-    for (const av of avails) {
-      const [startH, startM] = (av.start_time || '09:00').split(':').map(Number);
-      const [endH, endM] = (av.end_time || '17:00').split(':').map(Number);
-      let cur = startH * 60 + startM;
-      const end = endH * 60 + endM;
-      while (cur + 30 <= end) {
-        slots.push(`${String(Math.floor(cur / 60)).padStart(2, '0')}:${String(cur % 60).padStart(2, '0')}`);
-        cur += 30;
+      for (const av of avails) {
+        const [startH, startM] = (av.start_time || '09:00').split(':').map(Number);
+        let endH, endM;
+
+        if (av.end_time) {
+          const [pH, pM] = String(av.end_time).split(':').map(Number);
+          if (pH * 60 + pM <= startH * 60 + startM) {
+            endH = startH + 1;
+            endM = startM;
+          } else {
+            endH = pH;
+            endM = pM;
+          }
+        } else {
+          endH = startH + 1;
+          endM = startM;
+        }
+
+        const winStart = startH * 60 + startM;
+        const winEnd = endH * 60 + endM;
+
+        let cur = winStart;
+        while (cur + slotDuration <= winEnd) {
+          const hh = Math.floor(cur / 60);
+          const mm = cur % 60;
+          slots.push(`${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`);
+          cur += 30;
+        }
       }
+      return [...new Set(slots)].sort();
     }
-    return slots.length > 0 ? [...new Set(slots)].sort() : null;
+
+    return null;
   };
 
-  const defaultTimeslots = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'];
-  const timeslots = buildSlotsFromAvailability() || defaultTimeslots;
+  const freeSlotsForDate = Array.isArray(liveSlots)
+    ? liveSlots.filter(s => {
+        if (!s || !s.start_time) return false;
+        const sDate = String(s.start_time).split('T')[0];
+        return sDate === currentDayObj.isoDate;
+      })
+    : null;
+
+  const freeTimeStrings = freeSlotsForDate !== null
+    ? new Set(freeSlotsForDate.map(s => {
+        const timePart = String(s.start_time).split('T')[1] || '';
+        return timePart.substring(0, 5);
+      }))
+    : null;
+
+  const computedSlots = buildSlotsFromAvailability();
+  const rawTimeslots = computedSlots !== null ? computedSlots : (
+    Array.isArray(activeProfile?.availabilities) && activeProfile.availabilities.length === 0
+      ? []
+      : ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30']
+  );
+
+  const timeslots = freeTimeStrings !== null
+    ? rawTimeslots.filter(t => freeTimeStrings.has(t))
+    : rawTimeslots;
 
   // Trigger Booking Request directly using selected widget choices (NO popup modal at all!)
   const handleProceedToBookingRequest = () => {
@@ -1337,6 +1401,20 @@ function FullProfileView({ consultant, onClose, onBook, onOpenPayment, onBookReq
               }}>
                 لا توجد مواعيد متاحة في هذا اليوم (عطلة رسمية للمستشار).
               </div>
+            ) : timeslots.length === 0 ? (
+              <div style={{
+                border: '1px dashed #FCA5A5',
+                background: '#FEF2F2',
+                borderRadius: '16px',
+                padding: '24px 16px',
+                textAlign: 'center',
+                color: '#991B1B',
+                fontSize: '13px',
+                fontWeight: '700',
+                marginTop: '14px'
+              }}>
+                جميع المواعيد المتاحة في هذا اليوم محجوزة بالكامل.
+              </div>
             ) : (
               <div className="booking-slots-grid">
                 {timeslots.map(t => (
@@ -1479,7 +1557,7 @@ function FullProfileView({ consultant, onClose, onBook, onOpenPayment, onBookReq
 }
 
 export default function ConsultantsPage({ navigate }) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [all,setAll]         = useState([]);
   const [specs,setSpecs]     = useState([]);
   const [loading,setLoading] = useState(true);
@@ -1501,6 +1579,15 @@ export default function ConsultantsPage({ navigate }) {
   const [sort,setSort]       = useState('best');
   const [page,setPage]       = useState(1);
 
+  const isConsultantMe = useCallback((c) => {
+    if (!user) return false;
+    if (user.id && (c.id === user.id || c.user_id === user.id || c.profile_id === user.id)) return true;
+    if (user.email && c.email && user.email.toLowerCase() === c.email.toLowerCase()) return true;
+    if (user.full_name && c.full_name && user.full_name.trim() === c.full_name.trim()) return true;
+    if (user.name && c.full_name && user.name.trim() === c.full_name.trim()) return true;
+    return false;
+  }, [user]);
+
   const fetchData = useCallback(async()=>{
     setLoading(true);
     try {
@@ -1509,8 +1596,7 @@ export default function ConsultantsPage({ navigate }) {
       if(chip!==null){ const c=CHIPS[chip]; if(c.max) f.max_price=c.max; if(c.min) f.min_price=c.min; }
       if(search.trim()) f.service_name=search.trim();
       const [cd,sd]=await Promise.all([consultantService.getConsultants(f,token),consultantService.getSpecializations()]);
-      const mock={profile_id:'mock-raafat-1',id:'mock-raafat-1',full_name:'أ. رأفت حداد',bio:'خبير ومستشار ضريبي بخبرة تزيد عن 20 سنة في الاستشارات الضريبية، تدقيق الحسابات، والاعتراضات لدى دائرة ضريبة الدخل والمبيعات الأردنية.',specialization_name:'ضريبة الدخل والمبيعات',specialization_id:1,average_rating:5.0,ratings_count:5,years_of_experience:20,price:50,tier:'مستشار VIP',is_available:true,verification_status:'approved',is_verified:true,city:'عمّان',services:['video','chat','report']};
-      setAll(Array.isArray(cd)?[mock,...cd]:[mock]);
+      setAll(Array.isArray(cd)?cd:[]);
       setSpecs(Array.isArray(sd)?sd:[]);
     } catch(e){ console.error(e); setAll([]); }
     finally { setLoading(false); }
@@ -1519,12 +1605,14 @@ export default function ConsultantsPage({ navigate }) {
   useEffect(()=>{ fetchData(); },[fetchData]);
 
   const filtered = all.filter(c=>{
+    if(isConsultantMe(c)) return false; // Don't show current consultant's own card in directory
     if(selSpecs.length>0 && !selSpecs.includes(String(c.specialization_id))) return false;
     if(availF && c.is_available===false) return false;
     if(cityF && c.city!==cityF) return false;
     if(selComms.length>0){ const sv=c.services||[]; if(!selComms.some(m=>sv.includes(m))) return false; }
     return true;
   });
+
   const sorted=[...filtered].sort((a,b)=>{
     if(sort==='rating') return (b.average_rating||0)-(a.average_rating||0);
     if(sort==='priceLow') return (a.price||0)-(b.price||0);
@@ -1866,7 +1954,8 @@ export default function ConsultantsPage({ navigate }) {
                 <div className={view === 'list' ? 'cp-cards-list' : 'cp-cards-grid'}>
                   {paged.map((c,i)=>(
                     <CCard key={c.profile_id||c.id||i} c={c} idx={(page-1)*PAGE_SIZE+i}
-                      onBook={handleBookNowFromCatalog} onView={handleViewProfileFromCatalog} list={view==='list'}/>
+                      onBook={handleBookNowFromCatalog} onView={handleViewProfileFromCatalog} list={view==='list'}
+                      isMe={isConsultantMe(c)}/>
                   ))}
                 </div>
               </div>

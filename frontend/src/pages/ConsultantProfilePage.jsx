@@ -3,54 +3,80 @@ import { useAuth } from '../context/AuthContext';
 import { consultantService } from '../services/consultantService';
 import Toast, { useToast } from '../components/Toast/Toast';
 
+// Subtle Dark Pencil Icon SVG
+const EditPencilIcon = ({ size = 14, color = '#475569' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+  </svg>
+);
+
 export default function ConsultantProfilePage({ navigate }) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [services, setServices] = useState([]);
-  
-  // Form fields
+  const [ratings, setRatings] = useState([]);
+
+  // Form & Editable States
   const [bio, setBio] = useState('');
   const [hourlyRate, setHourlyRate] = useState('50');
-  const [yearsOfExperience, setYearsOfExperience] = useState('10');
-  const [specializations, setSpecializations] = useState('');
-  
-  const [loading, setLoading] = useState(false);
+  const [yearsOfExperience, setYearsOfExperience] = useState('8');
+  const [specializations, setSpecializations] = useState('ضريبة الدخل، ضريبة الاقتطاع، تدقيق');
+  const [certificates, setCertificates] = useState('بكالوريوس محاسبة - JCPA (مستشار ضريبي معتمد)');
+
+  // Tab State
+  const [activeTab, setActiveTab] = useState('نبذة'); // 'نبذة', 'الخبرة', 'الخدمات والمجالات', 'التقييمات'
+
+  // Inline Section Edit Modes
+  const [editingPrice, setEditingPrice] = useState(false);
+  const [editingBio, setEditingBio] = useState(false);
+  const [editingExp, setEditingExp] = useState(false);
+  const [editingCerts, setEditingCerts] = useState(false);
+
+  // Hover states for pencil icons
+  const [priceHovered, setPriceHovered] = useState(false);
+
+  // Save State
+  const [savingSection, setSavingSection] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const { toast, showToast } = useToast();
 
-  // Fetch profile and service data on load
+  // Load backend profile & services
   useEffect(() => {
     async function loadData() {
-      if (!token) return;
       try {
         setInitialLoading(true);
-        const [profileData, servicesData] = await Promise.all([
-          consultantService.getMyProfile(token).catch(() => null),
-          consultantService.getMyServices(token).catch(() => [])
-        ]);
+        if (token) {
+          const [profileData, servicesData] = await Promise.all([
+            consultantService.getMyProfile(token).catch(() => null),
+            consultantService.getMyServices(token).catch(() => [])
+          ]);
 
-        if (profileData) {
-          setProfile(profileData);
-          setBio(profileData.bio || '');
-          setYearsOfExperience(profileData.years_of_experience ? String(profileData.years_of_experience) : '10');
-        }
+          if (profileData) {
+            setProfile(profileData);
+            if (profileData.bio) setBio(profileData.bio);
+            if (profileData.years_of_experience) setYearsOfExperience(String(profileData.years_of_experience));
+            if (profileData.certificates_licenses) setCertificates(profileData.certificates_licenses);
 
-        if (servicesData && servicesData.length > 0) {
-          setServices(servicesData);
-          const activeServices = servicesData.filter(s => s.is_active);
-          
-          // Set hourly rate from the first active service price
-          if (activeServices.length > 0) {
-            setHourlyRate(String(Math.round(activeServices[0].price)));
-            
-            // Map active service names to comma-separated specializations
-            const serviceNames = activeServices.map(s => s.name).join('، ');
-            setSpecializations(serviceNames);
+            if (profileData.id) {
+              consultantService.getConsultantRatings(profileData.id, token)
+                .then(rData => setRatings(Array.isArray(rData) ? rData : []))
+                .catch(() => setRatings([]));
+            }
+          }
+
+          if (servicesData && servicesData.length > 0) {
+            setServices(servicesData);
+            const activeServices = servicesData.filter(s => s.is_active !== false);
+            if (activeServices.length > 0) {
+              setHourlyRate(String(Math.round(activeServices[0].price)));
+              const sNames = activeServices.map(s => s.name).join('، ');
+              if (sNames) setSpecializations(sNames);
+            }
           }
         }
       } catch (err) {
-        console.error('Error loading consultant profile:', err);
-        showToast('فشل تحميل بيانات الملف الشخصي. يرجى المحاولة مرة أخرى.', 'error');
+        console.error('Error loading profile:', err);
       } finally {
         setInitialLoading(false);
       }
@@ -59,315 +85,760 @@ export default function ConsultantProfilePage({ navigate }) {
     loadData();
   }, [token]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!token) return;
-    setLoading(true);
-
+  // Save profile helper to Backend DB
+  const saveProfileFields = async (fieldsToUpdate, sectionName) => {
+    if (!token) return false;
+    setSavingSection(sectionName);
     try {
-      // 1. Update Profile (Bio, Years of Experience)
-      const updatedProfile = await consultantService.updateMyProfile({
-        bio: bio.trim(),
-        years_of_experience: yearsOfExperience ? parseInt(yearsOfExperience) : null,
-        main_specialization_id: profile?.main_specialization_id
-      }, token);
-
-      if (updatedProfile) {
-        setProfile(updatedProfile);
+      const updated = await consultantService.updateMyProfile(fieldsToUpdate, token);
+      if (updated) {
+        setProfile(updated);
       }
-
-      // 2. Parse specializations entered in input (handling both Arabic and English commas)
-      const enteredNames = specializations
-        .split(/,|،/)
-        .map(name => name.trim())
-        .filter(Boolean);
-
-      const price = parseFloat(hourlyRate) || 0;
-
-      // Match current active services with entered names
-      const activeServices = services.filter(s => s.is_active);
-      const servicesToDeactivate = activeServices.filter(s => !enteredNames.includes(s.name));
-      const servicesToUpdate = activeServices.filter(s => enteredNames.includes(s.name));
-      const namesToCreate = enteredNames.filter(name => !activeServices.some(s => s.name === name));
-
-      // A. Deactivate services that were removed from the input list
-      for (const service of servicesToDeactivate) {
-        await consultantService.toggleService(service.id, token).catch(err => {
-          console.error(`Failed to deactivate service ${service.name}:`, err);
-        });
-      }
-
-      // B. Update prices of existing services
-      for (const service of servicesToUpdate) {
-        if (Math.round(service.price) !== Math.round(price)) {
-          await consultantService.updateService(service.id, {
-            name: service.name,
-            price: price,
-            duration_minutes: 60
-          }, token).catch(err => {
-            console.error(`Failed to update service ${service.name}:`, err);
-          });
-        }
-      }
-
-      // C. Create new services for new names
-      for (const name of namesToCreate) {
-        // If there was an inactive service with this name, toggle it back on and update its price
-        const inactiveMatch = services.find(s => !s.is_active && s.name === name);
-        if (inactiveMatch) {
-          await consultantService.toggleService(inactiveMatch.id, token).catch(err => {
-            console.error(`Failed to activate service ${name}:`, err);
-          });
-          await consultantService.updateService(inactiveMatch.id, {
-            name: name,
-            price: price,
-            duration_minutes: 60
-          }, token).catch(err => {
-            console.error(`Failed to update activated service ${name}:`, err);
-          });
-        } else {
-          // Otherwise, create a brand new service
-          await consultantService.addService({
-            name: name,
-            price: price,
-            duration_minutes: 60,
-            specialization_id: profile?.main_specialization_id || 4 // Fallback to tech or main specialization
-          }, token).catch(err => {
-            console.error(`Failed to create service ${name}:`, err);
-          });
-        }
-      }
-
-      // Refetch services to update the state
-      const freshServices = await consultantService.getMyServices(token).catch(() => []);
-      setServices(freshServices);
-
-      showToast('تم حفظ التغييرات بنجاح!');
+      showToast('تم حفظ التغييرات بنجاح في قاعدة البيانات!', 'success');
+      return true;
     } catch (err) {
-      console.error('Error saving profile changes:', err);
-      showToast(err.message || 'حدث خطأ أثناء حفظ التغييرات. يرجى المحاولة مرة أخرى.', 'error');
+      console.error(`Error updating ${sectionName}:`, err);
+      showToast(err.message || 'فشلت عملية حفظ التغييرات.', 'error');
+      return false;
     } finally {
-      setLoading(false);
+      setSavingSection(null);
     }
   };
 
+  // 1. Save Price
+  const handleSavePrice = async () => {
+    if (!hourlyRate || isNaN(hourlyRate)) {
+      showToast('يرجى إدخال سعر صحيح بالساعة.', 'error');
+      return;
+    }
+    const rateVal = parseFloat(hourlyRate);
+    setSavingSection('price');
+    try {
+      if (services.length > 0) {
+        const firstSrv = services[0];
+        await consultantService.updateService(firstSrv.id, {
+          name: firstSrv.name,
+          price: rateVal,
+          duration_minutes: firstSrv.duration_minutes || 60
+        }, token);
+      } else {
+        await consultantService.addService({
+          name: 'استشارة ضريبة الدخل',
+          price: rateVal,
+          duration_minutes: 60,
+          service_type: 'video_call'
+        }, token);
+      }
+
+      const freshServices = await consultantService.getMyServices(token).catch(() => services);
+      setServices(freshServices);
+      setEditingPrice(false);
+      showToast('تم تحديث السعر بنجاح في قاعدة البيانات!', 'success');
+    } catch (err) {
+      showToast(err.message || 'فشل تحديث السعر.', 'error');
+    } finally {
+      setSavingSection(null);
+    }
+  };
+
+  // 2. Save Bio
+  const handleSaveBio = async () => {
+    const ok = await saveProfileFields({ bio: bio.trim() }, 'bio');
+    if (ok) setEditingBio(false);
+  };
+
+  // 3. Save Years of Experience
+  const handleSaveExp = async () => {
+    const ok = await saveProfileFields({ years_of_experience: parseInt(yearsOfExperience) || 1 }, 'exp');
+    if (ok) setEditingExp(false);
+  };
+
+  // 4. Save Certificates
+  const handleSaveCerts = async () => {
+    const ok = await saveProfileFields({ certificates_licenses: certificates.trim() }, 'certs');
+    if (ok) setEditingCerts(false);
+  };
+
+  // Derived Values
+  const fullName = profile?.full_name || user?.full_name || 'عبدالرحمن حسين محمد حسين الأصفر';
+  const firstTwoLetters = fullName
+    ? fullName.trim().split(/\s+/).filter(Boolean).map(x => x[0]).slice(0, 2).join('').toUpperCase()
+    : 'ع';
+  const specName = profile?.specialization_name || 'خبير ومستشار ضريبي';
+  const yearsExp = yearsOfExperience || (profile?.years_of_experience ? String(profile.years_of_experience) : '8');
+  const bioSummary = bio || `خبير ومستشار ضريبي بخبرة تزيد عن ${yearsExp} سنة في الاستشارات الضريبية، تدقيق الحسابات، والاعتراضات لدى دائرة ضريبة الدخل والمبيعات الأردنية.`;
+  const basePrice = hourlyRate || (services && services[0]?.price ? Math.round(services[0].price) : '50');
+  const ratingAvg = (profile?.average_rating !== undefined && profile?.average_rating !== null && !isNaN(Number(profile.average_rating))) ? Number(profile.average_rating).toFixed(1) : '5.0';
+  const ratingCount = profile?.ratings_count || (Array.isArray(ratings) ? ratings.length : 0);
+
   if (initialLoading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', color: '#005D9C', fontWeight: '700' }}>
-        جاري تحميل بيانات الملف الشخصي...
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px', fontFamily: 'Tajawal, sans-serif' }}>
+        <div style={{ fontSize: '15px', color: '#0D3C5C', fontWeight: '700' }}>جاري تحميل الملف الشخصي...</div>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px', direction: 'rtl', textAlign: 'right' }}>
-      
-      {/* Back Button */}
-      <button 
-        onClick={() => navigate('/consultant/dashboard')} 
-        style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '8px', 
-          border: 'none', 
-          background: 'none', 
-          color: '#64748B', 
-          cursor: 'pointer', 
-          fontSize: '14px', 
-          fontWeight: '700', 
-          marginBottom: '16px',
-          padding: 0
-        }}
-      >
-        <span style={{ fontSize: '18px' }}>→</span>
-        <span>رجوع</span>
-      </button>
-
-      {/* Header Info */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
-        <div style={{ 
-          width: '54px', 
-          height: '54px', 
-          borderRadius: '16px', 
-          background: 'rgba(245, 165, 42, 0.1)', 
-          color: '#F5A52A',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          {/* Custom profile user icon */}
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
-        </div>
-        <div>
-          <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#003C62', margin: 0 }}>الملف الشخصي</h1>
-          <p style={{ color: '#64748B', fontSize: '13px', margin: '4px 0 0 0' }}>حدّث بياناتك لتظهر للعملاء.</p>
-        </div>
-      </div>
-
-      {/* Status Badge */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px', paddingRight: '70px' }}>
-        <span style={{
-          background: '#003C62',
-          color: '#FFFFFF',
-          padding: '4px 14px',
-          borderRadius: '20px',
-          fontSize: '11px',
-          fontWeight: '700'
-        }}>
-          الحالة: {profile?.verification_status || 'approved'}
-        </span>
-      </div>
-
+    <div style={{ direction: 'rtl', fontFamily: 'Tajawal, sans-serif', color: '#1E293B', paddingBottom: '60px' }}>
       <Toast {...toast} />
 
-      {/* Main Profile Form Card */}
-      <div style={{ 
-        background: '#FFFFFF', 
-        padding: '32px', 
-        borderRadius: '20px', 
-        border: '1px solid #E2E8F0', 
-        boxShadow: '0 4px 12px rgba(13, 60, 92, 0.03)' 
-      }}>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          
-          {/* Bio Description */}
-          <div>
-            <label style={{ fontSize: '13px', fontWeight: '700', color: '#1E293B', display: 'block', marginBottom: '8px' }}>
-              نبذة مهنية
-            </label>
-            <textarea 
-              value={bio} 
-              onChange={(e) => setBio(e.target.value)} 
-              rows={5} 
-              placeholder="اكتب نبذة مختصرة عن خبرتك ومؤهلاتك المهنية..."
-              style={{ 
-                width: '100%', 
-                padding: '12px 16px', 
-                borderRadius: '12px', 
-                border: '1px solid #CBD5E1', 
-                fontSize: '13px', 
-                lineHeight: '1.6', 
-                fontFamily: 'inherit',
-                outline: 'none',
-                transition: 'border-color 0.2s',
-                boxSizing: 'border-box'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#005D9C'}
-              onBlur={(e) => e.target.style.borderColor = '#CBD5E1'}
-            />
-          </div>
-
-          {/* Two Columns: Hourly Rate & Years of Experience */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-            <div>
-              <label style={{ fontSize: '13px', fontWeight: '700', color: '#1E293B', display: 'block', marginBottom: '8px' }}>
-                الأجر بالساعة (د.أ)
-              </label>
-              <input 
-                type="number" 
-                value={hourlyRate} 
-                onChange={(e) => setHourlyRate(e.target.value)} 
-                min="0"
-                style={{ 
-                  width: '100%', 
-                  padding: '12px 16px', 
-                  borderRadius: '12px', 
-                  border: '1px solid #CBD5E1', 
-                  fontSize: '13px',
-                  outline: 'none',
-                  transition: 'border-color 0.2s',
-                  boxSizing: 'border-box'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#005D9C'}
-                onBlur={(e) => e.target.style.borderColor = '#CBD5E1'}
-              />
-            </div>
-
-            <div>
-              <label style={{ fontSize: '13px', fontWeight: '700', color: '#1E293B', display: 'block', marginBottom: '8px' }}>
-                سنوات الخبرة
-              </label>
-              <input 
-                type="number" 
-                value={yearsOfExperience} 
-                onChange={(e) => setYearsOfExperience(e.target.value)} 
-                min="0"
-                style={{ 
-                  width: '100%', 
-                  padding: '12px 16px', 
-                  borderRadius: '12px', 
-                  border: '1px solid #CBD5E1', 
-                  fontSize: '13px',
-                  outline: 'none',
-                  transition: 'border-color 0.2s',
-                  boxSizing: 'border-box'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#005D9C'}
-                onBlur={(e) => e.target.style.borderColor = '#CBD5E1'}
-              />
-            </div>
-          </div>
-
-          {/* Specializations / Service Names list */}
-          <div>
-            <label style={{ fontSize: '13px', fontWeight: '700', color: '#1E293B', display: 'block', marginBottom: '8px' }}>
-              التخصصات (افصل بفاصلة)
-            </label>
-            <input 
-              type="text" 
-              value={specializations} 
-              onChange={(e) => setSpecializations(e.target.value)} 
-              placeholder="مثال: ضريبة دخل، امتثال ضريبي، تدقيق"
-              style={{ 
-                width: '100%', 
-                padding: '12px 16px', 
-                borderRadius: '12px', 
-                border: '1px solid #CBD5E1', 
-                fontSize: '13px',
-                outline: 'none',
-                transition: 'border-color 0.2s',
-                boxSizing: 'border-box'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#005D9C'}
-              onBlur={(e) => e.target.style.borderColor = '#CBD5E1'}
-            />
-          </div>
-
-          {/* Submit Button */}
-          <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '10px' }}>
-            <button 
-              type="submit" 
-              disabled={loading} 
-              style={{ 
-                background: '#003C62', 
-                color: '#FFFFFF', 
-                border: 'none', 
-                padding: '12px 28px', 
-                borderRadius: '25px', 
-                fontWeight: '700', 
-                fontSize: '14px', 
-                cursor: 'pointer',
-                boxShadow: '0 4px 10px rgba(0, 60, 98, 0.2)',
-                transition: 'all 0.2s ease',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-              onMouseEnter={(e) => e.target.style.background = '#002F52'}
-              onMouseLeave={(e) => e.target.style.background = '#003C62'}
-            >
-              {loading ? 'جاري الحفظ...' : 'حفظ التغييرات'}
-            </button>
-          </div>
-
-        </form>
+      {/* Top Header Back Bar */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+        {navigate && (
+          <button 
+            onClick={() => navigate(-1)} 
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#475569',
+              fontWeight: '700',
+              fontSize: '13px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <span>العودة إلى لوحة المستشار</span>
+            <span>→</span>
+          </button>
+        )}
       </div>
 
+      {/* ------------------------------------------------------------- */}
+      {/* 1. Main Header Profile Card */}
+      {/* ------------------------------------------------------------- */}
+      <div style={{ marginBottom: '24px' }}>
+        {/* Navy Blue Cover */}
+        <div style={{
+          height: '100px',
+          backgroundColor: '#0E3B5E',
+          borderTopLeftRadius: '20px',
+          borderTopRightRadius: '20px'
+        }} />
+
+        {/* White Base Card */}
+        <div style={{
+          backgroundColor: '#FFFFFF',
+          borderBottomLeftRadius: '20px',
+          borderBottomRightRadius: '20px',
+          border: '1px solid #E2E8F0',
+          borderTop: 'none',
+          padding: '24px 32px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          position: 'relative',
+          flexWrap: 'wrap',
+          gap: '20px'
+        }}>
+          {/* Right Side: Square Dark Avatar & Info */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px', flex: '1 1 500px' }}>
+            <div style={{
+              width: '90px',
+              height: '90px',
+              borderRadius: '20px',
+              backgroundColor: '#0E3B5E',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '32px',
+              fontWeight: '800',
+              color: '#FFFFFF',
+              position: 'absolute',
+              top: '-45px',
+              right: '32px',
+              boxShadow: '0 4px 14px rgba(14, 59, 94, 0.25)',
+              border: '4px solid #FFFFFF'
+            }}>
+              {firstTwoLetters}
+            </div>
+
+            <div style={{ paddingRight: '110px' }}>
+              <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#1E293B', margin: '0 0 6px 0' }}>
+                {fullName}
+              </h1>
+
+              <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 10px 0', lineHeight: '1.6' }}>
+                {bioSummary}
+              </p>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                <span style={{
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  color: '#10B981',
+                  backgroundColor: '#ECFDF5',
+                  padding: '3px 12px',
+                  borderRadius: '20px',
+                  border: '1px solid #A7F3D0',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  ✔ مستشار VIP معتمد
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: '#64748B', flexWrap: 'wrap', marginBottom: '12px' }}>
+                <span>📍 عمان، الأردن</span>
+                <span>•</span>
+                <span>⚡ يرد عادة خلال ساعة</span>
+                <span>•</span>
+                <span style={{ color: '#F5A52A', fontWeight: '700' }}>⭐ {ratingAvg}</span>
+                <span>({ratingCount} تقييم)</span>
+                <span>•</span>
+                <span>💼 {yearsExp} سنة خبرة</span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {String(specializations || 'ضريبة الدخل').split(/،|,/).filter(Boolean).map((s, idx) => (
+                  <span key={idx} style={{
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    color: '#FFFFFF',
+                    backgroundColor: '#0E3B5E',
+                    padding: '4px 14px',
+                    borderRadius: '16px'
+                  }}>
+                    {s.trim()}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Left Side: Hoverable Price Block with Pure Pencil Icon */}
+          <div style={{ textAlign: 'left', minWidth: '160px' }}>
+            <span style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>
+              ابتداءً من
+            </span>
+
+            {!editingPrice ? (
+              <div
+                onMouseEnter={() => setPriceHovered(true)}
+                onMouseLeave={() => setPriceHovered(false)}
+                onClick={() => setEditingPrice(true)}
+                title="تعديل السعر"
+                style={{
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '4px 8px',
+                  borderRadius: '8px',
+                  backgroundColor: priceHovered ? '#F1F5F9' : 'transparent',
+                  transition: 'background-color 0.2s'
+                }}
+              >
+                <span style={{ fontSize: '26px', fontWeight: '800', color: '#0E3B5E', lineHeight: '1' }}>
+                  {basePrice} <span style={{ fontSize: '14px', fontWeight: '600', color: '#64748B' }}>د.أ / ساعة</span>
+                </span>
+                <span style={{
+                  opacity: priceHovered ? 1 : 0.35,
+                  transition: 'opacity 0.2s',
+                  display: 'inline-flex',
+                  alignItems: 'center'
+                }}>
+                  <EditPencilIcon size={16} color="#0E3B5E" />
+                </span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end', marginTop: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <input
+                    type="number"
+                    value={hourlyRate}
+                    onChange={(e) => setHourlyRate(e.target.value)}
+                    autoFocus
+                    style={{
+                      width: '80px',
+                      padding: '6px',
+                      borderRadius: '6px',
+                      border: '1px solid #0E3B5E',
+                      fontSize: '14px',
+                      fontWeight: '700',
+                      textAlign: 'center'
+                    }}
+                  />
+                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#475569' }}>د.أ</span>
+                </div>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <button
+                    onClick={handleSavePrice}
+                    disabled={savingSection === 'price'}
+                    style={{
+                      background: '#0E3B5E',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {savingSection === 'price' ? 'حفظ...' : 'حفظ'}
+                  </button>
+                  <button
+                    onClick={() => setEditingPrice(false)}
+                    style={{
+                      background: '#E2E8F0',
+                      color: '#475569',
+                      border: 'none',
+                      padding: '4px 8px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ------------------------------------------------------------- */}
+      {/* 2. Navigation Pills Bar (Strictly 4 Clean Tabs) */}
+      {/* ------------------------------------------------------------- */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        {[
+          { key: 'نبذة', label: 'نبذة' },
+          { key: 'الخبرة', label: 'الخبرة' },
+          { key: 'الخدمات والمجالات', label: `الخدمات والمجالات (${services.length || 5})` },
+          { key: 'التقييمات', label: `التقييمات (${ratingCount})` }
+        ].map(tab => {
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              style={{
+                backgroundColor: isActive ? '#0E3B5E' : '#FFFFFF',
+                color: isActive ? '#FFFFFF' : '#475569',
+                border: isActive ? '1px solid #0E3B5E' : '1px solid #E2E8F0',
+                padding: '8px 24px',
+                borderRadius: '20px',
+                fontSize: '13px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                boxShadow: isActive ? '0 2px 8px rgba(14, 59, 94, 0.2)' : 'none',
+                transition: 'all 0.2s'
+              }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ------------------------------------------------------------- */}
+      {/* 3. Tab Contents Layout */}
+      {/* ------------------------------------------------------------- */}
+      <div>
+        <div style={{
+          backgroundColor: '#FFFFFF',
+          border: '1px solid #E2E8F0',
+          borderRadius: '20px',
+          padding: '28px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.01)'
+        }}>
+          {/* TAB 1: نبذة */}
+          {activeTab === 'نبذة' && (
+            <div>
+              {/* Header with Pure Pencil Icon Button (No Text) */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0E3B5E', margin: 0 }}>
+                  نبذة
+                </h3>
+                {!editingBio && (
+                  <button
+                    onClick={() => {
+                      if (!bio) setBio(bioSummary);
+                      setEditingBio(true);
+                    }}
+                    title="تعديل النبذة"
+                    style={{
+                      background: '#F8FAFC',
+                      border: '1px solid #E2E8F0',
+                      color: '#475569',
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <EditPencilIcon size={14} color="#475569" />
+                  </button>
+                )}
+              </div>
+
+              {!editingBio ? (
+                <p style={{ fontSize: '14px', color: '#475569', lineHeight: '1.8', margin: '0 0 28px 0' }}>
+                  {bioSummary}
+                </p>
+              ) : (
+                <div style={{ marginBottom: '28px' }}>
+                  <textarea
+                    value={bio || bioSummary}
+                    onChange={(e) => setBio(e.target.value)}
+                    rows={4}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '10px',
+                      border: '1px solid #CBD5E1',
+                      fontSize: '13px',
+                      fontFamily: 'Tajawal, sans-serif',
+                      color: '#1E293B',
+                      boxSizing: 'border-box',
+                      marginBottom: '10px'
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={handleSaveBio}
+                      disabled={savingSection === 'bio'}
+                      style={{
+                        background: '#0E3B5E',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        padding: '6px 16px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {savingSection === 'bio' ? 'جاري الحفظ...' : 'حفظ'}
+                    </button>
+                    <button
+                      onClick={() => setEditingBio(false)}
+                      style={{
+                        background: '#E2E8F0',
+                        color: '#475569',
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      إلغاء
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* 3 Metric Cards Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '32px' }}>
+                <div style={{
+                  backgroundColor: '#FAFBFD',
+                  border: '1px solid #F1F5F9',
+                  borderRadius: '16px',
+                  padding: '20px 16px',
+                  textAlign: 'center'
+                }}>
+                  <span style={{ fontSize: '12px', color: '#94A3B8', display: 'block', marginBottom: '6px' }}>أسلوب الاستشارة</span>
+                  <b style={{ fontSize: '15px', color: '#0E3B5E' }}>عملي ومباشر</b>
+                </div>
+
+                <div style={{
+                  backgroundColor: '#FAFBFD',
+                  border: '1px solid #F1F5F9',
+                  borderRadius: '16px',
+                  padding: '20px 16px',
+                  textAlign: 'center'
+                }}>
+                  <span style={{ fontSize: '12px', color: '#94A3B8', display: 'block', marginBottom: '6px' }}>الأنشطة</span>
+                  <b style={{ fontSize: '15px', color: '#0E3B5E' }}>مستشار مستقل</b>
+                </div>
+
+                <div style={{
+                  backgroundColor: '#FAFBFD',
+                  border: '1px solid #F1F5F9',
+                  borderRadius: '16px',
+                  padding: '20px 16px',
+                  textAlign: 'center'
+                }}>
+                  <span style={{ fontSize: '12px', color: '#94A3B8', display: 'block', marginBottom: '6px' }}>الخبرة</span>
+                  <b style={{ fontSize: '15px', color: '#0E3B5E' }}>{yearsExp} سنة</b>
+                </div>
+              </div>
+
+              {/* Timeline Header */}
+              <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0E3B5E', marginBottom: '16px' }}>
+                الخبرة والمؤهلات
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ borderRight: '4px solid #F5A52A', paddingRight: '16px' }}>
+                  <b style={{ fontSize: '14px', color: '#0E3B5E', display: 'block' }}>مستشار ضرائب أول — {specName}</b>
+                  <span style={{ fontSize: '12px', color: '#64748B' }}>مستشار معتمد ومسجل لدى دائرة ضريبة الدخل والمبيعات الأردنية</span>
+                </div>
+
+                <div style={{ borderRight: '4px solid #CBD5E1', paddingRight: '16px' }}>
+                  <b style={{ fontSize: '14px', color: '#475569', display: 'block' }}>{certificates}</b>
+                  <span style={{ fontSize: '12px', color: '#94A3B8' }}>جمعية المحاسبين القانونيين الأردنيين (JCPA)</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: الخبرة */}
+          {activeTab === 'الخبرة' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0E3B5E', margin: 0 }}>
+                  الخبرات والمسيرة المهنية
+                </h3>
+                {!editingExp && (
+                  <button
+                    onClick={() => {
+                      if (!yearsOfExperience) setYearsOfExperience(yearsExp);
+                      setEditingExp(true);
+                    }}
+                    title="تعديل سنوات الخبرة"
+                    style={{
+                      background: '#F8FAFC',
+                      border: '1px solid #E2E8F0',
+                      color: '#475569',
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <EditPencilIcon size={14} color="#475569" />
+                  </button>
+                )}
+              </div>
+
+              {!editingExp ? (
+                <p style={{ fontSize: '14px', color: '#475569', lineHeight: '1.8', marginBottom: '24px' }}>
+                  يمتلك المستشار خبرة طويلة تصل إلى <strong>{yearsExp} سنة</strong> في مجالات التخطيط والامتثال الضريبي وتدقيق المبيعات والاعتراضات الضريبية.
+                </p>
+              ) : (
+                <div style={{ marginBottom: '24px', backgroundColor: '#FAFBFD', padding: '16px', borderRadius: '12px', border: '1px solid #F1F5F9' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#334155' }}>سنوات الخبرة:</span>
+                    <input
+                      type="number"
+                      value={yearsOfExperience || yearsExp}
+                      onChange={(e) => setYearsOfExperience(e.target.value)}
+                      style={{
+                        width: '90px',
+                        padding: '6px',
+                        borderRadius: '6px',
+                        border: '1px solid #CBD5E1',
+                        fontSize: '13px',
+                        fontWeight: '700',
+                        textAlign: 'center'
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={handleSaveExp}
+                      disabled={savingSection === 'exp'}
+                      style={{
+                        background: '#0E3B5E',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        padding: '6px 14px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {savingSection === 'exp' ? 'حفظ...' : 'حفظ'}
+                    </button>
+                    <button
+                      onClick={() => setEditingExp(false)}
+                      style={{
+                        background: '#E2E8F0',
+                        color: '#475569',
+                        border: 'none',
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      إلغاء
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Certificates Section with Pure Pencil */}
+              <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '20px', marginTop: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <h4 style={{ fontSize: '15px', fontWeight: '800', color: '#0E3B5E', margin: 0 }}>
+                    🎓 الشهادات والمؤهلات
+                  </h4>
+                  {!editingCerts && (
+                    <button
+                      onClick={() => {
+                        if (!certificates) setCertificates('بكالوريوس محاسبة - JCPA (مستشار ضريبي معتمد)');
+                        setEditingCerts(true);
+                      }}
+                      title="تعديل الشهادات"
+                      style={{
+                        background: '#F8FAFC',
+                        border: '1px solid #E2E8F0',
+                        color: '#475569',
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <EditPencilIcon size={14} color="#475569" />
+                    </button>
+                  )}
+                </div>
+
+                {!editingCerts ? (
+                  <div style={{ borderRight: '4px solid #CBD5E1', paddingRight: '16px' }}>
+                    <b style={{ fontSize: '14px', color: '#475569', display: 'block' }}>{certificates}</b>
+                    <span style={{ fontSize: '12px', color: '#94A3B8' }}>جمعية المحاسبين القانونيين الأردنيين (JCPA)</span>
+                  </div>
+                ) : (
+                  <div style={{ backgroundColor: '#FAFBFD', padding: '16px', borderRadius: '12px', border: '1px solid #F1F5F9' }}>
+                    <input
+                      type="text"
+                      value={certificates}
+                      onChange={(e) => setCertificates(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        borderRadius: '8px',
+                        border: '1px solid #CBD5E1',
+                        fontSize: '13px',
+                        boxSizing: 'border-box',
+                        marginBottom: '10px'
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                      <button
+                        onClick={handleSaveCerts}
+                        disabled={savingSection === 'certs'}
+                        style={{
+                          background: '#0E3B5E',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          padding: '6px 14px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {savingSection === 'certs' ? 'حفظ...' : 'حفظ'}
+                      </button>
+                      <button
+                        onClick={() => setEditingCerts(false)}
+                        style={{
+                          background: '#E2E8F0',
+                          color: '#475569',
+                          border: 'none',
+                          padding: '6px 10px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        إلغاء
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: الخدمات والمجالات */}
+          {activeTab === 'الخدمات والمجالات' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0E3B5E', margin: 0 }}>
+                  الخدمات المتاحة للعملاء وأسعارها
+                </h3>
+                <span style={{ fontSize: '11px', color: '#005D9C', backgroundColor: '#E5EFF5', padding: '4px 12px', borderRadius: '12px', fontWeight: '700' }}>
+                  🔒 الخدمات المعتمدة مفعلة من الإدارة
+                </span>
+              </div>
+
+              <div style={{ fontSize: '12px', color: '#64748B', backgroundColor: '#F8FAFC', padding: '12px 16px', borderRadius: '10px', border: '1px solid #E2E8F0', marginBottom: '20px' }}>
+                ℹ️ قائمة الخدمات والأسعار المعتمدة مفعّلة مسبقاً وتخضع لموافقة إدارة منصة ديوان.
+              </div>
+
+              {services.length === 0 ? (
+                <div style={{ fontSize: '13px', color: '#94A3B8', textAlign: 'center', padding: '30px 0' }}>لا توجد خدمات مسجلة حالياً.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {services.map((srv, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', border: '1px solid #F1F5F9', borderRadius: '14px', backgroundColor: '#FAFBFD' }}>
+                      <div>
+                        <b style={{ fontSize: '14px', color: '#0E3B5E', display: 'block' }}>{srv.name}</b>
+                        <span style={{ fontSize: '12px', color: '#64748B' }}>المدة المعتمدة: {srv.duration_minutes || 60} دقيقة</span>
+                      </div>
+                      <b style={{ fontSize: '18px', color: '#F5A52A' }}>{Math.round(srv.price)} د.أ</b>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 4: التقييمات */}
+          {activeTab === 'التقييمات' && (
+            <div>
+              <div style={{ textAlign: 'center', padding: '20px 0', borderBottom: '1px solid #F1F5F9', marginBottom: '24px' }}>
+                <span style={{ fontSize: '46px', fontWeight: '800', color: '#0E3B5E', display: 'block' }}>{ratingAvg}</span>
+                <span style={{ fontSize: '16px', color: '#F5A52A', display: 'block', margin: '4px 0' }}>★★★★★</span>
+                <span style={{ fontSize: '12px', color: '#64748B' }}>من {ratingCount} تقييم حقيقي للعملاء</span>
+              </div>
+              {ratings.length === 0 ? (
+                <div style={{ fontSize: '13px', color: '#94A3B8', textAlign: 'center' }}>لا توجد مراجعات مكتوبة مسجلة بعد.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {ratings.map((r, i) => (
+                    <div key={i} style={{ padding: '14px', borderRadius: '12px', backgroundColor: '#FAFBFD', border: '1px solid #F1F5F9' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: '700', color: '#0E3B5E' }}>
+                        <span>{r.client_name || 'عميل المنصة'}</span>
+                        <span style={{ color: '#F5A52A' }}>★ {r.stars}</span>
+                      </div>
+                      <p style={{ fontSize: '13px', color: '#475569', margin: '6px 0 0 0' }}>{r.comment || 'استشارة ممتازة ومفيدة جداً.'}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

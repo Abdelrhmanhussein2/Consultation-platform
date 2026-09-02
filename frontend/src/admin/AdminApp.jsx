@@ -60,10 +60,11 @@ export default function AdminApp({ currentPath = '/admin', navigate }) {
     );
   }
 
-  // Normalize path by stripping trailing slashes (e.g. /admin/ -> /admin)
-  const normalizedPath = (currentPath && currentPath.length > 1) 
-    ? currentPath.replace(/\/+$/, '') 
-    : (currentPath || '/admin');
+  // Normalize path by stripping query params and trailing slashes (e.g. /admin/calendar?foo=bar -> /admin/calendar)
+  const pathname = currentPath ? currentPath.split('?')[0] : '/admin';
+  const normalizedPath = (pathname && pathname.length > 1) 
+    ? pathname.replace(/\/+$/, '') 
+    : (pathname || '/admin');
 
   const renderAdminContent = () => {
     switch (normalizedPath) {

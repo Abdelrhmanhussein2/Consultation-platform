@@ -46,13 +46,13 @@ export default function AdminAuditLogsPage({ navigate }) {
       actionLabel: 'اعتماد سحب أرباح بنكية',
       target: 'طلب سحب أرباح #PAY-103',
       targetType: 'حوالة بنكية',
-      details: 'تأكيد التحويل البنكي للمستشار أ. رأفت حداد بمبلغ 350 د.أ عبر البنك العربي',
+      details: 'تأكيد التحويل البنكي للمستشار أحمد نصار بمبلغ 350 د.أ عبر البنك العربي',
       severity: 'high',
       status: 'success',
       payload: {
         payoutId: 'pay_103',
         amount: '350.00 JOD',
-        beneficiary: 'أ. رأفت حداد',
+        beneficiary: 'أحمد نصار',
         iban: 'JO******************1245',
         bankName: 'Arab Bank PLC',
         referenceNumber: 'TXN-ARAB-9884210'

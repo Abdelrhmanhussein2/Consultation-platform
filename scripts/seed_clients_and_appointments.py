@@ -67,7 +67,7 @@ def seed_diwan_data():
         consultants_seed_data = [
             {
                 "email": "ahmad.nassar@platform.com",
-                "alt_email": "consultant@platform.com",
+                "alt_email": "",
                 "full_name": "أحمد نصار",
                 "phone": "+962790001001",
                 "spec_id": spec_income.id,

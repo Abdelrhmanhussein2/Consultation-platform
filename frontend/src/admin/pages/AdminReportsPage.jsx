@@ -140,7 +140,7 @@ export default function AdminReportsPage({ navigate }) {
 
   const getConsultationsData = () => [
     { id: 'SES-1029', client: 'محمد سالم', consultant: 'أ. سارة المجالي', type: 'جلسة مرئية', topic: 'الإعفاءات الضريبية للمصانع', amount: '75 د.أ', date: '2026-08-30 09:00', status: 'مكتملة' },
-    { id: 'SES-1028', client: 'رنا حداد', consultant: 'أ. رأفت حداد', type: 'جلسة مرئية', topic: 'مراجعة إقرار ضريبة المبيعات', amount: '50 د.أ', date: '2026-08-28 16:30', status: 'مؤكدة' },
+    { id: 'SES-1028', client: 'رنا حداد', consultant: 'أحمد نصار', type: 'جلسة مرئية', topic: 'مراجعة إقرار ضريبة المبيعات', amount: '50 د.أ', date: '2026-08-28 16:30', status: 'مؤكدة' },
     { id: 'SES-1027', client: 'فراس عودة', consultant: 'م. ديما المجالي', type: 'جلسة صوتية', topic: 'الاعتراض على تقدير دخل 2025', amount: '40 د.أ', date: '2026-08-29 11:00', status: 'مكتملة' },
     { id: 'SES-1026', client: 'دينا العبداللات', consultant: 'سعد هارون', type: 'استشارة مكتوبة', topic: 'استشارة قضايا جمركية وتخليص', amount: '60 د.أ', date: '2026-08-29 13:15', status: 'مؤكدة' }
   ];

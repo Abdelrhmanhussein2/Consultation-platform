@@ -90,6 +90,7 @@ function MainApp() {
     '/support',
     '/settings',
     '/policies-portal',
+    '/consultant',
     '/consultant/dashboard',
     '/consultant/calendar',
     '/consultant/sessions',
@@ -139,77 +140,77 @@ function MainApp() {
     if (pathname === '/chat') {
       return <ChatPage navigate={navigate} />;
     }
-    if (currentPath.startsWith('/regulations')) {
+    if (pathname.startsWith('/regulations')) {
       return <RegulationsPage />;
     }
-    if (currentPath === '/ai-assistant') {
+    if (pathname === '/ai-assistant') {
       return <AiAssistantPage />;
     }
-    if (currentPath === '/invoices') {
+    if (pathname === '/invoices') {
       return <InvoicesPage />;
     }
-    if (currentPath === '/tickets') {
+    if (pathname === '/tickets') {
       return <BusinessHelpPage navigate={navigate} />;
     }
-    if (currentPath === '/support') {
+    if (pathname === '/support') {
       return <SupportCenterPage navigate={navigate} />;
     }
-    if (currentPath === '/support/tickets') {
+    if (pathname === '/support/tickets') {
       return <SupportTicketsListPage navigate={navigate} />;
     }
-    if (currentPath === '/support/new-ticket') {
+    if (pathname === '/support/new-ticket') {
       return <SupportNewTicketPage navigate={navigate} />;
     }
-    if (currentPath.startsWith('/support/tickets/')) {
-      const parts = currentPath.split('/');
+    if (pathname.startsWith('/support/tickets/')) {
+      const parts = pathname.split('/');
       const ticketId = parts[parts.length - 1];
       return <SupportTicketDetailPage ticketId={ticketId} navigate={navigate} />;
     }
-    if (currentPath === '/policies-portal') {
+    if (pathname === '/policies-portal') {
       return <PolicyCenterPage openPolicy={openPolicy} />;
     }
-    if (currentPath === '/settings') {
+    if (pathname === '/settings') {
       return <UserSettingsPage />;
     }
 
     // Consultant Portal Screens
-    if (currentPath === '/consultant/dashboard') {
+    if (pathname === '/consultant' || pathname === '/consultant/' || pathname === '/consultant/dashboard') {
       return <ConsultantDashboard navigate={navigate} />;
     }
-    if (currentPath === '/consultant/sessions') {
+    if (pathname === '/consultant/sessions') {
       return <ConsultantSessionsPage navigate={navigate} />;
     }
-    if (currentPath === '/consultant/clients') {
+    if (pathname === '/consultant/clients') {
       return <ConsultantClientsPage navigate={navigate} />;
     }
-    if (currentPath === '/consultant/profile') {
+    if (pathname === '/consultant/profile') {
       return <ConsultantProfilePage navigate={navigate} />;
     }
-    if (currentPath === '/consultant/earnings') {
+    if (pathname === '/consultant/earnings') {
       return <ConsultantEarningsPage navigate={navigate} />;
     }
-    if (currentPath === '/consultant/semantic-search') {
+    if (pathname === '/consultant/semantic-search') {
       return <PlaceholderPage title="البحث الدلالي للمستشار" />;
     }
-    if (currentPath === '/consultant/document-analysis') {
+    if (pathname === '/consultant/document-analysis') {
       return <DocumentAnalysisPage navigate={navigate} />;
     }
-    if (currentPath === '/consultant/colleagues') {
+    if (pathname === '/consultant/colleagues') {
       return <ConsultantsPage navigate={navigate} />;
     }
-    if (currentPath === '/consultant/subscriptions') {
+    if (pathname === '/consultant/subscriptions') {
       return <ConsultantSubscriptionsPage navigate={navigate} />;
     }
-    if (currentPath === '/consultant/payments') {
+    if (pathname === '/consultant/payments') {
       return <ConsultantPaymentsPage navigate={navigate} />;
     }
-    if (currentPath === '/consultant/documents') {
+    if (pathname === '/consultant/documents') {
       return <ConsultantDocumentsPage />;
     }
-    if (currentPath === '/consultant/favorites') {
+    if (pathname === '/consultant/favorites') {
       return <ConsultantFavoritesPage navigate={navigate} />;
     }
-    if (currentPath === '/consultant/templates') {
+    if (pathname === '/consultant/templates') {
       return <ConsultantTemplatesPage />;
     }
 

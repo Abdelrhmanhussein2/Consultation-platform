@@ -145,7 +145,7 @@ export default function AdminFinancialPage({ navigate }) {
 
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '13.5px', fontWeight: '800', color: '#0F172A' }}>
-                  أ. رأفت حداد (تجريبي)
+                  أحمد نصار
                 </div>
                 <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
                   5 جلسة

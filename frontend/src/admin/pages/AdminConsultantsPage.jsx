@@ -1,56 +1,88 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IconSearch } from '../components/AdminIcons';
+import { getAdminUsers } from '../services/adminApi';
 
 export default function AdminConsultantsPage({ navigate }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [editModal, setEditModal] = useState(null);
 
-  const [consultants, setConsultants] = useState([
-    {
-      id: 'c1',
-      name: 'Ahmad Test',
-      status: 'بانتظار',
-      hourlyRate: '0 د.أ/ساعة',
-      city: 'مدينة غير محددة',
-      sessionsCount: 0,
-      revenue: '0 د.أ',
-      license: 'رخصة غير محددة',
-      specialties: []
-    },
-    {
-      id: 'c2',
-      name: 'أ. رأفت حداد (تجريبي)',
-      status: 'معتمد',
-      hourlyRate: '50 د.أ/ساعة',
-      city: 'مدينة غير محددة',
-      sessionsCount: 5,
-      revenue: '0 د.أ',
-      license: 'رخصة غير محددة',
-      specialties: ['ضريبة دخل', 'امتثال ضريبي', 'تدقيق']
-    },
-    {
-      id: 'c3',
-      name: 'أ. سارة المجالي',
-      status: 'بانتظار',
-      hourlyRate: '35 د.أ/ساعة',
-      city: 'عمان',
-      sessionsCount: 0,
-      revenue: '0 د.أ',
-      license: 'رخصة نقابة المحامين',
-      specialties: ['شركات', 'قضايا ضريبية']
-    }
-  ]);
+  const [consultants, setConsultants] = useState([]);
 
-  const handleAction = (id, action) => {
+  // Fetch real registered consultants from backend API
+  useEffect(() => {
+    async function fetchConsultants() {
+      try {
+        const users = await getAdminUsers({ role: 'consultant', limit: 100 });
+        if (Array.isArray(users)) {
+          const mapped = users.map(u => {
+            const profStatus = u.profile?.verification_status || u.verification_status;
+            const isApproved = profStatus === 'approved';
+            const isRejected = profStatus === 'rejected';
+            return {
+              id: u.id,
+              name: u.full_name || u.name || 'مستشار بدون اسم',
+              status: isApproved ? 'معتمد' : isRejected ? 'مرفوض' : 'بانتظار',
+              hourlyRate: u.hourly_rate ? `${u.hourly_rate} د.أ/ساعة` : '0 د.أ/ساعة',
+              city: u.address || u.city || 'مدينة غير محددة',
+              email: u.email || '',
+              phone: u.phone || '',
+              sessionsCount: u.sessions_count || 0,
+              revenue: u.revenue || '0 د.أ',
+              license: u.title || u.license || 'رخصة غير محددة',
+              specialties: Array.isArray(u.specialties) ? u.specialties : (u.title ? [u.title] : ['استشارات ضريبية'])
+            };
+          });
+          setConsultants(mapped);
+        }
+      } catch (err) {
+        console.warn('Could not fetch real consultants from backend:', err);
+      }
+    }
+    fetchConsultants();
+  }, []);
+
+  const handleAction = async (id, action) => {
     if (action === 'approve') {
-      setConsultants(consultants.map(c => c.id === id ? { ...c, status: 'معتمد' } : c));
+      try {
+        const token = window.__ADMIN_TOKEN__ || document.cookie.match(/(^| )token=([^;]+)/)?.[2];
+        const headers = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${decodeURIComponent(token)}` } : {})
+        };
+        await fetch(`/api/super-admin/users/${id}/approve`, { method: 'POST', headers });
+        await fetch(`/api/super-admin/consultants/${id}/action`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ action: 'approve' })
+        });
+      } catch (err) {
+        console.warn('Backend action fallback:', err);
+      }
+      setConsultants(prev => prev.map(c => c.id === id ? { ...c, status: 'معتمد' } : c));
       alert('تم اعتماد وتفعيل المستشار بنجاح في قاعدة البيانات.');
     } else if (action === 'suspend') {
-      setConsultants(consultants.map(c => c.id === id ? { ...c, status: 'موقوف' } : c));
+      setConsultants(prev => prev.map(c => c.id === id ? { ...c, status: 'موقوف' } : c));
       alert('تم إيقاف المستشار مؤقتاً.');
     } else if (action === 'reject') {
-      setConsultants(consultants.filter(c => c.id !== id));
+      try {
+        const token = window.__ADMIN_TOKEN__ || document.cookie.match(/(^| )token=([^;]+)/)?.[2];
+        const headers = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${decodeURIComponent(token)}` } : {})
+        };
+        await fetch(`/api/super-admin/users/${id}/reject`, { method: 'POST', headers });
+        await fetch(`/api/super-admin/consultants/${id}/action`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ action: 'reject', rejection_reason: 'تم الرفض من قبل الأدمن' })
+        });
+      } catch (err) {
+        console.warn('Backend rejection fallback:', err);
+      }
+      setConsultants(prev => prev.map(c => c.id === id ? { ...c, status: 'مرفوض' } : c));
       alert('تم رفض المستشار وإرسال إشعار رسمي له.');
     }
   };

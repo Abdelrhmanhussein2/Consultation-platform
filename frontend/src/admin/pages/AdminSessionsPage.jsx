@@ -65,7 +65,7 @@ export default function AdminSessionsPage({ navigate }) {
       id: 'SES-1021',
       clientName: 'خالد النجار',
       clientType: 'شركة استيراد وتصدير',
-      consultantName: 'أ. رأفت حداد',
+      consultantName: 'أحمد نصار',
       topic: 'تدقيق ضريبة الأرباح الرأسمالية',
       description: 'حساب الضريبة المستحقة على بيع أصول تجارية وعقارية.',
       type: 'جلسة مرئية',
@@ -110,7 +110,7 @@ export default function AdminSessionsPage({ navigate }) {
       id: 'SES-1028',
       clientName: 'رنا حداد',
       clientType: 'شركة المقاولات الحديثة',
-      consultantName: 'أ. رأفت حداد',
+      consultantName: 'أحمد نصار',
       topic: 'مراجعة إقرار ضريبة المبيعات',
       description: 'تدقيق المستندات المالية والفواتير الضريبية قبل تقديم الإقرار للضريبة العامة.',
       type: 'جلسة مرئية',
@@ -155,7 +155,7 @@ export default function AdminSessionsPage({ navigate }) {
       id: 'SES-1025',
       clientName: 'علا الخصاونة',
       clientType: 'شركة الأفق الرقمي',
-      consultantName: 'أ. رأفت حداد',
+      consultantName: 'أحمد نصار',
       topic: 'حساب الضريبة المقتطعة من الرواتب',
       description: 'مراجعة كشوف الرواتب الشهرية وتطبيق شرائح ضريبة الدخل الجديدة.',
       type: 'جلسة مرئية',
@@ -620,10 +620,8 @@ export default function AdminSessionsPage({ navigate }) {
           onChange={e => setConsultantFilter(e.target.value)}
         >
           <option value="all">جميع المستشارين</option>
-          <option value="رأفت">أ. رأفت حداد</option>
-          <option value="سارة">أ. سارة المجالي</option>
-          <option value="ديما">م. ديما المجالي</option>
-          <option value="سعد">سعد هارون</option>
+          <option value="أحمد">أحمد نصار</option>
+          <option value="عبدالرحمن">عبدالرحمن حسين</option>
         </select>
 
         <select 
