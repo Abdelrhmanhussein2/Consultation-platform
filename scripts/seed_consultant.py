@@ -77,7 +77,7 @@ def seed_consultants():
                 "activity_type": "مستشار مستقل",
                 "certs": "بكالوريوس محاسبة - مستشار ضريبي معتمد",
                 "services": [
-                    {"name": "استشارة ضريبة الدخل", "price": 50.00, "duration": 45},
+                    {"name": "استشارة ضريبة الدخل", "price": 50.00, "duration": 60},
                     {"name": "تدقيق ضريبي شامل", "price": 100.00, "duration": 60}
                 ],
                 "availabilities": [

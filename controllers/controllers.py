@@ -16,7 +16,7 @@ from services import (
     AppointmentService, RatingService, NotificationService, InvoiceService,
     SpecializationService, GoogleCalendarService, WalletService
 )
-from models import UserRole, User
+from models import UserRole, User, ConsultantProfile
 
 
 # =====================================================================
@@ -548,11 +548,11 @@ class AppointmentController:
 
     @staticmethod
     def get_my_appointments(db: Session, current_user: User, page: int, limit: int):
-        """Returns the logged-in user's appointments (client view)."""
-        if current_user.role != UserRole.user:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only clients can view their appointments here",
+        """Returns the logged-in user's appointments (works for both client and consultant roles)."""
+        profile = db.query(ConsultantProfile).filter(ConsultantProfile.user_id == current_user.id).first()
+        if profile:
+            return AppointmentService.get_consultant_appointments(
+                db, profile.id, page=page, limit=limit, user_id=current_user.id
             )
         return AppointmentService.get_user_appointments(
             db, current_user.id, page=page, limit=limit

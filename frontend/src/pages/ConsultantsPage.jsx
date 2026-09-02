@@ -758,10 +758,24 @@ function FullProfileView({ consultant, onClose, onBook, onOpenPayment, onBookReq
   const name = activeProfile.full_name || activeProfile.name || 'أ. رأفت حداد';
   const init = name.slice(0, 2);
 
-  // Dynamic Available Services from Backend DB
-  const displayServices = liveServices.length > 0 ? liveServices : [
-    { id: 'default-1', name: 'جلسة فيديو 30 دقيقة', price: 42.50, duration_minutes: 30 },
-    { id: 'default-2', name: 'جلسة محادثة ساعة واحدة', price: 55.00, duration_minutes: 60 }
+  // Dynamic Available Services (Exactly 2 duration tiles: 30 minutes and 60 minutes)
+  const basePriceVal = (activeProfile.price_per_hour !== undefined && activeProfile.price_per_hour !== null && activeProfile.price_per_hour !== '')
+    ? Math.round(Number(activeProfile.price_per_hour))
+    : (liveServices.length > 0 ? Math.round(Number(liveServices[0].price)) : 30);
+
+  const displayServices = [
+    {
+      id: 'dur-30-min',
+      name: 'جلسة استشارة 30 دقيقة',
+      duration_minutes: 30,
+      price: Math.round(basePriceVal * 0.5) || 15
+    },
+    {
+      id: 'dur-60-min',
+      name: 'جلسة محادثة ساعة واحدة',
+      duration_minutes: 60,
+      price: basePriceVal || 30
+    }
   ];
 
   const selectedService = displayServices.find(s => s.id === selectedServiceId) || displayServices[0];
@@ -786,12 +800,10 @@ function FullProfileView({ consultant, onClose, onBook, onOpenPayment, onBookReq
   };
 
   const sessionsCount = activeProfile.sessions_count ?? activeProfile.completed_sessions_count ?? 182;
-  const years = activeProfile.years_of_experience ?? 20;
+  const years = (activeProfile.years_of_experience !== undefined && activeProfile.years_of_experience !== null) ? activeProfile.years_of_experience : 8;
   
-  // Minimum starting price calculated from database services list
-  const minServicePrice = displayServices.length > 0
-    ? Math.min(...displayServices.map(s => parseFloat(s.price) || 0))
-    : (parseFloat(activeProfile.price_per_hour || activeProfile.price) || 50);
+  // Directly read hourly price from database profile
+  const minServicePrice = basePriceVal;
 
   const city = activeProfile.city || 'عمّان، الأردن';
   const bio = activeProfile.bio || 'خبير ومستشار ضريبي بخبرة تزيد عن 20 سنة في الاستشارات الضريبية، تدقيق الحسابات، والاعتراضات لدى دائرة ضريبة الدخل والمبيعات الأردنية.';
@@ -1352,9 +1364,19 @@ function FullProfileView({ consultant, onClose, onBook, onOpenPayment, onBookReq
             {/* Specialization selection */}
             <div style={{ margin: '14px 0' }}>
               <small style={{ color: '#64748B', display: 'block', marginBottom: '6px', fontSize: '11px', fontWeight: '700' }}>مجال الاستشارة</small>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <span className="cp-chip active" style={{ borderRadius: '20px', padding: '6px 14px' }}>{activeProfile.specialization_name || 'ضريبة المبيعات'}</span>
-                <span className="cp-chip" style={{ borderRadius: '20px', padding: '6px 14px' }}>ضريبة الدخل</span>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {Array.from(new Set([
+                  activeProfile.specialization_name || 'ضريبة الدخل',
+                  'ضريبة الاقتطاع'
+                ])).filter(Boolean).map((spec, sIdx) => (
+                  <span
+                    key={sIdx}
+                    className={`cp-chip ${sIdx === 0 ? 'active' : ''}`}
+                    style={{ borderRadius: '20px', padding: '6px 14px', cursor: 'pointer' }}
+                  >
+                    {spec}
+                  </span>
+                ))}
               </div>
               <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '6px', lineHeight: '1.4' }}>
                 اختر مجال الاستشارة حتى يتمكن المستشار من التحضير للموضوع قبل الموعد.

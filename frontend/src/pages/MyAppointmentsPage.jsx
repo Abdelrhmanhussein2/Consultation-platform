@@ -18,8 +18,14 @@ export default function MyAppointmentsPage({ navigate }) {
     if (!token) return;
     setLoading(true);
     try {
-      const data = await appointmentService.getMyAppointments(token);
-      setAppointments(data || []);
+      let data = await appointmentService.getMyAppointments(token).catch(() => []);
+      if (!Array.isArray(data) || data.length === 0) {
+        const incoming = await consultantService.getIncomingAppointments(token).catch(() => []);
+        if (Array.isArray(incoming) && incoming.length > 0) {
+          data = incoming;
+        }
+      }
+      setAppointments(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching appointments:', err);
     } finally {
@@ -29,7 +35,24 @@ export default function MyAppointmentsPage({ navigate }) {
 
   useEffect(() => {
     fetchAppointments();
-  }, [token]);
+  }, [token, user]);
+
+  useEffect(() => {
+    if (!loading) {
+      const params = new URLSearchParams(window.location.search);
+      const openId = params.get('openApptId') || params.get('apptId');
+      if (openId) {
+        setTimeout(() => {
+          const el = document.getElementById('my-upcoming-appointments-section');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          } else {
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+          }
+        }, 250);
+      }
+    }
+  }, [loading]);
 
   const handlePay = async (id) => {
     try {
@@ -75,7 +98,7 @@ export default function MyAppointmentsPage({ navigate }) {
   };
 
   // Stats Calculations
-  const activeCount = appointments.filter(a => ['confirmed', 'pending_payment', 'pending_approval'].includes(a.status)).length;
+  const activeCount = appointments.filter(a => ['accepted', 'confirmed', 'pending_payment', 'pending_approval', 'scheduled'].includes(a.status)).length;
   const completedCount = appointments.filter(a => a.status === 'completed').length;
   const cancelledCount = appointments.filter(a => ['cancelled', 'cancelled_by_user', 'cancelled_by_consultant', 'rejected'].includes(a.status)).length;
 
@@ -83,11 +106,11 @@ export default function MyAppointmentsPage({ navigate }) {
   const getFilteredAppointments = () => {
     switch (activeTab) {
       case 'active':
-        return appointments.filter(a => ['confirmed', 'pending_payment', 'pending_approval'].includes(a.status));
+        return appointments.filter(a => ['accepted', 'confirmed', 'pending_payment', 'pending_approval', 'scheduled'].includes(a.status));
       case 'pending_approval':
         return appointments.filter(a => a.status === 'pending_approval');
       case 'pending_payment':
-        return appointments.filter(a => a.status === 'pending_payment');
+        return appointments.filter(a => ['accepted', 'pending_payment'].includes(a.status));
       case 'completed':
         return appointments.filter(a => a.status === 'completed');
       case 'cancelled':
@@ -103,6 +126,7 @@ export default function MyAppointmentsPage({ navigate }) {
     switch (status) {
       case 'confirmed':
         return <span style={{ background: '#D1FAE5', color: '#065F46', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>مؤكدة (تم الدفع)</span>;
+      case 'accepted':
       case 'pending_payment':
         return <span style={{ background: '#DBEAFE', color: '#1E40AF', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>مقبولة (بانتظار الدفع)</span>;
       case 'pending_approval':
@@ -138,8 +162,8 @@ export default function MyAppointmentsPage({ navigate }) {
 
   const filteredAppointments = getFilteredAppointments();
   
-  // Show first 5 upcoming confirmed appointments
-  const upcomingAppointments = appointments.filter(a => a.status === 'confirmed').slice(0, 5);
+  // Show first 5 upcoming accepted/confirmed appointments
+  const upcomingAppointments = appointments.filter(a => a.status === 'confirmed' || a.status === 'accepted' || a.status === 'pending_payment' || a.status === 'scheduled').slice(0, 5);
 
   if (loading) {
     return (
@@ -225,7 +249,7 @@ export default function MyAppointmentsPage({ navigate }) {
 
       {/* Section: Upcoming Appointments */}
       {upcomingAppointments.length > 0 && (
-        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '20px', padding: '24px', marginBottom: '32px', boxShadow: '0 4px 12px rgba(13, 60, 92, 0.02)' }}>
+        <div id="my-upcoming-appointments-section" style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '20px', padding: '24px', marginBottom: '32px', boxShadow: '0 4px 12px rgba(13, 60, 92, 0.02)' }}>
           <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#0D3C5C', marginTop: 0, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span>🕒</span> مواعيدك القادمة
           </h3>
@@ -258,25 +282,33 @@ export default function MyAppointmentsPage({ navigate }) {
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   {getStatusBadge(appt.status)}
-                  <button
-                    onClick={() => handleJoinVideoRoom(appt)}
-                    style={{
-                      backgroundColor: '#F5A52A',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      padding: '8px 18px',
-                      borderRadius: '10px',
-                      fontSize: '12px',
-                      fontWeight: '700',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <span>📹</span>
-                    <span>دخول الغرفة</span>
-                  </button>
+                  {(() => {
+                    const isConfirmed = appt.status === 'confirmed';
+                    return (
+                      <button
+                        onClick={() => isConfirmed && handleJoinVideoRoom(appt)}
+                        disabled={!isConfirmed}
+                        title={!isConfirmed ? 'في انتظار إتمام الدفع لتفعيل دخول الغرفة' : 'دخول غرفة الجلسة'}
+                        style={{
+                          backgroundColor: isConfirmed ? '#F5A52A' : '#CBD5E1',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          padding: '8px 18px',
+                          borderRadius: '10px',
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          cursor: isConfirmed ? 'pointer' : 'not-allowed',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          opacity: isConfirmed ? 1 : 0.7
+                        }}
+                      >
+                        <span>📹</span>
+                        <span>دخول الغرفة</span>
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
             ))}
@@ -412,7 +444,7 @@ export default function MyAppointmentsPage({ navigate }) {
                     </button>
                   )}
 
-                  {isPendingPayment && (
+                  {isPendingPayment && (user?.role === 'user' || user?.role === 'client' || String(appt.user_id) === String(user?.id)) && (
                     <button
                       onClick={() => setPayingAppt(appt)}
                       style={{
@@ -429,6 +461,12 @@ export default function MyAppointmentsPage({ navigate }) {
                     >
                       دفع {appt.amount || appt.price || 50} د.أ
                     </button>
+                  )}
+
+                  {isPendingPayment && (user?.role === 'consultant' || user?.role === 'platform_consultant') && (
+                    <span style={{ fontSize: '12px', color: '#D97706', backgroundColor: '#FFFBEB', padding: '6px 14px', borderRadius: '20px', border: '1px solid #FDE68A', fontWeight: '700' }}>
+                      ⏳ بانتظار سداد العميل
+                    </span>
                   )}
 
                   {(isPendingApproval || isPendingPayment || isConfirmed) && (

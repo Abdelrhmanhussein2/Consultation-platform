@@ -49,6 +49,23 @@ export default function ConsultantSessionsPage({ navigate }) {
     fetchPageData();
   }, [token]);
 
+  useEffect(() => {
+    if (!loading) {
+      const params = new URLSearchParams(window.location.search);
+      const openId = params.get('openApptId') || params.get('apptId');
+      if (openId) {
+        setTimeout(() => {
+          const el = document.getElementById('upcoming-sessions-section');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          } else {
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+          }
+        }, 250);
+      }
+    }
+  }, [loading]);
+
   // Check if a specific slot is enabled in availability state
   const isSlotActive = (dayValue, timeStr) => {
     return availability.some(
@@ -158,8 +175,8 @@ export default function ConsultantSessionsPage({ navigate }) {
   }
 
   // Group appointments into sections
-  const incomingRequests = appointments.filter(a => a.status === 'pending_approval' || a.status === 'pending_payment' || a.status === 'completed' || a.status === 'cancelled_by_user' || a.status === 'cancelled_by_consultant');
-  const upcomingAppointments = appointments.filter(a => a.status === 'confirmed');
+  const incomingRequests = appointments.filter(a => a.status === 'pending_approval' || a.status === 'pending');
+  const upcomingAppointments = appointments.filter(a => a.status === 'accepted' || a.status === 'confirmed' || a.status === 'pending_payment' || a.status === 'scheduled');
 
   return (
     <div className="consultant-sessions-container fade-in" style={{ direction: 'rtl', fontFamily: 'sans-serif', paddingBottom: '40px' }}>
@@ -482,7 +499,7 @@ export default function ConsultantSessionsPage({ navigate }) {
       </div>
 
       {/* SECTION 3: Upcoming Appointments */}
-      <div className="dashboard-card" style={{
+      <div id="upcoming-sessions-section" className="dashboard-card" style={{
         backgroundColor: '#FFFFFF',
         padding: '24px 32px',
         borderRadius: '16px',
@@ -518,27 +535,32 @@ export default function ConsultantSessionsPage({ navigate }) {
                 }}>
                   {/* Left part (Enter Room + Chat Buttons) */}
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <button
-                      onClick={() => setActiveVideoApptId(appt.id)}
-                      style={{
-                        backgroundColor: '#F5A52A',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '8px 18px',
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        boxShadow: '0 2px 6px rgba(245, 165, 42, 0.15)'
-                      }}
-                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#E0921B'}
-                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#F5A52A'}
-                    >
-                      دخول الفيديو
-                    </button>
+                    {(() => {
+                      const isConfirmed = appt.status === 'confirmed';
+                      return (
+                        <button
+                          onClick={() => isConfirmed && setActiveVideoApptId(appt.id)}
+                          disabled={!isConfirmed}
+                          title={!isConfirmed ? 'في انتظار إتمام الدفع لتفعيل دخول الغرفة' : 'دخول غرفة الفيديو'}
+                          style={{
+                            backgroundColor: isConfirmed ? '#F5A52A' : '#CBD5E1',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '8px 18px',
+                            fontSize: '12px',
+                            fontWeight: '700',
+                            cursor: isConfirmed ? 'pointer' : 'not-allowed',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            opacity: isConfirmed ? 1 : 0.7
+                          }}
+                        >
+                          دخول الغرفة
+                        </button>
+                      );
+                    })()}
                     <button
                       onClick={() => navigate(`/chat?apptId=${appt.id}`)}
                       style={{

@@ -89,9 +89,24 @@ const addDays = (d, n) => {
   return x;
 };
 
-export default function DiwanAppointmentsPage({ navigate, initialRole }) {
+export default function DiwanAppointmentsPage({ navigate: navigateProp, initialRole }) {
   const auth = useAuth();
   const user = auth?.user;
+
+  const handleOpenChat = (eventObj) => {
+    const apptId = eventObj?.id || eventObj?.apptId || '';
+    const partnerName = (typeof eventObj?.client === 'string' ? eventObj.client : (eventObj?.client?.name || eventObj?.client_name || eventObj?.advisor || ''));
+    const params = new URLSearchParams();
+    if (apptId) params.append('apptId', apptId);
+    if (partnerName) params.append('user', partnerName);
+
+    const chatUrl = `/chat?${params.toString()}`;
+    if (typeof navigateProp === 'function') {
+      navigateProp(chatUrl);
+    } else {
+      window.location.href = chatUrl;
+    }
+  };
 
   // Strict role determination based on logged-in user or active route
   const activeRole = useMemo(() => {
@@ -1422,7 +1437,7 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
             </div>
           </div>
           <div className="pop-actions">
-            <button onClick={() => { if (popover?.event?.client) setSelectedClient(popover.event.client); setChatOpen(true); setPopover(p => ({ ...p, open: false })); }}>مراسلة</button>
+            <button onClick={() => { handleOpenChat(popover?.event); setPopover(p => ({ ...p, open: false })); }}>مراسلة</button>
             <button onClick={() => { openRescheduleModal(popover.event); setPopover(p => ({ ...p, open: false })); }}>إعادة جدولة</button>
             <button className="main" onClick={() => openDrawer(popover.event)}>فتح</button>
           </div>
@@ -1433,7 +1448,7 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
       {contextMenu.open && contextMenu.event && (
         <div className="context-menu" style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}>
           <button onClick={() => { openDrawer(contextMenu.event); setContextMenu(c => ({ ...c, open: false })); }}>فتح تفاصيل الجلسة</button>
-          <button onClick={() => { if (contextMenu?.event?.client) setSelectedClient(contextMenu.event.client); setChatOpen(true); setContextMenu(c => ({ ...c, open: false })); }}>مراسلة العميل</button>
+          <button onClick={() => { handleOpenChat(contextMenu?.event); setContextMenu(c => ({ ...c, open: false })); }}>مراسلة العميل</button>
           <button onClick={() => { openRescheduleModal(contextMenu.event); setContextMenu(c => ({ ...c, open: false })); }}>إعادة جدولة</button>
           <div className="sep"></div>
           <button onClick={() => { openStatusModal(contextMenu.event); setContextMenu(c => ({ ...c, open: false })); }}>تغيير حالة الجلسة</button>
@@ -1662,13 +1677,13 @@ export default function DiwanAppointmentsPage({ navigate, initialRole }) {
                 <>
                   <button onClick={() => openStatusModal(selectedEvent)}>تغيير الحالة</button>
                   <button onClick={() => openRescheduleModal(selectedEvent)}>إعادة جدولة</button>
-                  <button className="main" onClick={() => { if (selectedEvent?.client) setSelectedClient(selectedEvent.client); setChatOpen(true); }}>مراسلة العميل</button>
+                  <button className="main" onClick={() => { handleOpenChat(selectedEvent); setDrawerOpen(false); }}>مراسلة العميل</button>
                 </>
               ) : (
                 <>
                   <button onClick={() => openRescheduleModal(selectedEvent)}>طلب إعادة جدولة</button>
                   <button onClick={() => openPaymentModal(selectedEvent)}>الدفع</button>
-                  <button className="main" onClick={() => { if (selectedEvent?.client) setSelectedClient(selectedEvent.client); setChatOpen(true); }}>مراسلة المستشار</button>
+                  <button className="main" onClick={() => { handleOpenChat(selectedEvent); setDrawerOpen(false); }}>مراسلة المستشار</button>
                 </>
               )}
             </>

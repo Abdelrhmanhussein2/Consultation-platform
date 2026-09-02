@@ -57,6 +57,7 @@ export default function ConsultantProfilePage({ navigate }) {
             if (profileData.bio) setBio(profileData.bio);
             if (profileData.years_of_experience) setYearsOfExperience(String(profileData.years_of_experience));
             if (profileData.certificates_licenses) setCertificates(profileData.certificates_licenses);
+            if (profileData.price_per_hour) setHourlyRate(String(Math.round(profileData.price_per_hour)));
 
             if (profileData.id) {
               consultantService.getConsultantRatings(profileData.id, token)
@@ -114,13 +115,18 @@ export default function ConsultantProfilePage({ navigate }) {
     const rateVal = parseFloat(hourlyRate);
     setSavingSection('price');
     try {
+      // 1. Update consultant_profiles.price_per_hour column in DB!
+      await consultantService.updateMyProfile({ price_per_hour: rateVal }, token);
+
+      // 2. Update active services in DB!
       if (services.length > 0) {
-        const firstSrv = services[0];
-        await consultantService.updateService(firstSrv.id, {
-          name: firstSrv.name,
-          price: rateVal,
-          duration_minutes: firstSrv.duration_minutes || 60
-        }, token);
+        await Promise.all(services.map(srv =>
+          consultantService.updateService(srv.id, {
+            name: srv.name,
+            price: rateVal,
+            duration_minutes: srv.duration_minutes || 60
+          }, token).catch(() => null)
+        ));
       } else {
         await consultantService.addService({
           name: 'استشارة ضريبة الدخل',
@@ -130,10 +136,14 @@ export default function ConsultantProfilePage({ navigate }) {
         }, token);
       }
 
-      const freshServices = await consultantService.getMyServices(token).catch(() => services);
-      setServices(freshServices);
+      const freshProfile = await consultantService.getMyProfile(token).catch(() => null);
+      if (freshProfile) {
+        setProfile(freshProfile);
+        if (freshProfile.price_per_hour) setHourlyRate(String(Math.round(freshProfile.price_per_hour)));
+      }
+
       setEditingPrice(false);
-      showToast('تم تحديث السعر بنجاح في قاعدة البيانات!', 'success');
+      showToast('تم تحديث وتثبيت السعر بنجاح في قاعدة البيانات!', 'success');
     } catch (err) {
       showToast(err.message || 'فشل تحديث السعر.', 'error');
     } finally {
@@ -182,29 +192,6 @@ export default function ConsultantProfilePage({ navigate }) {
   return (
     <div style={{ direction: 'rtl', fontFamily: 'Tajawal, sans-serif', color: '#1E293B', paddingBottom: '60px' }}>
       <Toast {...toast} />
-
-      {/* Top Header Back Bar */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
-        {navigate && (
-          <button 
-            onClick={() => navigate(-1)} 
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#475569',
-              fontWeight: '700',
-              fontSize: '13px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <span>العودة إلى لوحة المستشار</span>
-            <span>→</span>
-          </button>
-        )}
-      </div>
 
       {/* ------------------------------------------------------------- */}
       {/* 1. Main Header Profile Card */}

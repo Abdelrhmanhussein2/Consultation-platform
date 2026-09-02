@@ -98,10 +98,17 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
       title.includes('موعد') ||
       title.includes('حجز')
     ) {
-      if (isConsultant) {
-        navigate('/consultant/sessions');
+      let apptId = notif.related_entity_id || '';
+      if (!apptId && notif.message) {
+        const match = notif.message.match(/consultation-([a-f0-9-]+)/i);
+        if (match) apptId = match[1];
+      }
+
+      const targetPath = isConsultant ? '/consultant/sessions' : '/my-appointments';
+      if (apptId) {
+        navigate(`${targetPath}?openApptId=${apptId}`);
       } else {
-        navigate('/my-appointments');
+        navigate(targetPath);
       }
       return;
     }

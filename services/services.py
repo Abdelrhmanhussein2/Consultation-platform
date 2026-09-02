@@ -495,13 +495,15 @@ class ConsultantService:
             "id": profile.id,
             "full_name": profile.user.full_name,
             "bio": profile.bio,
+            "years_of_experience": profile.years_of_experience,
+            "certificates_licenses": profile.certificates_licenses,
             "main_specialization_id": profile.main_specialization_id,
             "specialization_name": profile.specialization.name if profile.specialization else None,
             "average_rating": profile.average_rating,
             "ratings_count": profile.ratings_count,
             "role": profile.user.role,
             "services": active_services,
-            "price_per_hour": profile.price_per_hour,
+            "price_per_hour": profile.price_per_hour or (active_services[0].price if active_services else 50.0),
             "working_days": list(set([av.day_of_week for av in profile.availabilities if av.is_active])),
             "availabilities": profile.availabilities,
         }
@@ -1350,18 +1352,26 @@ class AppointmentService:
 
     @staticmethod
     def get_consultant_appointments(
-        db: Session, consultant_id: uuid.UUID, page: int = 1, limit: int = 20
+        db: Session, consultant_id: uuid.UUID, page: int = 1, limit: int = 20, user_id: uuid.UUID = None
     ) -> list[Appointment]:
         """Returns a paginated list of appointments for a consultant profile."""
-        return (
-            db.query(Appointment)
-            .options(
-                joinedload(Appointment.user),
-                joinedload(Appointment.consultant).joinedload(ConsultantProfile.user),
-                joinedload(Appointment.service),
+        query = db.query(Appointment).options(
+            joinedload(Appointment.user),
+            joinedload(Appointment.consultant).joinedload(ConsultantProfile.user),
+            joinedload(Appointment.service),
+        )
+        if user_id:
+            query = query.filter(
+                or_(
+                    Appointment.consultant_id == consultant_id,
+                    Appointment.user_id == user_id
+                )
             )
-            .filter(Appointment.consultant_id == consultant_id)
-            .order_by(Appointment.scheduled_at.desc())
+        else:
+            query = query.filter(Appointment.consultant_id == consultant_id)
+
+        return (
+            query.order_by(Appointment.scheduled_at.desc())
             .offset((page - 1) * limit)
             .limit(limit)
             .all()

@@ -52,9 +52,9 @@ export default function ConsultantDetailPage({ profileId, navigate }) {
             certificates_licenses: 'بكالوريوس محاسبة - JCPA (مستشار ضريبي معتمد)'
           };
           srvsData = [
-            { id: 'mock-srv-1', name: 'مكتوب', price: 50.00, duration_minutes: 45 },
-            { id: 'mock-srv-2', name: 'محادثة', price: 50.00, duration_minutes: 45 },
-            { id: 'mock-srv-3', name: 'فيديو', price: 50.00, duration_minutes: 45 }
+            { id: 'mock-srv-1', name: 'مكتوب', price: 50.00, duration_minutes: 60 },
+            { id: 'mock-srv-2', name: 'محادثة', price: 50.00, duration_minutes: 60 },
+            { id: 'mock-srv-3', name: 'فيديو', price: 50.00, duration_minutes: 60 }
           ];
 
           // Generate slots for Sunday (0), Monday (1), Tuesday (2) for the next 7 days
@@ -67,9 +67,9 @@ export default function ConsultantDetailPage({ profileId, navigate }) {
             if (dow === 0 || dow === 1 || dow === 2) {
               const dateStr = d.toISOString().split('T')[0];
               mockSlots.push(
-                { start_time: `${dateStr}T10:00:00.000Z`, end_time: `${dateStr}T10:45:00.000Z` },
-                { start_time: `${dateStr}T12:00:00.000Z`, end_time: `${dateStr}T12:45:00.000Z` },
-                { start_time: `${dateStr}T14:00:00.000Z`, end_time: `${dateStr}T14:45:00.000Z` }
+                { start_time: `${dateStr}T10:00:00.000Z`, end_time: `${dateStr}T11:00:00.000Z` },
+                { start_time: `${dateStr}T12:00:00.000Z`, end_time: `${dateStr}T13:00:00.000Z` },
+                { start_time: `${dateStr}T14:00:00.000Z`, end_time: `${dateStr}T15:00:00.000Z` }
               );
             }
           }
@@ -135,9 +135,8 @@ export default function ConsultantDetailPage({ profileId, navigate }) {
   const firstLetter = fullName.replace('أ. ', '').charAt(0).toUpperCase();
   const specName = consultant.specialization_name || 'ضريبة دخل';
   const ratingAvg = typeof consultant.average_rating === 'number' ? consultant.average_rating.toFixed(1) : (consultant.average_rating || '0.0');
-  const ratingCount = consultant.ratings_count || 0;
-  const yearsExp = (consultant.years_of_experience !== undefined && consultant.years_of_experience !== null) ? consultant.years_of_experience : 8;
-  const basePrice = (consultant.price !== undefined && consultant.price !== null) ? consultant.price : (services[0]?.price ? Math.round(services[0].price) : 50);
+  const yearsExp = (consultant.years_of_experience !== undefined && consultant.years_of_experience !== null) ? consultant.years_of_experience : (consultant.years_exp || 8);
+  const basePrice = consultant.price_per_hour ? Math.round(Number(consultant.price_per_hour)) : (consultant.price ? Math.round(Number(consultant.price)) : (services && services[0]?.price ? Math.round(services[0].price) : 50));
 
   // Favorites logic
   const isFav = favorites.some(f => f.item_id === String(consultant.id));
@@ -364,7 +363,7 @@ export default function ConsultantDetailPage({ profileId, navigate }) {
               {basePrice} <span style={{ fontSize: '13px', fontWeight: '600', color: '#64748B' }}>د.أ / جلسة</span>
             </span>
             <span style={{ display: 'block', fontSize: '11px', color: '#94A3B8', marginTop: '6px' }}>
-              مدة الجلسة 45 دقيقة
+              مدة الجلسة 60 دقيقة
             </span>
           </div>
         </div>
@@ -412,9 +411,45 @@ export default function ConsultantDetailPage({ profileId, navigate }) {
           }}>
             {activeTab === 'نبذة' && (
               <div>
-                <p style={{ fontSize: '14px', color: '#475569', lineHeight: '1.8', margin: '0 0 24px 0' }}>
+                <p style={{ fontSize: '14px', color: '#475569', lineHeight: '1.8', margin: '0 0 20px 0' }}>
                   {consultant.bio || `خبير ومستشار ضريبي بخبرة تزيد عن ${yearsExp} سنة في الاستشارات الضريبية و التدقيق.`}
                 </p>
+
+                {/* 3 Metric Cards Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', margin: '20px 0 24px 0' }}>
+                  <div style={{
+                    backgroundColor: '#FAFBFD',
+                    border: '1px solid #F1F5F9',
+                    borderRadius: '16px',
+                    padding: '16px 12px',
+                    textAlign: 'center'
+                  }}>
+                    <span style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>أسلوب الاستشارة</span>
+                    <b style={{ fontSize: '14px', color: '#0E3B5E' }}>عملي ومباشر</b>
+                  </div>
+
+                  <div style={{
+                    backgroundColor: '#FAFBFD',
+                    border: '1px solid #F1F5F9',
+                    borderRadius: '16px',
+                    padding: '16px 12px',
+                    textAlign: 'center'
+                  }}>
+                    <span style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>الأنشطة</span>
+                    <b style={{ fontSize: '14px', color: '#0E3B5E' }}>مستشار مستقل</b>
+                  </div>
+
+                  <div style={{
+                    backgroundColor: '#FAFBFD',
+                    border: '1px solid #F1F5F9',
+                    borderRadius: '16px',
+                    padding: '16px 12px',
+                    textAlign: 'center'
+                  }}>
+                    <span style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>الخبرة</span>
+                    <b style={{ fontSize: '14px', color: '#0E3B5E' }}>{yearsExp} سنة</b>
+                  </div>
+                </div>
 
                 <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#0D3C5C', marginBottom: '12px' }}>التخصصات</h3>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
