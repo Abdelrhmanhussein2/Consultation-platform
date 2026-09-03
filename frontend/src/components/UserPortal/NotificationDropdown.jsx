@@ -6,8 +6,15 @@ export default function NotificationDropdown({ notifications, unreadCount, onMar
       <div className="notif-header">
         <span className="notif-title">الإشعارات والتنبيهات</span>
         {unreadCount > 0 && (
-          <button className="mark-all-read-btn" onClick={onMarkAllRead}>
-            تحديد الكل كمقروء ✓
+          <button 
+            type="button" 
+            className="mark-all-read-btn" 
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onMarkAllRead) onMarkAllRead(e);
+            }}
+          >
+            تحديد الكل كمقروء
           </button>
         )}
       </div>

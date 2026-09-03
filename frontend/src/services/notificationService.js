@@ -27,6 +27,13 @@ export const notificationService = {
     return await apiFetch('/api/notifications/read-all', {
       method: 'POST'
     }, token);
+  },
+
+  // Delete a notification
+  async deleteNotification(id, token) {
+    return await apiFetch(`/api/notifications/${id}`, {
+      method: 'DELETE'
+    }, token);
   }
 };
 

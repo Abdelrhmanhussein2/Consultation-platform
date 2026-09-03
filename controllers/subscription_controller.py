@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
+from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, or_, and_, desc
 
@@ -8,6 +9,8 @@ from models.subscription_plan import SubscriptionPlan, SubscriptionPlanCycle, Su
 from models.user_subscription import UserSubscription, SubscriptionUsageLog, SubscriptionTimeline
 from models.subscription_request import SubscriptionRequest, SubscriptionOrder
 from models.user import User
+from models.notification import Notification
+from helpers.enums import NotificationType, UserRole
 
 class SubscriptionController:
 
@@ -319,30 +322,94 @@ class SubscriptionController:
         return True
 
     @staticmethod
-    def change_subscriber_plan(db: Session, sub_id: str, target_plan_name: str, mode: str) -> bool:
-        s = db.query(UserSubscription).filter(UserSubscription.id == uuid.UUID(sub_id)).first()
+    def change_subscriber_plan(db: Session, sub_id: str, target_plan_name: str, mode: str = "immediate") -> bool:
+        s = None
+        try:
+            sub_uuid = uuid.UUID(sub_id)
+            s = db.query(UserSubscription).filter(UserSubscription.id == sub_uuid).first()
+            if not s:
+                # In case sub_id is user_id
+                s = db.query(UserSubscription).filter(UserSubscription.user_id == sub_uuid).first()
+        except Exception:
+            pass
+
         target_plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.name == target_plan_name).first()
-        if not s or not target_plan:
+        if not target_plan:
+            return False
+
+        now = datetime.utcnow()
+        is_yearly = (s.cycle == "سنوي") if (s and s.cycle) else False
+        end_d = now + timedelta(days=365 if is_yearly else 30)
+
+        points = (42000 if is_yearly else 3000) if target_plan_name == "احترافية" else (12000 if is_yearly else 800) if target_plan_name == "أساسية" else 20
+        downloads = (1400 if is_yearly else 100) if target_plan_name == "احترافية" else (350 if is_yearly else 25) if target_plan_name == "أساسية" else 5
+        consultations = (40 if is_yearly else 3) if target_plan_name == "احترافية" else (15 if is_yearly else 1) if target_plan_name == "أساسية" else 0
+
+        if not s:
+            try:
+                user_uuid = uuid.UUID(sub_id)
+                user = db.query(User).filter(User.id == user_uuid).first()
+                if user:
+                    s = UserSubscription(
+                        user_id=user.id,
+                        plan_id=target_plan.id,
+                        cycle="سنوي" if is_yearly else "شهري",
+                        status="active",
+                        start_date=now,
+                        end_date=end_d,
+                        renewal_date=end_d,
+                        points_total=points,
+                        points_used=0,
+                        downloads_total=downloads,
+                        downloads_used=0,
+                        consultations_total=consultations,
+                        consultations_used=0
+                    )
+                    db.add(s)
+                    db.flush()
+            except Exception:
+                return False
+
+        if not s:
             return False
 
         if mode == "immediate":
             s.plan_id = target_plan.id
+            s.status = "active"
+            s.start_date = now
+            s.end_date = end_d
+            s.renewal_date = end_d
+            s.points_total = points
+            s.points_used = 0
+            s.downloads_total = downloads
+            s.downloads_used = 0
+            s.consultations_total = consultations
+            s.consultations_used = 0
             tl = SubscriptionTimeline(
                 subscription_id=s.id,
-                title=f"ترقية فورية إلى باقة {target_plan_name}",
-                actor_name="مدير الباقات — أحمد منصور",
+                title=f"تغيير فوري للباقة إلى {target_plan_name}",
+                actor_name="إدارة المنصة",
                 event_type="upgrade"
             )
+            db.add(tl)
         else:
             s.scheduled_change = f"التحويل إلى باقة {target_plan_name} عند التجديد"
-            s.status = "scheduled"
             tl = SubscriptionTimeline(
                 subscription_id=s.id,
                 title=f"جدولة تغيير الباقة إلى {target_plan_name} عند التجديد",
-                actor_name="مدير الباقات — أحمد منصور",
+                actor_name="إدارة المنصة",
                 event_type="upgrade"
             )
-        db.add(tl)
+            db.add(tl)
+
+        # Dispatch live in-app notification to user
+        notif = Notification(
+            user_id=s.user_id,
+            type=NotificationType.general,
+            title="تحديث باقة الاشتراك",
+            message=f"تم تغيير باقة اشتراكك بواسطة إدارة المنصة إلى باقة [{target_plan_name}]. تم تحديث حسابك ورصيدك الجديد تلقائياً."
+        )
+        db.add(notif)
         db.commit()
         return True
 
@@ -388,8 +455,14 @@ class SubscriptionController:
         # Create or update user subscription
         existing_sub = db.query(UserSubscription).filter(UserSubscription.user_id == r.user_id).first()
         now = datetime.utcnow()
-        end_d = now + timedelta(days=365 if r.subscription == "سنوي" else 30)
+        is_yearly = (r.subscription == "سنوي")
+        end_d = now + timedelta(days=365 if is_yearly else 30)
         
+        plan_name = r.plan.name if r.plan else "المعتمدة"
+        points = (42000 if is_yearly else 3000) if plan_name == "احترافية" else (12000 if is_yearly else 800) if plan_name == "أساسية" else 0
+        downloads = (1400 if is_yearly else 100) if plan_name == "احترافية" else (350 if is_yearly else 25) if plan_name == "أساسية" else 5
+        consultations = (40 if is_yearly else 3) if plan_name == "احترافية" else (15 if is_yearly else 1) if plan_name == "أساسية" else 0
+
         if not existing_sub:
             new_sub = UserSubscription(
                 user_id=r.user_id,
@@ -399,16 +472,19 @@ class SubscriptionController:
                 start_date=now,
                 end_date=end_d,
                 renewal_date=end_d,
-                points_total=800 if r.plan.name == "أساسية" else 3000 if r.plan.name == "احترافية" else 20,
-                downloads_total=25 if r.plan.name == "أساسية" else 100 if r.plan.name == "احترافية" else 5,
-                consultations_total=1 if r.plan.name == "أساسية" else 3 if r.plan.name == "احترافية" else 0
+                points_total=points,
+                points_used=0,
+                downloads_total=downloads,
+                downloads_used=0,
+                consultations_total=consultations,
+                consultations_used=0
             )
             db.add(new_sub)
             db.flush()
             tl = SubscriptionTimeline(
                 subscription_id=new_sub.id,
                 title="تم اعتماد وتفعيل الاشتراك",
-                actor_name="مدير الباقات — أحمد منصور"
+                actor_name="إدارة المنصة"
             )
             db.add(tl)
         else:
@@ -418,7 +494,21 @@ class SubscriptionController:
             existing_sub.start_date = now
             existing_sub.end_date = end_d
             existing_sub.renewal_date = end_d
+            existing_sub.points_total = points
+            existing_sub.points_used = 0
+            existing_sub.downloads_total = downloads
+            existing_sub.downloads_used = 0
+            existing_sub.consultations_total = consultations
+            existing_sub.consultations_used = 0
 
+        # Dispatch Notification to User
+        notif = Notification(
+            user_id=r.user_id,
+            type=NotificationType.general,
+            title="تمت الموافقة على اشتراكك بنجاح",
+            message=f"تمت الموافقة على تفعيل باقة [{plan_name}] ({r.subscription}). تم تحديث باقتك ورصيدك الجديد تلقائياً ويمكنك استخدامه الآن."
+        )
+        db.add(notif)
         db.commit()
         return True
 
@@ -429,8 +519,242 @@ class SubscriptionController:
             return False
         r.status = "rejected"
         r.reject_reason = reason
+
+        plan_name = r.plan.name if r.plan else "الباقة"
+        notif = Notification(
+            user_id=r.user_id,
+            type=NotificationType.general,
+            title=f"تحديث بخصوص طلب باقة [{plan_name}]",
+            message=f"نعتذر، لم يتم قبول طلب الاشتراك في باقة [{plan_name}]. السبب: {reason}"
+        )
+        db.add(notif)
         db.commit()
         return True
+
+    # ══════════════════════════════════════════════════════════════════
+    # 6. USER & CONSULTANT PORTAL LIFECYCLE (Active Sub, Remaining Days, Renew)
+    # ══════════════════════════════════════════════════════════════════
+    @staticmethod
+    def get_my_subscription(db: Session, user_id: uuid.UUID) -> Dict[str, Any]:
+        sub = db.query(UserSubscription).options(
+            joinedload(UserSubscription.plan)
+        ).filter(
+            UserSubscription.user_id == user_id
+        ).order_by(UserSubscription.created_at.desc()).first()
+
+        now = datetime.utcnow()
+
+        # Get all pending requests for this user
+        pending_reqs = db.query(SubscriptionRequest).filter(
+            SubscriptionRequest.user_id == user_id,
+            SubscriptionRequest.status == "pending"
+        ).all()
+        pending_plan_ids = [str(r.plan_id) for r in pending_reqs if r.plan_id]
+        pending_plan_names = [r.plan.name for r in pending_reqs if r.plan]
+
+        if not sub:
+            # Default Free Tier
+            return {
+                "has_subscription": False,
+                "plan_name": "الباقة المجانية",
+                "badge": "مجاني",
+                "badge_color": "gray",
+                "status": "active",
+                "cycle": "غير محدود",
+                "start_date": "—",
+                "end_date": "—",
+                "renewal_date": "—",
+                "remaining_days": 0,
+                "is_expiring_soon": False,
+                "expiring_reminder": None,
+                "consultations_total": 0,
+                "consultations_used": 0,
+                "ai_points_total": 20,
+                "ai_points_used": 0,
+                "tax_forms_total": 1,
+                "tax_forms_used": 0,
+                "auto_renew": False,
+                "pending_plan_ids": pending_plan_ids,
+                "pending_plan_names": pending_plan_names
+            }
+
+        # Calculate remaining days
+        remaining_days = 0
+        if sub.end_date:
+            end_d = sub.end_date.replace(tzinfo=None) if hasattr(sub.end_date, 'tzinfo') and sub.end_date.tzinfo else sub.end_date
+            now_naive = datetime.utcnow()
+            delta = end_d - now_naive
+            remaining_days = max(0, delta.days)
+
+        is_expiring_soon = (remaining_days <= 2 and remaining_days >= 0 and sub.status == "active")
+        expiring_reminder = (
+            f"تنبيه: باقتك تنتهي خلال {remaining_days} يوم. يمكنك التجديد الآن بنفس الخدمات والخصائص بنقرة واحدة."
+            if is_expiring_soon else None
+        )
+
+        plan_obj = sub.plan
+        plan_name = plan_obj.name if plan_obj else "الباقة الأساسية"
+        badge_text = "نشط" if sub.status == "active" else "معلّق"
+        badge_col = "green" if sub.status == "active" else "amber"
+
+        return {
+            "has_subscription": True,
+            "subscription_id": str(sub.id),
+            "plan_id": str(sub.plan_id) if sub.plan_id else None,
+            "plan_name": plan_name,
+            "badge": badge_text,
+            "badge_color": badge_col,
+            "status": sub.status,
+            "cycle": sub.cycle or "شهري",
+            "start_date": sub.start_date.strftime("%Y-%m-%d") if sub.start_date else "2026-08-01",
+            "end_date": sub.end_date.strftime("%Y-%m-%d") if sub.end_date else "2026-09-01",
+            "renewal_date": sub.renewal_date.strftime("%Y-%m-%d") if sub.renewal_date else "2026-09-01",
+            "remaining_days": remaining_days,
+            "is_expiring_soon": is_expiring_soon,
+            "expiring_reminder": expiring_reminder,
+            "consultations_total": getattr(sub, 'consultations_total', 0),
+            "consultations_used": getattr(sub, 'consultations_used', 0),
+            "ai_points_total": getattr(sub, 'points_total', 0),
+            "ai_points_used": getattr(sub, 'points_used', 0),
+            "tax_forms_total": getattr(sub, 'downloads_total', 0),
+            "tax_forms_used": getattr(sub, 'downloads_used', 0),
+            "auto_renew": getattr(sub, 'auto_renew', True),
+            "pending_plan_ids": pending_plan_ids,
+            "pending_plan_names": pending_plan_names
+        }
+
+    @staticmethod
+    def submit_subscription_request(
+        db: Session,
+        user_id: uuid.UUID,
+        plan_id: str,
+        cycle: str = "شهري",
+        payment_method: str = "بطاقة بنكية",
+        notes: str = ""
+    ) -> Dict[str, Any]:
+        plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == uuid.UUID(plan_id)).first()
+        if not plan:
+            raise ValueError("Plan not found")
+
+        # Check if user already has a pending request for this exact plan
+        existing_pending = db.query(SubscriptionRequest).filter(
+            SubscriptionRequest.user_id == user_id,
+            SubscriptionRequest.plan_id == plan.id,
+            SubscriptionRequest.status == "pending"
+        ).first()
+
+        if existing_pending:
+            raise HTTPException(
+                status_code=400,
+                detail=f"يوجد لديك طلب اشتراك معلّق بالفعل لباقة [{plan.name}] برقم ({existing_pending.request_no}). يرجى انتظار قرار الإدارة قبل تقديم طلب جديد لنفس الباقة."
+            )
+
+        user = db.query(User).filter(User.id == user_id).first()
+
+        # Generate unique request number
+        req_count = db.query(SubscriptionRequest).count() + 1
+        req_no = f"REQ-2026-{req_count:04d}"
+
+        amount = 50.0 if cycle in ["شهري", "monthly"] else 480.0
+        # Check cycle price if exists
+        period_val = "monthly" if cycle in ["شهري", "monthly"] else "yearly"
+        cycle_obj = db.query(SubscriptionPlanCycle).filter(
+            SubscriptionPlanCycle.plan_id == plan.id,
+            or_(SubscriptionPlanCycle.period == period_val, SubscriptionPlanCycle.period == cycle)
+        ).first()
+        if cycle_obj:
+            amount = float(cycle_obj.price)
+
+        req = SubscriptionRequest(
+            user_id=user_id,
+            plan_id=plan.id,
+            request_no=req_no,
+            subscription=cycle,
+            amount=amount,
+            payment_method=payment_method,
+            status="pending",
+            grant_reason=notes
+        )
+        db.add(req)
+
+        # Notify strictly ONLY administrators (role == admin or super_admin, not the subscriber themselves)
+        admins = db.query(User).filter(
+            User.role.in_([UserRole.admin, UserRole.super_admin]),
+            User.id != user_id
+        ).all()
+        user_name = user.full_name if user else "مستخدم"
+        for adm in admins:
+            adm_notif = Notification(
+                user_id=adm.id,
+                type=NotificationType.general,
+                title="طلب اشتراك جديد بانتظار الموافقة 🔔",
+                message=f"قام [{user_name}] بتقديم طلب اشتراك في باقة [{plan.name}] ({cycle}). يرجى مراجعة الطلب واعتماده."
+            )
+            db.add(adm_notif)
+
+        # Notify submitter
+        client_notif = Notification(
+            user_id=user_id,
+            type=NotificationType.general,
+            title="تم استلام طلب اشتراكك بنجاح",
+            message=f"تم إرسال طلب اشتراكك في باقة [{plan.name}] للإدارة للمراجعة والاعتماد الفوري."
+        )
+        db.add(client_notif)
+
+        db.commit()
+        db.refresh(req)
+        return {
+            "success": True,
+            "request_id": str(req.id),
+            "request_no": req.request_no,
+            "message": "تم إرسال طلب الاشتراك بنجاح وهو قيد مراجعة الإدارة."
+        }
+
+    @staticmethod
+    def renew_subscription(db: Session, user_id: uuid.UUID) -> Dict[str, Any]:
+        sub = db.query(UserSubscription).filter(UserSubscription.user_id == user_id).first()
+        if not sub or not sub.plan_id:
+            raise ValueError("No active subscription to renew")
+
+        return SubscriptionController.submit_subscription_request(
+            db=db,
+            user_id=user_id,
+            plan_id=str(sub.plan_id),
+            cycle=sub.cycle,
+            payment_method="تجديد تلقائي / بطاقة بنكية",
+            notes="طلب تجديد الباقة الحالية بنفس الخدمات المعتمدة"
+        )
+
+    @staticmethod
+    def check_and_notify_expirations(db: Session) -> int:
+        now = datetime.utcnow()
+        two_days_later = now + timedelta(days=2)
+
+        expiring_subs = db.query(UserSubscription).options(
+            joinedload(UserSubscription.user),
+            joinedload(UserSubscription.plan)
+        ).filter(
+            UserSubscription.status == "active",
+            UserSubscription.end_date.between(now, two_days_later)
+        ).all()
+
+        count = 0
+        for s in expiring_subs:
+            if s.user and s.end_date:
+                plan_name = s.plan.name if s.plan else "المعتمدة"
+                end_d = s.end_date.replace(tzinfo=None) if hasattr(s.end_date, 'tzinfo') and s.end_date.tzinfo else s.end_date
+                days_left = max(0, (end_d - datetime.utcnow()).days)
+                notif = Notification(
+                    user_id=s.user_id,
+                    type=NotificationType.general,
+                    title="⚠️ تنبيه انتهاء الباقة (متبقي أقل من يومين)",
+                    message=f"عزيزي المشترك، باقتك [{plan_name}] ستنتهي خلال {days_left} يوم. نوصي بالتجديد الآن للاحتفاظ بحصص الاستشارات ومزايا المساعد الذكي."
+                )
+                db.add(notif)
+                count += 1
+
+        db.commit()
+        return count
 
     @staticmethod
     def get_orders(db: Session) -> List[Dict[str, Any]]:

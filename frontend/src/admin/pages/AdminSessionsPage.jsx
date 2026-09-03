@@ -4,7 +4,7 @@ import { getAdminSessions, updateAdminSessionStatus, adminJoinSession } from '..
 
 export default function AdminSessionsPage({ navigate }) {
   // View mode: 'kanban' | 'table'
-  const [viewMode, setViewMode] = useState('kanban');
+  const [viewMode, setViewMode] = useState('table');
 
   // Loading state
   const [loading, setLoading] = useState(false);

@@ -18,6 +18,7 @@ import RegulationsPage from './pages/RegulationsPage';
 import AiAssistantPage from './pages/AiAssistantPage';
 import InvoicesPage from './pages/InvoicesPage';
 import PolicyCenterPage from './pages/PolicyCenterPage';
+import UserSubscriptionsPage from './pages/UserSubscriptionsPage';
 import UserSettingsPage from './pages/UserSettingsPage';
 import SupportTicketsPage from './pages/SupportTicketsPage';
 import SupportCenterPage from './pages/SupportCenterPage';
@@ -85,6 +86,7 @@ function MainApp() {
     '/chat',
     '/regulations',
     '/ai-assistant',
+    '/subscriptions',
     '/invoices',
     '/tickets',
     '/support',
@@ -145,6 +147,9 @@ function MainApp() {
     }
     if (pathname === '/ai-assistant') {
       return <AiAssistantPage />;
+    }
+    if (pathname === '/subscriptions') {
+      return <UserSubscriptionsPage navigate={navigate} />;
     }
     if (pathname === '/invoices') {
       return <InvoicesPage />;

@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { notificationService } from '../../services/notificationService';
 import {
   IconSearch,
   IconSparkles,
@@ -9,7 +11,29 @@ import {
 } from './AdminIcons';
 
 export default function AdminHeader({ navigate, onOpenAiModal }) {
+  const { token } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const fetchUnread = async () => {
+      try {
+        const res = await notificationService.getUnreadCount(token);
+        if (res && typeof res.unread_count === 'number') {
+          setUnreadCount(res.unread_count);
+        }
+      } catch (e) {}
+    };
+
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 3000);
+    const onFocus = () => fetchUnread();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [token]);
 
   return (
     <header className="admin-topbar">
@@ -47,14 +71,14 @@ export default function AdminHeader({ navigate, onOpenAiModal }) {
           مدير المنصة
         </div>
 
-        {/* Notification Bell with Badge 3 */}
+        {/* Notification Bell with Dynamic Unread Badge */}
         <button className="admin-icon-btn-minimal" title="الإشعارات" onClick={() => navigate('/admin/notifications')}>
           <IconNotifications size={16} />
-          <span className="admin-bell-badge">3</span>
+          {unreadCount > 0 && <span className="admin-bell-badge">{unreadCount}</span>}
         </button>
 
         {/* Messages */}
-        <button className="admin-icon-btn-minimal" title="المحادثات">
+        <button className="admin-icon-btn-minimal" title="المحادثات" onClick={() => navigate('/admin/chats')}>
           <IconMessage size={16} />
         </button>
 

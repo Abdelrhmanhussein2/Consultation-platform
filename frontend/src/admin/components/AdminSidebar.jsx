@@ -76,11 +76,17 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
       ]
     },
 
-    // 7. Tax Forms
-    { id: 'tax-forms', label: 'النماذج الضريبية', path: '/admin/tax-forms', icon: IconTaxForms },
-
-    // 8. Support & Tickets
-    { id: 'tickets', label: 'الدعم والتذاكر', path: '/admin/tickets', icon: IconTickets },
+    // 8. Support & Tickets - Grouped (Default -> /admin/tickets)
+    { 
+      id: 'support_group', 
+      label: 'الدعم والتذاكر', 
+      icon: IconTickets,
+      defaultPath: '/admin/tickets',
+      subItems: [
+        { id: 'tickets', label: 'تذاكر الدعم الفني', path: '/admin/tickets' },
+        { id: 'chats', label: 'إدارة المحادثات', path: '/admin/chats' }
+      ]
+    },
 
     // 9. Notifications
     { id: 'notifications', label: 'الإشعارات', path: '/admin/notifications', icon: IconNotifications },
@@ -165,50 +171,74 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
   };
 
   return (
-    <aside className="admin-sidebar">
-      {/* Brand Header */}
-      <div className="admin-sidebar-brand">
-        <img 
-          src="/logo_white.png" 
-          alt="ديوان" 
-          className="admin-sidebar-logo-img"
-          onError={(e) => { e.target.src = '/logo.png'; }}
-        />
-        <div className="admin-sidebar-brand-text">
-          <h1>منصة ديوان</h1>
-          <span>مدير عام</span>
+    <aside className="portal-sidebar admin-sidebar">
+      {/* Platform White Logo Header */}
+      <div className="sidebar-header">
+        <div
+          className="brand-wrapper"
+          onClick={() => navigate('/admin')}
+          style={{
+            cursor: 'pointer',
+            gap: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            width: '100%'
+          }}
+        >
+          <img 
+            src="/logo_white.png" 
+            alt="شعار منصة ديوان" 
+            style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
+            onError={(e) => { e.target.src = '/logo.png'; }}
+          />
+          <div className="brand-text-box">
+            <span className="brand-title">منصة ديوان</span>
+            <span className="brand-subtitle" style={{ color: '#F5A52A', fontWeight: '700' }}>
+              للاستشارات الضريبية
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Nav Menu */}
-      <nav className="admin-sidebar-nav">
+      {/* Main Navigation Items */}
+      <nav className="sidebar-nav">
         {menuItems.map((item) => {
           const Icon = item.icon;
 
-          // Check if this item has subItems (e.g. Item 3, 4, 6, 10)
+          // Expandable Submenu Group
           if (item.subItems) {
             const isGroupOpen = !!expandedGroups[item.id];
             const isAnySubActive = item.subItems.some(sub => sub.path === currentPath);
 
             return (
-              <div key={item.id} className="admin-nav-group">
+              <div key={item.id} className="support-accordion-group" style={{ width: '100%' }}>
                 <button
                   type="button"
                   onClick={(e) => handleGroupClick(e, item)}
-                  className={`admin-nav-item ${isAnySubActive ? 'active' : ''}`}
+                  className={`nav-item ${isAnySubActive ? 'active' : ''}`}
+                  title={item.label}
+                  style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between' }}
                 >
-                  <span className="admin-nav-icon">
-                    <Icon size={17} />
-                  </span>
-                  <span className="admin-nav-item-parent">
-                    <span>{item.label}</span>
-                    <span className="admin-nav-arrow">{isGroupOpen ? '▾' : '◂'}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <span className="nav-icon">
+                      <Icon size={20} color={isAnySubActive ? '#FFFFFF' : '#CBD5E1'} />
+                    </span>
+                    <span className="nav-label">{item.label}</span>
+                  </div>
+                  <span style={{
+                    fontSize: '11px',
+                    color: '#94A3B8',
+                    transition: 'transform 0.2s ease',
+                    transform: isGroupOpen ? 'rotate(90deg)' : 'none'
+                  }}>
+                    ◀
                   </span>
                 </button>
 
                 {/* Submenu list */}
                 {isGroupOpen && (
-                  <div className="admin-nav-submenu">
+                  <div className="sidebar-sub-nav" style={{ paddingRight: '36px', display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
                     {item.subItems.map(sub => {
                       const isSubActive = currentPath === sub.path;
                       return (
@@ -216,10 +246,25 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
                           key={sub.id}
                           type="button"
                           onClick={(e) => handleItemClick(e, sub.path)}
-                          className={`admin-subnav-item ${isSubActive ? 'active' : ''}`}
+                          className={`nav-sub-item ${isSubActive ? 'active' : ''}`}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: isSubActive ? '#F5A52A' : '#94A3B8',
+                            padding: '8px 12px',
+                            textAlign: 'right',
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            borderRadius: '6px',
+                            fontWeight: isSubActive ? '700' : 'normal',
+                            transition: 'all 0.2s',
+                            display: 'block',
+                            width: '100%'
+                          }}
+                          onMouseEnter={(e) => { if (!isSubActive) e.target.style.color = '#FFFFFF'; }}
+                          onMouseLeave={(e) => { if (!isSubActive) e.target.style.color = '#94A3B8'; }}
                         >
-                          <span>•</span>
-                          <span>{sub.label}</span>
+                          {sub.label}
                         </button>
                       );
                     })}
@@ -229,41 +274,42 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
             );
           }
 
-          // Regular single item
+          // Regular Single Nav Item
           const isActive = currentPath === item.path || (item.path === '/admin' && currentPath === '/admin/dashboard');
           return (
             <button
               key={item.id}
               type="button"
               onClick={(e) => handleItemClick(e, item.path)}
-              className={`admin-nav-item ${isActive ? 'active' : ''}`}
+              className={`nav-item ${isActive ? 'active' : ''}`}
+              title={item.label}
             >
-              <span className="admin-nav-icon">
-                <Icon size={17} />
+              <span className="nav-icon">
+                <Icon size={20} color={isActive ? '#FFFFFF' : '#CBD5E1'} />
               </span>
-              <span>{item.label}</span>
+              <span className="nav-label">{item.label}</span>
               {item.badge && <span className="admin-nav-badge">{item.badge}</span>}
             </button>
           );
         })}
       </nav>
 
-      {/* Sidebar Footer: Logout Button */}
-      <div className="admin-sidebar-footer">
+      {/* Sidebar Footer Logout */}
+      <div className="sidebar-footer">
         <button
           type="button"
+          className="nav-item logout-nav-item"
           onClick={handleLogout}
-          className="admin-logout-btn"
-          title="تسجيل الخروج من لوحة التحكم"
+          title="تسجيل الخروج"
         >
-          <span className="admin-logout-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <span className="nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
           </span>
-          <span>تسجيل الخروج</span>
+          <span className="nav-label" style={{ color: '#F87171' }}>تسجيل الخروج</span>
         </button>
       </div>
     </aside>

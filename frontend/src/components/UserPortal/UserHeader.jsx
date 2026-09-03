@@ -35,8 +35,13 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
     };
 
     fetchNotifs();
-    const interval = setInterval(fetchNotifs, 60000); // Poll every 60s
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchNotifs, 3000); // Fast live poll every 3s
+    const onFocus = () => fetchNotifs();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
   }, [token]);
 
   // Click outside handlers
@@ -49,28 +54,33 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleMarkAllRead = async () => {
-    if (!token) return;
+  const handleMarkAllRead = async (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (e && e.preventDefault) e.preventDefault();
+    setUnreadCount(0);
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     try {
-      await notificationService.markAllAsRead(token);
-      setUnreadCount(0);
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-    } catch (e) {
-      // Ignore
+      if (token) {
+        await notificationService.markAllAsRead(token);
+      }
+    } catch (err) {
+      console.warn('Failed to mark all as read on backend:', err);
     }
   };
 
   const handleNotificationClick = async (notif) => {
     if (!notif) return;
 
-    // Mark as read
-    if (!notif.is_read && token) {
-      try {
-        await notificationService.markAsRead(notif.id, token);
-        setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
-        setUnreadCount(prev => Math.max(0, prev - 1));
-      } catch (err) {
-        // Silently handle error
+    // Optimistically mark as read
+    if (!notif.is_read) {
+      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      if (token) {
+        try {
+          await notificationService.markAsRead(notif.id, token);
+        } catch (err) {
+          console.warn('Failed to mark notification as read:', err);
+        }
       }
     }
 

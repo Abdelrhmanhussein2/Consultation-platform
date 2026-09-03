@@ -161,6 +161,7 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
   const clientNavItems = [
     { path: '/dashboard', label: 'لوحة التحكم', IconComponent: DashboardIcon },
     { path: '/calendar', label: 'جدول المواعيد والتقويم', IconComponent: AppointmentsIcon },
+    { path: '/subscriptions', label: 'الباقات والاشتراكات', IconComponent: SubscriptionsIcon },
     { path: '/quick-consultation', label: 'استشارة سريعة', IconComponent: QuickIcon },
     { path: '/consultants', label: 'المستشارون', IconComponent: ConsultantsIcon },
     { path: '/my-appointments', label: 'استشاراتي والمواعيد', IconComponent: AppointmentsIcon },
@@ -189,7 +190,7 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
     { path: '/chat', label: 'الرسائل', IconComponent: ChatIcon },
     { path: '/tickets', label: 'الدعم والمساعدة', IconComponent: TicketsIcon },
     { path: '/invoices', label: 'الفواتير', IconComponent: InvoicesIcon },
-    { path: '/consultant/subscriptions', label: 'الاشتراكات', IconComponent: SubscriptionsIcon },
+    { path: '/consultant/subscriptions', label: 'الباقات والاشتراكات', IconComponent: SubscriptionsIcon },
     { path: '/consultant/payments', label: 'المدفوعات', IconComponent: PaymentsIcon },
     { path: '/consultant/documents', label: 'وثائقي', IconComponent: DocumentsIcon },
     { path: '/consultant/favorites', label: 'المفضلة', IconComponent: FavoritesIcon },

@@ -686,6 +686,16 @@ class NotificationController:
             "updated_count": updated_count,
         }
 
+    @staticmethod
+    def delete_notification(db: Session, current_user: User, notification_id: str):
+        """Deletes a single notification."""
+        try:
+            notif_uuid = uuid.UUID(notification_id)
+            deleted = NotificationService.delete_notification(db, current_user.id, notif_uuid)
+            return {"success": deleted}
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
 
 # =====================================================================
 # INVOICE CONTROLLER

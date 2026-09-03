@@ -3,20 +3,26 @@
    Exact Pixel-Perfect Match to Reference Design (RTL Hierarchy & Colors)
    ══════════════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800;900&display=swap');
 
 :root {
-  /* Brand Core Colors (Lighter Petrol Navy matching Reference Screenshot 2) */
-  --admin-navy-dark: #0A3A61;
-  --admin-navy-deep: #072F50;
-  --admin-navy-sidebar: #0A3C64;
-  --admin-navy-active: #145388;
-  --admin-navy-hover: #0E4774;
-  --admin-navy-border: #114B7B;
+  /* Brand Core Colors - Unified with User/Consultant Portal Theme */
+  --admin-navy-dark: #0D3C5C;
+  --admin-navy-deep: #0A3450;
+  --admin-navy-sidebar: #0D3C5C;
+  --admin-navy-active: #005D9C;
+  --admin-navy-hover: rgba(255, 255, 255, 0.08);
+  --admin-navy-border: rgba(255, 255, 255, 0.08);
+  
+  /* Portal Theme Synchronization */
+  --portal-sidebar-bg: #0D3C5C;
+  --portal-sidebar-active: #005D9C;
+  --portal-sidebar-hover: rgba(255, 255, 255, 0.08);
+  --portal-accent-gold: #F5A52A;
   
   /* Accent & Action Colors */
-  --admin-accent-gold: #E58A13;
-  --admin-accent-gold-hover: #D97706;
+  --admin-accent-gold: #F5A52A;
+  --admin-accent-gold-hover: #E0921B;
   --admin-accent-gold-light: #F59E0B;
   --admin-accent-glow: rgba(229, 138, 19, 0.22);
   --admin-accent-bg-subtle: #FFFBEB;
@@ -55,9 +61,25 @@
   --admin-shadow-hover: 0 6px 16px rgba(15, 36, 56, 0.08);
 }
 
-/* Base resets for Admin shell */
+/* Base resets for Admin shell - Fully unified with Cairo font */
+.admin-shell-container,
+.admin-shell-container button,
+.admin-shell-container input,
+.admin-shell-container select,
+.admin-shell-container textarea,
+.admin-shell-container h1,
+.admin-shell-container h2,
+.admin-shell-container h3,
+.admin-shell-container h4,
+.admin-shell-container h5,
+.admin-shell-container h6,
+.admin-shell-container span,
+.admin-shell-container p,
+.admin-shell-container a {
+  font-family: 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
 .admin-shell-container {
-  font-family: 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   direction: rtl;
   text-align: right;
   background-color: var(--admin-bg-main);

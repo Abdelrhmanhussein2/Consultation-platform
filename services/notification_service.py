@@ -147,3 +147,18 @@ class NotificationService:
         ).update({"is_read": True})
         db.commit()
         return updated
+
+    @staticmethod
+    def delete_notification(db: Session, user_id: uuid.UUID, notification_id: uuid.UUID) -> bool:
+        """
+        Deletes a specific notification for the user.
+        """
+        notif = db.query(Notification).filter(
+            Notification.id == notification_id,
+            Notification.user_id == user_id,
+        ).first()
+        if not notif:
+            return False
+        db.delete(notif)
+        db.commit()
+        return True

@@ -48,7 +48,7 @@ export default function AdminTicketsPage({ navigate }) {
   // ══════════════════════════════════════════════════════════════════════════
   // STATE MANAGEMENT
   // ══════════════════════════════════════════════════════════════════════════
-  const [adminView, setAdminView] = useState('kanban'); // 'table' | 'kanban'
+  const [adminView, setAdminView] = useState('table'); // 'table' | 'kanban'
   const [selectedTicketId, setSelectedTicketId] = useState(null);
   const [activeModal, setActiveModal] = useState(null); // 'change-status' | 'assign-ticket' | 'change-priority' | 'add-internal'
   const [toastMsg, setToastMsg] = useState('');

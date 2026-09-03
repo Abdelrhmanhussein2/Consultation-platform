@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './AdminSubscriptionsPage.css';
 
 // ══════════════════════════════════════════════════════════════════
@@ -306,7 +306,70 @@ export default function AdminSubscriptionsPage({ navigate }) {
   const showToast = (msg) => {
     setToastMsg(msg);
     setToastShow(true);
-    setTimeout(() => setToastShow(false), 2000);
+    setTimeout(() => setToastShow(false), 2500);
+  };
+
+  const loadAdminSubscriptionsData = async () => {
+    try {
+      const [reqRes, plansRes, subsRes, ordersRes] = await Promise.all([
+        fetch('/api/subscriptions/requests').then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch('/api/subscriptions/plans').then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch('/api/subscriptions/subscribers').then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch('/api/subscriptions/orders').then(r => r.ok ? r.json() : null).catch(() => null)
+      ]);
+      if (reqRes && Array.isArray(reqRes)) setRequests(reqRes);
+      if (plansRes && Array.isArray(plansRes) && plansRes.length > 0) setPlans(plansRes);
+      if (subsRes && Array.isArray(subsRes)) setSubscribers(subsRes);
+      if (ordersRes && Array.isArray(ordersRes)) setOrders(ordersRes);
+    } catch (e) {
+      console.warn('Live admin data load error:', e);
+    }
+  };
+
+  useEffect(() => {
+    loadAdminSubscriptionsData();
+    const interval = setInterval(loadAdminSubscriptionsData, 3000);
+    const onFocus = () => loadAdminSubscriptionsData();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, []);
+
+  const handleApproveRequest = async (r) => {
+    try {
+      const res = await fetch(`/api/subscriptions/requests/${r.id}/approve`, { method: 'POST' });
+      if (res.ok) {
+        setRequests((prev) => prev.map((x) => (x.id === r.id ? { ...x, status: 'approved' } : x)));
+        showToast(`تمت الموافقة وتفعيل باقة [${r.plan}] للمستخدم (${r.name}) بنجاح.`);
+        loadAdminSubscriptionsData();
+      } else {
+        showToast('تعذر اعتماد الطلب على الخادم', 'error');
+      }
+    } catch (e) {
+      showToast('خطأ في الاتصال بالخادم', 'error');
+    }
+  };
+
+  const handleRejectRequest = async (r, reason) => {
+    try {
+      const res = await fetch(`/api/subscriptions/requests/${r.id}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason })
+      });
+      if (res.ok) {
+        setRequests((prev) => prev.map((x) => (x.id === r.id ? { ...x, status: 'rejected', rejectReason: reason } : x)));
+        setRejectModalItem(null);
+        showToast('تم رفض الطلب وإشعار المستخدم بالسبب بنجاح');
+        loadAdminSubscriptionsData();
+      } else {
+        showToast('تعذر رفض الطلب على الخادم', 'error');
+      }
+    } catch (e) {
+      showToast('خطأ في الاتصال بالخادم', 'error');
+    }
   };
 
   const money = (n) => `${Number(n || 0).toFixed(2)} د.أ`;
@@ -428,13 +491,18 @@ export default function AdminSubscriptionsPage({ navigate }) {
   // Toggle Plan Active (with DB Sync)
   const togglePlanActive = async (id) => {
     try {
-      await fetch(`/api/subscriptions/plans/${id}/toggle-active`, { method: 'PATCH' });
-    } catch (e) {}
-
-    setPlans((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, active: !p.active } : p))
-    );
-    showToast('تم تحديث حالة الباقة');
+      const res = await fetch(`/api/subscriptions/plans/${id}/toggle-active`, { method: 'PATCH' });
+      if (res.ok) {
+        const data = await res.json();
+        setPlans((prev) =>
+          prev.map((p) => (p.id === id ? { ...p, active: data.active } : p))
+        );
+        showToast(data.active ? 'تم تفعيل الباقة بنجاح' : 'تم إيقاف تفعيل الباقة بنجاح');
+        loadAdminSubscriptionsData();
+      }
+    } catch (e) {
+      showToast('خطأ في تحديث حالة الباقة', 'error');
+    }
   };
 
   // Delete Plan (with DB Sync)
@@ -442,10 +510,12 @@ export default function AdminSubscriptionsPage({ navigate }) {
     if (window.confirm('هل أنت متأكد من حذف هذه الباقة؟')) {
       try {
         await fetch(`/api/subscriptions/plans/${id}`, { method: 'DELETE' });
-      } catch (e) {}
-
-      setPlans((prev) => prev.filter((p) => p.id !== id));
-      showToast('تم حذف الباقة بنجاح');
+        setPlans((prev) => prev.filter((p) => p.id !== id));
+        showToast('تم حذف الباقة بنجاح');
+        loadAdminSubscriptionsData();
+      } catch (e) {
+        showToast('خطأ في حذف الباقة', 'error');
+      }
     }
   };
 
@@ -487,29 +557,20 @@ export default function AdminSubscriptionsPage({ navigate }) {
     }
 
     try {
-      await fetch('/api/subscriptions/plans', {
+      const res = await fetch('/api/subscriptions/plans', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editingPlan)
       });
-    } catch (e) {}
-
-    setPlans((prev) => {
-      let updated = [...prev];
-      if (editingPlan.default) {
-        updated = updated.map((p) => ({ ...p, default: false }));
+      if (res.ok) {
+        showToast('تم حفظ الباقة ومزامنتها بنجاح');
+        loadAdminSubscriptionsData();
       }
-      const existingIdx = updated.findIndex((p) => p.id === editingPlan.id);
-      if (existingIdx >= 0) {
-        updated[existingIdx] = editingPlan;
-      } else {
-        updated.push(editingPlan);
-      }
-      return updated;
-    });
+    } catch (e) {
+      showToast('خطأ في حفظ الباقة', 'error');
+    }
 
     setActiveTab('plans');
-    showToast('تم حفظ الباقة ومزامنتها بنجاح');
   };
 
   // Notification Composer Selection
@@ -1494,13 +1555,8 @@ export default function AdminSubscriptionsPage({ navigate }) {
                               <>
                                 <button
                                   className="sub-small-icon green"
-                                  onClick={() => {
-                                    setRequests((prev) =>
-                                      prev.map((x) => (x.id === r.id ? { ...x, status: 'approved' } : x))
-                                    );
-                                    showToast('تم اعتماد الطلب بنجاح');
-                                  }}
-                                  title="اعتماد"
+                                  onClick={() => handleApproveRequest(r)}
+                                  title="اعتماد وتفعيل الباقة"
                                 >
                                   ✓
                                 </button>
@@ -1563,13 +1619,8 @@ export default function AdminSubscriptionsPage({ navigate }) {
                           <>
                             <button
                               className="sub-kc-icon green"
-                              onClick={() => {
-                                setRequests((prev) =>
-                                  prev.map((x) => (x.id === r.id ? { ...x, status: 'approved' } : x))
-                                );
-                                showToast('تم اعتماد الطلب');
-                              }}
-                              title="اعتماد"
+                              onClick={() => handleApproveRequest(r)}
+                              title="اعتماد وتفعيل الباقة"
                             >
                               <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>
                             </button>
@@ -2034,9 +2085,8 @@ export default function AdminSubscriptionsPage({ navigate }) {
                   <button
                     className="sub-primary-btn"
                     onClick={() => {
-                      setRequests((prev) => prev.map((x) => (x.id === selectedRequest.id ? { ...x, status: 'approved' } : x)));
+                      handleApproveRequest(selectedRequest);
                       setSelectedRequest(null);
-                      showToast('تم اعتماد الطلب');
                     }}
                   >
                     اعتماد الطلب
@@ -2181,11 +2231,7 @@ export default function AdminSubscriptionsPage({ navigate }) {
                 onClick={() => {
                   const sel = document.getElementById('rejectReasonSelect')?.value || 'تم الرفض';
                   const note = document.getElementById('rejectNoteText')?.value || '';
-                  setRequests((prev) =>
-                    prev.map((x) => (x.id === rejectModalItem.id ? { ...x, status: 'rejected', rejectReason: `${sel} - ${note}` } : x))
-                  );
-                  setRejectModalItem(null);
-                  showToast('تم رفض الطلب وتوثيق السبب');
+                  handleRejectRequest(rejectModalItem, `${sel}${note ? ' - ' + note : ''}`);
                 }}
               >
                 تأكيد الرفض
@@ -2393,13 +2439,33 @@ export default function AdminSubscriptionsPage({ navigate }) {
             <div className="sub-modal-foot">
               <button
                 className="sub-primary-btn"
-                onClick={() => {
-                  const p = document.getElementById('targetPlanSel')?.value || 'احترافية';
-                  setSubscribers((prev) =>
-                    prev.map((s) => (s.id === upgradeModal.id ? { ...s, plan: p } : s))
-                  );
+                onClick={async () => {
+                  const targetPlan = document.getElementById('targetPlanSel')?.value || 'احترافية';
+                  const modeEl = document.querySelector('input[name="upgradeMode"]:checked');
+                  const mode = modeEl ? modeEl.value : 'immediate';
+                  try {
+                    const res = await fetch('/api/subscriptions/upgrade', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        sub_id: upgradeModal.id,
+                        target_plan: targetPlan,
+                        mode: mode
+                      })
+                    });
+                    if (res.ok) {
+                      setSubscribers((prev) =>
+                        prev.map((s) => (s.id === upgradeModal.id ? { ...s, plan: targetPlan } : s))
+                      );
+                      showToast(`تم تغيير باقة المشترك (${upgradeModal.name}) إلى [${targetPlan}] بنجاح وإشعاره فوراً.`);
+                      loadAdminSubscriptionsData();
+                    } else {
+                      showToast('تعذر تغيير الباقة على الخادم', 'error');
+                    }
+                  } catch (e) {
+                    showToast('خطأ في الاتصال بالخادم', 'error');
+                  }
                   setUpgradeModal(null);
-                  showToast(`تم تحديث باقة المشترك إلى ${p}`);
                 }}
               >
                 تأكيد التغيير

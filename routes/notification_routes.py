@@ -90,9 +90,19 @@ def mark_all_notifications_as_read(
     return NotificationController.mark_all_as_read(db, current_user)
 
 
-# =====================================================================
-# REAL-TIME NOTIFICATION WEBSOCKET HUB (PHASE 3)
-# =====================================================================
+@router.delete(
+    "/{notification_id}",
+    summary="Delete a notification",
+)
+def delete_notification(
+    notification_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Deletes a single notification for the logged-in user.
+    """
+    return NotificationController.delete_notification(db, current_user, notification_id)
 @router.websocket("/ws")
 async def websocket_notifications_endpoint(
     websocket: WebSocket,
