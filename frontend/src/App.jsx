@@ -20,6 +20,7 @@ import InvoicesPage from './pages/InvoicesPage';
 import PolicyCenterPage from './pages/PolicyCenterPage';
 import UserSubscriptionsPage from './pages/UserSubscriptionsPage';
 import UserSettingsPage from './pages/UserSettingsPage';
+import ConsultantSettingsPage from './pages/ConsultantSettingsPage';
 import SupportTicketsPage from './pages/SupportTicketsPage';
 import SupportCenterPage from './pages/SupportCenterPage';
 import SupportTicketsListPage from './pages/SupportTicketsListPage';
@@ -62,6 +63,21 @@ function MainApp() {
     setCurrentPath(path);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Automatically redirect authenticated users visiting login/home to their dashboard
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      if (currentPath === '/' || currentPath === '/login') {
+        if (user.role === 'admin' || user.role === 'super_admin') {
+          navigate('/admin/dashboard');
+        } else if (user.role === 'consultant') {
+          navigate('/consultant/dashboard');
+        } else {
+          navigate('/dashboard');
+        }
+      }
+    }
+  }, [isAuthenticated, user, currentPath]);
 
   // Route any /admin path directly to AdminApp Command Center
   if (currentPath.startsWith('/admin')) {
@@ -174,8 +190,11 @@ function MainApp() {
     if (pathname === '/policies-portal') {
       return <PolicyCenterPage openPolicy={openPolicy} />;
     }
-    if (pathname === '/settings') {
-      return <UserSettingsPage />;
+    if (pathname === '/settings' || pathname === '/consultant/settings') {
+      if (user?.role === 'consultant') {
+        return <ConsultantSettingsPage navigate={navigate} />;
+      }
+      return <UserSettingsPage navigate={navigate} />;
     }
 
     // Consultant Portal Screens

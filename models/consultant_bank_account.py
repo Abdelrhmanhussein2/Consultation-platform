@@ -21,6 +21,7 @@ class ConsultantBankAccount(Base):
     iban_encrypted = Column(Text, nullable=True)
     swift_code_encrypted = Column(Text, nullable=True)
     branch_name = Column(String(150), nullable=True)
+    cliq_alias = Column(String(100), nullable=True)
     currency = Column(String(10), nullable=False, default="JOD")
     is_verified = Column(Boolean, nullable=False, default=False)
 

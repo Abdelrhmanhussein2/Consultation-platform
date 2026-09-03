@@ -18,13 +18,13 @@ const getCookie = (name) => {
 };
 
 /**
- * Get current Auth Token from in-memory state or Cookies
+ * Get current Auth Token from in-memory state, Cookies, or LocalStorage
  */
 export function getAdminToken() {
   if (typeof window !== 'undefined') {
     if (window.__ADMIN_TOKEN__) return window.__ADMIN_TOKEN__;
     try {
-      const storedToken = getCookie('token') || getCookie('admin_token');
+      const storedToken = getCookie('token') || getCookie('admin_token') || localStorage.getItem('token') || localStorage.getItem('admin_token');
       if (storedToken) return storedToken;
     } catch {}
   }
@@ -277,10 +277,18 @@ export async function getReportsAnalytics(params = {}) {
 /* ══════════════════════════════════════════════════════════════════
    NOTIFICATIONS & BROADCAST
    ══════════════════════════════════════════════════════════════════ */
+export async function createAdminUser(userData) {
+  return adminRequest('/super-admin/users', {
+    method: 'POST',
+    body: JSON.stringify(userData)
+  });
+}
+
 export async function sendBroadcastNotification({ title, message, audience = 'all' }) {
   return adminRequest('/super-admin/notifications/broadcast', {
     method: 'POST',
     body: JSON.stringify({ title, message, audience })
   });
 }
+
 

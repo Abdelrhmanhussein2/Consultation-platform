@@ -6,7 +6,8 @@ from helpers.redis_client import get_redis
 from models import User
 from schemes import (
     UserOut, UserProfileUpdate, ChangePasswordRequest,
-    EmailChangeRequest, EmailChangeVerify, VerifyMyPasswordOtpAndResetRequest
+    EmailChangeRequest, EmailChangeVerify, PhoneChangeRequest, PhoneChangeVerify,
+    VerifyMyPasswordOtpAndResetRequest
 )
 from controllers import UserController
 from routes.deps import get_current_active_user
@@ -87,6 +88,42 @@ def verify_email_change(
         verify_in=verify_in,
         redis_client=redis_client,
         background_tasks=background_tasks
+    )
+
+@router.post("/me/phone/request-change", status_code=status.HTTP_200_OK, summary="Request phone change with OTP verification")
+def request_phone_change(
+    req_in: PhoneChangeRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Initiates changing the authenticated user's phone number by sending a 6-digit OTP code to the new phone.
+    """
+    return UserController.request_phone_change(
+        db=db,
+        current_user=current_user,
+        req_in=req_in,
+        redis_client=redis_client,
+        background_tasks=background_tasks
+    )
+
+@router.post("/me/phone/verify-change", status_code=status.HTTP_200_OK, summary="Verify OTP and complete phone change")
+def verify_phone_change(
+    verify_in: PhoneChangeVerify,
+    db: Session = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Verifies the OTP code sent to the new phone number and updates the user record.
+    """
+    return UserController.verify_phone_change(
+        db=db,
+        current_user=current_user,
+        verify_in=verify_in,
+        redis_client=redis_client
     )
 
 @router.post("/me/password/request-otp", status_code=status.HTTP_200_OK, summary="Request password reset OTP for logged in user")

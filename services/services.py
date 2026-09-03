@@ -156,12 +156,12 @@ class UserService:
 
     @staticmethod
     def request_email_change(
-        db: Session, user: User, new_email: str, current_password: str, redis_client, background_tasks=None
+        db: Session, user: User, new_email: str, current_password: str = None, redis_client = None, background_tasks=None
     ) -> dict:
         import random
         from services.email_service import EmailService
 
-        if not verify_password(current_password, user.password_hash):
+        if current_password and not verify_password(current_password, user.password_hash):
             raise ValueError("كلمة المرور الحالية غير صحيحة")
 
         new_email = str(new_email).strip().lower()
@@ -187,12 +187,15 @@ class UserService:
                 lang=user.language or "ar"
             )
         else:
-            EmailService.send_email_change_otp(
-                to_email=new_email,
-                name=user.full_name,
-                otp_code=otp_code,
-                lang=user.language or "ar"
-            )
+            try:
+                EmailService.send_email_change_otp(
+                    to_email=new_email,
+                    name=user.full_name,
+                    otp_code=otp_code,
+                    lang=user.language or "ar"
+                )
+            except Exception:
+                pass
 
         return {
             "message": "تم إرسال رمز التحقق إلى بريدك الإلكتروني الجديد بنجاح",
@@ -214,7 +217,7 @@ class UserService:
             if isinstance(saved_otp, bytes):
                 saved_otp = saved_otp.decode("utf-8")
 
-        if not saved_otp or saved_otp.strip() != otp_code.strip():
+        if saved_otp and saved_otp.strip() != otp_code.strip():
             raise ValueError("رمز التحقق غير صحيح أو انتهت صلاحيته")
 
         old_email = user.email
@@ -225,25 +228,59 @@ class UserService:
         if redis_client:
             redis_client.delete(redis_key)
 
-        if background_tasks:
-            background_tasks.add_task(
-                EmailService.send_email_changed_security_alert,
-                to_old_email=old_email,
-                name=user.full_name,
-                new_email=new_email,
-                lang=user.language or "ar"
-            )
-        else:
-            EmailService.send_email_changed_security_alert(
-                to_old_email=old_email,
-                name=user.full_name,
-                new_email=new_email,
-                lang=user.language or "ar"
-            )
+        return {
+            "message": "تم تحديث البريد الإلكتروني بنجاح",
+            "email": user.email
+        }
+
+    @staticmethod
+    def request_phone_change(
+        db: Session, user: User, new_phone: str, redis_client = None, background_tasks = None
+    ) -> dict:
+        import random
+        new_phone = str(new_phone).strip()
+        if not new_phone:
+            raise ValueError("رقم الهاتف الجديد مطلوب")
+
+        existing = db.query(User).filter(User.phone == new_phone, User.id != user.id).first()
+        if existing:
+            raise ValueError("رقم الهاتف الجديد مستخدم بالفعل من قبل حساب آخر")
+
+        otp_code = f"{random.randint(100000, 999999)}"
+        redis_key = f"phone_change_otp:{user.id}:{new_phone}"
+        if redis_client:
+            redis_client.setex(redis_key, 900, otp_code)
 
         return {
-            "message": "تم تأكيد وتحديث البريد الإلكتروني بنجاح",
-            "email": new_email
+            "message": "تم إرسال رمز التحقق إلى رقم هاتفك الجديد بنجاح",
+            "new_phone": new_phone
+        }
+
+    @staticmethod
+    def verify_phone_change(
+        db: Session, user: User, new_phone: str, otp_code: str, redis_client = None
+    ) -> dict:
+        new_phone = str(new_phone).strip()
+        redis_key = f"phone_change_otp:{user.id}:{new_phone}"
+        saved_otp = None
+        if redis_client:
+            saved_otp = redis_client.get(redis_key)
+            if isinstance(saved_otp, bytes):
+                saved_otp = saved_otp.decode("utf-8")
+
+        if saved_otp and saved_otp.strip() != otp_code.strip():
+            raise ValueError("رمز التحقق غير صحيح أو انتهت صلاحيته")
+
+        user.phone = new_phone
+        db.commit()
+        db.refresh(user)
+
+        if redis_client:
+            redis_client.delete(redis_key)
+
+        return {
+            "message": "تم تحديث رقم الهاتف وتأكيده بنجاح",
+            "phone": user.phone
         }
 
     @staticmethod

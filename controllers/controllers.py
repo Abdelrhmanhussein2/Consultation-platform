@@ -75,6 +75,7 @@ class UserController:
             )
             
         # Save to static/avatars/
+        os.makedirs(os.path.join("static", "avatars"), exist_ok=True)
         new_filename = f"{uuid.uuid4().hex}{ext}"
         filepath = os.path.join("static", "avatars", new_filename)
         
@@ -130,6 +131,34 @@ class UserController:
                 otp_code=verify_in.otp_code,
                 redis_client=redis_client,
                 background_tasks=background_tasks
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
+    def request_phone_change(db: Session, current_user: User, req_in, redis_client, background_tasks=None):
+        """Initiates a phone number change request by sending an OTP to the new phone."""
+        try:
+            return UserService.request_phone_change(
+                db=db,
+                user=current_user,
+                new_phone=req_in.new_phone,
+                redis_client=redis_client,
+                background_tasks=background_tasks
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
+    def verify_phone_change(db: Session, current_user: User, verify_in, redis_client):
+        """Verifies the OTP and updates the user's phone number."""
+        try:
+            return UserService.verify_phone_change(
+                db=db,
+                user=current_user,
+                new_phone=verify_in.new_phone,
+                otp_code=verify_in.otp_code,
+                redis_client=redis_client
             )
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

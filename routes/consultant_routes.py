@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, status, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional, List
 from decimal import Decimal
+import os
+import uuid
 
 from helpers.database import get_db
 from models import User
@@ -404,6 +406,50 @@ def submit_service_expansion(
     is upgraded to 'platform_consultant'.
     """
     return ConsultantController.submit_service_expansion(db, current_user, request_in)
+
+
+@router.post(
+    "/me/upload-proof",
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload qualification proof or JCPA license document",
+)
+async def upload_proof_document(
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_consultant),
+):
+    """
+    Uploads a qualification proof document or license (PDF or images) up to 10MB.
+    """
+    allowed_types = ["image/jpeg", "image/png", "image/webp", "application/pdf"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="الملف المرفوع يجب أن يكون صورة أو مستند PDF فقط"
+        )
+        
+    file_bytes = await file.read()
+    if len(file_bytes) > 10 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="حجم الملف يجب أن لا يتجاوز 10 ميجابايت"
+        )
+        
+    _, ext = os.path.splitext(file.filename or "")
+    if not ext:
+        ext = ".pdf" if file.content_type == "application/pdf" else ".jpg"
+    ext = ext.lower()
+    
+    os.makedirs(os.path.join("static", "documents"), exist_ok=True)
+    new_filename = f"proof_{uuid.uuid4().hex}{ext}"
+    filepath = os.path.join("static", "documents", new_filename)
+    
+    with open(filepath, "wb") as f:
+        f.write(file_bytes)
+        
+    return {
+        "file_url": f"/static/documents/{new_filename}",
+        "filename": file.filename
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────

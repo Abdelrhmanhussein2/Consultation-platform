@@ -76,6 +76,7 @@ class WalletService:
             "masked_iban": mask_iban(decrypted_iban) if decrypted_iban else None,
             "masked_swift_code": mask_string(decrypted_swift, visible_suffix=3) if decrypted_swift else None,
             "branch_name": acc.branch_name,
+            "cliq_alias": acc.cliq_alias,
             "currency": acc.currency or "JOD",
             "is_verified": acc.is_verified,
             "created_at": acc.created_at,
@@ -112,6 +113,7 @@ class WalletService:
             acc.iban_encrypted = enc_iban
             acc.swift_code_encrypted = enc_swift
             acc.branch_name = bank_in.branch_name.strip() if bank_in.branch_name else None
+            acc.cliq_alias = bank_in.cliq_alias.strip() if bank_in.cliq_alias else None
             acc.currency = currency_val
         else:
             acc = ConsultantBankAccount(
@@ -123,6 +125,7 @@ class WalletService:
                 iban_encrypted=enc_iban,
                 swift_code_encrypted=enc_swift,
                 branch_name=bank_in.branch_name.strip() if bank_in.branch_name else None,
+                cliq_alias=bank_in.cliq_alias.strip() if bank_in.cliq_alias else None,
                 currency=currency_val,
                 is_verified=False
             )

@@ -216,6 +216,8 @@ class SuperAdminService:
             company_name=user_in.company_name,
             tax_number=user_in.tax_number,
             sector=user_in.sector,
+            address=getattr(user_in, "city", None) or "عمّان",
+            title=getattr(user_in, "title", None) or ("مستشار ضريبي معتمد" if user_in.role == UserRole.consultant else None),
         )
         db.add(db_user)
         db.commit()
@@ -225,10 +227,10 @@ class SuperAdminService:
         if db_user.role in (UserRole.consultant, UserRole.platform_consultant):
             profile = ConsultantProfile(
                 user_id=db_user.id,
-                bio=user_in.bio,
-                main_specialization_id=user_in.main_specialization_id,
+                bio=user_in.bio or "مستشار ضريبي مرخص معتمد في المنصة.",
+                main_specialization_id=user_in.main_specialization_id or 1,
                 verification_status=VerificationStatus.approved,
-                price_per_hour=getattr(user_in, "price_per_hour", None),
+                price_per_hour=getattr(user_in, "price_per_hour", None) or Decimal("40.0"),
             )
             db.add(profile)
             db.commit()

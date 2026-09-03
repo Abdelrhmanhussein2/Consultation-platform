@@ -88,14 +88,16 @@ export default function LoginForm({ openPolicy, navigate }) {
         setEmail('');
         setPassword('');
 
-        // Redirect after a short delay
+        // Instant clean redirect based on role
         setTimeout(() => {
-          if (activeTab === 'admin') {
+          if (activeTab === 'admin' || role === 'admin' || role === 'super_admin') {
             navigate('/admin/dashboard');
+          } else if (role === 'consultant') {
+            navigate('/consultant/dashboard');
           } else {
             navigate('/dashboard');
           }
-        }, 1000);
+        }, 400);
 
       } else {
         // Backend returned error

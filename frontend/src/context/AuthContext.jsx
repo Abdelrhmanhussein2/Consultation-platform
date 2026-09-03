@@ -4,12 +4,15 @@ import { refreshAccessTokenSilently } from '../services/api';
 const AuthContext = createContext(null);
 
 // ---------------------------------------------------------------------------
-// Helpers for persisting tokens STRICTLY via Cookies (No localStorage / No sessionStorage)
+// Helpers for persisting tokens with Cookies & LocalStorage multi-layer fallback
 // ---------------------------------------------------------------------------
 const getCookie = (name) => {
   try {
     const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-    return match ? decodeURIComponent(match[2]) : null;
+    if (match) return decodeURIComponent(match[2]);
+  } catch {}
+  try {
+    return localStorage.getItem(name) || sessionStorage.getItem(name) || null;
   } catch {
     return null;
   }
@@ -25,22 +28,22 @@ const setCookie = (name, value, days = null) => {
     }
     document.cookie = `${name}=${encodeURIComponent(value || '')}${expires}; path=/; SameSite=Lax`;
   } catch {}
+  try {
+    if (value) {
+      localStorage.setItem(name, value);
+    } else {
+      localStorage.removeItem(name);
+    }
+  } catch {}
 };
 
 const removeCookie = (name) => {
   try {
     document.cookie = `${name}=; Max-Age=-99999999; path=/; SameSite=Lax`;
   } catch {}
-};
-
-// Purge any legacy auth tokens stored in localStorage to obey strict cookie security
-const purgeLocalStorageTokens = () => {
   try {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('admin_token');
-    sessionStorage.removeItem('token');
-    sessionStorage.removeItem('refresh_token');
+    localStorage.removeItem(name);
+    sessionStorage.removeItem(name);
   } catch {}
 };
 
@@ -48,21 +51,18 @@ const purgeLocalStorageTokens = () => {
 // Provider
 // ---------------------------------------------------------------------------
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(() => {
-    purgeLocalStorageTokens();
-    return getCookie('token');
-  });
+  const [token, setToken] = useState(() => getCookie('token'));
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // always start loading
+  const [loading, setLoading] = useState(true);
   const refreshTimerRef = useRef(null);
 
   // -------------------------------------------------------------------------
   // Clear everything
   // -------------------------------------------------------------------------
   const clearSession = useCallback(() => {
-    purgeLocalStorageTokens();
     removeCookie('token');
     removeCookie('refresh_token');
+    removeCookie('admin_token');
     setToken(null);
     setUser(null);
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
@@ -70,12 +70,12 @@ export const AuthProvider = ({ children }) => {
 
   // -------------------------------------------------------------------------
   // Silently get a new access token using the stored refresh token
-  // Returns new access token or null on failure
   // -------------------------------------------------------------------------
   const silentRefresh = useCallback(async () => {
     const newAccess = await refreshAccessTokenSilently();
     if (newAccess) {
       setToken(newAccess);
+      setCookie('token', newAccess);
       return newAccess;
     }
     clearSession();
@@ -115,7 +115,11 @@ export const AuthProvider = ({ children }) => {
   // Fetch the current user from backend using an access token
   // -------------------------------------------------------------------------
   const fetchCurrentUser = useCallback(async (authToken) => {
-    if (!authToken) { setUser(null); setLoading(false); return null; }
+    if (!authToken) {
+      setUser(null);
+      setLoading(false);
+      return null;
+    }
 
     try {
       const res = await fetch('/api/users/me', {
@@ -132,7 +136,11 @@ export const AuthProvider = ({ children }) => {
       // 401 → try silent refresh once
       if (res.status === 401) {
         const newToken = await silentRefresh();
-        if (!newToken) { setUser(null); setLoading(false); return null; }
+        if (!newToken) {
+          setUser(null);
+          setLoading(false);
+          return null;
+        }
 
         const res2 = await fetch('/api/users/me', {
           headers: { 'Authorization': `Bearer ${newToken}`, 'Accept': 'application/json' }
@@ -145,7 +153,6 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
-      // All attempts failed
       clearSession();
       setLoading(false);
       return null;
@@ -157,19 +164,29 @@ export const AuthProvider = ({ children }) => {
   }, [silentRefresh, clearSession]);
 
   // -------------------------------------------------------------------------
-  // On startup: restore session from Cookies
+  // On startup: restore session
   // -------------------------------------------------------------------------
   useEffect(() => {
+    let isMounted = true;
     const initAuth = async () => {
-      purgeLocalStorageTokens();
       const storedToken = getCookie('token');
       if (storedToken) {
         await fetchCurrentUser(storedToken);
-      } else {
-        setLoading(false);
       }
+      if (isMounted) setLoading(false);
     };
+
     initAuth();
+
+    // Absolute safety timeout: never remain loading for more than 1.2s
+    const safetyTimer = setTimeout(() => {
+      if (isMounted) setLoading(false);
+    }, 1200);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(safetyTimer);
+    };
   }, [fetchCurrentUser]);
 
   // -------------------------------------------------------------------------
@@ -177,7 +194,6 @@ export const AuthProvider = ({ children }) => {
   // -------------------------------------------------------------------------
   const login = async (accessToken, refreshToken) => {
     if (!accessToken) return null;
-    purgeLocalStorageTokens();
     setCookie('token', accessToken);
     if (refreshToken) setCookie('refresh_token', refreshToken);
     setToken(accessToken);
@@ -201,39 +217,43 @@ export const AuthProvider = ({ children }) => {
         });
       } catch {}
     }
+
     clearSession();
+    window.location.href = '/login';
   };
 
   // -------------------------------------------------------------------------
-  // Manual refresh user data
+  // Force update user in state (e.g. after profile edit)
   // -------------------------------------------------------------------------
-  const refreshUser = () => {
-    const t = getCookie('token');
-    if (t) return fetchCurrentUser(t);
+  const updateUser = (newUserData) => {
+    setUser(prev => ({ ...prev, ...newUserData }));
   };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        token,
-        user,
-        role: user?.role || null,
-        loading,
-        login,
-        logout,
-        refreshUser,
-        isAuthenticated: !!token && !!user
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  const refreshUser = useCallback(async () => {
+    const currentToken = getCookie('token');
+    if (currentToken) {
+      await fetchCurrentUser(currentToken);
+    }
+  }, [fetchCurrentUser]);
+
+  const value = {
+    user,
+    token,
+    loading,
+    isAuthenticated: !!user,
+    login,
+    logout,
+    updateUser,
+    refreshUser
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within an AuthProvider');
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
   return context;
 };
-
-export default AuthContext;

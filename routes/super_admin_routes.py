@@ -19,8 +19,9 @@ from schemes import (
     ChangePasswordRequest, PayoutRequestOut, AdminPayoutAction,
     BrandSettingsSchema, SystemSettingsSchema, CompanySettingsSchema,
     CurrencySettingsSchema, ContractSettingsSchema, SMTPSettingsSchema,
-    PaymentGatewaysSchema, AllPlatformSettingsOut, TestEmailRequest,
-    TestEmailResponse
+    BankTransferGatewaySchema, CliQGatewaySchema, PaymentGatewaysSchema,
+    SMSSettingsSchema, AISettingsSchema, PoliciesSettingsSchema,
+    AllPlatformSettingsOut, TestEmailRequest, TestEmailResponse
 )
 from controllers.super_admin_controller import SuperAdminController
 from controllers.platform_settings_controller import PlatformSettingsController
@@ -831,6 +832,63 @@ def update_payment_gateways(
     """Updates payment methods: Bank Wire details, PayPal Sandbox/Live keys, and Stripe test/live credentials."""
     return PlatformSettingsController.update_section(db, "gateways", gateways_in.model_dump(), current_admin)
 
+
+
+@router.put(
+    "/settings/sms",
+    response_model=SMSSettingsSchema,
+    summary="Update local SMS gateway and OTP configurations",
+)
+@router.patch(
+    "/settings/sms",
+    response_model=SMSSettingsSchema,
+    summary="Update SMS settings (PATCH)",
+)
+def update_sms_settings(
+    sms_in: SMSSettingsSchema,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_settings),
+):
+    """Updates SMS gateway provider, API key, sender ID, and OTP toggles."""
+    return PlatformSettingsController.update_section(db, "sms", sms_in.model_dump(), current_admin)
+
+
+@router.put(
+    "/settings/ai",
+    response_model=AISettingsSchema,
+    summary="Update AI provider, model, and plan token quotas",
+)
+@router.patch(
+    "/settings/ai",
+    response_model=AISettingsSchema,
+    summary="Update AI settings (PATCH)",
+)
+def update_ai_settings(
+    ai_in: AISettingsSchema,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_settings),
+):
+    """Updates AI API key, selected model, and monthly token limits per subscription tier."""
+    return PlatformSettingsController.update_section(db, "ai", ai_in.model_dump(), current_admin)
+
+
+@router.put(
+    "/settings/policies",
+    response_model=PoliciesSettingsSchema,
+    summary="Update platform terms, privacy policy, and refund rules",
+)
+@router.patch(
+    "/settings/policies",
+    response_model=PoliciesSettingsSchema,
+    summary="Update policies settings (PATCH)",
+)
+def update_policies_settings(
+    policies_in: PoliciesSettingsSchema,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_settings),
+):
+    """Updates platform legal terms, privacy guidelines, and refund policy."""
+    return PlatformSettingsController.update_section(db, "policies", policies_in.model_dump(), current_admin)
 
 
 @router.post(

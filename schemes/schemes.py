@@ -135,10 +135,17 @@ class ChangePasswordRequest(BaseModel):
 
 class EmailChangeRequest(BaseModel):
     new_email: EmailStr
-    current_password: str
+    current_password: Optional[str] = None
 
 class EmailChangeVerify(BaseModel):
     new_email: EmailStr
+    otp_code: str = Field(..., min_length=6, max_length=6, pattern=r"^[0-9]{6}$", description="6-digit verification code")
+
+class PhoneChangeRequest(BaseModel):
+    new_phone: str = Field(..., min_length=8, max_length=30)
+
+class PhoneChangeVerify(BaseModel):
+    new_phone: str
     otp_code: str = Field(..., min_length=6, max_length=6, pattern=r"^[0-9]{6}$", description="6-digit verification code")
 
 class RequestPasswordOtpRequest(BaseModel):
@@ -790,6 +797,8 @@ class AdminAddUserRequest(BaseModel):
     bio: Optional[str] = None
     main_specialization_id: Optional[int] = None
     price_per_hour: Optional[Decimal] = None
+    city: Optional[str] = None
+    title: Optional[str] = None
 
     @field_validator('password')
     @classmethod
@@ -1031,6 +1040,7 @@ class ConsultantBankAccountCreate(BaseModel):
     iban: Optional[str] = Field(None, max_length=50, description="International Bank Account Number (will be encrypted)")
     swift_code: Optional[str] = Field(None, max_length=20, description="BIC / SWIFT Code (will be encrypted)")
     branch_name: Optional[str] = Field(None, max_length=150)
+    cliq_alias: Optional[str] = Field(None, max_length=100, description="Jordanian CliQ Alias for instant payout")
     currency: str = Field("JOD", max_length=10, description="Account currency: JOD (Default) or USD")
 
 
@@ -1047,6 +1057,7 @@ class ConsultantBankAccountOut(BaseModel):
     masked_iban: Optional[str] = None
     masked_swift_code: Optional[str] = None
     branch_name: Optional[str] = None
+    cliq_alias: Optional[str] = None
     currency: str
     is_verified: bool
     created_at: datetime
@@ -1185,6 +1196,14 @@ class BankTransferGatewaySchema(BaseModel):
     instructions_ar: Optional[str] = Field("يرجى تحويل قيمة الاستشارة وإرفاق إيصال السداد لتأكيد الحجز فوراً.")
 
 
+class CliQGatewaySchema(BaseModel):
+    is_enabled: bool = True
+    alias: str = Field("DIWAN.TAX", max_length=100)
+    recipient_name: str = Field("منصة ديوان للاستشارات الضريبية", max_length=150)
+    bank_name: Optional[str] = Field("البنك العربي", max_length=150)
+    instructions_ar: Optional[str] = Field("يرجى التحويل المباشر عبر CliQ إلى المعرف الرسمي وإرفاق رقم العملية.")
+
+
 class PayPalGatewaySchema(BaseModel):
     is_enabled: bool = False
     mode: str = Field("sandbox", max_length=20)
@@ -1203,8 +1222,34 @@ class StripeGatewaySchema(BaseModel):
 
 class PaymentGatewaysSchema(BaseModel):
     bank_transfer: BankTransferGatewaySchema = Field(default_factory=BankTransferGatewaySchema)
-    paypal: PayPalGatewaySchema = Field(default_factory=PayPalGatewaySchema)
-    stripe: StripeGatewaySchema = Field(default_factory=StripeGatewaySchema)
+    cliq: CliQGatewaySchema = Field(default_factory=CliQGatewaySchema)
+    paypal: Optional[PayPalGatewaySchema] = Field(default_factory=PayPalGatewaySchema)
+    stripe: Optional[StripeGatewaySchema] = Field(default_factory=StripeGatewaySchema)
+
+
+class SMSSettingsSchema(BaseModel):
+    is_enabled: bool = True
+    provider: str = Field("local_jordan", max_length=100)
+    api_key: Optional[str] = Field(None, max_length=255)
+    sender_id: str = Field("DIWAN", max_length=50)
+    enable_otp_login: bool = True
+    enable_otp_register: bool = True
+
+
+class AISettingsSchema(BaseModel):
+    is_enabled: bool = True
+    provider: str = Field("openai", max_length=50)
+    api_key: Optional[str] = Field(None, max_length=255)
+    model_name: str = Field("gpt-4o-mini", max_length=100)
+    monthly_token_limit_free: int = Field(50000, ge=0)
+    monthly_token_limit_basic: int = Field(500000, ge=0)
+    monthly_token_limit_pro: int = Field(2000000, ge=0)
+
+
+class PoliciesSettingsSchema(BaseModel):
+    terms_and_conditions: str = Field("شروط وأحكام استخدام منصة ديوان للاستشارات الضريبية والقانونية وفقاً للقانون الأردني.")
+    privacy_policy: str = Field("سياسة الخصوصية وحماية بيانات المستخدمين في منصة ديوان.")
+    refund_policy: str = Field("سياسة الاسترداد وإلغاء الاستشارات.")
 
 
 class AllPlatformSettingsOut(BaseModel):
@@ -1215,6 +1260,9 @@ class AllPlatformSettingsOut(BaseModel):
     contract: ContractSettingsSchema
     smtp: SMTPSettingsSchema
     gateways: PaymentGatewaysSchema
+    sms: Optional[SMSSettingsSchema] = Field(default_factory=SMSSettingsSchema)
+    ai: Optional[AISettingsSchema] = Field(default_factory=AISettingsSchema)
+    policies: Optional[PoliciesSettingsSchema] = Field(default_factory=PoliciesSettingsSchema)
     sample_price_preview: Optional[str] = None
     sample_contract_preview: Optional[str] = None
     updated_at: Optional[datetime] = None

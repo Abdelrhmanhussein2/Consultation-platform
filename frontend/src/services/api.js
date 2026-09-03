@@ -5,7 +5,10 @@
 const getCookie = (name) => {
   try {
     const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-    return match ? decodeURIComponent(match[2]) : null;
+    if (match) return decodeURIComponent(match[2]);
+  } catch {}
+  try {
+    return localStorage.getItem(name) || sessionStorage.getItem(name) || null;
   } catch {
     return null;
   }
@@ -20,6 +23,13 @@ const setCookie = (name, value, days = null) => {
       expires = '; expires=' + date.toUTCString();
     }
     document.cookie = `${name}=${encodeURIComponent(value || '')}${expires}; path=/; SameSite=Lax`;
+  } catch {}
+  try {
+    if (value) {
+      localStorage.setItem(name, value);
+    } else {
+      localStorage.removeItem(name);
+    }
   } catch {}
 };
 

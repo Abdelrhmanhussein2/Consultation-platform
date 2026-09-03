@@ -2,7 +2,8 @@ from schemes.schemes import (
     # Users & Auth
     UserCreate, UserProfileUpdate, ChangePasswordRequest, UserLogin, UserOut, Token, TokenData,
     ConsultantRegister, RefreshRequest, LogoutRequest, ForgotPasswordRequest, ResetPasswordRequest,
-    EmailChangeRequest, EmailChangeVerify, RequestPasswordOtpRequest, VerifyPasswordOtpAndResetRequest,
+    EmailChangeRequest, EmailChangeVerify, PhoneChangeRequest, PhoneChangeVerify,
+    RequestPasswordOtpRequest, VerifyPasswordOtpAndResetRequest,
     VerifyMyPasswordOtpAndResetRequest,
     ConsultantApplicationAction, ConsultantApplicationStatus,
 
@@ -68,9 +69,9 @@ from schemes.schemes import (
     # Platform Settings (Phase 4)
     BrandSettingsSchema, SystemSettingsSchema, CompanySettingsSchema,
     CurrencyItemSchema, CurrencySettingsSchema, ContractSettingsSchema,
-    SMTPSettingsSchema, BankTransferGatewaySchema, PayPalGatewaySchema,
-    StripeGatewaySchema, PaymentGatewaysSchema, AllPlatformSettingsOut,
-    PublicPaymentGatewayOut, PublicPlatformSettingsOut, TestEmailRequest,
+    SMTPSettingsSchema, BankTransferGatewaySchema, CliQGatewaySchema, PayPalGatewaySchema,
+    StripeGatewaySchema, PaymentGatewaysSchema, SMSSettingsSchema, AISettingsSchema, PoliciesSettingsSchema,
+    AllPlatformSettingsOut, PublicPaymentGatewayOut, PublicPlatformSettingsOut, TestEmailRequest,
     TestEmailResponse, UserDocumentOut, OfficialTemplateOut, FavoriteOut, FavoriteToggle,
 )
 

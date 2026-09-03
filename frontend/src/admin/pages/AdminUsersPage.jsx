@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './AdminUsersPage.css';
-import { getAdminUsers } from '../services/adminApi';
+import { getAdminUsers, createAdminUser } from '../services/adminApi';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CANONICAL 60 CLIENTS DATASET
@@ -126,6 +126,106 @@ export default function AdminUsersPage({ navigate }) {
   // Modal Hierarchy Stack
   const [modalStack, setModalStack] = useState([]);
   const [toastMsg, setToastMsg] = useState('');
+
+  // Add User Modal State
+  const [addUserModalOpen, setAddUserModalOpen] = useState(false);
+  const [loadingAddUser, setLoadingAddUser] = useState(false);
+  const [newUserForm, setNewUserForm] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    phone: '',
+    legal: 'شركة ذات مسؤولية محدودة',
+    entityType: 'company',
+    companyName: '',
+    taxNumber: '',
+    sector: 'services'
+  });
+
+  const handleCreateUserSubmit = async (e) => {
+    e.preventDefault();
+    if (!newUserForm.fullName.trim() || !newUserForm.email.trim() || !newUserForm.password) {
+      alert('يرجى ملء الاسم الكامل، البريد الإلكتروني، وكلمة المرور.');
+      return;
+    }
+
+    const isStrong = newUserForm.password.length >= 8 &&
+      /[A-Z]/.test(newUserForm.password) &&
+      /[a-z]/.test(newUserForm.password) &&
+      /[0-9]/.test(newUserForm.password) &&
+      /[!@#$%^&*()_+\-=[\]{}|;:',.<>?~`]/.test(newUserForm.password);
+
+    if (!isStrong) {
+      alert('كلمة المرور يجب أن تكون قوية وتحتوي على 8 خانات، حرف كبير، حرف صغير، رقم، ورمز خاص.');
+      return;
+    }
+
+    setLoadingAddUser(true);
+    try {
+      const payload = {
+        full_name: newUserForm.fullName.trim(),
+        email: newUserForm.email.trim().toLowerCase(),
+        password: newUserForm.password,
+        phone: newUserForm.phone.trim() || undefined,
+        role: 'user',
+        entity_type: newUserForm.entityType,
+        company_name: newUserForm.companyName.trim() || undefined,
+        tax_number: newUserForm.taxNumber.trim() || undefined,
+        sector: newUserForm.sector
+      };
+
+      const res = await createAdminUser(payload);
+      if (res && (res.id || res.email)) {
+        const newCard = {
+          id: res.id || `u_${Date.now()}`,
+          name: res.full_name || res.company_name || payload.full_name,
+          initial: (res.full_name || payload.full_name).charAt(0),
+          legal: newUserForm.legal,
+          sector: newUserForm.sector === 'services' ? 'خدمات' : newUserForm.sector === 'trade' ? 'تجارة' : newUserForm.sector === 'industry' ? 'صناعة' : newUserForm.sector === 'contracting' ? 'مقاولات' : 'زراعة',
+          activity: newUserForm.companyName || 'استشارات أعمال وخدمات مهنية',
+          status: 'نشط',
+          online: false,
+          plan: 'الباقة الأساسية',
+          consult: 0,
+          success: 0,
+          video: 0,
+          chat: 0,
+          tickets: 0,
+          usage: 'منخفض',
+          created: 100,
+          last: 'الآن',
+          tax: newUserForm.taxNumber || '—',
+          national: '—',
+          reg: '—',
+          email: res.email || payload.email,
+          phone: res.phone || payload.phone || '—',
+          city: 'عمّان',
+          joined: 'اليوم'
+        };
+
+        setUsersList(prev => [newCard, ...prev]);
+        alert(`تمت إضافة المستخدم/العميل [${payload.full_name}] في قاعدة البيانات بنجاح!\nيمكنه تسجيل الدخول فوراً بالبريد: ${payload.email}`);
+        setAddUserModalOpen(false);
+        setNewUserForm({
+          fullName: '',
+          email: '',
+          password: '',
+          phone: '',
+          legal: 'شركة ذات مسؤولية محدودة',
+          entityType: 'company',
+          companyName: '',
+          taxNumber: '',
+          sector: 'services'
+        });
+      } else {
+        alert(res?.detail || 'حدث خطأ أثناء إضافة المستخدم');
+      }
+    } catch (err) {
+      alert('خطأ في الاتصال بالخادم أثناء إضافة المستخدم.');
+    } finally {
+      setLoadingAddUser(false);
+    }
+  };
 
   const mainScrollRef = useRef(null);
 
@@ -1126,13 +1226,20 @@ export default function AdminUsersPage({ navigate }) {
       {/* ══════════════════════════════════════════════════════════════════
           HERO HEADER
           ══════════════════════════════════════════════════════════════════ */}
-      <section className="users-hero">
+      <section className="users-hero" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1>المستخدمون <em>والعملاء</em></h1>
+          <p style={{ margin: '6px 0 0 0' }}>
+            ملف موحّد لفهم العميل، صفته القانونية، قطاعه، نشاطه على المنصة، استهلاك الباقة، الاستشارات، أعضاء الحساب وسجل التفاعل.
+          </p>
         </div>
-        <p>
-          ملف موحّد لفهم العميل، صفته القانونية، قطاعه، نشاطه على المنصة، استهلاك الباقة، الاستشارات، أعضاء الحساب وسجل التفاعل.
-        </p>
+        <button
+          className="admin-btn-action-primary"
+          style={{ background: '#0e3b5e', color: '#FFFFFF', padding: '10px 22px', borderRadius: '10px', fontWeight: '800', fontSize: '13.5px', cursor: 'pointer', whiteSpace: 'nowrap', border: 'none' }}
+          onClick={() => setAddUserModalOpen(true)}
+        >
+          + إضافة مستخدم / عميل
+        </button>
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════
@@ -1887,6 +1994,166 @@ export default function AdminUsersPage({ navigate }) {
             <div className="drill-modal-body">
               {modalStack[modalStack.length - 1].body}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════
+          ADD USER / CLIENT MODAL (DIRECT DB REGISTRATION)
+          ══════════════════════════════════════════════════════════════════ */}
+      {addUserModalOpen && (
+        <div className="admin-modal-overlay" onClick={() => setAddUserModalOpen(false)}>
+          <div className="admin-modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '580px', width: '100%', padding: '28px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h3 style={{ margin: '0 0 6px 0', fontSize: '19px', fontWeight: '900', color: '#0e3b5e' }}>
+              + إضافة مستخدم / عميل جديد
+            </h3>
+            <p style={{ fontSize: '12.5px', color: '#64748B', margin: '0 0 20px 0' }}>
+              سيتم إنشاء الحساب واعتماده مباشرة في قاعدة البيانات، ليتمكن العميل من الدخول فورا باستخدام البريد وكلمة المرور.
+            </p>
+
+            <form onSubmit={handleCreateUserSubmit}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '4px' }}>اسم العميل / المسؤول *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="مثال: م. معاذ الشامي"
+                    value={newUserForm.fullName}
+                    onChange={e => setNewUserForm({ ...newUserForm, fullName: e.target.value })}
+                    className="admin-search-input"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '4px' }}>البريد الإلكتروني *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="client@example.com"
+                    value={newUserForm.email}
+                    onChange={e => setNewUserForm({ ...newUserForm, email: e.target.value })}
+                    className="admin-search-input"
+                    style={{ width: '100%', direction: 'ltr', textAlign: 'right' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '4px' }}>كلمة المرور الابتدائية *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="مثال: Test@123456"
+                    value={newUserForm.password}
+                    onChange={e => setNewUserForm({ ...newUserForm, password: e.target.value })}
+                    className="admin-search-input"
+                    style={{ width: '100%', direction: 'ltr', textAlign: 'right' }}
+                  />
+                  <small style={{ fontSize: '10.5px', color: '#64748B' }}>
+                    8 أحرف + حرف كبير + صغير + رقم + رمز
+                  </small>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '4px' }}>رقم الهاتف / الموبايل</label>
+                  <input
+                    type="text"
+                    placeholder="+962 7 9000 0000"
+                    value={newUserForm.phone}
+                    onChange={e => setNewUserForm({ ...newUserForm, phone: e.target.value })}
+                    className="admin-search-input"
+                    style={{ width: '100%', direction: 'ltr', textAlign: 'right' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '4px' }}>الصفة القانونية</label>
+                  <select
+                    value={newUserForm.legal}
+                    onChange={e => {
+                      const val = e.target.value;
+                      let entityType = 'individual';
+                      if (val.includes('شركة') || val.includes('مؤسسة')) entityType = 'company';
+                      if (val.includes('باحث') || val.includes('جامعة')) entityType = 'researcher';
+                      setNewUserForm({ ...newUserForm, legal: val, entityType });
+                    }}
+                    className="admin-select-input"
+                    style={{ width: '100%' }}
+                  >
+                    <option value="فرد">فرد</option>
+                    <option value="مؤسسة فردية">مؤسسة فردية</option>
+                    <option value="شركة ذات مسؤولية محدودة">شركة ذات مسؤولية محدودة</option>
+                    <option value="شركة تضامن">شركة تضامن</option>
+                    <option value="شركة توصية بسيطة">شركة توصية بسيطة</option>
+                    <option value="شركة مساهمة عامة">شركة مساهمة عامة</option>
+                    <option value="شركة مساهمة خاصة">شركة مساهمة خاصة</option>
+                    <option value="أكاديمي وباحث">أكاديمي وباحث</option>
+                    <option value="جمعية ومنظمة">جمعية ومنظمة</option>
+                    <option value="جهة حكومية">جهة حكومية</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '4px' }}>القطاع</label>
+                  <select
+                    value={newUserForm.sector}
+                    onChange={e => setNewUserForm({ ...newUserForm, sector: e.target.value })}
+                    className="admin-select-input"
+                    style={{ width: '100%' }}
+                  >
+                    <option value="services">خدمات</option>
+                    <option value="trade">تجارة</option>
+                    <option value="industry">صناعة</option>
+                    <option value="contracting">مقاولات</option>
+                    <option value="agriculture">زراعة</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '4px' }}>اسم المنشأة / الشركة (إن وجد)</label>
+                  <input
+                    type="text"
+                    placeholder="مثال: شركة الرؤية للمقاولات"
+                    value={newUserForm.companyName}
+                    onChange={e => setNewUserForm({ ...newUserForm, companyName: e.target.value })}
+                    className="admin-search-input"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '4px' }}>الرقم الضريبي (إن وجد)</label>
+                  <input
+                    type="text"
+                    placeholder="مثال: 200192841"
+                    value={newUserForm.taxNumber}
+                    onChange={e => setNewUserForm({ ...newUserForm, taxNumber: e.target.value })}
+                    className="admin-search-input"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-start', gap: '10px', marginTop: '20px' }}>
+                <button
+                  type="submit"
+                  disabled={loadingAddUser}
+                  className="admin-btn-action-primary"
+                  style={{ padding: '10px 24px', fontWeight: '800', cursor: 'pointer' }}
+                >
+                  {loadingAddUser ? 'جاري الحفظ في الداتابيز...' : 'حفظ وإنشاء الحساب فوراً'}
+                </button>
+                <button
+                  type="button"
+                  className="admin-btn-action-outline"
+                  onClick={() => setAddUserModalOpen(false)}
+                  style={{ padding: '10px 18px', fontWeight: '800', cursor: 'pointer' }}
+                >
+                  إلغاء
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

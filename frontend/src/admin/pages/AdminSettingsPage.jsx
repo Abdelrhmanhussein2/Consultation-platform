@@ -1,117 +1,178 @@
 import React, { useState, useEffect } from 'react';
-import { IconSettings, IconCheck, IconFinancial, IconSecurity } from '../components/AdminIcons';
 import { updateSettingsSection, testSmtpEmail, getAllPlatformSettings } from '../services/adminApi';
 
+// Clean SVG Icons (Zero Emojis)
+const IconBrand = ({ size = 18, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <path d="m4.93 4.93 4.24 4.24" />
+    <path d="m14.83 9.17 4.24-4.24" />
+    <path d="m14.83 14.83 4.24 4.24" />
+    <path d="m9.17 14.83-4.24 4.24" />
+    <circle cx="12" cy="12" r="4" />
+  </svg>
+);
+
+const IconSystem = ({ size = 18, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+
+const IconBuilding = ({ size = 18, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="16" height="20" x="4" y="2" rx="2" ry="2" />
+    <path d="M9 22v-4h6v4" />
+    <path d="M8 6h.01M16 6h.01M12 6h.01M8 10h.01M16 10h.01M12 10h.01M8 14h.01M16 14h.01M12 14h.01" />
+  </svg>
+);
+
+const IconPayment = ({ size = 18, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="20" height="14" x="2" y="5" rx="2" />
+    <line x1="2" x2="22" y1="10" y2="10" />
+  </svg>
+);
+
+const IconSMS = ({ size = 18, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    <line x1="8" y1="9" x2="16" y2="9" />
+    <line x1="8" y1="13" x2="14" y2="13" />
+  </svg>
+);
+
+const IconAI = ({ size = 18, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />
+  </svg>
+);
+
+const IconDocument = ({ size = 18, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="16" y1="13" x2="8" y2="13" />
+    <line x1="16" y1="17" x2="8" y2="17" />
+    <polyline points="10 9 9 9 8 9" />
+  </svg>
+);
+
+const IconMail = ({ size = 18, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="20" height="16" x="2" y="4" rx="2" />
+    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+  </svg>
+);
+
+const IconCheck = ({ size = 16, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
 export default function AdminSettingsPage({ navigate }) {
-  const [activeSection, setActiveSection] = useState('brand');
+  const [activeSection, setActiveSection] = useState('company');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
   const [testEmail, setTestEmail] = useState('admin@diwan.jo');
   const [testEmailLoading, setTestEmailLoading] = useState(false);
+  const [savingSection, setSavingSection] = useState(false);
 
   // ══════════════════════════════════════════════════════════════════════════
-  // SETTINGS STATE
+  // STATE MANAGEMENT
   // ══════════════════════════════════════════════════════════════════════════
-  const [brand, setBrand] = useState({
-    siteName: 'ديوان — منصة الاستشارات الضريبية والمالية الذكية',
-    tagline: 'المرجع الأول للامتثال الضريبي والحلول الاستشارية المعتمدة في الأردن',
-    footerText: 'جميع الحقوق محفوظة © منصة ديوان للاستشارات القانونية والضريبية 2026',
-    primaryColor: '#E58A13',
-    secondaryColor: '#0A3C64',
-    logoUrl: '/logo.png',
-    defaultLanguage: 'العربية (الأردن)',
-    defaultDirection: 'rtl'
-  });
-
-  const [system, setSystem] = useState({
-    timezone: 'Asia/Amman (توقيت المملكة الأردنية الهاشمية GMT+3)',
-    timeFormat: '12h',
-    dateFormat: 'YYYY-MM-DD',
-    currencySymbol: 'د.أ (JOD)',
-    currencyPosition: 'after',
-    thousandSeparator: ',',
-    decimalSeparator: '.',
-    maintenanceMode: false,
-    debugMode: false
-  });
-
   const [company, setCompany] = useState({
-    legalName: 'شركة ديوان لحلول الأعمال والتقنية الضريبية ذ.م.م',
-    tradeName: 'منصة ديوان للاستشارات (Diwan Tax)',
-    country: 'المملكة الأردنية الهاشمية',
+    company_name: 'شركة ديوان لحلول الأعمال والتقنية الضريبية ذ.م.م',
+    tax_number: '102938475',
+    commercial_register: 'CR-JO-2026-99182',
+    address: 'شارع مكة، مجمع الأعمال التجاري',
     city: 'عمان',
-    address: 'شارع الملكة رانيا العبدالله، مجمع الملك حسين للأعمال، مبنى 4',
-    taxNumber: '102938475',
-    crNumber: 'CR-JO-2026-99182',
-    supportEmail: 'support@diwan.jo',
-    billingEmail: 'finance@diwan.jo',
-    supportPhone: '+962 6 500 1122',
-    whatsapp: '+962 7 9167 9444'
-  });
-
-  const [currencies, setCurrencies] = useState({
-    baseCurrency: 'JOD',
-    baseCurrencyName: 'الدينار الأردني (د.أ)',
-    secondaryCurrency: 'USD',
-    secondaryCurrencyName: 'الدولار الأمريكي ($)',
-    exchangeRateJODtoUSD: 1.4104,
-    exchangeRateJODtoSAR: 5.29,
-    exchangeRateJODtoAED: 5.18,
-    exchangeRateJODtoEUR: 1.30,
-    autoSyncRates: true
-  });
-
-  const [contract, setContract] = useState({
-    contractPrefix: 'CON-2026-',
-    invoicePrefix: 'INV-2026-',
-    receiptPrefix: 'REC-2026-',
-    digitPadding: 5,
-    nextInvoiceNumber: 1042,
-    nextContractNumber: 388,
-    defaultTaxRate: 16,
-    includeVatInPrices: true,
-    invoiceNotes: 'تعتبر هذه الفاتورة سنداً رسمياً معتمداً لغايات ضريبة الدخل والمبيعات في المملكة الأردنية الهاشمية.'
-  });
-
-  const [smtp, setSmtp] = useState({
-    host: 'smtp.sendgrid.net',
-    port: 587,
-    encryption: 'TLS',
-    username: 'apikey',
-    password: '••••••••••••••••••••••••345',
-    senderEmail: 'notifications@diwan.jo',
-    senderName: 'منصة ديوان للاستشارات',
-    enableSsl: true
+    state: 'محافظة العاصمة',
+    country: 'المملكة الأردنية الهاشمية',
+    support_email: 'support@diwan.jo',
+    support_phone: '+962 6 500 1122'
   });
 
   const [gateways, setGateways] = useState({
-    bankTransfer: {
-      enabled: true,
-      bankName: 'البنك العربي - الأردن (Arab Bank PLC)',
-      branch: 'فرع الشميساني - عمان',
-      accountName: 'شركة ديوان لحلول الأعمال والتقنية ذ.م.م',
-      accountNumber: '0120-488912-500',
-      iban: 'JO94 ARAB 0120 0000 0048 8912 5001 00',
-      swiftCode: 'ARABJOAX'
-    },
     cliq: {
-      enabled: true,
+      is_enabled: true,
       alias: 'DIWAN.TAX',
-      bankName: 'شبكة كليك الأردنية (CliQ Jordan)',
-      description: 'دفع فوري مباشر عبر المعرف الرقمي CliQ'
+      recipient_name: 'منصة ديوان للاستشارات الضريبية',
+      bank_name: 'البنك العربي - Arab Bank',
+      instructions_ar: 'يرجى التحويل المباشر عبر CliQ إلى المعرف الرسمي وإرفاق رقم العملية لتأكيد الحجز فوراً.'
     },
-    stripe: {
-      enabled: true,
-      environment: 'live',
-      publishableKey: 'pk_live_51P89••••••••••••9A1',
-      secretKey: 'sk_live_51P89••••••••••••8F2',
-      webhookSecret: 'whsec_••••••••••••301'
-    },
-    paypal: {
-      enabled: true,
-      environment: 'live',
-      clientId: 'AUq89••••••••••••4jX',
-      clientSecret: 'EO98••••••••••••99B'
+    bank_transfer: {
+      is_enabled: true,
+      bank_name: 'البنك العربي - Arab Bank PLC',
+      branch_name: 'فرع الشميساني - عمان',
+      account_holder_name: 'شركة ديوان لحلول الأعمال والتقنية ذ.م.م',
+      account_number: '0120-488912-500',
+      iban: 'JO94ARAB0120000000488912500100',
+      swift_code: 'ARABJOAX',
+      instructions_ar: 'يرجى تحويل قيمة الاستشارة وإرفاق إيصال السداد أو رقم العملية لتأكيد الحجز والاشتراك فوراً.'
     }
+  });
+
+  const [sms, setSms] = useState({
+    is_enabled: true,
+    provider: 'local_jordan',
+    api_key: '••••••••••••••••9841',
+    sender_id: 'DIWAN',
+    enable_otp_login: true,
+    enable_otp_register: true
+  });
+
+  const [ai, setAi] = useState({
+    is_enabled: true,
+    provider: 'openai',
+    api_key: '••••••••••••••••4jX9',
+    model_name: 'gpt-4o-mini',
+    monthly_token_limit_free: 50000,
+    monthly_token_limit_basic: 500000,
+    monthly_token_limit_pro: 2000000
+  });
+
+  const [policies, setPolicies] = useState({
+    terms_and_conditions: 'شروط وأحكام استخدام منصة ديوان للاستشارات الضريبية والقانونية وفقاً لأحكام القانون الأردني.',
+    privacy_policy: 'سياسة الخصوصية وحماية وسرية استشارات وبيانات المستخدمين والمستشارين في منصة ديوان.',
+    refund_policy: 'سياسة الاسترداد وإلغاء الاستشارات المعتمدة في منصة ديوان.'
+  });
+
+  const [brand, setBrand] = useState({
+    title_text: 'ديوان — منصة الاستشارات الضريبية والمالية الذكية',
+    footer_text: 'جميع الحقوق محفوظة © منصة ديوان للاستشارات القانونية والضريبية 2026',
+    primary_color: '#0e3b5e',
+    default_language: 'ar',
+    default_direction: 'rtl'
+  });
+
+  const [system, setSystem] = useState({
+    default_timezone: 'Asia/Amman',
+    date_format: 'YYYY-MM-DD',
+    time_format: '12_hour',
+    default_currency_code: 'JOD',
+    default_currency_symbol: 'د.أ',
+    currency_position: 'after',
+    decimal_digits: 2
+  });
+
+  const [contract, setContract] = useState({
+    contract_prefix: 'CON-2026-',
+    invoice_prefix: 'INV-2026-',
+    number_padding: 5,
+    next_contract_number: 388,
+    next_invoice_number: 1042
+  });
+
+  const [smtp, setSmtp] = useState({
+    mail_host: 'smtp.sendgrid.net',
+    mail_port: 587,
+    mail_username: 'apikey',
+    mail_password: '••••••••••••••••345',
+    mail_encryption: 'tls',
+    mail_from_address: 'notifications@diwan.jo',
+    mail_from_name: 'منصة ديوان للاستشارات'
   });
 
   // Load live settings from Backend on mount
@@ -121,13 +182,15 @@ export default function AdminSettingsPage({ navigate }) {
       try {
         const data = await getAllPlatformSettings();
         if (mounted && data) {
+          if (data.company) setCompany(prev => ({ ...prev, ...data.company }));
+          if (data.gateways) setGateways(prev => ({ ...prev, ...data.gateways }));
+          if (data.sms) setSms(prev => ({ ...prev, ...data.sms }));
+          if (data.ai) setAi(prev => ({ ...prev, ...data.ai }));
+          if (data.policies) setPolicies(prev => ({ ...prev, ...data.policies }));
           if (data.brand) setBrand(prev => ({ ...prev, ...data.brand }));
           if (data.system) setSystem(prev => ({ ...prev, ...data.system }));
-          if (data.company) setCompany(prev => ({ ...prev, ...data.company }));
-          if (data.currency) setCurrencies(prev => ({ ...prev, ...data.currency }));
           if (data.contract) setContract(prev => ({ ...prev, ...data.contract }));
           if (data.smtp) setSmtp(prev => ({ ...prev, ...data.smtp }));
-          if (data.gateways) setGateways(prev => ({ ...prev, ...data.gateways }));
         }
       } catch (err) {
         console.warn('Live settings API note:', err.message);
@@ -137,32 +200,32 @@ export default function AdminSettingsPage({ navigate }) {
     return () => { mounted = false; };
   }, []);
 
-  // Save feedback
   const showSavedAlert = (title) => {
     setSaveSuccessMsg(`تم حفظ وتحديث [${title}] بنجاح في قاعدة البيانات.`);
     setTimeout(() => setSaveSuccessMsg(''), 4000);
   };
 
   const handleSave = async (sectionKey, sectionTitle) => {
+    setSavingSection(true);
     try {
       let dataToSave = {};
-      if (sectionKey === 'brand') dataToSave = brand;
+      if (sectionKey === 'company') dataToSave = company;
+      else if (sectionKey === 'gateways') dataToSave = gateways;
+      else if (sectionKey === 'sms') dataToSave = sms;
+      else if (sectionKey === 'ai') dataToSave = ai;
+      else if (sectionKey === 'policies') dataToSave = policies;
+      else if (sectionKey === 'brand') dataToSave = brand;
       else if (sectionKey === 'system') dataToSave = system;
-      else if (sectionKey === 'company') dataToSave = company;
-      else if (sectionKey === 'currency') dataToSave = currencies;
       else if (sectionKey === 'contract') dataToSave = contract;
       else if (sectionKey === 'smtp') dataToSave = smtp;
-      else if (sectionKey === 'gateways') dataToSave = gateways;
 
       await updateSettingsSection(sectionKey, dataToSave);
       showSavedAlert(sectionTitle);
     } catch (e) {
       showSavedAlert(sectionTitle);
+    } finally {
+      setSavingSection(false);
     }
-  };
-
-  const handleSaveAll = () => {
-    showSavedAlert('كافة إعدادات المنصة');
   };
 
   const handleTestEmail = async () => {
@@ -173,7 +236,7 @@ export default function AdminSettingsPage({ navigate }) {
     setTestEmailLoading(true);
     try {
       await testSmtpEmail(testEmail);
-      alert(`تم إرسال بريد الاختبار بنجاح إلى: ${testEmail} والتأكد من مصافحة خادم SMTP!`);
+      alert(`تم إرسال بريد الاختبار بنجاح إلى: ${testEmail} والتأكد من الاتصال بخادم SMTP!`);
     } catch (err) {
       alert(`تم فحص ومصافحة خادم SMTP بنجاح وإرسال رسالة التشخيص إلى: ${testEmail}`);
     } finally {
@@ -181,760 +244,694 @@ export default function AdminSettingsPage({ navigate }) {
     }
   };
 
-  // Sections navigation definition
+  // Sections navigation definition (Zero Emojis)
   const sections = [
-    { id: 'brand', icon: '🎨', title: 'الهوية والعلامة التجارية', tag: 'Brand & Identity' },
-    { id: 'system', icon: '⚙️', title: 'إعدادات النظام والتوقيت', tag: 'System & Localisation' },
-    { id: 'company', icon: '🏢', title: 'بيانات المنشأة والسجل', tag: 'Company & Legal' },
-    { id: 'currency', icon: '💱', title: 'العملات وأسعار الصرف', tag: 'Currencies & Rates' },
-    { id: 'contract', icon: '📄', title: 'صيغ العقود والفواتير', tag: 'Invoices & Sequences' },
-    { id: 'smtp', icon: '✉️', title: 'خادم البريد (SMTP)', tag: 'Email Dispatcher' },
-    { id: 'gateways', icon: '💳', title: 'بوابات الدفع الإلكتروني', tag: 'Payment Gateways' }
+    { id: 'company', icon: <IconBuilding size={18} />, title: 'بيانات المنشأة والضريبة', tag: 'Company & Tax' },
+    { id: 'gateways', icon: <IconPayment size={18} />, title: 'بوابات الدفع (CliQ والبنك)', tag: 'CliQ & Bank Wire' },
+    { id: 'sms', icon: <IconSMS size={18} />, title: 'الرسائل النصية و OTP', tag: 'Local SMS & OTP' },
+    { id: 'ai', icon: <IconAI size={18} />, title: 'محرك الذكاء الاصطناعي', tag: 'AI Engine & Quotas' },
+    { id: 'brand', icon: <IconBrand size={18} />, title: 'الهوية والعلامة التجارية', tag: 'Brand & Identity' },
+    { id: 'contract', icon: <IconDocument size={18} />, title: 'صيغ العقود والفواتير', tag: 'Invoices & Sequences' },
+    { id: 'smtp', icon: <IconMail size={18} />, title: 'خادم البريد (SMTP)', tag: 'Email Dispatcher' }
   ];
 
   return (
-    <div>
-      {/* 1. Header Command Banner */}
-      <div className="admin-command-banner" style={{ marginBottom: '20px' }}>
-        <div>
-          <div className="admin-banner-sub-tag">PLATFORM CONFIGURATION & GATEWAYS</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h1 className="admin-banner-title" style={{ fontSize: '24px', margin: 0 }}>إعدادات المنصة الشاملة</h1>
-            <span style={{ fontSize: '20px' }}>⚙️</span>
-          </div>
-          <p className="admin-banner-desc" style={{ fontSize: '13px', margin: '4px 0 0 0', color: '#64748B' }}>
-            التحكم المركزي في الهوية البصرية، بيانات المنشأة في الأردن، العملات، صيغ العقود، خادم البريد، وبوابات الدفع.
-          </p>
-        </div>
-
-        {/* Global Save Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button 
-            type="button"
-            onClick={handleSaveAll}
-            className="admin-btn-action-primary"
-            style={{ fontSize: '13px', padding: '8px 20px', background: '#E58A13', borderColor: '#E58A13', color: '#FFFFFF', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
-          >
-            <span>حفظ كافة التغييرات ✓</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Floating Save Success Toast */}
+    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '22px', paddingBottom: '40px', textAlign: 'right', direction: 'rtl', fontFamily: 'Cairo, Tajawal, sans-serif' }}>
+      
+      {/* Save Toast */}
       {saveSuccessMsg && (
-        <div style={{
-          background: '#DCFCE7',
-          border: '1px solid #86EFAC',
-          color: '#15803D',
-          padding: '12px 18px',
-          borderRadius: '8px',
-          marginBottom: '16px',
-          fontWeight: '800',
-          fontSize: '13px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          boxShadow: '0 4px 12px rgba(21,128,61,0.1)'
-        }}>
-          <span>✓</span>
+        <div style={{ position: 'fixed', bottom: '24px', left: '24px', background: '#0e3b5e', color: '#FFFFFF', padding: '12px 24px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', zIndex: 99999, display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700', fontSize: '13.5px', direction: 'rtl' }}>
+          <IconCheck size={18} color="#10B981" />
           <span>{saveSuccessMsg}</span>
         </div>
       )}
 
-      {/* 2. Main Two-Column Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '20px', alignItems: 'start' }}>
-        
-        {/* Left Side: Modern Tabs Navigation */}
-        <div className="admin-card" style={{ padding: '10px' }}>
-          <div style={{ padding: '8px 12px 12px 12px', borderBottom: '1px solid #F1F5F9', marginBottom: '8px' }}>
-            <div style={{ fontSize: '11px', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>أقسام الإعدادات</div>
-            <div style={{ fontSize: '13px', fontWeight: '800', color: '#0F172A' }}>خيارات التحكم بالنظام</div>
+      {/* Header Command Banner */}
+      <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '18px', padding: '24px 28px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+        <div>
+          <div style={{ fontSize: '11px', fontWeight: '900', color: '#D97706', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '4px' }}>
+            PLATFORM CONFIGURATION & SYSTEM HUBS
           </div>
+          <h1 style={{ fontSize: '22px', fontWeight: '900', color: '#0e3b5e', margin: '0 0 6px 0' }}>
+            إعدادات المنصة المركزية
+          </h1>
+          <p style={{ fontSize: '13px', color: '#64748B', margin: 0 }}>
+            إدارة بيانات المنشأة، وسائل الدفع المحلية الأردنية (CliQ)، بوابات الـ SMS، محرك الذكاء الاصطناعي، وخادم البريد.
+          </p>
+        </div>
+      </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {sections.map(sec => {
-              const isActive = activeSection === sec.id;
-              return (
-                <button
-                  key={sec.id}
-                  type="button"
-                  onClick={() => setActiveSection(sec.id)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: isActive ? '#0A3C64' : '#F8FAFC',
-                    color: isActive ? '#FFFFFF' : '#334155',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    textAlign: 'right',
-                    width: '100%'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '16px' }}>{sec.icon}</span>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: '800', lineHeight: '1.3' }}>
-                        {sec.title}
-                      </div>
-                      <div style={{ fontSize: '10px', color: isActive ? '#93C5FD' : '#94A3B8', marginTop: '1px' }}>
-                        {sec.tag}
-                      </div>
-                    </div>
+      {/* Settings Navigation Tabs & Form Body */}
+      <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '20px', alignItems: 'start' }}>
+        
+        {/* Sidebar Navigation */}
+        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {sections.map((sec) => {
+            const isActive = activeSection === sec.id;
+            return (
+              <button
+                key={sec.id}
+                type="button"
+                onClick={() => setActiveSection(sec.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: isActive ? '#0e3b5e' : 'transparent',
+                  color: isActive ? '#FFFFFF' : '#334155',
+                  fontWeight: isActive ? '800' : '700',
+                  fontSize: '13.5px',
+                  cursor: 'pointer',
+                  textAlign: 'right',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <div style={{ color: isActive ? '#FFFFFF' : '#64748B' }}>
+                  {sec.icon}
+                </div>
+                <div>
+                  <div>{sec.title}</div>
+                  <div style={{ fontSize: '10.5px', color: isActive ? 'rgba(255,255,255,0.7)' : '#94A3B8', marginTop: '1px' }}>
+                    {sec.tag}
                   </div>
-                  {isActive && <span style={{ fontSize: '12px' }}>◀</span>}
-                </button>
-              );
-            })}
-          </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Right Side: Section Content Card */}
-        <div className="admin-card" style={{ padding: '24px' }}>
+        {/* Content Form Area */}
+        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '24px 28px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
           
           {/* ══════════════════════════════════════════════════════════════════
-              SECTION 1: BRAND & IDENTITY
-              ══════════════════════════════════════════════════════════════════ */}
-          {activeSection === 'brand' && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #E2E8F0', paddingBottom: '12px' }}>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#0A3C64' }}>
-                    🎨 إعدادات العلامة التجارية والهوية البصرية
-                  </h3>
-                  <span style={{ fontSize: '12px', color: '#64748B' }}>تخصيص ألوان المنصة والشعارات ونصوص الواجهة العامة</span>
-                </div>
-                <button 
-                  type="button" 
-                  onClick={() => handleSave('brand', 'العلامة التجارية')}
-                  className="admin-btn-action-primary" 
-                  style={{ background: '#E58A13', borderColor: '#E58A13' }}
-                >
-                  حفظ إعدادات الهوية ✓
-                </button>
-              </div>
-
-              {/* Live Brand Preview Box */}
-              <div style={{ 
-                background: `linear-gradient(135deg, ${brand.secondaryColor} 0%, #06233B 100%)`, 
-                color: '#FFFFFF', 
-                padding: '16px 20px', 
-                borderRadius: '10px', 
-                marginBottom: '20px',
-                borderRight: `6px solid ${brand.primaryColor}`
-              }}>
-                <div style={{ fontSize: '11px', color: brand.primaryColor, fontWeight: '800', marginBottom: '4px' }}>
-                  معاينة حية للهوية البصرية (Live Brand Preview)
-                </div>
-                <div style={{ fontSize: '16px', fontWeight: '900' }}>
-                  {brand.siteName}
-                </div>
-                <div style={{ fontSize: '12px', opacity: 0.85, marginTop: '2px' }}>
-                  {brand.tagline}
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px', color: '#0F172A' }}>
-                    عنوان الموقع الأساسي (Site Title) *
-                  </label>
-                  <input 
-                    type="text" 
-                    className="admin-search-input" 
-                    value={brand.siteName} 
-                    onChange={e => setBrand({ ...brand, siteName: e.target.value })} 
-                    style={{ width: '100%', height: '40px' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px', color: '#0F172A' }}>
-                    الشعار اللفظي (Tagline)
-                  </label>
-                  <input 
-                    type="text" 
-                    className="admin-search-input" 
-                    value={brand.tagline} 
-                    onChange={e => setBrand({ ...brand, tagline: e.target.value })} 
-                    style={{ width: '100%', height: '40px' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px', color: '#0F172A' }}>
-                    اللون الأساسي للعلامة (Primary Accent)
-                  </label>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <input 
-                      type="color" 
-                      value={brand.primaryColor} 
-                      onChange={e => setBrand({ ...brand, primaryColor: e.target.value })} 
-                      style={{ width: '45px', height: '40px', border: '1px solid #CBD5E1', borderRadius: '8px', cursor: 'pointer' }} 
-                    />
-                    <input 
-                      type="text" 
-                      className="admin-search-input" 
-                      value={brand.primaryColor} 
-                      onChange={e => setBrand({ ...brand, primaryColor: e.target.value })} 
-                      style={{ flex: 1, height: '40px', fontFamily: 'monospace', fontWeight: '800' }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px', color: '#0F172A' }}>
-                    اللون الثانوي والأشرطة (Secondary Brand Color)
-                  </label>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <input 
-                      type="color" 
-                      value={brand.secondaryColor} 
-                      onChange={e => setBrand({ ...brand, secondaryColor: e.target.value })} 
-                      style={{ width: '45px', height: '40px', border: '1px solid #CBD5E1', borderRadius: '8px', cursor: 'pointer' }} 
-                    />
-                    <input 
-                      type="text" 
-                      className="admin-search-input" 
-                      value={brand.secondaryColor} 
-                      onChange={e => setBrand({ ...brand, secondaryColor: e.target.value })} 
-                      style={{ flex: 1, height: '40px', fontFamily: 'monospace', fontWeight: '800' }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px', color: '#0F172A' }}>
-                  نص حقوق التذييل (Footer Copyright Text)
-                </label>
-                <input 
-                  type="text" 
-                  className="admin-search-input" 
-                  value={brand.footerText} 
-                  onChange={e => setBrand({ ...brand, footerText: e.target.value })} 
-                  style={{ width: '100%', height: '40px' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button 
-                  type="button" 
-                  onClick={() => handleSave('brand', 'العلامة التجارية')}
-                  className="admin-btn-action-primary" 
-                  style={{ background: '#E58A13', borderColor: '#E58A13', padding: '8px 24px' }}
-                >
-                  حفظ إعدادات الهوية
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ══════════════════════════════════════════════════════════════════
-              SECTION 2: SYSTEM & LOCALISATION
-              ══════════════════════════════════════════════════════════════════ */}
-          {activeSection === 'system' && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #E2E8F0', paddingBottom: '12px' }}>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#0A3C64' }}>
-                    ⚙️ إعدادات النظام والتوقيت المحلي
-                  </h3>
-                  <span style={{ fontSize: '12px', color: '#64748B' }}>المنطقة الزمنية المعتمدة وتنسيق التواريخ والأرقام</span>
-                </div>
-                <button 
-                  type="button" 
-                  onClick={() => handleSave('system', 'إعدادات النظام')}
-                  className="admin-btn-action-primary" 
-                  style={{ background: '#0A3C64' }}
-                >
-                  حفظ إعدادات النظام ✓
-                </button>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>المنطقة الزمنية (Timezone):</label>
-                  <input type="text" className="admin-search-input" value={system.timezone} readOnly style={{ width: '100%', height: '40px', background: '#F1F5F9', color: '#0A3C64', fontWeight: '700' }} />
-                  <span style={{ fontSize: '11px', color: '#059669', display: 'block', marginTop: '4px' }}>✓ معتمد لتقويم وجلسات المملكة الأردنية الهاشمية</span>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>تنسيق الوقت الافتراضي:</label>
-                  <select className="admin-select-input" style={{ width: '100%', height: '40px' }} value={system.timeFormat} onChange={e => setSystem({ ...system, timeFormat: e.target.value })}>
-                    <option value="12h">12 ساعة (ص / م - 02:30 م)</option>
-                    <option value="24h">24 ساعة (14:30)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>رمز وموضع العملة:</label>
-                  <input type="text" className="admin-search-input" value={system.currencySymbol} onChange={e => setSystem({ ...system, currencySymbol: e.target.value })} style={{ width: '100%', height: '40px' }} />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>فاصل الآلاف والكسور العشرية:</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <input type="text" className="admin-search-input" value={system.thousandSeparator} onChange={e => setSystem({ ...system, thousandSeparator: e.target.value })} placeholder="فاصل الآلاف (,)" style={{ height: '40px' }} />
-                    <input type="text" className="admin-search-input" value={system.decimalSeparator} onChange={e => setSystem({ ...system, decimalSeparator: e.target.value })} placeholder="الكسر العشري (.)" style={{ height: '40px' }} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Maintenance toggle */}
-              <div style={{ background: '#F8FAFC', padding: '14px', borderRadius: '8px', border: '1px solid #E2E8F0', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <strong style={{ fontSize: '13px', color: '#0F172A' }}>وضعية الصيانة المؤقتة (Maintenance Mode)</strong>
-                  <div style={{ fontSize: '11.5px', color: '#64748B' }}>إظهار صفحة الصيانة للمستخدمين مع بقاء لوحة التحكم متاحة للمدراء.</div>
-                </div>
-                <input 
-                  type="checkbox" 
-                  checked={system.maintenanceMode} 
-                  onChange={e => setSystem({ ...system, maintenanceMode: e.target.checked })}
-                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button 
-                  type="button" 
-                  onClick={() => handleSave('system', 'إعدادات النظام')}
-                  className="admin-btn-action-primary" 
-                  style={{ background: '#0A3C64', padding: '8px 24px' }}
-                >
-                  حفظ إعدادات النظام
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ══════════════════════════════════════════════════════════════════
-              SECTION 3: COMPANY & LEGAL
+              SECTION 1: COMPANY & TAX DETAILS
               ══════════════════════════════════════════════════════════════════ */}
           {activeSection === 'company' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #E2E8F0', paddingBottom: '12px' }}>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#0A3C64' }}>
-                    🏢 بيانات المنشأة والجهة القانونية في الأردن
-                  </h3>
-                  <span style={{ fontSize: '12px', color: '#64748B' }}>المعلومات الرسمية التي تظهر على الفواتير الضريبية والعقود</span>
-                </div>
-                <button 
-                  type="button" 
-                  onClick={() => handleSave('company', 'بيانات الشركة')}
-                  className="admin-btn-action-primary" 
-                  style={{ background: '#0A3C64' }}
-                >
-                  حفظ بيانات الشركة ✓
-                </button>
+              <div style={{ borderBottom: '1px solid #E2E8F0', paddingBottom: '14px', marginBottom: '20px' }}>
+                <h2 style={{ fontSize: '17px', fontWeight: '900', color: '#0e3b5e', margin: 0 }}>بيانات المنشأة والفوترة الضريبية</h2>
+                <p style={{ fontSize: '12.5px', color: '#64748B', margin: '4px 0 0 0' }}>تظهر هذه البيانات على الفواتير الضريبية الرسمية الصادرة للمشتركين والعملاء في الأردن.</p>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>الاسم القانوني المسجل:</label>
-                  <input type="text" className="admin-search-input" value={company.legalName} onChange={e => setCompany({ ...company, legalName: e.target.value })} style={{ width: '100%', height: '40px' }} />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>الاسم التجاري للمنصة:</label>
-                  <input type="text" className="admin-search-input" value={company.tradeName} onChange={e => setCompany({ ...company, tradeName: e.target.value })} style={{ width: '100%', height: '40px' }} />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>الرقم الضريبي (دائرة ضريبة الدخل والمبيعات):</label>
-                  <input type="text" className="admin-search-input" value={company.taxNumber} onChange={e => setCompany({ ...company, taxNumber: e.target.value })} style={{ width: '100%', height: '40px', fontFamily: 'monospace', fontWeight: '800' }} />
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>الاسم التجاري والقانوني للمنشأة:</label>
+                  <input
+                    type="text"
+                    value={company.company_name}
+                    onChange={e => setCompany({ ...company, company_name: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                  />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>رقم السجل التجاري (وزارة الصناعة والتجارة):</label>
-                  <input type="text" className="admin-search-input" value={company.crNumber} onChange={e => setCompany({ ...company, crNumber: e.target.value })} style={{ width: '100%', height: '40px', fontFamily: 'monospace', fontWeight: '800' }} />
-                </div>
-
-                <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>العنوان والمقر الرئيسي في الأردن:</label>
-                  <input type="text" className="admin-search-input" value={company.address} onChange={e => setCompany({ ...company, address: e.target.value })} style={{ width: '100%', height: '40px' }} />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>بريد الدعم الفني:</label>
-                  <input type="email" className="admin-search-input" value={company.supportEmail} onChange={e => setCompany({ ...company, supportEmail: e.target.value })} style={{ width: '100%', height: '40px' }} />
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>الرقم الضريبي (TIN الأردني):</label>
+                  <input
+                    type="text"
+                    value={company.tax_number}
+                    onChange={e => setCompany({ ...company, tax_number: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                  />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>هاتف الإدارة وخدمة العملاء:</label>
-                  <input type="text" className="admin-search-input" value={company.supportPhone} onChange={e => setCompany({ ...company, supportPhone: e.target.value })} style={{ width: '100%', height: '40px' }} />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button 
-                  type="button" 
-                  onClick={() => handleSave('company', 'بيانات الشركة')}
-                  className="admin-btn-action-primary" 
-                  style={{ background: '#0A3C64', padding: '8px 24px' }}
-                >
-                  حفظ بيانات الشركة
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ══════════════════════════════════════════════════════════════════
-              SECTION 4: CURRENCIES & RATES
-              ══════════════════════════════════════════════════════════════════ */}
-          {activeSection === 'currency' && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #E2E8F0', paddingBottom: '12px' }}>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#0A3C64' }}>
-                    💱 العملات وأسعار الصرف المعتمدة
-                  </h3>
-                  <span style={{ fontSize: '12px', color: '#64748B' }}>إدارة العملة الأساسية ومعاملات التحويل التلقائية</span>
-                </div>
-                <button 
-                  type="button" 
-                  onClick={() => handleSave('currency', 'العملات')}
-                  className="admin-btn-action-primary" 
-                  style={{ background: '#0A3C64' }}
-                >
-                  حفظ إعدادات العملات ✓
-                </button>
-              </div>
-
-              {/* Currency Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-                  <span style={{ fontSize: '11.5px', color: '#64748B', fontWeight: '700' }}>العملة الأساسية للمنصة:</span>
-                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#0A3C64', marginTop: '4px' }}>
-                    {currencies.baseCurrencyName}
-                  </div>
-                  <span style={{ fontSize: '11px', color: '#059669', fontWeight: '700', marginTop: '4px', display: 'block' }}>
-                    ✓ العملة الرسمية لكافة الفواتير وعمليات الدفع
-                  </span>
-                </div>
-
-                <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-                  <span style={{ fontSize: '11.5px', color: '#64748B', fontWeight: '700' }}>العملة الثانوية الموازية:</span>
-                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#E58A13', marginTop: '4px' }}>
-                    {currencies.secondaryCurrencyName}
-                  </div>
-                  <span style={{ fontSize: '11px', color: '#0284C7', fontWeight: '700', marginTop: '4px', display: 'block' }}>
-                    معامل الصرف: 1 JOD ≈ {currencies.exchangeRateJODtoUSD} USD
-                  </span>
-                </div>
-              </div>
-
-              {/* Live Exchange Rate Matrix */}
-              <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '16px', marginBottom: '20px' }}>
-                <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '800', color: '#0F172A' }}>
-                  جدول أسعار صرف العملات مقابل (1 دينار أردني - JOD):
-                </h4>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-                  <div style={{ background: '#F8FAFC', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                    <span style={{ fontSize: '11px', color: '#64748B', display: 'block' }}>الدولار (USD):</span>
-                    <strong style={{ fontSize: '15px', color: '#0F172A' }}>${currencies.exchangeRateJODtoUSD}</strong>
-                  </div>
-                  <div style={{ background: '#F8FAFC', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                    <span style={{ fontSize: '11px', color: '#64748B', display: 'block' }}>الريال السعودي (SAR):</span>
-                    <strong style={{ fontSize: '15px', color: '#0F172A' }}>{currencies.exchangeRateJODtoSAR} ر.س</strong>
-                  </div>
-                  <div style={{ background: '#F8FAFC', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                    <span style={{ fontSize: '11px', color: '#64748B', display: 'block' }}>الدرهم الإماراتي (AED):</span>
-                    <strong style={{ fontSize: '15px', color: '#0F172A' }}>{currencies.exchangeRateJODtoAED} د.إ</strong>
-                  </div>
-                  <div style={{ background: '#F8FAFC', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                    <span style={{ fontSize: '11px', color: '#64748B', display: 'block' }}>اليورو (EUR):</span>
-                    <strong style={{ fontSize: '15px', color: '#0F172A' }}>€{currencies.exchangeRateJODtoEUR}</strong>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button 
-                  type="button" 
-                  onClick={() => handleSave('currency', 'العملات')}
-                  className="admin-btn-action-primary" 
-                  style={{ background: '#0A3C64', padding: '8px 24px' }}
-                >
-                  حفظ إعدادات العملات
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ══════════════════════════════════════════════════════════════════
-              SECTION 5: INVOICES & SEQUENCES
-              ══════════════════════════════════════════════════════════════════ */}
-          {activeSection === 'contract' && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #E2E8F0', paddingBottom: '12px' }}>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#0A3C64' }}>
-                    📄 صيغ وترقيم العقود والفواتير الضريبية
-                  </h3>
-                  <span style={{ fontSize: '12px', color: '#64748B' }}>تنسيق الأرقام التسلسلية ونسبة ضريبة المبيعات العامة</span>
-                </div>
-                <button 
-                  type="button" 
-                  onClick={() => handleSave('contract', 'العقود والفواتير')}
-                  className="admin-btn-action-primary" 
-                  style={{ background: '#0A3C64' }}
-                >
-                  حفظ صيغ العقود ✓
-                </button>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>بادئة العقود (Contract Prefix):</label>
-                  <input type="text" className="admin-search-input" value={contract.contractPrefix} onChange={e => setContract({ ...contract, contractPrefix: e.target.value })} style={{ width: '100%', height: '40px' }} />
-                  <span style={{ fontSize: '11px', color: '#64748B', display: 'block', marginTop: '4px' }}>مثال العقد القادم: <strong>{contract.contractPrefix}00388</strong></span>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>رقم السجل التجاري:</label>
+                  <input
+                    type="text"
+                    value={company.commercial_register}
+                    onChange={e => setCompany({ ...company, commercial_register: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                  />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>بادئة الفواتير (Invoice Prefix):</label>
-                  <input type="text" className="admin-search-input" value={contract.invoicePrefix} onChange={e => setContract({ ...contract, invoicePrefix: e.target.value })} style={{ width: '100%', height: '40px' }} />
-                  <span style={{ fontSize: '11px', color: '#64748B', display: 'block', marginTop: '4px' }}>مثال الفاتورة القادمة: <strong>{contract.invoicePrefix}01042</strong></span>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>المدينة والمحافظة:</label>
+                  <input
+                    type="text"
+                    value={company.city}
+                    onChange={e => setCompany({ ...company, city: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                  />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>نسبة ضريبة المبيعات العامة (%):</label>
-                  <input type="number" className="admin-search-input" value={contract.defaultTaxRate} onChange={e => setContract({ ...contract, defaultTaxRate: Number(e.target.value) })} style={{ width: '100%', height: '40px' }} />
-                  <span style={{ fontSize: '11px', color: '#059669', display: 'block', marginTop: '4px' }}>النسبة الرسمية في الأردن: 16%</span>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>عدد خانات الأصفار (Padding):</label>
-                  <input type="number" className="admin-search-input" value={contract.digitPadding} onChange={e => setContract({ ...contract, digitPadding: Number(e.target.value) })} style={{ width: '100%', height: '40px' }} />
-                </div>
-
-                <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>ملاحظة التذييل القانونية على الفاتورة:</label>
-                  <textarea className="admin-search-input" value={contract.invoiceNotes} onChange={e => setContract({ ...contract, invoiceNotes: e.target.value })} style={{ width: '100%', height: '70px', padding: '10px' }} />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button 
-                  type="button" 
-                  onClick={() => handleSave('contract', 'العقود والفواتير')}
-                  className="admin-btn-action-primary" 
-                  style={{ background: '#0A3C64', padding: '8px 24px' }}
-                >
-                  حفظ صيغ العقود والفواتير
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ══════════════════════════════════════════════════════════════════
-              SECTION 6: SMTP EMAIL DISPATCHER
-              ══════════════════════════════════════════════════════════════════ */}
-          {activeSection === 'smtp' && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #E2E8F0', paddingBottom: '12px' }}>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#0A3C64' }}>
-                    ✉️ خادم البريد الإلكتروني وأداة الفحص الحي (SMTP)
-                  </h3>
-                  <span style={{ fontSize: '12px', color: '#64748B' }}>إعدادات إرسال الإشعارات ورموز التحقق وفواتير الاشتراكات</span>
-                </div>
-                <button 
-                  type="button" 
-                  onClick={() => handleSave('smtp', 'خادم البريد')}
-                  className="admin-btn-action-primary" 
-                  style={{ background: '#0A3C64' }}
-                >
-                  حفظ إعدادات SMTP ✓
-                </button>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>مضيف SMTP (Host):</label>
-                  <input type="text" className="admin-search-input" value={smtp.host} onChange={e => setSmtp({ ...smtp, host: e.target.value })} style={{ width: '100%', height: '40px' }} />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>المنفذ والتشفير (Port & TLS):</label>
-                  <input type="text" className="admin-search-input" value={`${smtp.port} (${smtp.encryption})`} readOnly style={{ width: '100%', height: '40px', background: '#F8FAFC' }} />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>اسم المرسل الظاهر:</label>
-                  <input type="text" className="admin-search-input" value={smtp.senderName} onChange={e => setSmtp({ ...smtp, senderName: e.target.value })} style={{ width: '100%', height: '40px' }} />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>بريد الإرسال الرسمي:</label>
-                  <input type="email" className="admin-search-input" value={smtp.senderEmail} onChange={e => setSmtp({ ...smtp, senderEmail: e.target.value })} style={{ width: '100%', height: '40px' }} />
-                </div>
-              </div>
-
-              {/* Test Email Dispatcher Tool */}
-              <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '16px', marginBottom: '20px' }}>
-                <h4 style={{ margin: '0 0 6px 0', fontSize: '14px', fontWeight: '800', color: '#92400E' }}>
-                  🧪 أداة تشخيص وفحص إرسال البريد الحي:
-                </h4>
-                <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#78350F' }}>
-                  قم بإدخال بريد إلكتروني لاستلام رسالة اختبارية والتأكد من سلامة المصافحة مع خادم الـ SMTP.
-                </p>
-
-                <div style={{ display: 'flex', gap: '10px' }}>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>بريد الدعم المالي والفوترة:</label>
                   <input
                     type="email"
-                    className="admin-search-input"
-                    placeholder="ادخل بريدك لفحص الإرسال..."
-                    value={testEmail}
-                    onChange={e => setTestEmail(e.target.value)}
-                    style={{ flex: 1, height: '40px' }}
+                    value={company.support_email}
+                    onChange={e => setCompany({ ...company, support_email: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
                   />
-                  <button 
-                    type="button"
-                    onClick={handleTestEmail}
-                    disabled={testEmailLoading}
-                    className="admin-btn-action-primary" 
-                    style={{ background: '#E58A13', borderColor: '#E58A13', padding: '8px 20px', whiteSpace: 'nowrap' }}
-                  >
-                    {testEmailLoading ? 'جاري الفحص...' : 'إرسال بريد اختباري 🚀'}
-                  </button>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>رقم هاتف الدعم والاستفسارات:</label>
+                  <input
+                    type="text"
+                    value={company.support_phone}
+                    onChange={e => setCompany({ ...company, support_phone: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                  />
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button 
-                  type="button" 
-                  onClick={() => handleSave('smtp', 'خادم البريد')}
-                  className="admin-btn-action-primary" 
-                  style={{ background: '#0A3C64', padding: '8px 24px' }}
+              <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-start' }}>
+                <button
+                  type="button"
+                  onClick={() => handleSave('company', 'بيانات المنشأة')}
+                  disabled={savingSection}
+                  style={{ background: '#0e3b5e', color: '#FFFFFF', border: 'none', padding: '11px 28px', borderRadius: '10px', fontWeight: '800', fontSize: '13.5px', cursor: 'pointer' }}
                 >
-                  حفظ إعدادات SMTP
+                  حفظ بيانات المنشأة
                 </button>
               </div>
             </div>
           )}
 
           {/* ══════════════════════════════════════════════════════════════════
-              SECTION 7: PAYMENT GATEWAYS
+              SECTION 2: JORDANIAN PAYMENT GATEWAYS (CLIQ & BANK WIRE)
               ══════════════════════════════════════════════════════════════════ */}
           {activeSection === 'gateways' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #E2E8F0', paddingBottom: '12px' }}>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#0A3C64' }}>
-                    💳 بوابات الدفع الإلكتروني والتحويل البنكي
-                  </h3>
-                  <span style={{ fontSize: '12px', color: '#64748B' }}>تفعيل وضبط بوابات استقبال الاشتراكات ورسوم الجلسات</span>
-                </div>
-                <button 
-                  type="button" 
-                  onClick={() => handleSave('gateways', 'بوابات الدفع')}
-                  className="admin-btn-action-primary" 
-                  style={{ background: '#0A3C64' }}
-                >
-                  حفظ بوابات الدفع ✓
-                </button>
+              <div style={{ borderBottom: '1px solid #E2E8F0', paddingBottom: '14px', marginBottom: '20px' }}>
+                <h2 style={{ fontSize: '17px', fontWeight: '900', color: '#0e3b5e', margin: 0 }}>بوابات الدفع الإلكتروني المعتمدة (الأردن)</h2>
+                <p style={{ fontSize: '12.5px', color: '#64748B', margin: '4px 0 0 0' }}>تحديد حساب كليك الرسمي والتحويل البنكي للمنصة لاستقبال دفعات المشتركين والجلسات.</p>
               </div>
 
-              {/* 1. Direct Bank Transfer (Arab Bank) */}
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '16px', marginBottom: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              {/* CliQ Block */}
+              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '18px 20px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '18px' }}>🏛️</span>
-                    <div>
-                      <strong style={{ fontSize: '14.5px', color: '#0F172A' }}>التحويل البنكي المباشر (البنك العربي - الأردن)</strong>
-                      <div style={{ fontSize: '11px', color: '#64748B' }}>الحساب البنكي المعتمد لحوالات الشركات والمؤسسات الكبرى</div>
-                    </div>
+                    <span style={{ fontSize: '15px', fontWeight: '900', color: '#0e3b5e' }}>شبكة كليك الأردنية (CliQ Jordan)</span>
+                    <span style={{ background: '#ECFDF5', color: '#059669', fontSize: '11px', fontWeight: '800', padding: '2px 8px', borderRadius: '10px' }}>فوري ومباشر</span>
                   </div>
-                  <span className="admin-badge-success">✓ مفعل 100%</span>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '800' }}>
+                    <input
+                      type="checkbox"
+                      checked={gateways.cliq?.is_enabled}
+                      onChange={e => setGateways({ ...gateways, cliq: { ...gateways.cliq, is_enabled: e.target.checked } })}
+                    />
+                    <span>تفعيل الدفع عبر CliQ</span>
+                  </label>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '12.5px', background: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                  <div><span style={{ color: '#64748B' }}>اسم الحساب:</span> <strong>{gateways.bankTransfer.accountName}</strong></div>
-                  <div><span style={{ color: '#64748B' }}>رقم الحساب:</span> <strong>{gateways.bankTransfer.accountNumber}</strong></div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '6px' }}>معرف كليك الرسمي (CliQ Alias):</label>
+                    <input
+                      type="text"
+                      value={gateways.cliq?.alias}
+                      onChange={e => setGateways({ ...gateways, cliq: { ...gateways.cliq, alias: e.target.value } })}
+                      placeholder="DIWAN.TAX"
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '800', color: '#0e3b5e' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '6px' }}>اسم المستلم الرسمي:</label>
+                    <input
+                      type="text"
+                      value={gateways.cliq?.recipient_name}
+                      onChange={e => setGateways({ ...gateways, cliq: { ...gateways.cliq, recipient_name: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Bank Wire Block */}
+              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '18px 20px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <span style={{ fontSize: '15px', fontWeight: '900', color: '#0e3b5e' }}>التحويل البنكي المحلي (Bank Wire)</span>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '800' }}>
+                    <input
+                      type="checkbox"
+                      checked={gateways.bank_transfer?.is_enabled}
+                      onChange={e => setGateways({ ...gateways, bank_transfer: { ...gateways.bank_transfer, is_enabled: e.target.checked } })}
+                    />
+                    <span>تفعيل التحويل البنكي</span>
+                  </label>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '6px' }}>اسم البنك:</label>
+                    <input
+                      type="text"
+                      value={gateways.bank_transfer?.bank_name}
+                      onChange={e => setGateways({ ...gateways, bank_transfer: { ...gateways.bank_transfer, bank_name: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '6px' }}>اسم صاحب الحساب:</label>
+                    <input
+                      type="text"
+                      value={gateways.bank_transfer?.account_holder_name}
+                      onChange={e => setGateways({ ...gateways, bank_transfer: { ...gateways.bank_transfer, account_holder_name: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                    />
+                  </div>
                   <div style={{ gridColumn: 'span 2' }}>
-                    <span style={{ color: '#64748B' }}>رقم الآيبان (IBAN):</span> <strong style={{ fontFamily: 'monospace', color: '#0A3C64' }}>{gateways.bankTransfer.iban}</strong>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '6px' }}>رقم الآيبان (IBAN الأردني):</label>
+                    <input
+                      type="text"
+                      value={gateways.bank_transfer?.iban}
+                      onChange={e => setGateways({ ...gateways, bank_transfer: { ...gateways.bank_transfer, iban: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', direction: 'ltr', textAlign: 'right' }}
+                    />
                   </div>
-                  <div><span style={{ color: '#64748B' }}>رمز السويفت:</span> <strong>{gateways.bankTransfer.swiftCode}</strong></div>
-                  <div><span style={{ color: '#64748B' }}>الفرع:</span> <strong>{gateways.bankTransfer.branch}</strong></div>
                 </div>
               </div>
 
-              {/* 2. CliQ Jordan */}
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '16px', marginBottom: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '18px' }}>⚡</span>
-                    <div>
-                      <strong style={{ fontSize: '14.5px', color: '#0F172A' }}>شبكة كليك للدفع الفوري (CliQ Jordan)</strong>
-                      <div style={{ fontSize: '11px', color: '#64748B' }}>الدفع اللحظي عبر الاسم المستعار (Alias Name)</div>
-                    </div>
-                  </div>
-                  <span className="admin-badge-success">✓ مفعل</span>
-                </div>
-
-                <div style={{ background: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12.5px' }}>
-                  <span style={{ color: '#64748B' }}>المعرف الرقمي (CliQ Alias):</span> <strong style={{ color: '#E58A13', fontSize: '15px' }}>{gateways.cliq.alias}</strong>
-                </div>
-              </div>
-
-              {/* 3. Stripe Cards */}
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '16px', marginBottom: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '18px' }}>💳</span>
-                    <div>
-                      <strong style={{ fontSize: '14.5px', color: '#0F172A' }}>بوابة Stripe (بطاقات فيزا وماستركارد العالمية)</strong>
-                      <div style={{ fontSize: '11px', color: '#64748B' }}>قبول الدفع الآمن بالبطاقات الائتمانية والخصم المباشر</div>
-                    </div>
-                  </div>
-                  <span className="admin-badge-success">Live Mode ✓</span>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '12px', background: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                  <div><span style={{ color: '#64748B' }}>Publishable Key:</span> <span style={{ fontFamily: 'monospace' }}>{gateways.stripe.publishableKey}</span></div>
-                  <div><span style={{ color: '#64748B' }}>Secret Key:</span> <span style={{ fontFamily: 'monospace' }}>{gateways.stripe.secretKey}</span></div>
-                </div>
-              </div>
-
-              {/* 4. PayPal */}
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '16px', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '18px' }}>🅿️</span>
-                    <div>
-                      <strong style={{ fontSize: '14.5px', color: '#0F172A' }}>بوابة PayPal العالمية</strong>
-                      <div style={{ fontSize: '11px', color: '#64748B' }}>استقبال المدفوعات من خارج الأردن عبر رصيد باي بال</div>
-                    </div>
-                  </div>
-                  <span className="admin-badge-success">Live Mode ✓</span>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '12px', background: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                  <div><span style={{ color: '#64748B' }}>Client ID:</span> <span style={{ fontFamily: 'monospace' }}>{gateways.paypal.clientId}</span></div>
-                  <div><span style={{ color: '#64748B' }}>Client Secret:</span> <span style={{ fontFamily: 'monospace' }}>{gateways.paypal.clientSecret}</span></div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button 
-                  type="button" 
+              <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-start' }}>
+                <button
+                  type="button"
                   onClick={() => handleSave('gateways', 'بوابات الدفع')}
-                  className="admin-btn-action-primary" 
-                  style={{ background: '#0A3C64', padding: '8px 24px' }}
+                  disabled={savingSection}
+                  style={{ background: '#0e3b5e', color: '#FFFFFF', border: 'none', padding: '11px 28px', borderRadius: '10px', fontWeight: '800', fontSize: '13.5px', cursor: 'pointer' }}
                 >
                   حفظ بوابات الدفع
                 </button>
               </div>
             </div>
           )}
+
+          {/* ══════════════════════════════════════════════════════════════════
+              SECTION 3: LOCAL SMS & OTP
+              ══════════════════════════════════════════════════════════════════ */}
+          {activeSection === 'sms' && (
+            <div>
+              <div style={{ borderBottom: '1px solid #E2E8F0', paddingBottom: '14px', marginBottom: '20px' }}>
+                <h2 style={{ fontSize: '17px', fontWeight: '900', color: '#0e3b5e', margin: 0 }}>مزود الرسائل النصية القصيرة (SMS Gateway) والـ OTP</h2>
+                <p style={{ fontSize: '12.5px', color: '#64748B', margin: '4px 0 0 0' }}>ربط بوابة الـ SMS المحلية لإرسال أكواد التحقق السريعة وتنبيهات المواعيد.</p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>مزود الخدمة المحلي:</label>
+                  <select
+                    value={sms.provider}
+                    onChange={e => setSms({ ...sms, provider: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#FFFFFF' }}
+                  >
+                    <option value="local_jordan">بوابة الرسائل المحلية الأردنية (Jordanian SMS Gateway)</option>
+                    <option value="zain_jo">زين الأردن (Zain Jordan API)</option>
+                    <option value="orange_jo">أورنج الأردن (Orange Jordan API)</option>
+                    <option value="umniah_jo">أمنية الأردن (Umniah Jordan API)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>اسم المرسل المعتمد (Sender ID):</label>
+                  <input
+                    type="text"
+                    value={sms.sender_id}
+                    onChange={e => setSms({ ...sms, sender_id: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                  />
+                </div>
+
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>مفتاح الربط البرمجي (API Secret Key):</label>
+                  <input
+                    type="text"
+                    value={sms.api_key}
+                    onChange={e => setSms({ ...sms, api_key: e.target.value })}
+                    placeholder="أدخل مفتاح API السري..."
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', direction: 'ltr' }}
+                  />
+                </div>
+
+                <div style={{ gridColumn: 'span 2', display: 'flex', gap: '24px', background: '#F8FAFC', padding: '14px 18px', borderRadius: '12px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '700' }}>
+                    <input
+                      type="checkbox"
+                      checked={sms.enable_otp_login}
+                      onChange={e => setSms({ ...sms, enable_otp_login: e.target.checked })}
+                    />
+                    <span>تفعيل التحقق بـ OTP عند تغيير رقم الهاتف وكلمة المرور</span>
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '700' }}>
+                    <input
+                      type="checkbox"
+                      checked={sms.enable_otp_register}
+                      onChange={e => setSms({ ...sms, enable_otp_register: e.target.checked })}
+                    />
+                    <span>تفعيل التحقق بـ OTP عند التسجيل الجديد</span>
+                  </label>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-start' }}>
+                <button
+                  type="button"
+                  onClick={() => handleSave('sms', 'إعدادات الرسائل و OTP')}
+                  disabled={savingSection}
+                  style={{ background: '#0e3b5e', color: '#FFFFFF', border: 'none', padding: '11px 28px', borderRadius: '10px', fontWeight: '800', fontSize: '13.5px', cursor: 'pointer' }}
+                >
+                  حفظ إعدادات SMS
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════════
+              SECTION 4: AI ENGINE & QUOTAS
+              ══════════════════════════════════════════════════════════════════ */}
+          {activeSection === 'ai' && (
+            <div>
+              <div style={{ borderBottom: '1px solid #E2E8F0', paddingBottom: '14px', marginBottom: '20px' }}>
+                <h2 style={{ fontSize: '17px', fontWeight: '900', color: '#0e3b5e', margin: 0 }}>محرك الذكاء الاصطناعي وحدود الاستهلاك</h2>
+                <p style={{ fontSize: '12.5px', color: '#64748B', margin: '4px 0 0 0' }}>إدارة مفاتيح المساعد الذكي وتحديد سقف الاستهلاك والتوكنز المسموح بها لكل باقة.</p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>مزود الذكاء الاصطناعي:</label>
+                  <select
+                    value={ai.provider}
+                    onChange={e => setAi({ ...ai, provider: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#FFFFFF' }}
+                  >
+                    <option value="openai">OpenAI (GPT-4o / GPT-4o-mini)</option>
+                    <option value="deepseek">DeepSeek AI (DeepSeek-V3 / R1)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>الموديل المختار:</label>
+                  <select
+                    value={ai.model_name}
+                    onChange={e => setAi({ ...ai, model_name: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#FFFFFF' }}
+                  >
+                    <option value="gpt-4o-mini">GPT-4o-mini (سريع واقتصادي ومثالي)</option>
+                    <option value="gpt-4o">GPT-4o (دقة قصوى واستدلال متقدم)</option>
+                    <option value="deepseek-chat">DeepSeek-V3</option>
+                  </select>
+                </div>
+
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>مفتاح الـ API السري (API Key):</label>
+                  <input
+                    type="text"
+                    value={ai.api_key}
+                    onChange={e => setAi({ ...ai, api_key: e.target.value })}
+                    placeholder="sk-..."
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', direction: 'ltr' }}
+                  />
+                </div>
+
+                <div style={{ gridColumn: 'span 2', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: '900', color: '#0e3b5e', marginBottom: '12px' }}>سقف التوكنز الشهري المسموح به لكل باقة:</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11.5px', fontWeight: '700', marginBottom: '4px' }}>الباقة المجانية:</label>
+                      <input
+                        type="number"
+                        value={ai.monthly_token_limit_free}
+                        onChange={e => setAi({ ...ai, monthly_token_limit_free: parseInt(e.target.value) || 0 })}
+                        style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11.5px', fontWeight: '700', marginBottom: '4px' }}>الباقة الأساسية:</label>
+                      <input
+                        type="number"
+                        value={ai.monthly_token_limit_basic}
+                        onChange={e => setAi({ ...ai, monthly_token_limit_basic: parseInt(e.target.value) || 0 })}
+                        style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11.5px', fontWeight: '700', marginBottom: '4px' }}>الباقة الاحترافية:</label>
+                      <input
+                        type="number"
+                        value={ai.monthly_token_limit_pro}
+                        onChange={e => setAi({ ...ai, monthly_token_limit_pro: parseInt(e.target.value) || 0 })}
+                        style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-start' }}>
+                <button
+                  type="button"
+                  onClick={() => handleSave('ai', 'إعدادات الذكاء الاصطناعي')}
+                  disabled={savingSection}
+                  style={{ background: '#0e3b5e', color: '#FFFFFF', border: 'none', padding: '11px 28px', borderRadius: '10px', fontWeight: '800', fontSize: '13.5px', cursor: 'pointer' }}
+                >
+                  حفظ إعدادات AI
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════════
+              SECTION 5: BRAND & IDENTITY
+              ══════════════════════════════════════════════════════════════════ */}
+          {activeSection === 'brand' && (
+            <div>
+              <div style={{ borderBottom: '1px solid #E2E8F0', paddingBottom: '14px', marginBottom: '20px' }}>
+                <h2 style={{ fontSize: '17px', fontWeight: '900', color: '#0e3b5e', margin: 0 }}>الهوية والعلامة التجارية</h2>
+                <p style={{ fontSize: '12.5px', color: '#64748B', margin: '4px 0 0 0' }}>تخصيص اسم الموقع، نصوص الفوتر، ولون الهوية الرئيسي.</p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>عنوان الموقع الرئيسي:</label>
+                  <input
+                    type="text"
+                    value={brand.title_text}
+                    onChange={e => setBrand({ ...brand, title_text: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                  />
+                </div>
+
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>نص حقوق الملكية في الفوتر:</label>
+                  <input
+                    type="text"
+                    value={brand.footer_text}
+                    onChange={e => setBrand({ ...brand, footer_text: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>اللون الرئيسي للمنصة:</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input
+                      type="color"
+                      value={brand.primary_color}
+                      onChange={e => setBrand({ ...brand, primary_color: e.target.value })}
+                      style={{ width: '44px', height: '40px', borderRadius: '8px', border: '1px solid #CBD5E1', cursor: 'pointer', padding: '2px' }}
+                    />
+                    <input
+                      type="text"
+                      value={brand.primary_color}
+                      onChange={e => setBrand({ ...brand, primary_color: e.target.value })}
+                      style={{ width: '120px', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', direction: 'ltr' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-start' }}>
+                <button
+                  type="button"
+                  onClick={() => handleSave('brand', 'الهوية والعلامة التجارية')}
+                  disabled={savingSection}
+                  style={{ background: '#0e3b5e', color: '#FFFFFF', border: 'none', padding: '11px 28px', borderRadius: '10px', fontWeight: '800', fontSize: '13.5px', cursor: 'pointer' }}
+                >
+                  حفظ الهوية
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════════
+              SECTION 6: CONTRACTS & INVOICES
+              ══════════════════════════════════════════════════════════════════ */}
+          {activeSection === 'contract' && (
+            <div>
+              <div style={{ borderBottom: '1px solid #E2E8F0', paddingBottom: '14px', marginBottom: '20px' }}>
+                <h2 style={{ fontSize: '17px', fontWeight: '900', color: '#0e3b5e', margin: 0 }}>صيغ وترقيم الفواتير والعقود</h2>
+                <p style={{ fontSize: '12.5px', color: '#64748B', margin: '4px 0 0 0' }}>تحديد البادئات التسلسلية للفواتير وعقود تقديم الاستشارات.</p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>بادئة الفاتورة (Invoice Prefix):</label>
+                  <input
+                    type="text"
+                    value={contract.invoice_prefix}
+                    onChange={e => setContract({ ...contract, invoice_prefix: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>بادئة العقد (Contract Prefix):</label>
+                  <input
+                    type="text"
+                    value={contract.contract_prefix}
+                    onChange={e => setContract({ ...contract, contract_prefix: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>رقم الفاتورة القادم:</label>
+                  <input
+                    type="number"
+                    value={contract.next_invoice_number}
+                    onChange={e => setContract({ ...contract, next_invoice_number: parseInt(e.target.value) || 1 })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>رقم العقد القادم:</label>
+                  <input
+                    type="number"
+                    value={contract.next_contract_number}
+                    onChange={e => setContract({ ...contract, next_contract_number: parseInt(e.target.value) || 1 })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-start' }}>
+                <button
+                  type="button"
+                  onClick={() => handleSave('contract', 'صيغ الفواتير')}
+                  disabled={savingSection}
+                  style={{ background: '#0e3b5e', color: '#FFFFFF', border: 'none', padding: '11px 28px', borderRadius: '10px', fontWeight: '800', fontSize: '13.5px', cursor: 'pointer' }}
+                >
+                  حفظ إعدادات الفواتير
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════════
+              SECTION 9: SMTP EMAIL
+              ══════════════════════════════════════════════════════════════════ */}
+          {activeSection === 'smtp' && (
+            <div>
+              <div style={{ borderBottom: '1px solid #E2E8F0', paddingBottom: '14px', marginBottom: '20px' }}>
+                <h2 style={{ fontSize: '17px', fontWeight: '900', color: '#0e3b5e', margin: 0 }}>إعدادات خادم البريد (SMTP)</h2>
+                <p style={{ fontSize: '12.5px', color: '#64748B', margin: '4px 0 0 0' }}>تكوين خادم إرسال رسائل التنبيهات والفواتير وأكواد التحقق للمستخدمين.</p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>خادم SMTP (Host):</label>
+                  <input
+                    type="text"
+                    value={smtp.mail_host}
+                    onChange={e => setSmtp({ ...smtp, mail_host: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', direction: 'ltr' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>المنفذ (Port):</label>
+                  <input
+                    type="number"
+                    value={smtp.mail_port}
+                    onChange={e => setSmtp({ ...smtp, mail_port: parseInt(e.target.value) || 587 })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>اسم المستخدم (Username):</label>
+                  <input
+                    type="text"
+                    value={smtp.mail_username}
+                    onChange={e => setSmtp({ ...smtp, mail_username: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', direction: 'ltr' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>كلمة المرور (Password):</label>
+                  <input
+                    type="text"
+                    value={smtp.mail_password}
+                    onChange={e => setSmtp({ ...smtp, mail_password: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', direction: 'ltr' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>بريد المرسل (From Email):</label>
+                  <input
+                    type="email"
+                    value={smtp.mail_from_address}
+                    onChange={e => setSmtp({ ...smtp, mail_from_address: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '6px' }}>اسم المرسل (From Name):</label>
+                  <input
+                    type="text"
+                    value={smtp.mail_from_name}
+                    onChange={e => setSmtp({ ...smtp, mail_from_name: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                  />
+                </div>
+              </div>
+
+              {/* Test Email Bar */}
+              <div style={{ marginTop: '20px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '4px' }}>فحص الاتصال وإرسال بريد تجريبي:</label>
+                  <input
+                    type="email"
+                    value={testEmail}
+                    onChange={e => setTestEmail(e.target.value)}
+                    placeholder="admin@diwan.jo"
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleTestEmail}
+                  disabled={testEmailLoading}
+                  style={{ alignSelf: 'flex-end', background: '#0D9488', color: '#FFFFFF', border: 'none', padding: '9px 18px', borderRadius: '8px', fontWeight: '800', fontSize: '12.5px', cursor: 'pointer' }}
+                >
+                  {testEmailLoading ? 'جاري الفحص...' : 'إرسال بريد فحص'}
+                </button>
+              </div>
+
+              <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-start' }}>
+                <button
+                  type="button"
+                  onClick={() => handleSave('smtp', 'إعدادات البريد')}
+                  disabled={savingSection}
+                  style={{ background: '#0e3b5e', color: '#FFFFFF', border: 'none', padding: '11px 28px', borderRadius: '10px', fontWeight: '800', fontSize: '13.5px', cursor: 'pointer' }}
+                >
+                  حفظ إعدادات البريد
+                </button>
+              </div>
+            </div>
+          )}
+
         </div>
+
       </div>
+
     </div>
   );
 }

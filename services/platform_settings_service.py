@@ -108,6 +108,13 @@ DEFAULT_GATEWAYS_SETTINGS = {
         "branch_name": "فرع الشميساني - عمان",
         "instructions_ar": "يرجى تحويل قيمة الاستشارة وإرفاق إيصال السداد أو رقم العملية لتأكيد الحجز فوراً."
     },
+    "cliq": {
+        "is_enabled": True,
+        "alias": "DIWAN.TAX",
+        "recipient_name": "منصة ديوان للاستشارات الضريبية",
+        "bank_name": "البنك العربي",
+        "instructions_ar": "يرجى التحويل المباشر عبر CliQ إلى المعرف الرسمي وإرفاق رقم العملية لتأكيد الحجز فوراً."
+    },
     "paypal": {
         "is_enabled": False,
         "mode": "sandbox",
@@ -124,6 +131,31 @@ DEFAULT_GATEWAYS_SETTINGS = {
     }
 }
 
+DEFAULT_SMS_SETTINGS = {
+    "is_enabled": True,
+    "provider": "local_jordan",
+    "api_key": "",
+    "sender_id": "DIWAN",
+    "enable_otp_login": True,
+    "enable_otp_register": True
+}
+
+DEFAULT_AI_SETTINGS = {
+    "is_enabled": True,
+    "provider": "openai",
+    "api_key": "",
+    "model_name": "gpt-4o-mini",
+    "monthly_token_limit_free": 50000,
+    "monthly_token_limit_basic": 500000,
+    "monthly_token_limit_pro": 2000000
+}
+
+DEFAULT_POLICIES_SETTINGS = {
+    "terms_and_conditions": "شروط وأحكام استخدام منصة ديوان للاستشارات الضريبية والقانونية وفقاً لأحكام القانون الأردني.",
+    "privacy_policy": "سياسة الخصوصية وحماية بيانات وسرية استشارات المستخدمين والمستشارين.",
+    "refund_policy": "سياسة الاسترداد وإلغاء الاستشارات المعتمدة في منصة ديوان."
+}
+
 DEFAULTS_MAP = {
     "brand": DEFAULT_BRAND_SETTINGS,
     "system": DEFAULT_SYSTEM_SETTINGS,
@@ -132,6 +164,9 @@ DEFAULTS_MAP = {
     "contract": DEFAULT_CONTRACT_SETTINGS,
     "smtp": DEFAULT_SMTP_SETTINGS,
     "gateways": DEFAULT_GATEWAYS_SETTINGS,
+    "sms": DEFAULT_SMS_SETTINGS,
+    "ai": DEFAULT_AI_SETTINGS,
+    "policies": DEFAULT_POLICIES_SETTINGS,
 }
 
 
@@ -257,13 +292,26 @@ class PlatformSettingsService:
         smtp = PlatformSettingsService.get_section(db, "smtp")
         gateways = PlatformSettingsService.get_section(db, "gateways")
 
+        sms = PlatformSettingsService.get_section(db, "sms")
+        ai = PlatformSettingsService.get_section(db, "ai")
+        policies = PlatformSettingsService.get_section(db, "policies")
+
         # Mask sensitive values
         masked_smtp = smtp.copy()
         if masked_smtp.get("mail_password"):
             masked_smtp["mail_password"] = mask_string(masked_smtp["mail_password"], visible_suffix=3)
 
+        masked_sms = sms.copy()
+        if masked_sms.get("api_key"):
+            masked_sms["api_key"] = mask_string(masked_sms["api_key"], visible_suffix=4)
+
+        masked_ai = ai.copy()
+        if masked_ai.get("api_key"):
+            masked_ai["api_key"] = mask_string(masked_ai["api_key"], visible_suffix=4)
+
         masked_gateways = {
             "bank_transfer": gateways.get("bank_transfer", DEFAULT_GATEWAYS_SETTINGS["bank_transfer"]),
+            "cliq": gateways.get("cliq", DEFAULT_GATEWAYS_SETTINGS["cliq"]),
             "paypal": gateways.get("paypal", DEFAULT_GATEWAYS_SETTINGS["paypal"]).copy(),
             "stripe": gateways.get("stripe", DEFAULT_GATEWAYS_SETTINGS["stripe"]).copy()
         }
@@ -273,7 +321,6 @@ class PlatformSettingsService:
             masked_gateways["stripe"]["secret_key"] = mask_string(masked_gateways["stripe"]["secret_key"], visible_suffix=3)
         if masked_gateways["stripe"].get("webhook_secret"):
             masked_gateways["stripe"]["webhook_secret"] = mask_string(masked_gateways["stripe"]["webhook_secret"], visible_suffix=3)
-
 
         # Generate live preview examples
         sample_price = PlatformSettingsService.format_price(Decimal("125.50"), system.get("default_currency_symbol", "د.أ"), system)
@@ -290,6 +337,9 @@ class PlatformSettingsService:
             "contract": contract,
             "smtp": masked_smtp,
             "gateways": masked_gateways,
+            "sms": masked_sms,
+            "ai": masked_ai,
+            "policies": policies,
             "sample_price_preview": sample_price,
             "sample_contract_preview": sample_contract,
             "updated_at": datetime.now(timezone.utc)
