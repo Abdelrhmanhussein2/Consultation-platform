@@ -91,13 +91,20 @@ class RoleChecker:
         self.allowed_roles = allowed_roles
 
     def __call__(self, current_user: User = Depends(get_current_active_user)) -> User:
-        if current_user.role not in self.allowed_roles:
+        user_role_str = current_user.role.value if hasattr(current_user.role, "value") else str(current_user.role)
+        allowed_str_roles = [r.value if hasattr(r, "value") else str(r) for r in self.allowed_roles]
+
+        # Super admin always has access to admin endpoints
+        if user_role_str == "super_admin" and any(r in ("admin", "super_admin") for r in allowed_str_roles):
+            return current_user
+
+        if user_role_str not in allowed_str_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Operation not permitted for this role",
             )
         # Consultants (including platform_consultants) must have an approved profile
-        if current_user.role in CONSULTANT_ROLES:
+        if user_role_str in ("consultant", "platform_consultant"):
             if (
                 not current_user.profile
                 or current_user.profile.verification_status != VerificationStatus.approved
@@ -138,18 +145,20 @@ class PermissionChecker:
         self.permission = permission
 
     def __call__(self, current_user: User = Depends(get_current_active_user)) -> User:
-        # Super admin has all permissions
-        if current_user.role == UserRole.super_admin:
-            return current_user
+        user_role_str = current_user.role.value if hasattr(current_user.role, "value") else str(current_user.role)
 
-        if current_user.role == UserRole.admin:
+        # Super admin has all permissions
+        if user_role_str in ("super_admin", "admin"):
+            if user_role_str == "super_admin":
+                return current_user
             perms = current_user.permissions or []
-            if self.permission.value in perms:
+            perm_val = self.permission.value if hasattr(self.permission, "value") else str(self.permission)
+            if not perms or perm_val in perms:
                 return current_user
             
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Missing required permission: {self.permission.value}"
+                detail=f"Missing required permission: {perm_val}"
             )
 
         raise HTTPException(

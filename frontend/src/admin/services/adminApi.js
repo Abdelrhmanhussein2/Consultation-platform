@@ -257,6 +257,45 @@ export async function updateAdminPermissions(adminId, permissions) {
   });
 }
 
+export async function getAdminRoles() {
+  return adminRequest('/super-admin/roles');
+}
+
+export async function createAdminRole(roleData) {
+  return adminRequest('/super-admin/roles', {
+    method: 'POST',
+    body: JSON.stringify(roleData)
+  });
+}
+
+export async function updateAdminRole(roleId, roleData) {
+  return adminRequest(`/super-admin/roles/${roleId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(roleData)
+  });
+}
+
+export async function deleteAdminRole(roleId) {
+  return adminRequest(`/super-admin/roles/${roleId}`, {
+    method: 'DELETE'
+  });
+}
+
+export async function assignUserRole(userId, { role_name, role_type, permissions }) {
+  return adminRequest(`/super-admin/users/${userId}/assign-role`, {
+    method: 'POST',
+    body: JSON.stringify({ role_name, role_type, permissions })
+  });
+}
+
+export async function getAdminUsersList(params = {}) {
+  const query = new URLSearchParams(params).toString();
+  return adminRequest(`/super-admin/users/all${query ? `?${query}` : ''}`);
+}
+
+
+
+
 /* ══════════════════════════════════════════════════════════════════
    REPORTS & ANALYTICS
    ══════════════════════════════════════════════════════════════════ */
@@ -278,7 +317,7 @@ export async function getReportsAnalytics(params = {}) {
    NOTIFICATIONS & BROADCAST
    ══════════════════════════════════════════════════════════════════ */
 export async function createAdminUser(userData) {
-  return adminRequest('/super-admin/users', {
+  return adminRequest('/super-admin/users/add', {
     method: 'POST',
     body: JSON.stringify(userData)
   });
@@ -290,5 +329,36 @@ export async function sendBroadcastNotification({ title, message, audience = 'al
     body: JSON.stringify({ title, message, audience })
   });
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   PAYMENTS & TRANSFERS
+   ══════════════════════════════════════════════════════════════════ */
+export async function getAdminPayments() {
+  return adminRequest('/super-admin/payments');
+}
+
+export async function processAdminPaymentAction(paymentId, action, extra = {}) {
+  return adminRequest(`/super-admin/payments/${paymentId}/action`, {
+    method: 'POST',
+    body: JSON.stringify({
+      action,
+      notes: extra.notes || extra.admin_notes || '',
+      ref: extra.ref || extra.transfer_reference || ''
+    })
+  });
+}
+
+export async function deleteAdminPayment(paymentId) {
+  return adminRequest(`/super-admin/payments/${paymentId}`, {
+    method: 'DELETE'
+  });
+}
+
+export async function getAdminTicketDetail(ticketId) {
+  return adminRequest(`/super-admin/tickets/${ticketId}`);
+}
+
+
+
 
 

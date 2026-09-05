@@ -175,6 +175,22 @@ def list_users(
 
 
 @router.post(
+    "/users/add",
+    response_model=UserOut,
+    summary="Directly create and approve a new client or consultant",
+)
+def admin_add_user(
+    user_in: AdminAddUserRequest,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_users),
+):
+    """
+    Directly registers a client or consultant into PostgreSQL with approved status.
+    """
+    return SuperAdminController.admin_add_user(db, user_in)
+
+
+@router.post(
     "/users/{user_id}/toggle-active",
     response_model=UserOut,
     summary="Enable or disable a user account",
@@ -526,6 +542,95 @@ def update_admin_permissions(
     Updates the list of granular permissions assigned to a specific administrator.
     """
     return AdminPermissionController.update_admin_permissions(db, admin_id, permissions_in)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# DYNAMIC RBAC ROLES & USER ROLE ASSIGNMENT
+# ─────────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/roles",
+    summary="Get all dynamic RBAC roles",
+)
+def get_rbac_roles(
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_admins),
+):
+    """
+    Returns all defined RBAC roles from database.
+    """
+    return AdminPermissionController.get_rbac_roles(db)
+
+
+@router.post(
+    "/roles",
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new RBAC role",
+)
+def create_rbac_role(
+    role_in: dict,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_admins),
+):
+    """
+    Creates a new custom RBAC role and persists to database.
+    """
+    return AdminPermissionController.create_rbac_role(db, role_in, current_admin.id)
+
+
+@router.patch(
+    "/roles/{role_id}",
+    summary="Update an existing RBAC role",
+)
+def update_rbac_role(
+    role_id: str,
+    role_in: dict,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_admins),
+):
+    """
+    Updates role name, description, status, or permissions.
+    """
+    return AdminPermissionController.update_rbac_role(db, role_id, role_in, current_admin.id)
+
+
+@router.delete(
+    "/roles/{role_id}",
+    summary="Delete an RBAC role",
+)
+def delete_rbac_role(
+    role_id: str,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_admins),
+):
+    """
+    Deletes an RBAC role from the database.
+    """
+    return {"success": AdminPermissionController.delete_rbac_role(db, role_id, current_admin.id)}
+
+
+@router.post(
+    "/users/{user_id}/assign-role",
+    summary="Assign or change role for a user/consultant with instant notification",
+)
+def assign_user_role(
+    user_id: str,
+    assignment_in: dict,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_users),
+):
+    """
+    Assigns role to user/consultant, logs security audit, and dispatches real-time notification to the user.
+    """
+    return AdminPermissionController.assign_user_role(
+        db=db,
+        user_id=user_id,
+        role_name=assignment_in.get("role_name", "مستخدم"),
+        role_type=assignment_in.get("role_type", "user"),
+        permissions=assignment_in.get("permissions"),
+        current_admin_id=current_admin.id
+    )
+
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -891,16 +996,77 @@ def update_policies_settings(
     return PlatformSettingsController.update_section(db, "policies", policies_in.model_dump(), current_admin)
 
 
-@router.post(
-    "/settings/email/test",
-    response_model=TestEmailResponse,
-    summary="Send a live test email using current SMTP configuration",
+@router.get(
+    "/analytics/reports",
+    summary="Get live platform analytics, real metrics, and drilldown records",
 )
-def send_test_email(
-    test_in: TestEmailRequest,
+def get_reports_analytics(
+    category: str = "executive",
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    user_type: Optional[str] = None,
+    sector: Optional[str] = None,
+    city: Optional[str] = None,
+    status: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_perm_manage_settings),
+    current_admin: User = Depends(require_perm_view_analytics),
 ):
-    """Dispatches a diagnostic test email to verify SMTP host, port, credentials, and TLS handshake."""
-    return PlatformSettingsController.test_smtp_email(db, test_in.email, current_admin)
+    """
+    Returns real aggregated analytics metrics, charts, and drilldown lists for users, consultants, and finances.
+    """
+    return SuperAdminService.get_reports_analytics(
+        db=db,
+        category=category,
+        from_date=from_date,
+        to_date=to_date,
+        user_type=user_type,
+        sector=sector,
+        city=city,
+        status=status,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────
+# PAYMENTS & PAYOUT TRANSFERS (require_perm_manage_payouts)
+# ─────────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/payments",
+    summary="List all unified payments, subscription receipts, and consultant payout requests",
+)
+def list_payments(
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_payouts),
+):
+    """Lists all user and consultant payments, invoices, and payout requests dynamically from the database."""
+    return SuperAdminController.list_all_payments_transfers(db)
+
+
+@router.post(
+    "/payments/{payment_id}/action",
+    summary="Approve, reject, or hold a payment / payout record and dispatch live notification",
+)
+def process_payment_action(
+    payment_id: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_payouts),
+):
+    """Processes payment action (approve, reject, hold) with notification to owner."""
+    return SuperAdminController.process_payment_action(db, current_admin, payment_id, payload)
+
+
+@router.delete(
+    "/payments/{payment_id}",
+    summary="Delete a payment or payout record",
+)
+def delete_payment(
+    payment_id: str,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_payouts),
+):
+    """Deletes a payment record from the system."""
+    return SuperAdminController.delete_payment_record(db, payment_id)
+
+
 

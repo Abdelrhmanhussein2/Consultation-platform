@@ -1,4 +1,8 @@
-from neo4j import GraphDatabase, Driver
+try:
+    from neo4j import GraphDatabase, Driver
+except ImportError:
+    GraphDatabase = None
+    Driver = None
 from helpers.config import settings
 
 class Neo4jDB:

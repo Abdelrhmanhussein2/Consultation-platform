@@ -791,7 +791,7 @@ class AdminAddUserRequest(BaseModel):
     full_name: str = Field(..., max_length=150)
     email: EmailStr
     password: str = Field(..., min_length=8)
-    phone: Optional[str] = Field(None, max_length=20)
+    phone: Optional[str] = Field(None, max_length=50)
     role: UserRole = UserRole.user
     entity_type: Optional[EntityType] = EntityType.individual
     company_name: Optional[str] = Field(None, max_length=200)
@@ -802,6 +802,50 @@ class AdminAddUserRequest(BaseModel):
     price_per_hour: Optional[Decimal] = None
     city: Optional[str] = None
     title: Optional[str] = None
+
+    @field_validator('sector', mode='before')
+    @classmethod
+    def validate_sector(cls, v):
+        if not v:
+            return None
+        if isinstance(v, str):
+            mapping = {
+                'services': BusinessSector.services,
+                'commercial': BusinessSector.commercial,
+                'trade': BusinessSector.commercial,
+                'industrial': BusinessSector.industrial,
+                'industry': BusinessSector.industrial,
+                'agricultural': BusinessSector.agricultural,
+                'agriculture': BusinessSector.agricultural,
+                'banking': BusinessSector.banking,
+                'contracting': BusinessSector.contracting,
+                'other': BusinessSector.other,
+                'خدمات': BusinessSector.services,
+                'تجارة': BusinessSector.commercial,
+                'صناعة': BusinessSector.industrial,
+                'مقاولات': BusinessSector.contracting,
+                'زراعة': BusinessSector.agricultural,
+                'بنوك': BusinessSector.banking,
+            }
+            return mapping.get(v.lower(), BusinessSector.other)
+        return v
+
+    @field_validator('entity_type', mode='before')
+    @classmethod
+    def validate_entity_type(cls, v):
+        if not v:
+            return EntityType.individual
+        if isinstance(v, str):
+            mapping = {
+                'individual': EntityType.individual,
+                'company': EntityType.company,
+                'researcher': EntityType.researcher,
+                'فرد': EntityType.individual,
+                'شركة': EntityType.company,
+                'باحث': EntityType.researcher,
+            }
+            return mapping.get(v.lower(), EntityType.individual)
+        return v
 
     @field_validator('password')
     @classmethod

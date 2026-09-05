@@ -1388,6 +1388,26 @@ class AppointmentService:
         db.add(invoice)
         db.commit()
         db.refresh(invoice)
+
+        # Notify all platform Admins of the received payment
+        try:
+            from services.notification_service import NotificationService
+            client_user = db.query(User).filter(User.id == user_id).first()
+            c_name = client_user.full_name if client_user else "أحد العملاء"
+            admins = db.query(User).filter(User.role.in_([UserRole.admin, UserRole.super_admin])).all()
+            for admin in admins:
+                NotificationService.send(
+                    db=db,
+                    user_id=admin.id,
+                    notification_type=NotificationType.payment_confirmed,
+                    title="عملية دفع وسداد جديدة",
+                    message=f"قام العميل {c_name} بسداد مبلغ {float(total):.2f} د.أ مقابل جلسة استشارة ({appointment.topic or 'استشارة ضريبية'}).",
+                    related_entity_type="invoice",
+                    related_entity_id=invoice.id
+                )
+        except Exception:
+            pass
+
         return invoice
 
     @staticmethod

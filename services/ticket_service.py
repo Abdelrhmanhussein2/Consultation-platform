@@ -4,14 +4,15 @@ from typing import List, Optional
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from models import User, SupportTicket, TicketReply, Notification
-from helpers.enums import TicketCategory, TicketPriority, TicketStatus, NotificationType
+from helpers.enums import TicketCategory, TicketPriority, TicketStatus, NotificationType, UserRole
 from helpers.encryption import encrypt_text, decrypt_text
+from services.notification_service import NotificationService
 
 class TicketService:
     @staticmethod
     def create_ticket(db: Session, client_id: uuid.UUID, ticket_in) -> SupportTicket:
         """
-        Creates a new support ticket by a client/consultant.
+        Creates a new support ticket by a client/consultant and alerts platform Admins.
         """
         current_year = datetime.now(timezone.utc).year
         year_start = datetime(current_year, 1, 1, tzinfo=timezone.utc)
@@ -36,6 +37,26 @@ class TicketService:
         db.commit()
         db.refresh(ticket)
         ticket.description = raw_desc
+
+        # Dispatch real-time notification to all Admins
+        try:
+            submitter = db.query(User).filter(User.id == client_id).first()
+            submitter_name = submitter.full_name if submitter else "أحد المستخدمين"
+            role_label = "المستشار" if submitter and submitter.role == UserRole.consultant else "العميل"
+            admins = db.query(User).filter(User.role.in_([UserRole.admin, UserRole.super_admin])).all()
+            for admin in admins:
+                NotificationService.send(
+                    db=db,
+                    user_id=admin.id,
+                    notification_type=NotificationType.system_announcement,
+                    title="تذكرة دعم فني جديدة",
+                    message=f"قام {role_label} {submitter_name} بفتح تذكرة دعم فني برقم {ticket_num}: '{ticket.subject}'.",
+                    related_entity_type="support_ticket",
+                    related_entity_id=ticket.id
+                )
+        except Exception:
+            pass
+
         return ticket
 
     @staticmethod
@@ -215,6 +236,25 @@ class TicketService:
         db.commit()
         db.refresh(reply)
         reply.message = raw_msg
+
+        # Notify Admin / Support team that user replied
+        try:
+            submitter = db.query(User).filter(User.id == author_id).first()
+            submitter_name = submitter.full_name if submitter else "المستخدم"
+            admins = db.query(User).filter(User.role.in_([UserRole.admin, UserRole.super_admin])).all()
+            for admin in admins:
+                NotificationService.send(
+                    db=db,
+                    user_id=admin.id,
+                    notification_type=NotificationType.system_announcement,
+                    title="رد جديد من المستخدم على التذكرة",
+                    message=f"قام {submitter_name} بإضافة رد على تذكرة الدعم {ticket.ticket_number}: '{raw_msg[:60]}...'",
+                    related_entity_type="support_ticket",
+                    related_entity_id=ticket.id
+                )
+        except Exception:
+            pass
+
         return reply
 
     @staticmethod
@@ -244,34 +284,23 @@ class TicketService:
         db.commit()
         db.refresh(reply)
 
-        # Notify submitter if not internal
+        # Notify submitter user if reply is public
         if not is_internal:
-            notif = Notification(
-                user_id=ticket.submitted_by,
-                type=NotificationType.general,
-                title="رد جديد على تذكرتك الدعم الفني",
-                message=f"قام الدعم الفني بالرد على تذكرتك: '{ticket.subject}'."
-            )
-            db.add(notif)
-            db.commit()
-
-            # Push real-time live WebSocket notification (Phase 3)
             try:
-                from services.live_notification_service import LiveNotificationService
-                LiveNotificationService.push_notification(
+                NotificationService.send(
+                    db=db,
                     user_id=ticket.submitted_by,
-                    title="رد جديد على تذكرتك الدعم الفني",
-                    message=f"قام الدعم الفني بالرد على تذكرتك: '{ticket.subject}'.",
-                    notif_type="support_ticket_reply",
-                    notif_id=notif.id,
-                    extra={"ticket_id": str(ticket.id), "ticket_subject": ticket.subject}
+                    notification_type=NotificationType.general,
+                    title="رد جديد على تذكرتك للدعم الفني",
+                    message=f"قام فريق الدعم الفني بالرد على تذكرتك {ticket.ticket_number} ('{ticket.subject}').",
+                    related_entity_type="support_ticket",
+                    related_entity_id=ticket.id
                 )
             except Exception:
                 pass
 
         reply.message = raw_msg
         return reply
-
 
     @staticmethod
     def update_ticket_admin(db: Session, ticket_id: uuid.UUID, admin_id: uuid.UUID, update_in) -> SupportTicket:
@@ -344,19 +373,27 @@ class TicketService:
         # If status changed, send notification to user
         if status_changed:
             arabic_statuses = {
-                TicketStatus.open: "مفتوحة",
+                TicketStatus.new: "جديد",
+                TicketStatus.open: "مفتوح",
+                TicketStatus.reviewing: "قيد المراجعة",
                 TicketStatus.in_progress: "قيد المعالجة",
+                TicketStatus.waiting_user: "بانتظار ردك",
+                TicketStatus.escalated: "تم التصعيد للإدارة",
                 TicketStatus.resolved: "تم الحل",
-                TicketStatus.closed: "مغلقة"
+                TicketStatus.closed: "مغلق"
             }
-            status_str = arabic_statuses.get(ticket.status, ticket.status.value)
-            notif = Notification(
-                user_id=ticket.submitted_by,
-                type=NotificationType.general,
-                title="تحديث حالة تذكرة الدعم",
-                message=f"تم تحديث حالة تذكرتك '{ticket.subject}' إلى '{status_str}'."
-            )
-            db.add(notif)
-            db.commit()
+            status_str = arabic_statuses.get(ticket.status, ticket.status.value if hasattr(ticket.status, "value") else str(ticket.status))
+            try:
+                NotificationService.send(
+                    db=db,
+                    user_id=ticket.submitted_by,
+                    notification_type=NotificationType.general,
+                    title="تحديث حالة تذكرة الدعم الفني",
+                    message=f"تم تحديث حالة تذكرتك {ticket.ticket_number} ('{ticket.subject}') إلى '{status_str}'.",
+                    related_entity_type="support_ticket",
+                    related_entity_id=ticket.id
+                )
+            except Exception:
+                pass
 
         return ticket

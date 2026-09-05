@@ -16,7 +16,7 @@ export default function ConsultantSessionsPage({ navigate }) {
 
   // Grid constants
   const times = ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00'];
-  
+
   // 0 = Monday, 6 = Sunday. Order in screenshot from right to left is Sunday (6), Monday (0), Tuesday (1), Wednesday (2), Thursday (3), Friday (4), Saturday (5)
   const weekdays = [
     { label: 'أحد', value: 6 },
@@ -164,7 +164,8 @@ export default function ConsultantSessionsPage({ navigate }) {
           margin: '0 auto 20px'
         }}></div>
         <p style={{ fontWeight: '600', fontSize: '16px' }}>جاري تحميل الجلسات وأوقات التوفر الخاصة بك...</p>
-        <style dangerouslySetInnerHTML={{__html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -180,12 +181,12 @@ export default function ConsultantSessionsPage({ navigate }) {
 
   return (
     <div className="consultant-sessions-container fade-in" style={{ direction: 'rtl', fontFamily: 'sans-serif', paddingBottom: '40px' }}>
-      
+
       <Toast {...toast} />
 
       {/* Back Button + Test Video Button */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <button 
+        <button
           onClick={() => navigate('/consultant/dashboard')}
           style={{
             backgroundColor: '#F1F5F9',
@@ -307,7 +308,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                   <td style={{ padding: '12px 8px', fontSize: '12px', color: '#94A3B8', fontWeight: '700' }}>
                     {timeStr}
                   </td>
-                  
+
                   {/* Weekday check-cells */}
                   {weekdays.map((day) => {
                     const active = isSlotActive(day.value, timeStr);
@@ -369,7 +370,7 @@ export default function ConsultantSessionsPage({ navigate }) {
             {incomingRequests.map((appt) => {
               const dateVal = appt.scheduled_at ? new Date(appt.scheduled_at).toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '';
               const timeVal = appt.scheduled_at ? new Date(appt.scheduled_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '';
-              
+
               const isPending = appt.status === 'pending_approval';
               const isAccepted = appt.status === 'pending_payment' || appt.status === 'confirmed' || appt.status === 'completed';
 
@@ -402,7 +403,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                     >
                       مراسلة
                     </button>
-                    
+
                     {isPending && (
                       <>
                         <button
@@ -421,7 +422,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                         >
                           رفض
                         </button>
-                        
+
                         <button
                           onClick={() => handleApprove(appt.id)}
                           disabled={actionLoadingId === appt.id}

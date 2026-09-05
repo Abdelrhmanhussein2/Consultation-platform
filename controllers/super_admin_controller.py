@@ -3,11 +3,25 @@ from typing import Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from models import User
-from schemes import ConsultantApplicationAction, AdminBroadcastNotification
+from schemes import ConsultantApplicationAction, AdminBroadcastNotification, AdminAddUserRequest
 from helpers.enums import UserRole, EntityType, NotificationAudience, NotificationType
 from services import ConsultantService, SuperAdminService
 
 class SuperAdminController:
+    @staticmethod
+    def admin_add_user(db: Session, user_in: AdminAddUserRequest):
+        """
+        Directly registers a client or consultant into PostgreSQL with approved status.
+        """
+        try:
+            return SuperAdminService.admin_add_user(db, user_in)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to add user: {str(e)}"
+            )
     @staticmethod
     def get_pending_consultants(db: Session):
         """
@@ -354,6 +368,47 @@ class SuperAdminController:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to load payments: {str(e)}"
+            )
+
+    @staticmethod
+    def process_payment_action(db: Session, current_admin: User, payment_id: str, payload: dict):
+        """
+        Applies admin action (approve, reject, hold) on a payment, payout, or invoice and dispatches user notifications.
+        """
+        try:
+            action = payload.get("action", "approve")
+            notes = payload.get("notes") or payload.get("admin_notes")
+            ref = payload.get("ref") or payload.get("transfer_reference")
+            return SuperAdminService.process_payment_action(
+                db=db,
+                current_admin=current_admin,
+                payment_id=payment_id,
+                action=action,
+                admin_notes=notes,
+                transfer_ref=ref
+            )
+        except ValueError as ve:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(ve)
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to process payment action: {str(e)}"
+            )
+
+    @staticmethod
+    def delete_payment_record(db: Session, payment_id: str):
+        """
+        Deletes a payment record.
+        """
+        try:
+            return SuperAdminService.delete_payment_record(db, payment_id)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to delete payment: {str(e)}"
             )
 
 

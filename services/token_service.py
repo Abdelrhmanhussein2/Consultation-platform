@@ -2,7 +2,10 @@ import hashlib
 import uuid
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
-import redis
+try:
+    import redis
+except ImportError:
+    redis = None
 from models.refresh_token import RefreshToken
 
 class TokenService:

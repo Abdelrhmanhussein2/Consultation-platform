@@ -1,7 +1,10 @@
 import io
 import re
 import uuid
-import docx
+try:
+    import docx
+except ImportError:
+    docx = None
 from helpers.neo4j_db import neo4j_db
 
 class DocxParserService:

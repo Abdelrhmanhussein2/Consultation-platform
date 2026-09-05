@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   getAdminTickets, 
   replyAdminTicket, 
@@ -29,6 +29,19 @@ const PRIORITY_CONFIG = {
   'عالية': { color: 'bg-red-50 text-red-700 border border-red-200', icon: 'fa-arrow-up' }
 };
 
+const CANNED_TEMPLATES = [
+  { id: '1', title: 'تم التحقق وتحديث النظام', text: 'أهلاً بك. تم التحقق من الملاحظة وتحديث النظام من قبل الفريق الهندسي بنجاح. يرجى تجربة العملية الآن وإعلامنا في حال واجهت أي استفسار.' },
+  { id: '2', title: 'طلب صورة أو تفاصيل إضافية', text: 'أهلاً بك. شكراً لتواصلك معنا. لمساعدتك بدقة وسرعة، هل يمكنك تزويدنا بصورة لرسالة الخطأ أو تفاصيل إضافية حول المشكلة؟' },
+  { id: '3', title: 'تحويل الطلب للمالية والفوترة', text: 'أهلاً بك. تم تحويل استفسارك إلى قسم العمليات والمالية للمراجعة والتدقيق، وسنقوم بتحديثك بالنتيجة خلال 24 ساعة كحد أقصى.' },
+  { id: '4', title: 'تأكيد حل المشكلة بالكامل', text: 'تم اتخاذ كافة الإجراءات اللازمة وحل الطلب بنجاح. يسعدنا تقييمك لخدمة الدعم الفني ونتمنى لك يوماً سعيداً.' }
+];
+
+const AI_SUGGESTIONS = [
+  { id: 'ai1', title: '✨ صياغة رد ترحيبي وحل سريع', text: 'أهلاً بك. نشكر لك تواصلك وحرصك. بخصوص استفسارك، تم فحص المشكلة ومعالجتها بنجاح. يمكنك الآن المتابعة دون أي عوائق.' },
+  { id: 'ai2', title: '✨ اعتذار رسمي وتأكيد المتابعة', text: 'نعتذر بشدة عن أي إزعاج قد تكون واجهته. نقوم حالياً بمتابعة طلبك كأولوية قصوى لضمان وصولك لكافة الخدمات بأعلى كفاءة.' },
+  { id: 'ai3', title: '✨ توجيه لحجز استشارة معتمدة', text: 'بناءً على طبيعة استفسارك التخصصية، يمكنك حجز جلسة استشارية مباشرة مع أحد خبرائنا الضريبيين المعتمدين عبر منصة ديوان.' }
+];
+
 const CATEGORIES = {
   'المساعد الذكي': ['إجابة غير صحيحة', 'إجابة ناقصة', 'لم يفهم السؤال', 'مصدر غير صحيح', 'رابط المصدر لا يعمل', 'مشكلة في المحادثة', 'أخرى'],
   'الاستشارات': ['حجز استشارة', 'تعديل موعد', 'إلغاء موعد', 'مشكلة مع المستشار', 'مشكلة في جلسة الفيديو', 'ملخص الاستشارة', 'التوصيات', 'تقييم الاستشارة', 'فاتورة الاستشارة', 'أخرى'],
@@ -54,6 +67,36 @@ export default function AdminTicketsPage({ navigate }) {
   const [toastMsg, setToastMsg] = useState('');
   const [replyInternal, setReplyInternal] = useState(false);
   const [replyText, setReplyText] = useState('');
+  const [attachedFiles, setAttachedFiles] = useState([]);
+  const [showTemplatesDropdown, setShowTemplatesDropdown] = useState(false);
+  const [showAiDropdown, setShowAiDropdown] = useState(false);
+  const [aiEnhancing, setAiEnhancing] = useState(false);
+  const textareaRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const templatesDropdownRef = useRef(null);
+  const aiDropdownRef = useRef(null);
+
+  // Close dropdowns when clicking anywhere outside on the screen
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        templatesDropdownRef.current &&
+        !templatesDropdownRef.current.contains(event.target)
+      ) {
+        setShowTemplatesDropdown(false);
+      }
+      if (
+        aiDropdownRef.current &&
+        !aiDropdownRef.current.contains(event.target)
+      ) {
+        setShowAiDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Drag and Drop States
   const [draggedTicketId, setDraggedTicketId] = useState(null);
@@ -433,11 +476,80 @@ export default function AdminTicketsPage({ navigate }) {
   // ══════════════════════════════════════════════════════════════════════════
   // ACTIONS HANDLERS (STATUS, ASSIGN, PRIORITY, INTERNAL NOTES, REPLIES)
   // ══════════════════════════════════════════════════════════════════════════
-  const handleSendReply = async (ticketId) => {
-    if (!replyText.trim()) return;
+  const applyFormatting = (styleType) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = replyText.substring(start, end);
+    const before = replyText.substring(0, start);
+    const after = replyText.substring(end);
+
+    let formatted = selected;
+    if (styleType === 'bold') {
+      formatted = selected ? `**${selected}**` : '**نص عريض**';
+    } else if (styleType === 'italic') {
+      formatted = selected ? `*${selected}*` : '*نص مائل*';
+    } else if (styleType === 'underline') {
+      formatted = selected ? `<u>${selected}</u>` : '<u>نص مسطر</u>';
+    }
+
+    setReplyText(before + formatted + after);
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + formatted.length, start + formatted.length);
+    }, 50);
+  };
+
+  const handleAiEnhance = () => {
+    if (!replyText.trim()) {
+      showToast('يرجى كتابة نص في الرد أولاً لتحسينه وتنسيقه بالذكاء الاصطناعي.');
+      return;
+    }
+    setAiEnhancing(true);
+    setTimeout(() => {
+      const current = replyText.trim();
+      const enhanced = `أهلاً بك، نشكر لك تواصلك مع فريق الدعم الفني في منصة ديوان.\n\n${current}\n\nنحن دائماً في خدمتك ويسعدنا تقديم كامل المساعدة لك.`;
+      setReplyText(enhanced);
+      setAiEnhancing(false);
+      showToast('✨ تم تحسين وصياغة النص باحترافية عبر الذكاء الاصطناعي!');
+    }, 450);
+  };
+
+  const handleSelectTemplate = (text) => {
+    setReplyText(prev => (prev ? `${prev}\n\n${text}` : text));
+    setShowTemplatesDropdown(false);
+    showToast('تم إدراج القالب الجاهز بنجاح.');
+  };
+
+  const handleSelectAiSuggestion = (text) => {
+    setReplyText(prev => (prev ? `${prev}\n\n${text}` : text));
+    setShowAiDropdown(false);
+    showToast('✨ تم إدراج صياغة الذكاء الاصطناعي المقترحة.');
+  };
+
+  const handleFileAttach = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setAttachedFiles(prev => [...prev, ...files]);
+      showToast(`تم إرفاق ${files.length} ملف/صورة بنجاح.`);
+    }
+  };
+
+  const handleRemoveFile = (idx) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleSendReply = async (ticketId, andClose = false) => {
+    if (!replyText.trim() && attachedFiles.length === 0) return;
     const now = new Date();
     const dateStr = '20/08/2026';
     const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+
+    let finalMsg = replyText.trim();
+    if (attachedFiles.length > 0) {
+      finalMsg += `\n📎 [المرفقات: ${attachedFiles.map(f => f.name).join(', ')}]`;
+    }
 
     // 1. Optimistic State Update
     setTickets(prev => prev.map(t => {
@@ -448,21 +560,30 @@ export default function AdminTicketsPage({ navigate }) {
         role: replyInternal ? 'ملاحظة داخلية' : 'موظف الدعم',
         date: dateStr,
         time: timeStr,
-        text: replyText.trim(),
+        text: finalMsg,
         internal: replyInternal
       };
-      const actionText = replyInternal ? 'تمت إضافة ملاحظة داخلية سرية' : 'تمت إضافة رد رسمي';
+      const actionText = andClose
+        ? 'تمت إضافة رد وإغلاق التذكرة'
+        : (replyInternal ? 'تمت إضافة ملاحظة داخلية سرية' : 'تمت إضافة رد رسمي');
       return {
         ...t,
+        status: andClose ? 'تم الحل' : t.status,
         messages: [...t.messages, newMsg],
         timeline: [{ action: actionText, date: `${timeStr} - ${dateStr}`, by: 'بواسطة سارة خالد' }, ...t.timeline],
         updated: dateStr
       };
     }));
 
-    showToast(replyInternal ? 'تمت إضافة الملاحظة الداخلية بنجاح (للإدارة فقط).' : 'تم إرسال الرد للمستخدم بنجاح.');
-    const sentText = replyText.trim();
+    showToast(andClose 
+      ? 'تم إرسال الرد للمستخدم وإغلاق المحادثة بنجاح.' 
+      : (replyInternal ? 'تمت إضافة الملاحظة الداخلية بنجاح (للإدارة فقط).' : 'تم إرسال الرد للمستخدم بنجاح.')
+    );
+    const sentText = finalMsg;
     setReplyText('');
+    setAttachedFiles([]);
+    setShowTemplatesDropdown(false);
+    setShowAiDropdown(false);
 
     // 2. Persist to Backend API
     try {
@@ -472,6 +593,12 @@ export default function AdminTicketsPage({ navigate }) {
         reply_text: sentText,
         is_internal: replyInternal
       });
+      if (andClose) {
+        await updateAdminTicketStatus(dbId, {
+          status: 'resolved',
+          internal_notes: 'تم حل وإغلاق التذكرة عبر محادثة الدعم'
+        });
+      }
     } catch (err) {
       console.warn('Backend ticket reply fallback:', err);
     }
@@ -506,9 +633,11 @@ export default function AdminTicketsPage({ navigate }) {
 
     // 2. Backend API
     try {
-      await updateAdminTicketStatus(selectedTicketId.replace('#', ''), {
+      const targetTicket = tickets.find(t => t.id === selectedTicketId);
+      const dbId = targetTicket?.realId || selectedTicketId.replace('#', '');
+      await updateAdminTicketStatus(dbId, {
         status: statusToSave,
-        internal_notes: noteToSave
+        internal_note: noteToSave
       });
     } catch (err) {
       console.warn('Backend ticket update error fallback:', err);
@@ -542,9 +671,10 @@ export default function AdminTicketsPage({ navigate }) {
     showToast(`تم تحويل الطلب إلى: ${assigneeToSave}`);
 
     try {
-      await updateAdminTicketStatus(selectedTicketId.replace('#', ''), {
-        assignee_id: assigneeToSave,
-        internal_notes: assignNoteToSave
+      const targetTicket = tickets.find(t => t.id === selectedTicketId);
+      const dbId = targetTicket?.realId || selectedTicketId.replace('#', '');
+      await updateAdminTicketStatus(dbId, {
+        internal_note: `Assigned to ${assigneeToSave}. ${assignNoteToSave || ''}`
       });
     } catch (err) {
       console.warn('Backend assign error fallback:', err);
@@ -575,7 +705,9 @@ export default function AdminTicketsPage({ navigate }) {
     showToast(`تم تعديل الأولوية إلى: ${prioToSave}`);
 
     try {
-      await updateAdminTicketStatus(selectedTicketId.replace('#', ''), {
+      const targetTicket = tickets.find(t => t.id === selectedTicketId);
+      const dbId = targetTicket?.realId || selectedTicketId.replace('#', '');
+      await updateAdminTicketStatus(dbId, {
         priority: prioToSave
       });
     } catch (err) {
@@ -617,7 +749,7 @@ export default function AdminTicketsPage({ navigate }) {
       const targetTicket = tickets.find(t => t.id === selectedTicketId);
       const dbId = targetTicket?.realId || selectedTicketId.replace('#', '');
       await replyAdminTicket(dbId, {
-        reply_text: noteToSave,
+        message: noteToSave,
         is_internal: true
       });
     } catch (err) {
@@ -791,9 +923,11 @@ export default function AdminTicketsPage({ navigate }) {
                   })}
                 </div>
 
-                {/* Reply Input Box */}
+                {/* Reply Input Box - Matching Requested Screenshot */}
                 <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #E5E7EB', textAlign: 'right' }}>
-                  <div style={{ display: 'flex', gap: '14px', marginBottom: '10px' }}>
+                  
+                  {/* Public / Internal Tab Switch */}
+                  <div style={{ display: 'flex', gap: '14px', marginBottom: '12px' }}>
                     <button
                       onClick={() => setReplyInternal(false)}
                       style={{
@@ -825,23 +959,459 @@ export default function AdminTicketsPage({ navigate }) {
                       ملاحظة داخلية
                     </button>
                   </div>
-                  
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+
+                  {/* Main Rich Editor Container */}
+                  <div style={{
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '12px',
+                    background: replyInternal ? '#FFFDF5' : '#FFFFFF',
+                    overflow: 'visible',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    position: 'relative'
+                  }}>
+                    
+                    {/* Top Editor Toolbar */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 14px',
+                      borderBottom: '1px solid #E5E7EB',
+                      background: '#FAFAFA',
+                      borderTopLeftRadius: '11px',
+                      borderTopRightRadius: '11px'
+                    }}>
+                      
+                      {/* Left side: Formatting Icons (B, /, U) */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => applyFormatting('bold')}
+                          title="عريض (Bold)"
+                          style={{
+                            width: '28px',
+                            height: '28px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '1px solid transparent',
+                            borderRadius: '6px',
+                            background: 'transparent',
+                            fontWeight: '800',
+                            fontSize: '13.5px',
+                            color: '#374151',
+                            cursor: 'pointer'
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = '#E5E7EB'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                        >
+                          B
+                        </button>
+                        <span style={{ color: '#D1D5DB', fontSize: '13px' }}>/</span>
+                        <button
+                          type="button"
+                          onClick={() => applyFormatting('underline')}
+                          title="تسطير (Underline)"
+                          style={{
+                            width: '28px',
+                            height: '28px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '1px solid transparent',
+                            borderRadius: '6px',
+                            background: 'transparent',
+                            textDecoration: 'underline',
+                            fontWeight: '700',
+                            fontSize: '13.5px',
+                            color: '#374151',
+                            cursor: 'pointer'
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = '#E5E7EB'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                        >
+                          U
+                        </button>
+                      </div>
+
+                      {/* Right side: AI Rewrite & Enhance Button */}
+                      <button
+                        type="button"
+                        onClick={handleAiEnhance}
+                        disabled={aiEnhancing}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          border: 'none',
+                          background: 'transparent',
+                          color: '#0e7490',
+                          fontWeight: '800',
+                          fontSize: '12.5px',
+                          cursor: 'pointer',
+                          padding: '4px 8px',
+                          borderRadius: '6px'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = '#F0FDFA'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                      >
+                        <span style={{ color: '#F59E0B' }}>✨</span>
+                        <span>{aiEnhancing ? 'جاري التحسين الذكي...' : 'تحسين وصياغة النص'}</span>
+                      </button>
+
+                    </div>
+
+                    {/* Editor Textarea */}
                     <textarea
+                      ref={textareaRef}
                       placeholder={replyInternal ? 'اكتب ملاحظة داخلية (للإدارة فقط)...' : 'اكتب ردك هنا...'}
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
-                      rows={2}
-                      style={{ flex: 1, padding: '12px 16px', borderRadius: '10px', border: '1px solid #D1D5DB', fontSize: '13.5px', outline: 'none', background: replyInternal ? '#FFFDF5' : '#FFFFFF', textAlign: 'right', direction: 'rtl' }}
+                      rows={3}
+                      style={{
+                        width: '100%',
+                        padding: '14px 16px',
+                        border: 'none',
+                        outline: 'none',
+                        resize: 'vertical',
+                        minHeight: '85px',
+                        background: 'transparent',
+                        fontSize: '13.5px',
+                        lineHeight: '1.6',
+                        fontFamily: 'inherit',
+                        textAlign: 'right',
+                        direction: 'rtl'
+                      }}
                     />
-                    <button
-                      onClick={() => handleSendReply(selectedTicket.id)}
-                      style={{ background: '#0e3b5e', color: '#FFFFFF', border: 'none', width: '46px', height: '46px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '16px', flexShrink: 0 }}
-                      title="إرسال"
-                    >
-                      ✈
-                    </button>
+
+                    {/* Attached files previews (if any) */}
+                    {attachedFiles.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '0 14px 10px' }}>
+                        {attachedFiles.map((file, fIdx) => (
+                          <div
+                            key={fIdx}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              background: '#F1F5F9',
+                              border: '1px solid #CBD5E1',
+                              padding: '4px 10px',
+                              borderRadius: '6px',
+                              fontSize: '11.5px',
+                              color: '#334155'
+                            }}
+                          >
+                            <span>📎 {file.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveFile(fIdx)}
+                              style={{ border: 'none', background: 'transparent', color: '#EF4444', cursor: 'pointer', fontWeight: '800' }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                   </div>
+
+                  {/* Hidden File Input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    style={{ display: 'none' }}
+                    onChange={handleFileAttach}
+                  />
+
+                  {/* Bottom Action Bar */}
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                    marginTop: '12px'
+                  }}>
+                    
+                    {/* Left Actions: Send & Send and Close */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleSendReply(selectedTicket.id, true)}
+                        style={{
+                          background: '#FFFFFF',
+                          color: '#0e7490',
+                          border: '1px solid #BAE6FD',
+                          padding: '9px 18px',
+                          borderRadius: '10px',
+                          fontSize: '12.5px',
+                          fontWeight: '800',
+                          cursor: 'pointer',
+                          transition: 'all 0.18s ease'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = '#F0F9FF'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; }}
+                      >
+                        إرسال وإغلاق المحادثة
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSendReply(selectedTicket.id, false)}
+                        style={{
+                          background: '#0e3b5e',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          padding: '9px 24px',
+                          borderRadius: '10px',
+                          fontSize: '13px',
+                          fontWeight: '800',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          boxShadow: '0 2px 4px rgba(14, 59, 94, 0.2)'
+                        }}
+                      >
+                        <span>إرسال</span>
+                        <span style={{ fontSize: '11px' }}>↵</span>
+                      </button>
+                    </div>
+
+                    {/* Right Tools: Attach, AI Assistant, Canned Templates */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
+                      
+                      {/* 1. Canned Templates Button & Dropdown */}
+                      <div style={{ position: 'relative' }} ref={templatesDropdownRef}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowTemplatesDropdown(prev => !prev);
+                            setShowAiDropdown(false);
+                          }}
+                          style={{
+                            background: showTemplatesDropdown ? '#FEF3C7' : '#FFFFFF',
+                            border: showTemplatesDropdown ? '1px solid #F59E0B' : '1px solid #E2E8F0',
+                            borderRadius: '10px',
+                            padding: '8px 14px',
+                            fontSize: '12px',
+                            fontWeight: '700',
+                            color: showTemplatesDropdown ? '#B45309' : '#374151',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            cursor: 'pointer',
+                            boxShadow: showTemplatesDropdown ? '0 0 0 2px rgba(245, 158, 11, 0.15)' : 'none',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <span>قوالب جاهزة</span>
+                          <span>📋</span>
+                        </button>
+
+                        {showTemplatesDropdown && (
+                          <div style={{
+                            position: 'absolute',
+                            bottom: 'calc(100% + 10px)',
+                            right: '0',
+                            width: '340px',
+                            maxWidth: 'calc(100vw - 32px)',
+                            background: 'rgba(255, 255, 255, 0.98)',
+                            backdropFilter: 'blur(16px)',
+                            border: '1px solid rgba(226, 232, 240, 0.95)',
+                            borderRadius: '16px',
+                            boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(0,0,0,0.03)',
+                            zIndex: 9999,
+                            padding: '12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            textAlign: 'right',
+                            animation: 'fadeInUp 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
+                          }}>
+                            {/* Header */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '10px', marginBottom: '8px', borderBottom: '1px solid #F1F5F9' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '13px', background: '#FEF3C7', padding: '4px 8px', borderRadius: '8px' }}>📋</span>
+                                <span style={{ fontSize: '13px', fontWeight: '800', color: '#1E293B' }}>قوالب الردود الجاهزة</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setShowTemplatesDropdown(false)}
+                                style={{ background: '#F1F5F9', border: 'none', color: '#64748B', fontSize: '11px', fontWeight: '800', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                            
+                            <div style={{ maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '2px' }}>
+                              {CANNED_TEMPLATES.map(t => (
+                                <div
+                                  key={t.id}
+                                  onClick={() => handleSelectTemplate(t.text)}
+                                  style={{
+                                    background: '#F8FAFC',
+                                    border: '1px solid #F1F5F9',
+                                    padding: '10px 12px',
+                                    borderRadius: '10px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
+                                    textAlign: 'right'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = '#FEF3C7';
+                                    e.currentTarget.style.borderColor = '#FDE68A';
+                                    e.currentTarget.style.transform = 'translateY(-1px)';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = '#F8FAFC';
+                                    e.currentTarget.style.borderColor = '#F1F5F9';
+                                    e.currentTarget.style.transform = 'none';
+                                  }}
+                                >
+                                  <div style={{ fontWeight: '800', fontSize: '12.5px', color: '#0e3b5e', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <span>{t.title}</span>
+                                    <span style={{ fontSize: '11px', color: '#D97706', fontWeight: '800' }}>إدراج ↵</span>
+                                  </div>
+                                  <div style={{ fontSize: '11.5px', color: '#64748B', lineHeight: '1.45', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                    {t.text}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 2. AI Assistant Button & Dropdown */}
+                      <div style={{ position: 'relative' }} ref={aiDropdownRef}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowAiDropdown(prev => !prev);
+                            setShowTemplatesDropdown(false);
+                          }}
+                          style={{
+                            background: showAiDropdown ? '#E0F2FE' : '#FFFFFF',
+                            border: showAiDropdown ? '1px solid #0284C7' : '1px solid #E2E8F0',
+                            borderRadius: '10px',
+                            padding: '8px 14px',
+                            fontSize: '12px',
+                            fontWeight: '700',
+                            color: '#0284C7',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            cursor: 'pointer',
+                            boxShadow: showAiDropdown ? '0 0 0 2px rgba(2, 132, 199, 0.15)' : 'none',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <span>مساعد AI</span>
+                          <span style={{ color: '#F59E0B' }}>✨</span>
+                        </button>
+
+                        {showAiDropdown && (
+                          <div style={{
+                            position: 'absolute',
+                            bottom: 'calc(100% + 10px)',
+                            right: '0',
+                            width: '350px',
+                            maxWidth: 'calc(100vw - 32px)',
+                            background: 'rgba(255, 255, 255, 0.98)',
+                            backdropFilter: 'blur(16px)',
+                            border: '1px solid rgba(186, 230, 253, 0.95)',
+                            borderRadius: '16px',
+                            boxShadow: '0 20px 40px -10px rgba(2, 132, 199, 0.2), 0 0 0 1px rgba(0,0,0,0.03)',
+                            zIndex: 9999,
+                            padding: '12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            textAlign: 'right',
+                            animation: 'fadeInUp 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
+                          }}>
+                            {/* Header */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '10px', marginBottom: '8px', borderBottom: '1px solid #F0F9FF' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '13px', background: '#E0F2FE', padding: '4px 8px', borderRadius: '8px' }}>✨</span>
+                                <span style={{ fontSize: '13px', fontWeight: '800', color: '#0369A1' }}>اقتراحات المساعد الذكي التفاعلية</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setShowAiDropdown(false)}
+                                style={{ background: '#F1F5F9', border: 'none', color: '#64748B', fontSize: '11px', fontWeight: '800', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+
+                            <div style={{ maxHeight: '290px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '2px' }}>
+                              {AI_SUGGESTIONS.map(ai => (
+                                <div
+                                  key={ai.id}
+                                  onClick={() => handleSelectAiSuggestion(ai.text)}
+                                  style={{
+                                    background: '#F0F9FF',
+                                    border: '1px solid #E0F2FE',
+                                    padding: '10px 12px',
+                                    borderRadius: '10px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
+                                    textAlign: 'right'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = '#E0F2FE';
+                                    e.currentTarget.style.borderColor = '#BAE6FD';
+                                    e.currentTarget.style.transform = 'translateY(-1px)';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = '#F0F9FF';
+                                    e.currentTarget.style.borderColor = '#E0F2FE';
+                                    e.currentTarget.style.transform = 'none';
+                                  }}
+                                >
+                                  <div style={{ fontWeight: '800', fontSize: '12.5px', color: '#0369A1', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <span>{ai.title}</span>
+                                    <span style={{ fontSize: '11px', color: '#0284C7', fontWeight: '800' }}>تطبيق ✨</span>
+                                  </div>
+                                  <div style={{ fontSize: '11.5px', color: '#475569', lineHeight: '1.45', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                    {ai.text}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 3. Attach File Button */}
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        style={{
+                          background: '#FFFFFF',
+                          border: '1px solid #E5E7EB',
+                          borderRadius: '10px',
+                          padding: '8px 14px',
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          color: '#374151',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <span>إرفاق ملف</span>
+                        <span>📎</span>
+                      </button>
+
+                    </div>
+
+                  </div>
+
                 </div>
               </div>
             </div>
@@ -1256,7 +1826,10 @@ export default function AdminTicketsPage({ navigate }) {
 
       {/* 1. Update Status Modal */}
       {activeModal === 'change-status' && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '20px', direction: 'rtl' }}>
+        <div 
+          onClick={(e) => { if (e.target === e.currentTarget) setActiveModal(null); }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '20px', direction: 'rtl' }}
+        >
           <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '24px', maxWidth: '400px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', textAlign: 'right' }}>
             <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0e3b5e', margin: '0 0 14px 0' }}>تحديث حالة الطلب</h3>
             <select
@@ -1295,7 +1868,10 @@ export default function AdminTicketsPage({ navigate }) {
 
       {/* 2. Assign Ticket Modal */}
       {activeModal === 'assign-ticket' && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '20px', direction: 'rtl' }}>
+        <div 
+          onClick={(e) => { if (e.target === e.currentTarget) setActiveModal(null); }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '20px', direction: 'rtl' }}
+        >
           <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '24px', maxWidth: '400px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', textAlign: 'right' }}>
             <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0e3b5e', margin: '0 0 14px 0' }}>تحويل الطلب</h3>
             <div style={{ marginBottom: '12px' }}>
@@ -1339,7 +1915,10 @@ export default function AdminTicketsPage({ navigate }) {
 
       {/* 3. Change Priority Modal */}
       {activeModal === 'change-priority' && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '20px', direction: 'rtl' }}>
+        <div 
+          onClick={(e) => { if (e.target === e.currentTarget) setActiveModal(null); }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '20px', direction: 'rtl' }}
+        >
           <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '24px', maxWidth: '400px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', textAlign: 'right' }}>
             <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0e3b5e', margin: '0 0 14px 0' }}>تغيير الأولوية</h3>
             <select
@@ -1378,7 +1957,10 @@ export default function AdminTicketsPage({ navigate }) {
 
       {/* 4. Add Internal Note Modal */}
       {activeModal === 'add-internal' && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '20px', direction: 'rtl' }}>
+        <div 
+          onClick={(e) => { if (e.target === e.currentTarget) setActiveModal(null); }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '20px', direction: 'rtl' }}
+        >
           <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '24px', maxWidth: '440px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', textAlign: 'right' }}>
             <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#92400E', margin: '0 0 14px 0' }}>إضافة ملاحظة داخلية (للإدارة فقط)</h3>
             <textarea

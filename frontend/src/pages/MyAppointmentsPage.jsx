@@ -161,7 +161,7 @@ export default function MyAppointmentsPage({ navigate }) {
   };
 
   const filteredAppointments = getFilteredAppointments();
-  
+
   // Show first 5 upcoming accepted/confirmed appointments
   const upcomingAppointments = appointments.filter(a => a.status === 'confirmed' || a.status === 'accepted' || a.status === 'pending_payment' || a.status === 'scheduled').slice(0, 5);
 
@@ -175,7 +175,7 @@ export default function MyAppointmentsPage({ navigate }) {
 
   return (
     <div style={{ direction: 'rtl', textAlign: 'right', fontFamily: 'sans-serif', paddingBottom: '40px' }}>
-      
+
       {/* Header controls & Title */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px', marginBottom: '28px' }}>
         <div>
@@ -204,7 +204,7 @@ export default function MyAppointmentsPage({ navigate }) {
           >
             + طلب استشارة جديدة
           </button>
-          
+
           <button
             onClick={() => setActiveVideoApptId('test-session-id')}
             style={{
@@ -229,7 +229,7 @@ export default function MyAppointmentsPage({ navigate }) {
 
       {/* Three Stats Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '32px' }}>
-        
+
         <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', padding: '20px', borderRadius: '16px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
           <span style={{ fontSize: '28px', fontWeight: '800', color: '#3B82F6', display: 'block' }}>{activeCount}</span>
           <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '600' }}>نشطة</span>
@@ -256,13 +256,13 @@ export default function MyAppointmentsPage({ navigate }) {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {upcomingAppointments.map((appt) => (
-              <div 
-                key={appt.id} 
-                style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center', 
-                  paddingBottom: '14px', 
+              <div
+                key={appt.id}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  paddingBottom: '14px',
                   borderBottom: '1px solid #F1F5F9',
                   flexWrap: 'wrap',
                   gap: '12px'
@@ -317,12 +317,12 @@ export default function MyAppointmentsPage({ navigate }) {
       )}
 
       {/* Tabs list */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          gap: '10px', 
-          borderBottom: '2px solid #F1F5F9', 
-          paddingBottom: '10px', 
+      <div
+        style={{
+          display: 'flex',
+          gap: '10px',
+          borderBottom: '2px solid #F1F5F9',
+          paddingBottom: '10px',
           marginBottom: '20px',
           overflowX: 'auto'
         }}
@@ -377,7 +377,7 @@ export default function MyAppointmentsPage({ navigate }) {
             const isPendingApproval = appt.status === 'pending_approval';
 
             return (
-              <div 
+              <div
                 key={appt.id}
                 style={{
                   background: '#FFFFFF',
@@ -392,14 +392,14 @@ export default function MyAppointmentsPage({ navigate }) {
                   boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
                 }}
               >
-                
+
                 {/* Details Section */}
                 <div style={{ flex: 1, minWidth: '280px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                     {getStatusBadge(appt.status)}
                     <span style={{ fontSize: '11px', color: '#94A3B8' }}>رقم المعاملة: #{appt.id.substring(0, 8)}</span>
                   </div>
-                  
+
                   <div style={{ fontSize: '13px', color: '#005D9C', fontWeight: '800', marginBottom: '4px' }}>
                     {user?.role === 'consultant' ? `العميل: ${getPartnerName(appt)}` : `المستشار: ${getPartnerName(appt)}`}
                   </div>
@@ -421,7 +421,7 @@ export default function MyAppointmentsPage({ navigate }) {
 
                 {/* Actions Button */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  
+
                   {isConfirmed && (
                     <button
                       onClick={() => handleJoinVideoRoom(appt)}

@@ -223,30 +223,32 @@
 
 /* Table */
 .payments-table-wrap {
+  width: 100%;
   overflow-x: auto;
+  border-radius: 8px;
 }
 
 .payments-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1120px;
+  min-width: 850px;
   direction: rtl;
 }
 
 .payments-table thead th {
   background: var(--head);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   text-align: right;
-  padding: 15px;
+  padding: 10px 11px;
   border-bottom: 1px solid var(--line);
   white-space: nowrap;
   color: #35404c;
 }
 
 .payments-table tbody td {
-  font-size: 13px;
-  padding: 13px 15px;
+  font-size: 12px;
+  padding: 9px 11px;
   border-bottom: 1px solid var(--line);
   vertical-align: middle;
   white-space: nowrap;
@@ -261,13 +263,13 @@
 
 .payments-status-tag {
   display: inline-flex;
-  min-width: 105px;
+  min-width: 78px;
   justify-content: center;
   align-items: center;
   color: #fff;
-  padding: 5px 14px;
+  padding: 4px 10px;
   border-radius: 4px;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 600;
 }
 
@@ -277,7 +279,18 @@
 
 .payments-action-set {
   display: flex;
-  gap: 8px;
+  gap: 5px;
+  align-items: center;
+}
+
+.payments-icon-btn.payments-small {
+  width: 31px;
+  height: 31px;
+}
+
+.payments-icon-btn.payments-small svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* Footer & Pagination */

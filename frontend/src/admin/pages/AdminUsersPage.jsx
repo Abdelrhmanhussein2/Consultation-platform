@@ -126,6 +126,7 @@ export default function AdminUsersPage({ navigate }) {
   // Modal Hierarchy Stack
   const [modalStack, setModalStack] = useState([]);
   const [toastMsg, setToastMsg] = useState('');
+  const [successModal, setSuccessModal] = useState(null);
 
   // Add User Modal State
   const [addUserModalOpen, setAddUserModalOpen] = useState(false);
@@ -204,7 +205,12 @@ export default function AdminUsersPage({ navigate }) {
         };
 
         setUsersList(prev => [newCard, ...prev]);
-        alert(`تمت إضافة المستخدم/العميل [${payload.full_name}] في قاعدة البيانات بنجاح!\nيمكنه تسجيل الدخول فوراً بالبريد: ${payload.email}`);
+        setSuccessModal({
+          title: 'تمت إضافة وتفعيل المستخدم بنجاح!',
+          name: payload.full_name,
+          email: payload.email,
+          role: 'عميل / مستخدم جديد'
+        });
         setAddUserModalOpen(false);
         setNewUserForm({
           fullName: '',
@@ -221,7 +227,7 @@ export default function AdminUsersPage({ navigate }) {
         alert(res?.detail || 'حدث خطأ أثناء إضافة المستخدم');
       }
     } catch (err) {
-      alert('خطأ في الاتصال بالخادم أثناء إضافة المستخدم.');
+      alert(err.message || 'خطأ في الاتصال بالخادم أثناء إضافة المستخدم.');
     } finally {
       setLoadingAddUser(false);
     }
@@ -2162,6 +2168,92 @@ export default function AdminUsersPage({ navigate }) {
       {toastMsg && (
         <div className="drill-toast-box">
           {toastMsg}
+        </div>
+      )}
+
+      {/* Modern Luxury Success Popup Modal */}
+      {successModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(6px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: '20px',
+            padding: '32px 28px',
+            width: '90%',
+            maxWidth: '460px',
+            boxShadow: '0 20px 40px -15px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.05)',
+            textAlign: 'center',
+            direction: 'rtl'
+          }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: '#ECFDF5',
+              border: '2px solid #A7F3D0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 18px',
+              color: '#059669'
+            }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+
+            <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', marginBottom: '8px' }}>
+              {successModal.title || 'تمت العملية بنجاح!'}
+            </h3>
+            
+            <p style={{ fontSize: '13.5px', color: '#64748B', lineHeight: '1.6', marginBottom: '20px' }}>
+              تم تسجيل وتفعيل حساب <strong style={{ color: '#0F172A' }}>[{successModal.name}]</strong> في قاعدة البيانات مباشرة.
+            </p>
+
+            <div style={{
+              background: '#F8FAFC',
+              border: '1px solid #E2E8F0',
+              borderRadius: '12px',
+              padding: '14px 16px',
+              marginBottom: '24px',
+              textAlign: 'right'
+            }}>
+              <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '700', marginBottom: '4px' }}>البريد الإلكتروني لتسجيل الدخول:</div>
+              <div style={{ fontSize: '13.5px', fontWeight: '800', color: '#005D9C', direction: 'ltr', textAlign: 'left', wordBreak: 'break-all' }}>
+                {successModal.email}
+              </div>
+            </div>
+
+            <button
+              onClick={() => setSuccessModal(null)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: 'linear-gradient(135deg, #E58A13 0%, #D47700 100%)',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '12px',
+                fontWeight: '800',
+                fontSize: '14px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(229, 138, 19, 0.3)'
+              }}
+            >
+              تم، موافق
+            </button>
+          </div>
         </div>
       )}
 

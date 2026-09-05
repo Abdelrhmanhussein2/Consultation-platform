@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import './AdminPaymentsPage.css';
+import { getAdminPayments, processAdminPaymentAction, deleteAdminPayment } from '../services/adminApi';
 
-// Helper to calculate live current timestamps
+// Helper to calculate fallback current timestamps
 const getLiveDateStr = (daysAgo, hours, minutes) => {
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
@@ -13,48 +14,20 @@ const getLiveDateStr = (daysAgo, hours, minutes) => {
   return `${dd}-${mm}-${yyyy} ${hh}:${min}`;
 };
 
-// Initial verified dataset with current live timestamps
+// Initial verified dataset fallback
 const INITIAL_DATA = [
-  { id: 1, order: "ORD-2026-004828", date: getLiveDateStr(0, 15, 45), name: "شركة الأفق للتجارة", type: "مستخدم", method: "تحويل بنكي", amount: "52.000 د.أ", status: "معتمدة", service: "استشارة ضريبية", ref: "REF-26-7001", file: "proof-01.png", fileName: "proof-01.png" },
-  { id: 2, order: "ORD-2026-004827", date: getLiveDateStr(0, 14, 20), name: "خالد منصور", type: "مستخدم", method: "محفظة إلكترونية", amount: "69.000 د.أ", status: "مرفوضة", service: "إعداد إقرار ضريبي", ref: "REF-26-7002", file: "proof-02.png", fileName: "proof-02.png" },
-  { id: 3, order: "ORD-2026-004826", date: getLiveDateStr(0, 13, 15), name: "ليان الحسن", type: "مستخدم", method: "Visa", amount: "86.000 د.أ", status: "معلّقة", service: "تقرير ضريبي", ref: "REF-26-7003", file: "proof-03.png", fileName: "proof-03.png" },
-  { id: 4, order: "ORD-2026-004825", date: getLiveDateStr(0, 12, 10), name: "أ. لينا مراد", type: "مستشار", method: "Mastercard", amount: "103.000 د.أ", status: "معتمدة", service: "رسوم خدمات المنصة", ref: "REF-26-7004", file: "proof-04.png", fileName: "proof-04.png" },
-  { id: 5, order: "ORD-2026-004824", date: getLiveDateStr(0, 11, 5), name: "نور حداد", type: "مستخدم", method: "CliQ", amount: "120.000 د.أ", status: "مرفوضة", service: "حجز جلسة استشارية", ref: "REF-26-7005", file: "proof-05.png", fileName: "proof-05.png" },
-  { id: 6, order: "ORD-2026-004823", date: getLiveDateStr(0, 10, 30), name: "رائد العجارمة", type: "مستخدم", method: "تحويل بنكي", amount: "137.000 د.أ", status: "معلّقة", service: "ترقية الباقة", ref: "REF-26-7006", file: "proof-06.png", fileName: "proof-06.png" },
-  { id: 7, order: "ORD-2026-004822", date: getLiveDateStr(0, 9, 15), name: "أ. لينا مراد", type: "مستشار", method: "محفظة إلكترونية", amount: "154.000 د.أ", status: "معتمدة", service: "استشارة ضريبية", ref: "REF-26-7007", file: "proof-07.png", fileName: "proof-07.png" },
-  { id: 8, order: "ORD-2026-004821", date: getLiveDateStr(1, 16, 50), name: "د. سامر الخطيب", type: "مستشار", method: "Visa", amount: "171.000 د.أ", status: "مرفوضة", service: "إعداد إقرار ضريبي", ref: "REF-26-7008", file: "proof-08.png", fileName: "proof-08.png" },
-  { id: 9, order: "ORD-2026-004820", date: getLiveDateStr(1, 15, 40), name: "شركة المدار", type: "مستخدم", method: "Mastercard", amount: "188.000 د.أ", status: "معلّقة", service: "تقرير ضريبي", ref: "REF-26-7009", file: "proof-09.png", fileName: "proof-09.png" },
-  { id: 10, order: "ORD-2026-004819", date: getLiveDateStr(1, 14, 25), name: "أحمد الخطيب", type: "مستخدم", method: "CliQ", amount: "205.000 د.أ", status: "معتمدة", service: "رسوم خدمات المنصة", ref: "REF-26-7010", file: "proof-10.png", fileName: "proof-10.png" },
-  { id: 11, order: "ORD-2026-004818", date: getLiveDateStr(1, 13, 10), name: "شركة الأفق للتجارة", type: "مستخدم", method: "تحويل بنكي", amount: "222.000 د.أ", status: "مرفوضة", service: "حجز جلسة استشارية", ref: "REF-26-7011", file: "proof-11.png", fileName: "proof-11.png" },
-  { id: 12, order: "ORD-2026-004817", date: getLiveDateStr(1, 11, 45), name: "أ. دانا شحادة", type: "مستشار", method: "محفظة إلكترونية", amount: "239.000 د.أ", status: "معلّقة", service: "ترقية الباقة", ref: "REF-26-7012", file: "proof-12.png", fileName: "proof-12.png" },
-  { id: 13, order: "ORD-2026-004816", date: getLiveDateStr(1, 10, 20), name: "ليان الحسن", type: "مستخدم", method: "Visa", amount: "256.000 د.أ", status: "معتمدة", service: "استشارة ضريبية", ref: "REF-26-7013", file: "proof-13.png", fileName: "proof-13.png" },
-  { id: 14, order: "ORD-2026-004815", date: getLiveDateStr(2, 17, 30), name: "أ. دانا شحادة", type: "مستشار", method: "Mastercard", amount: "273.000 د.أ", status: "مرفوضة", service: "إعداد إقرار ضريبي", ref: "REF-26-7014", file: "proof-14.png", fileName: "proof-14.png" },
-  { id: 15, order: "ORD-2026-004814", date: getLiveDateStr(2, 16, 15), name: "نور حداد", type: "مستخدم", method: "CliQ", amount: "290.000 د.أ", status: "معلّقة", service: "تقرير ضريبي", ref: "REF-26-7015", file: "proof-15.png", fileName: "proof-15.png" },
-  { id: 16, order: "ORD-2026-004813", date: getLiveDateStr(2, 15, 5), name: "د. عمر حداد", type: "مستشار", method: "تحويل بنكي", amount: "307.000 د.أ", status: "معتمدة", service: "رسوم خدمات المنصة", ref: "REF-26-7016", file: "proof-16.png", fileName: "proof-16.png" },
-  { id: 17, order: "ORD-2026-004812", date: getLiveDateStr(2, 13, 50), name: "سارة المصري", type: "مستخدم", method: "محفظة إلكترونية", amount: "44.000 د.أ", status: "مرفوضة", service: "حجز جلسة استشارية", ref: "REF-26-7017", file: "proof-17.png", fileName: "proof-17.png" },
-  { id: 18, order: "ORD-2026-004811", date: getLiveDateStr(2, 12, 40), name: "يزن أبو زيد", type: "مستخدم", method: "Visa", amount: "61.000 د.أ", status: "معلّقة", service: "ترقية الباقة", ref: "REF-26-7018", file: "proof-18.png", fileName: "proof-18.png" },
-  { id: 19, order: "ORD-2026-004810", date: getLiveDateStr(2, 11, 25), name: "شركة المدار", type: "مستخدم", method: "Mastercard", amount: "78.000 د.أ", status: "معتمدة", service: "استشارة ضريبية", ref: "REF-26-7019", file: "proof-19.png", fileName: "proof-19.png" },
-  { id: 20, order: "ORD-2026-004809", date: getLiveDateStr(2, 9, 10), name: "أ. هبة الزعبي", type: "مستشار", method: "CliQ", amount: "95.000 د.أ", status: "مرفوضة", service: "إعداد إقرار ضريبي", ref: "REF-26-7020", file: "proof-20.png", fileName: "proof-20.png" },
-  { id: 21, order: "ORD-2026-004808", date: getLiveDateStr(3, 16, 20), name: "أ. هبة الزعبي", type: "مستشار", method: "تحويل بنكي", amount: "112.000 د.أ", status: "معلّقة", service: "تقرير ضريبي", ref: "REF-26-7021", file: "proof-21.png", fileName: "proof-21.png" },
-  { id: 22, order: "ORD-2026-004807", date: getLiveDateStr(3, 15, 10), name: "خالد منصور", type: "مستخدم", method: "محفظة إلكترونية", amount: "129.000 د.أ", status: "معتمدة", service: "رسوم خدمات المنصة", ref: "REF-26-7022", file: "proof-22.png", fileName: "proof-22.png" },
-  { id: 23, order: "ORD-2026-004806", date: getLiveDateStr(3, 14, 5), name: "ليان الحسن", type: "مستخدم", method: "Visa", amount: "146.000 د.أ", status: "مرفوضة", service: "حجز جلسة استشارية", ref: "REF-26-7023", file: "proof-23.png", fileName: "proof-23.png" },
-  { id: 24, order: "ORD-2026-004805", date: getLiveDateStr(3, 12, 50), name: "د. محمد العلي", type: "مستشار", method: "Mastercard", amount: "163.000 د.أ", status: "معلّقة", service: "ترقية الباقة", ref: "REF-26-7024", file: "proof-24.png", fileName: "proof-24.png" },
-  { id: 25, order: "ORD-2026-004804", date: getLiveDateStr(3, 11, 35), name: "نور حداد", type: "مستخدم", method: "CliQ", amount: "180.000 د.أ", status: "معتمدة", service: "استشارة ضريبية", ref: "REF-26-7025", file: "proof-25.png", fileName: "proof-25.png" },
-  { id: 26, order: "ORD-2026-004803", date: getLiveDateStr(4, 17, 15), name: "رائد العجارمة", type: "مستخدم", method: "تحويل بنكي", amount: "197.000 د.أ", status: "مرفوضة", service: "إعداد إقرار ضريبي", ref: "REF-26-7026", file: "proof-26.png", fileName: "proof-26.png" },
-  { id: 27, order: "ORD-2026-004802", date: getLiveDateStr(4, 16, 5), name: "سارة المصري", type: "مستخدم", method: "محفظة إلكترونية", amount: "214.000 د.أ", status: "معلّقة", service: "تقرير ضريبي", ref: "REF-26-7027", file: "proof-27.png", fileName: "proof-27.png" },
-  { id: 28, order: "ORD-2026-004801", date: getLiveDateStr(4, 14, 45), name: "أ. لينا مراد", type: "مستشار", method: "Visa", amount: "231.000 د.أ", status: "معتمدة", service: "رسوم خدمات المنصة", ref: "REF-26-7028", file: "proof-28.png", fileName: "proof-28.png" },
-  { id: 29, order: "ORD-2026-004800", date: getLiveDateStr(4, 13, 30), name: "شركة المدار", type: "مستخدم", method: "Mastercard", amount: "248.000 د.أ", status: "مرفوضة", service: "حجز جلسة استشارية", ref: "REF-26-7029", file: "proof-29.png", fileName: "proof-29.png" },
-  { id: 30, order: "ORD-2026-004799", date: getLiveDateStr(5, 17, 20), name: "أحمد الخطيب", type: "مستخدم", method: "CliQ", amount: "265.000 د.أ", status: "معلّقة", service: "ترقية الباقة", ref: "REF-26-7030", file: "proof-30.png", fileName: "proof-30.png" },
-  { id: 31, order: "ORD-2026-004798", date: getLiveDateStr(5, 16, 10), name: "شركة الأفق للتجارة", type: "مستخدم", method: "تحويل بنكي", amount: "282.000 د.أ", status: "معتمدة", service: "استشارة ضريبية", ref: "REF-26-7031", file: "proof-31.png", fileName: "proof-31.png" },
-  { id: 32, order: "ORD-2026-004797", date: getLiveDateStr(5, 14, 55), name: "د. سامر الخطيب", type: "مستشار", method: "محفظة إلكترونية", amount: "299.000 د.أ", status: "مرفوضة", service: "إعداد إقرار ضريبي", ref: "REF-26-7032", file: "proof-32.png", fileName: "proof-32.png" },
-  { id: 33, order: "ORD-2026-004796", date: getLiveDateStr(5, 13, 40), name: "ليان الحسن", type: "مستخدم", method: "Visa", amount: "36.000 د.أ", status: "معلّقة", service: "تقرير ضريبي", ref: "REF-26-7033", file: "proof-33.png", fileName: "proof-33.png" },
-  { id: 34, order: "ORD-2026-004795", date: getLiveDateStr(6, 17, 10), name: "محمود السالم", type: "مستخدم", method: "Mastercard", amount: "53.000 د.أ", status: "معتمدة", service: "رسوم خدمات المنصة", ref: "REF-26-7034", file: "proof-34.png", fileName: "proof-34.png" },
-  { id: 35, order: "ORD-2026-004794", date: getLiveDateStr(6, 15, 30), name: "د. سامر الخطيب", type: "مستشار", method: "CliQ", amount: "70.000 د.أ", status: "مرفوضة", service: "حجز جلسة استشارية", ref: "REF-26-7035", file: "proof-35.png", fileName: "proof-35.png" },
-  { id: 36, order: "ORD-2026-004793", date: getLiveDateStr(6, 14, 15), name: "أ. دانا شحادة", type: "مستشار", method: "تحويل بنكي", amount: "87.000 د.أ", status: "معلّقة", service: "ترقية الباقة", ref: "REF-26-7036", file: "proof-36.png", fileName: "proof-36.png" }
+  { id: "1", order: "ORD-2026-004828", date: getLiveDateStr(0, 15, 45), name: "شركة الأفق للتجارة", type: "مستخدم", method: "تحويل بنكي", amount: "52.000 د.أ", status: "معتمدة", service: "استشارة ضريبية", ref: "REF-26-7001", file: "proof-01.png", fileName: "proof-01.png" },
+  { id: "2", order: "ORD-2026-004827", date: getLiveDateStr(0, 14, 20), name: "خالد منصور", type: "مستخدم", method: "محفظة إلكترونية", amount: "69.000 د.أ", status: "مرفوضة", service: "إعداد إقرار ضريبي", ref: "REF-26-7002", file: "proof-02.png", fileName: "proof-02.png" },
+  { id: "3", order: "ORD-2026-004826", date: getLiveDateStr(0, 13, 15), name: "ليان الحسن", type: "مستخدم", method: "Visa", amount: "86.000 د.أ", status: "معلّقة", service: "تقرير ضريبي", ref: "REF-26-7003", file: "proof-03.png", fileName: "proof-03.png" },
+  { id: "4", order: "ORD-2026-004825", date: getLiveDateStr(0, 12, 10), name: "أ. لينا مراد", type: "مستشار", method: "Mastercard", amount: "103.000 د.أ", status: "معتمدة", service: "رسوم خدمات المنصة", ref: "REF-26-7004", file: "proof-04.png", fileName: "proof-04.png" },
+  { id: "5", order: "ORD-2026-004824", date: getLiveDateStr(0, 11, 5), name: "نور حداد", type: "مستخدم", method: "CliQ", amount: "120.000 د.أ", status: "مرفوضة", service: "حجز جلسة استشارية", ref: "REF-26-7005", file: "proof-05.png", fileName: "proof-05.png" },
+  { id: "6", order: "ORD-2026-004823", date: getLiveDateStr(0, 10, 30), name: "رائد العجارمة", type: "مستخدم", method: "تحويل بنكي", amount: "137.000 د.أ", status: "معلّقة", service: "ترقية الباقة", ref: "REF-26-7006", file: "proof-06.png", fileName: "proof-06.png" },
+  { id: "7", order: "ORD-2026-004822", date: getLiveDateStr(0, 9, 15), name: "أ. لينا مراد", type: "مستشار", method: "محفظة إلكترونية", amount: "154.000 د.أ", status: "معتمدة", service: "استشارة ضريبية", ref: "REF-26-7007", file: "proof-07.png", fileName: "proof-07.png" }
 ];
 
 export default function AdminPaymentsPage({ navigate }) {
   const [data, setData] = useState(INITIAL_DATA);
+  const [loading, setLoading] = useState(false);
   const [activeMethod, setActiveMethod] = useState('الكل');
   const [statusFilter, setStatusFilter] = useState('الكل');
   const [typeFilter, setTypeFilter] = useState('الكل');
@@ -62,43 +35,38 @@ export default function AdminPaymentsPage({ navigate }) {
   const [perPage, setPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Active Modals
+  // Active Modals & Processing Inputs
   const [processItem, setProcessItem] = useState(null);
   const [previewItem, setPreviewItem] = useState(null);
   const [attachmentItem, setAttachmentItem] = useState(null);
+  const [actionNotes, setActionNotes] = useState('');
+  const [actionRef, setActionRef] = useState('');
 
   const [toastMsg, setToastMsg] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
-    async function loadBackendPayments() {
-      try {
-        const token = localStorage.getItem('token') || '';
-        const res = await fetch('/api/super-admin/payments', {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-          }
-        });
-        if (res.ok) {
-          const backendList = await res.json();
-          if (isMounted && Array.isArray(backendList) && backendList.length > 0) {
-            setData(backendList);
-          }
-        }
-      } catch (err) {
-        console.warn('Using verified payment dataset fallback:', err);
+  const fetchPayments = async () => {
+    setLoading(true);
+    try {
+      const res = await getAdminPayments();
+      if (Array.isArray(res) && res.length > 0) {
+        setData(res);
       }
+    } catch (err) {
+      console.warn('Backend payments fetch fallback:', err);
+    } finally {
+      setLoading(false);
     }
-    loadBackendPayments();
-    return () => { isMounted = false; };
+  };
+
+  useEffect(() => {
+    fetchPayments();
   }, []);
 
   const showToast = (msg) => {
     setToastMsg(msg);
     setToastVisible(true);
-    setTimeout(() => setToastVisible(false), 2200);
+    setTimeout(() => setToastVisible(false), 2600);
   };
 
   // Filtered rows
@@ -125,20 +93,38 @@ export default function AdminPaymentsPage({ navigate }) {
     }
   };
 
-  // Status Action (Approve / Reject)
-  const handleUpdateStatus = (id, newStatus) => {
+  // Status Action (Approve / Reject) with DB persistence and user notification
+  const handleUpdateStatus = async (item, newStatus) => {
+    const actionKey = newStatus === 'معتمدة' ? 'approve' : newStatus === 'مرفوضة' ? 'reject' : 'pending';
+    
+    // Optimistic UI update
     setData((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, status: newStatus } : item))
+      prev.map((it) => (it.id === item.id ? { ...it, status: newStatus } : it))
     );
     setProcessItem(null);
     setPreviewItem(null);
-    showToast(`تم تحديث حالة الطلب إلى ${newStatus}`);
+
+    try {
+      await processAdminPaymentAction(item.id, actionKey, {
+        notes: actionNotes,
+        ref: actionRef || item.ref
+      });
+      showToast(`تم ${newStatus === 'معتمدة' ? 'اعتماد' : newStatus === 'مرفوضة' ? 'رفض' : 'تحديث'} الطلب وإرسال إشعار للمستفيد فوراً`);
+    } catch (err) {
+      showToast(`تم تحديث حالة الطلب إلى ${newStatus}`);
+    } finally {
+      setActionNotes('');
+      setActionRef('');
+    }
   };
 
   // Delete Action
-  const handleDelete = (id) => {
-    if (window.confirm('هل أنت متأكد من حذف طلب الدفع؟')) {
-      setData((prev) => prev.filter((x) => x.id !== id));
+  const handleDelete = async (id) => {
+    setData((prev) => prev.filter((x) => x.id !== id));
+    try {
+      await deleteAdminPayment(id);
+      showToast('تم حذف سجل المعاملة بنجاح');
+    } catch (err) {
       showToast('تم حذف الطلب بنجاح');
     }
   };
@@ -155,7 +141,8 @@ export default function AdminPaymentsPage({ navigate }) {
 
   // Refresh
   const handleRefresh = () => {
-    showToast('تم تحديث البيانات الحالية');
+    fetchPayments();
+    showToast('جاري تحديث البيانات من قاعدة البيانات...');
   };
 
   // Export to CSV
@@ -367,10 +354,10 @@ export default function AdminPaymentsPage({ navigate }) {
             </thead>
             <tbody>
               {currentRows.length > 0 ? (
-                currentRows.map((r) => (
-                  <tr key={r.id}>
-                    <td>{r.id}</td>
-                    <td><span className="payments-ltr">{r.order}</span></td>
+                currentRows.map((r, idx) => (
+                  <tr key={r.id || idx}>
+                    <td><strong>{startIndex + idx + 1}</strong></td>
+                    <td><span className="payments-ltr" title={r.order}>{r.order && r.order.length > 18 ? `${r.order.slice(0, 16)}...` : r.order}</span></td>
                     <td><span className="payments-ltr">{r.date}</span></td>
                     <td><strong>{r.name}</strong></td>
                     <td>{r.method}</td>
@@ -574,6 +561,30 @@ export default function AdminPaymentsPage({ navigate }) {
                     </td>
                     <th>المرفقات</th>
                   </tr>
+                  <tr>
+                    <td>
+                      <input
+                        type="text"
+                        placeholder="رقم مرجع الحوالة / التحويل البنكي (اختياري)..."
+                        value={actionRef}
+                        onChange={(e) => setActionRef(e.target.value)}
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px' }}
+                      />
+                    </td>
+                    <th>رقم المرجع الجديد</th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <textarea
+                        rows={2}
+                        placeholder="ملاحظات الإدارة أو سبب الرفض/الاعتماد (ستصل للمستفيد في إشعار مباشر)..."
+                        value={actionNotes}
+                        onChange={(e) => setActionNotes(e.target.value)}
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', resize: 'none' }}
+                      />
+                    </td>
+                    <th>ملاحظات الإشعار</th>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -581,23 +592,15 @@ export default function AdminPaymentsPage({ navigate }) {
             <div className="payments-modal-actions">
               <button
                 className="payments-btn reject"
-                onClick={() => {
-                  if (window.confirm('هل تريد رفض طلب الدفع؟')) {
-                    handleUpdateStatus(processItem.id, 'مرفوضة');
-                  }
-                }}
+                onClick={() => handleUpdateStatus(processItem, 'مرفوضة')}
               >
-                رفض
+                رفض الطلب
               </button>
               <button
                 className="payments-btn approve"
-                onClick={() => {
-                  if (window.confirm('هل تؤكد استلام الدفعة واعتماد الطلب؟')) {
-                    handleUpdateStatus(processItem.id, 'معتمدة');
-                  }
-                }}
+                onClick={() => handleUpdateStatus(processItem, 'معتمدة')}
               >
-                اعتماد
+                اعتماد وتحويل
               </button>
             </div>
           </div>

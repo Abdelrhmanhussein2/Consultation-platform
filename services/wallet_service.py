@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from helpers.enums import (
-    AppointmentStatus, PayoutStatus, NotificationType
+    AppointmentStatus, PayoutStatus, NotificationType, UserRole
 )
+from services.notification_service import NotificationService
 from helpers.encryption import (
     encrypt_text, decrypt_text,
     mask_bank_account, mask_iban, mask_string
@@ -271,6 +272,25 @@ class WalletService:
         db.add(payout)
         db.commit()
         db.refresh(payout)
+
+        # Dispatch real-time notification to all Admins
+        try:
+            consultant_profile = db.query(ConsultantProfile).filter(ConsultantProfile.id == consultant_id).first()
+            consultant_user = db.query(User).filter(User.id == consultant_profile.user_id).first() if consultant_profile else None
+            c_name = consultant_user.full_name if consultant_user else "المستشار"
+            admins = db.query(User).filter(User.role.in_([UserRole.admin, UserRole.super_admin])).all()
+            for admin in admins:
+                NotificationService.send(
+                    db=db,
+                    user_id=admin.id,
+                    notification_type=NotificationType.system_announcement,
+                    title="طلب سحب أرباح جديد",
+                    message=f"قام المستشار {c_name} بتقديم طلب سحب أرباح بقيمة {float(amount):.2f} {bank_acc['currency']}.",
+                    related_entity_type="payout_request",
+                    related_entity_id=payout.id
+                )
+        except Exception:
+            pass
 
         return WalletService.format_payout_out(payout)
 
