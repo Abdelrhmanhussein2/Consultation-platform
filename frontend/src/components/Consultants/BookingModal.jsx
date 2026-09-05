@@ -252,11 +252,12 @@ export default function BookingModal({ consultant, isOpen, onClose, onSuccess })
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '32px',
               margin: '0 auto 16px auto',
               border: '1px solid #A7F3D0'
             }}>
-              ⏳
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
             </div>
 
             <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0D3C5C', marginBottom: '8px' }}>
@@ -275,7 +276,7 @@ export default function BookingModal({ consultant, isOpen, onClose, onSuccess })
               }}
               style={{
                 width: '100%',
-                background: 'linear-gradient(135deg, #F5A52A, #E0921B)',
+                background: 'linear-gradient(135deg, #0B2E4B, #1B4D7E)',
                 color: '#FFFFFF',
                 border: 'none',
                 padding: '12px',
@@ -283,7 +284,7 @@ export default function BookingModal({ consultant, isOpen, onClose, onSuccess })
                 fontWeight: '700',
                 fontSize: '14px',
                 cursor: 'pointer',
-                boxShadow: '0 4px 10px rgba(245, 165, 42, 0.2)'
+                boxShadow: '0 4px 10px rgba(11, 46, 75, 0.2)'
               }}
             >
               حسناً، فهمت
@@ -294,7 +295,13 @@ export default function BookingModal({ consultant, isOpen, onClose, onSuccess })
             {/* Booking Card Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0D3C5C', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>📅 احجز جلستك</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D3C5C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                <span>احجز جلستك</span>
               </h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span style={{
@@ -326,8 +333,25 @@ export default function BookingModal({ consultant, isOpen, onClose, onSuccess })
             </div>
 
             {error && (
-              <div style={{ background: '#FEE2E2', color: '#991B1B', padding: '10px 14px', borderRadius: '12px', fontSize: '12px', marginBottom: '16px' }}>
-                {error}
+              <div style={{
+                background: '#FEF2F2',
+                border: '1px solid #FCA5A5',
+                color: '#991B1B',
+                padding: '10px 14px',
+                borderRadius: '12px',
+                fontSize: '12px',
+                fontWeight: '600',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>{error}</span>
               </div>
             )}
 

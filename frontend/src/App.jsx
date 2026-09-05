@@ -10,7 +10,7 @@ import PolicyModal from './components/PolicyModal/PolicyModal';
 // User Portal Pages & Layout
 import UserLayout from './components/UserPortal/UserLayout';
 import UserDashboard from './pages/UserDashboard';
-import ConsultantsPage from './pages/ConsultantsPage';
+import ConsultantsPage from './pages/consultants/ConsultantsPage';
 import MyAppointmentsPage from './pages/MyAppointmentsPage';
 import QuickConsultationPage from './pages/QuickConsultationPage';
 import ChatPage from './pages/ChatPage';

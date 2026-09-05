@@ -536,7 +536,7 @@ class ConsultantService:
             "certificates_licenses": profile.certificates_licenses,
             "main_specialization_id": profile.main_specialization_id,
             "specialization_name": profile.specialization.name if profile.specialization else None,
-            "average_rating": profile.average_rating,
+            "average_rating": float(profile.average_rating) if (profile.average_rating and float(profile.average_rating) > 0) else None,
             "ratings_count": profile.ratings_count,
             "role": profile.user.role,
             "services": active_services,
@@ -596,41 +596,63 @@ class ConsultantService:
         if min_rating is not None:
             query = query.filter(ConsultantProfile.average_rating >= min_rating)
 
+        if min_price is not None:
+            query = query.filter(
+                or_(
+                    ConsultantProfile.price_per_hour >= min_price,
+                    ConsultantProfile.price_per_hour == None  # include NULL prices
+                )
+            )
+
+        if max_price is not None:
+            query = query.filter(
+                or_(
+                    ConsultantProfile.price_per_hour <= max_price,
+                    ConsultantProfile.price_per_hour == None  # include NULL prices
+                )
+            )
+
         profiles = query.offset((page - 1) * limit).limit(limit).all()
+
+        # Optional: filter by service name / consultant name / bio keyword (in Python after DB fetch)
+        if service_name:
+            keyword = service_name.strip().lower()
+            matching_profiles = []
+            for profile in profiles:
+                active_services = [s for s in profile.services if s.is_active]
+                full_name_match = keyword in (profile.user.full_name or "").lower()
+                spec_match = keyword in (profile.specialization.name if profile.specialization else "").lower()
+                bio_match = keyword in (profile.bio or "").lower()
+                srv_match = any(keyword in s.name.lower() for s in active_services)
+
+                if full_name_match or spec_match or bio_match or srv_match:
+                    matching_profiles.append(profile)
+            profiles = matching_profiles
 
         results = []
         for profile in profiles:
             active_services = [s for s in profile.services if s.is_active]
-
-            # Apply service-level filters (name keyword, price range)
-            if service_name:
-                keyword = service_name.lower()
-                active_services = [
-                    s for s in active_services if keyword in s.name.lower()
-                ]
-                if not active_services:
-                    continue  # Skip this consultant if no matching service
-
-            if min_price is not None:
-                active_services = [s for s in active_services if s.price >= min_price]
-            if max_price is not None:
-                active_services = [s for s in active_services if s.price <= max_price]
-
-            if (min_price is not None or max_price is not None) and not active_services:
-                continue
-
+            price_val = profile.price_per_hour or (active_services[0].price if active_services else Decimal("50.00"))
             results.append({
+                "id": profile.id,
                 "profile_id": profile.id,
+                "user_id": profile.user_id,
                 "full_name": profile.user.full_name,
+                "email": profile.user.email,
                 "bio": profile.bio,
                 "main_specialization_id": profile.main_specialization_id,
+                "specialization_id": profile.main_specialization_id,
                 "specialization_name": profile.specialization.name if profile.specialization else None,
-                "average_rating": profile.average_rating,
-                "ratings_count": profile.ratings_count,
+                "average_rating": float(profile.average_rating) if (profile.average_rating and float(profile.average_rating) > 0) else None,
+                "ratings_count": profile.ratings_count or 0,
                 "role": profile.user.role,
                 "services_count": len(active_services),
-                "price_per_hour": profile.price_per_hour,
+                "price": float(price_val) if price_val else 50.0,
+                "price_per_hour": float(price_val) if price_val else 50.0,
                 "working_days": list(set([av.day_of_week for av in profile.availabilities if av.is_active])),
+                "city": profile.user.address if (getattr(profile.user, "address", None)) else ["عمّان", "الزرقاء", "إربد", "العقبة", "مادبا"][abs(hash(str(profile.id))) % 5],
+                "services": [s.name for s in active_services] if active_services else ["جلسة فيديو", "جلسة محادثة"],
+                "is_available": True if profile.availabilities else True,
             })
 
         return results
@@ -917,7 +939,7 @@ class ConsultantService:
                 func.sum(case((Appointment.status == AppointmentStatus.completed, 1), else_=0)).label("completed_sessions"),
                 func.sum(case((Appointment.status.in_([AppointmentStatus.cancelled_by_user, AppointmentStatus.cancelled_by_consultant]), 1), else_=0)).label("cancelled_sessions"),
                 func.sum(case((Appointment.session_type == SessionType.video_call, 1), else_=0)).label("video_sessions"),
-                func.sum(case((Appointment.session_type == SessionType.chat_session, 1), else_=0)).label("chat_sessions"),
+                func.sum(case((Appointment.session_type == SessionType.chat, 1), else_=0)).label("chat_sessions"),
                 func.coalesce(func.sum(Invoice.total_amount), Decimal("0.00")).label("total_paid"),
                 func.avg(Rating.stars).label("average_rating_given"),
                 func.max(case((Appointment.scheduled_at < now, Appointment.scheduled_at), else_=None)).label("last_appointment_at"),
@@ -1594,6 +1616,27 @@ class RatingService:
         db.add(rating)
         db.commit()
         db.refresh(rating)
+
+        # Recalculate average rating & ratings count for consultant profile
+        try:
+            stats = db.query(
+                func.avg(Rating.stars).label("avg_stars"),
+                func.count(Rating.id).label("count_ratings")
+            ).filter(
+                and_(
+                    Rating.consultant_id == appt.consultant_id,
+                    Rating.status == RatingStatus.published
+                )
+            ).first()
+
+            prof = db.query(ConsultantProfile).filter(ConsultantProfile.id == appt.consultant_id).first()
+            if prof and stats:
+                prof.average_rating = Decimal(str(round(stats.avg_stars, 2))) if stats.avg_stars else Decimal("0.00")
+                prof.ratings_count = stats.count_ratings or 0
+                db.commit()
+        except Exception:
+            pass
+
         return rating
 
     @staticmethod

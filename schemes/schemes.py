@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 import uuid
 from typing import Optional, Literal, List, Union, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from helpers.enums import (
     UserRole, VerificationStatus, AppointmentStatus, ActorRole,
@@ -410,6 +410,7 @@ class ConsultantPublicProfileOut(BaseModel):
     price_per_hour: Optional[Decimal] = None
     working_days: List[int] = []
     availabilities: List[ConsultantAvailabilityOut] = []
+    city: Optional[str] = "عمّان"
 
     class Config:
         from_attributes = True
@@ -421,12 +422,14 @@ class ConsultantListItemOut(BaseModel):
     bio: Optional[str]
     main_specialization_id: Optional[int]
     specialization_name: Optional[str]
-    average_rating: Decimal
+    average_rating: Optional[float] = None
     ratings_count: int
     role: UserRole
     services_count: int
     price_per_hour: Optional[Decimal] = None
+    price: Optional[float] = None
     working_days: List[int] = []
+    city: Optional[str] = "عمّان"
 
     class Config:
         from_attributes = True

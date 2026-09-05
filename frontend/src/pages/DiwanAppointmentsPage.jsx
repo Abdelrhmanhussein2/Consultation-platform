@@ -28,6 +28,16 @@ const paymentLabels = {
   rejected: 'دفعة مرفوضة'
 };
 
+const ARABIC_DAYS_MAP = {
+  0: 'الإثنين',
+  1: 'الثلاثاء',
+  2: 'الأربعاء',
+  3: 'الخميس',
+  4: 'الجمعة',
+  5: 'السبت',
+  6: 'الأحد'
+};
+
 // No mock advisors — populated from backend
 const advisors = [];
 const currentConsultant = '';
@@ -175,6 +185,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
   // Toast notification state
   const [toastMessage, setToastMessage] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
+  const [formError, setFormError] = useState('');
   const toastTimeoutRef = useRef(null);
 
   const showToast = useCallback((msg) => {
@@ -495,7 +506,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
         const [y, m, d] = reschedDate.split('-').map(Number);
         const h = Math.floor(reschedTime);
         const min = Math.round((reschedTime - h) * 60);
-        const newDt = new Date(Date.UTC(y, m - 1, d, h, min));
+        const newDt = new Date(y, m - 1, d, h, min);
         await appointmentService.rescheduleAppointment(selectedEvent.id, {
           new_scheduled_at: newDt.toISOString(),
           reason: reschedReason
@@ -835,17 +846,18 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
 
   // Submit cross-booking
   const saveCrossBooking = async () => {
-    if (!crossSelectedId) { showToast('اختر المستشار'); return; }
-    if (!newDate) { showToast('اختر التاريخ'); return; }
-    if (newSlot === null) { showToast('اختر الوقت المتاح'); return; }
+    setFormError('');
+    if (!crossSelectedId) { setFormError('يرجى اختيار المستشار المستهدف'); return; }
+    if (!newDate) { setFormError('يرجى اختيار تاريخ الجلسة'); return; }
+    if (newSlot === null) { setFormError('يرجى اختيار وقت متاح من الجدول'); return; }
     const token = auth?.token;
-    if (!token) { showToast('يجب تسجيل الدخول أولاً'); return; }
+    if (!token) { setFormError('يجب تسجيل الدخول أولاً'); return; }
     try {
       setCrossBooking(true);
       const [y, m, d] = newDate.split('-').map(Number);
       const h = Math.floor(newSlot);
       const min = Math.round((newSlot - h) * 60);
-      const scheduledAt = new Date(Date.UTC(y, m - 1, d, h, min)).toISOString();
+      const scheduledAt = new Date(y, m - 1, d, h, min).toISOString();
       await appointmentService.bookAppointment({
         consultant_id: crossSelectedId,
         service_id: crossSelectedServiceId || undefined,
@@ -854,68 +866,187 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
         session_type: newMeeting === 'video' ? 'video_call' : newMeeting === 'chat' ? 'chat' : 'video_call',
         notes: newQuestion || 'استشارة بين مستشارين — تخصصات مختلفة'
       }, token);
-      showToast('✅ تم إرسال طلب الاستشارة للمستشار بنجاح');
+      setFormError('');
+      showToast('تم إرسال طلب الاستشارة للمستشار بنجاح');
       setNewConsultOpen(false);
       setNewQuestion('');
       setNewSlot(null);
       fetchBackendAppointments();
     } catch (err) {
-      showToast('حدث خطأ أثناء الحجز، تأكد من البيانات');
       console.error('Cross booking error:', err);
+      const errMsg = err?.detail || err?.message || 'حدث خطأ أثناء الحجز، يرجى التأكد من البيانات والمحاولة مجدداً';
+      setFormError(errMsg);
     } finally {
       setCrossBooking(false);
     }
   };
 
   const activeBookingAdvisor = role === 'consultant' ? currentConsultant : newAdvisor;
-  const advisorOffer = advisorCatalog[activeBookingAdvisor]?.[newMeeting] || { durations: [30, 60, 90], prices: { 30: 100, 60: 180, 90: 250 }, price: 200 };
-  const computedPrice = newMeeting === 'report' ? advisorOffer.price : (advisorOffer.prices[newDuration] || 0);
 
+  // Selected consultant object & services for the new consultation modal
+  const selectedConsultantObj = useMemo(() => {
+    if (!consultantList || consultantList.length === 0) return null;
+    return consultantList.find(c => {
+      const name = c.display_name || c.full_name || c.user?.full_name || '';
+      return name === newAdvisor || c.id === newAdvisor || String(c.id) === String(newAdvisor);
+    }) || consultantList[0];
+  }, [consultantList, newAdvisor]);
+
+  const [currentAdvisorServices, setCurrentAdvisorServices] = useState([]);
+
+  useEffect(() => {
+    if (!selectedConsultantObj?.id) return;
+    const token = auth?.token;
+    consultantService.getConsultantServices(selectedConsultantObj.id, token)
+      .then(srvs => {
+        if (Array.isArray(srvs) && srvs.length > 0) {
+          setCurrentAdvisorServices(srvs);
+          setNewType(srvs[0].name);
+        } else if (Array.isArray(selectedConsultantObj.services) && selectedConsultantObj.services.length > 0) {
+          const sArr = selectedConsultantObj.services.map((s, idx) => ({ id: idx, name: typeof s === 'string' ? s : s.name, price: s.price || 50 }));
+          setCurrentAdvisorServices(sArr);
+          setNewType(sArr[0].name);
+        } else {
+          const fallbackSpec = selectedConsultantObj.specialization_name || 'استشارة ضريبية عامة';
+          setCurrentAdvisorServices([{ id: 1, name: fallbackSpec, price: selectedConsultantObj.price || 50 }]);
+          setNewType(fallbackSpec);
+        }
+      })
+      .catch(() => {
+        const fallbackSpec = selectedConsultantObj?.specialization_name || 'استشارة ضريبية عامة';
+        setCurrentAdvisorServices([{ id: 1, name: fallbackSpec, price: selectedConsultantObj?.price || 50 }]);
+        setNewType(fallbackSpec);
+      });
+  }, [selectedConsultantObj, auth?.token]);
+
+  const selectedServiceObj = useMemo(() => {
+    return currentAdvisorServices.find(s => s.name === newType) || currentAdvisorServices[0] || null;
+  }, [currentAdvisorServices, newType]);
+
+  const computedPrice = useMemo(() => {
+    if (selectedServiceObj && selectedServiceObj.price) {
+      return Number(selectedServiceObj.price);
+    }
+    return 50;
+  }, [selectedServiceObj]);
+
+  // Working days of selected consultant
+  const consultantWorkingDays = useMemo(() => {
+    if (selectedConsultantObj?.working_days && selectedConsultantObj.working_days.length > 0) {
+      return selectedConsultantObj.working_days;
+    }
+    if (selectedConsultantObj?.availabilities && selectedConsultantObj.availabilities.length > 0) {
+      return [...new Set(selectedConsultantObj.availabilities.filter(a => a.is_active !== false).map(a => a.day_of_week))];
+    }
+    return [0, 1, 2, 3, 6]; // Default: Mon, Tue, Wed, Thu, Sun
+  }, [selectedConsultantObj]);
+
+  const workingDaysText = useMemo(() => {
+    return consultantWorkingDays.map(d => ARABIC_DAYS_MAP[d]).filter(Boolean).join('، ');
+  }, [consultantWorkingDays]);
+
+  const isCurrentDateWorkingDay = useMemo(() => {
+    if (!newDate) return true;
+    const [y, m, d] = newDate.split('-').map(Number);
+    const jsDate = new Date(y, m - 1, d);
+    const pythonDow = (jsDate.getDay() + 6) % 7;
+    return consultantWorkingDays.includes(pythonDow);
+  }, [newDate, consultantWorkingDays]);
+
+  // Available timeslots calculation filtered by working day & duration
   const availableNewSlots = useMemo(() => {
-    if (newMeeting === 'report') return [];
+    if (newMeeting === 'report' || !isCurrentDateWorkingDay || !newDate) return [];
     const durHours = Number(newDuration) / 60;
     const slots = [];
-    for (let t = 8; t <= 19; t += 0.5) {
-      const busy = events.some(o => o.advisor === activeBookingAdvisor && o.date === newDate && !(t + durHours <= o.start || t >= o.start + o.dur));
-      slots.push({ t, busy });
+    const [y, m, d] = newDate.split('-').map(Number);
+    const jsDate = new Date(y, m - 1, d);
+    const pythonDow = (jsDate.getDay() + 6) % 7;
+
+    let activeAvailForDay = null;
+    if (selectedConsultantObj?.availabilities && Array.isArray(selectedConsultantObj.availabilities)) {
+      activeAvailForDay = selectedConsultantObj.availabilities.filter(a => a.day_of_week === pythonDow && a.is_active !== false);
+    }
+
+    if (activeAvailForDay && activeAvailForDay.length > 0) {
+      activeAvailForDay.forEach(av => {
+        const sTime = av.start_time ? String(av.start_time).slice(0, 5) : '09:00';
+        const eTime = av.end_time ? String(av.end_time).slice(0, 5) : '17:00';
+        const [startH, startM] = sTime.split(':').map(Number);
+        const [endH, endM] = eTime.split(':').map(Number);
+        let cur = startH + startM / 60;
+        const endVal = endH + endM / 60;
+        while (cur + durHours <= endVal) {
+          const busy = events.some(o => o.advisor === activeBookingAdvisor && o.date === newDate && !(cur + durHours <= o.start || cur >= o.start + o.dur));
+          slots.push({ t: cur, busy });
+          cur += 0.5;
+        }
+      });
+    } else {
+      for (let t = 9; t <= 17 - durHours; t += 0.5) {
+        const busy = events.some(o => o.advisor === activeBookingAdvisor && o.date === newDate && !(t + durHours <= o.start || t >= o.start + o.dur));
+        slots.push({ t, busy });
+      }
     }
     return slots;
-  }, [newMeeting, newDuration, activeBookingAdvisor, newDate, events]);
+  }, [newMeeting, isCurrentDateWorkingDay, newDuration, newDate, selectedConsultantObj, events, activeBookingAdvisor]);
 
-  const saveNewConsultation = () => {
+  const saveNewConsultation = async () => {
+    setFormError('');
     if (!newQuestion.trim()) {
-      showToast('اكتب موضوع الاستشارة');
+      setFormError('يرجى كتابة موضوع الاستشارة قبل المتابعة');
+      return;
+    }
+    if (newMeeting !== 'report' && !isCurrentDateWorkingDay) {
+      setFormError(`المستشار غير متاح في هذا اليوم (عطلة الأسبوع). أيام عمله: (${workingDaysText || 'الأحد إلى الخميس'})`);
       return;
     }
     if (newMeeting !== 'report' && newSlot === null) {
-      showToast('اختر وقتاً متاحاً');
+      setFormError('يرجى تحديد وقت متاح من الجدول أعلاه');
       return;
     }
-    const durHours = newMeeting === 'report' ? 0.5 : Number(newDuration) / 60;
-    const clientVal = role === 'user' ? currentUserClientId : Number(newClient);
-    const newEventObj = {
-      id: Date.now(),
-      date: newDate,
-      start: newMeeting === 'report' ? 12 : newSlot,
-      dur: durHours,
-      client: clientVal,
-      title: newType,
-      type: newType,
-      advisor: activeBookingAdvisor,
-      status: 'pending',
-      payment: 'waiting',
-      amount: computedPrice,
-      meeting: newMeeting,
-      question: newQuestion,
-      docs: 0,
-      unread: 0,
-      notes: 0
-    };
-    setEvents(prev => [...prev, newEventObj]);
-    addActivity(newEventObj.id, 'تم إنشاء الاستشارة');
-    addSystemMessage(clientVal, `تم إنشاء طلب استشارة ${serviceLabels[newMeeting]} بتاريخ ${newDate} مع المستشار ${activeBookingAdvisor}.`);
-    setNewConsultOpen(false);
-    showToast('تم إنشاء الاستشارة وإشعار العميل');
+
+    try {
+      const getCookie = name => { try { const m = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)')); return m ? decodeURIComponent(m[2]) : null; } catch { return null; } };
+      const activeToken = auth?.token || getCookie('token');
+      const isUuid = v => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+
+      const consultantId = isUuid(selectedConsultantObj?.id)
+        ? selectedConsultantObj.id
+        : isUuid(selectedConsultantObj?.profile_id)
+        ? selectedConsultantObj.profile_id
+        : 'c2264e0d-7229-481a-9718-8657077c42fe';
+
+      const serviceId = isUuid(selectedServiceObj?.id) ? selectedServiceObj.id : null;
+
+      // Calculate scheduled_at ISO string
+      const [y, m, d] = newDate.split('-').map(Number);
+      const slotVal = newMeeting === 'report' ? 12 : newSlot;
+      const h = Math.floor(slotVal);
+      const min = Math.round((slotVal - h) * 60);
+      const scheduledAt = new Date(y, m - 1, d, h, min).toISOString();
+
+      await appointmentService.bookAppointment({
+        consultant_id: consultantId,
+        service_id: serviceId,
+        scheduled_at: scheduledAt,
+        duration_minutes: Number(newDuration) || 60,
+        session_type: newMeeting === 'chat' ? 'chat' : newMeeting === 'report' ? 'written_report' : 'video_call',
+        notes: `${newType}: ${newQuestion}`
+      }, activeToken);
+
+      // Re-fetch backend appointments so it appears in the calendar and tables instantly!
+      await fetchBackendAppointments();
+
+      setFormError('');
+      setNewConsultOpen(false);
+      setNewQuestion('');
+      setNewSlot(null);
+      showToast('تم إرسال طلب الحجز بنجاح. الاستشارة الآن قيد انتظار موافقة المستشار.');
+    } catch (err) {
+      console.error('saveNewConsultation error:', err);
+      const errMsg = err?.detail || err?.message || 'حدث خطأ أثناء الحجز، يرجى المحاولة لاحقاً';
+      setFormError(errMsg);
+    }
   };
 
   // 9. Video Room Simulation
@@ -2716,7 +2847,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
 
       {/* 9. New Consultation Modal */}
       {newConsultOpen && (
-        <div className="overlay" onClick={() => setNewConsultOpen(false)}>
+        <div className="overlay" onClick={() => { setFormError(''); setNewConsultOpen(false); }}>
           <div className="modal wide" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <div>
@@ -2727,16 +2858,40 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                     : 'حجز متكامل مع فحص التوفر والدفع والإشعار'}
                 </div>
               </div>
-              <button className="icon-btn" onClick={() => setNewConsultOpen(false)}>×</button>
+              <button className="icon-btn" onClick={() => { setFormError(''); setNewConsultOpen(false); }}>×</button>
             </div>
 
             <div className="modal-body">
+              {/* Inline Form Error Alert */}
+              {formError && (
+                <div style={{
+                  background: '#FEF2F2',
+                  border: '1px solid #FCA5A5',
+                  color: '#991B1B',
+                  borderRadius: '10px',
+                  padding: '12px 16px',
+                  marginBottom: '16px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <span>{formError}</span>
+                </div>
+              )}
+
               {/* ── CONSULTANT CROSS-BOOKING ── */}
               {role === 'consultant' ? (
                 <>
                   <div className="role-banner" style={{ background: 'linear-gradient(135deg,#e8f4ff,#f0e8ff)', borderRadius: 10, padding: '10px 14px', marginBottom: 12 }}>
                     <div>
-                      <b>🔗 حجز بين مستشارين</b>
+                      <b>حجز بين مستشارين</b>
                       <span style={{ display: 'block', fontSize: '10px', color: '#6b7280', marginTop: 3 }}>
                         أنت تحجز كـ <strong>عميل</strong> مع مستشار من تخصص مختلف — سيظهر الموعد في سجلاتك كحجز شخصي
                       </span>
@@ -2748,7 +2903,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                     <div className="field full">
                       <label>المستشار المستهدف (تخصص مختلف)</label>
                       {crossLoading ? (
-                        <div style={{ color: '#888', fontSize: '11px', padding: '8px 0' }}>⏳ جاري جلب المستشارين...</div>
+                        <div style={{ color: '#888', fontSize: '11px', padding: '8px 0' }}>جاري جلب المستشارين...</div>
                       ) : crossConsultants.length === 0 ? (
                         <div style={{ color: '#e05', fontSize: '11px', padding: '8px 0' }}>
                           لا يوجد مستشارون بتخصصات مختلفة متاحون حالياً
@@ -2756,7 +2911,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                       ) : (
                         <select
                           value={crossSelectedId}
-                          onChange={(e) => { setCrossSelectedId(e.target.value); setNewSlot(null); }}
+                          onChange={(e) => { setCrossSelectedId(e.target.value); setNewSlot(null); setFormError(''); }}
                         >
                           {crossConsultants.map(c => (
                             <option key={c.id} value={c.id}>
@@ -2797,7 +2952,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                     <div className="field">
                       <label>التاريخ</label>
                       <input className="num" type="date" value={newDate} min={iso(new Date())}
-                        onChange={(e) => { setNewDate(e.target.value); setNewSlot(null); }} />
+                        onChange={(e) => { setNewDate(e.target.value); setNewSlot(null); setFormError(''); }} />
                     </div>
 
                     {/* Duration */}
@@ -2827,7 +2982,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                       <textarea
                         placeholder="اكتب موضوع الاستشارة والغرض من الحجز..."
                         value={newQuestion}
-                        onChange={(e) => setNewQuestion(e.target.value)}
+                        onChange={(e) => { setNewQuestion(e.target.value); setFormError(''); }}
                       />
                     </div>
                   </div>
@@ -2840,7 +2995,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                         <button
                           key={t}
                           className={`new-slot ${newSlot === t ? 'selected' : ''}`}
-                          onClick={() => setNewSlot(t)}
+                          onClick={() => { setNewSlot(t); setFormError(''); }}
                         >
                           <span className="num">{timeFmt(t)}</span>
                         </button>
@@ -2873,7 +3028,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                     </div>
                     <div className="field">
                       <label>المستشار</label>
-                      <select value={newAdvisor} onChange={(e) => setNewAdvisor(e.target.value)}>
+                      <select value={newAdvisor} onChange={(e) => { setNewAdvisor(e.target.value); setFormError(''); }}>
                         {consultantList.length > 0 ? (
                           consultantList.map(c => {
                             const name = c.display_name || c.full_name || c.user?.full_name || `مستشار #${c.id}`;
@@ -2891,13 +3046,19 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                       </select>
                     </div>
                     <div className="field">
-                      <label>نوع الاستشارة</label>
+                      <label>نوع الاستشارة / الخدمة</label>
                       <select value={newType} onChange={(e) => setNewType(e.target.value)}>
-                        <option>ضريبة المبيعات</option>
-                        <option>ضريبة الدخل</option>
-                        <option>اعتراض ضريبي</option>
-                        <option>معاملات دولية</option>
-                        <option>أسعار التحويل</option>
+                        {currentAdvisorServices.length > 0 ? (
+                          currentAdvisorServices.map(s => (
+                            <option key={s.id || s.name} value={s.name}>
+                              {s.name} {s.price ? ` — JOD ${s.price}` : ''}
+                            </option>
+                          ))
+                        ) : (
+                          <option value={selectedConsultantObj?.specialization_name || "استشارة ضريبية عامة"}>
+                            {selectedConsultantObj?.specialization_name || "استشارة ضريبية عامة"}
+                          </option>
+                        )}
                       </select>
                     </div>
                     <div className="field">
@@ -2910,18 +3071,37 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                     </div>
                     <div className="field">
                       <label>التاريخ</label>
-                      <input className="num" type="date" value={newDate}
-                        onChange={(e) => setNewDate(e.target.value)} />
+                      <input className="num" type="date" value={newDate} min={iso(new Date())}
+                        onChange={(e) => { setNewDate(e.target.value); setNewSlot(null); setFormError(''); }} />
+                      {isCurrentDateWorkingDay ? (
+                        <div style={{ fontSize: '11px', color: '#0B2E4B', marginTop: '5px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                          </svg>
+                          <span>أيام عمل المستشار: {workingDaysText || 'الأحد إلى الخميس'}</span>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '11px', color: '#DC2626', marginTop: '5px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                          </svg>
+                          <span>المستشار غير متاح في هذا اليوم (عطلة الأسبوع). أيام عمله: ({workingDaysText}).</span>
+                        </div>
+                      )}
                     </div>
                     <div className="field">
                       <label>المدة</label>
                       {newMeeting === 'report' ? (
                         <div className="no-duration">التقرير المكتوب لا يحتاج مدة جلسة زمنية.</div>
                       ) : (
-                        <select value={newDuration} onChange={(e) => setNewDuration(Number(e.target.value))}>
-                          {advisorOffer.durations.map(d => (
-                            <option key={d} value={d}>{d} دقيقة</option>
-                          ))}
+                        <select value={newDuration} onChange={(e) => { setNewDuration(Number(e.target.value)); setNewSlot(null); setFormError(''); }}>
+                          <option value={30}>30 دقيقة</option>
+                          <option value={60}>60 دقيقة (ساعة واحدة)</option>
                         </select>
                       )}
                     </div>
@@ -2937,7 +3117,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                       <textarea
                         placeholder="اكتب موضوع الاستشارة والسؤال الرئيسي..."
                         value={newQuestion}
-                        onChange={(e) => setNewQuestion(e.target.value)}
+                        onChange={(e) => { setNewQuestion(e.target.value); setFormError(''); }}
                       />
                     </div>
                   </div>
@@ -2945,18 +3125,28 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                   {newMeeting !== 'report' && (
                     <div className="availability-preview">
                       <h5>الأوقات المتاحة</h5>
-                      <div className="new-slots">
-                        {availableNewSlots.map(s => (
-                          <button
-                            key={s.t}
-                            className={`new-slot ${s.busy ? 'busy' : ''} ${newSlot === s.t ? 'selected' : ''}`}
-                            disabled={s.busy}
-                            onClick={() => setNewSlot(s.t)}
-                          >
-                            <span className="num">{timeFmt(s.t)}</span>
-                          </button>
-                        ))}
-                      </div>
+                      {!isCurrentDateWorkingDay ? (
+                        <div style={{ background: '#FEF2F2', border: '1px dashed #FCA5A5', color: '#991B1B', padding: '14px', borderRadius: '12px', textAlign: 'center', fontSize: '12px', fontWeight: '700' }}>
+                          المستشار غير متاح في هذا اليوم (عطلة الأسبوع). يُرجى اختيار يوم آخر من أيام العمل المتاحة أعلاه.
+                        </div>
+                      ) : availableNewSlots.length === 0 ? (
+                        <div style={{ background: '#FFF9F0', border: '1px dashed #FDE68A', color: '#B45309', padding: '14px', borderRadius: '12px', textAlign: 'center', fontSize: '12px', fontWeight: '700' }}>
+                          جميع المواعيد المتاحة في هذا اليوم محجوزة.
+                        </div>
+                      ) : (
+                        <div className="new-slots">
+                          {availableNewSlots.map(s => (
+                            <button
+                              key={s.t}
+                              className={`new-slot ${s.busy ? 'busy' : ''} ${newSlot === s.t ? 'selected' : ''}`}
+                              disabled={s.busy}
+                              onClick={() => { setNewSlot(s.t); setFormError(''); }}
+                            >
+                              <span className="num">{timeFmt(s.t)}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </>
@@ -2964,13 +3154,13 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
             </div>
 
             <div className="modal-foot">
-              <button className="ghost" onClick={() => setNewConsultOpen(false)}>إلغاء</button>
+              <button className="ghost" onClick={() => { setFormError(''); setNewConsultOpen(false); }}>إلغاء</button>
               <button
                 className="primary"
                 disabled={crossBooking}
                 onClick={role === 'consultant' ? saveCrossBooking : saveNewConsultation}
               >
-                {crossBooking ? '⏳ جاري الإرسال...' : role === 'consultant' ? 'إرسال طلب الحجز' : 'إنشاء الاستشارة'}
+                {crossBooking ? 'جاري الإرسال...' : role === 'consultant' ? 'إرسال طلب الحجز' : 'إنشاء الاستشارة'}
               </button>
             </div>
           </div>
@@ -3089,8 +3279,24 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
       )}
 
       {/* Toast Notification */}
-      <div className={`toast ${toastVisible ? 'show' : ''}`}>
-        {toastMessage}
+      <div className={`toast ${toastVisible ? 'show' : ''}`} style={{
+        zIndex: 100000,
+        background: '#0B2E4B',
+        color: '#FFFFFF',
+        borderRadius: '10px',
+        padding: '12px 20px',
+        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
+        fontSize: '13px',
+        fontWeight: '600',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        direction: 'rtl'
+      }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>{toastMessage}</span>
       </div>
     </div>
   );
