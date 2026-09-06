@@ -55,6 +55,26 @@ export default function ChatPage({ navigate }) {
   // UI Filters & Search
   const [chatSearch, setChatSearch] = useState('');
   const [consultationFilter, setConsultationFilter] = useState('all');
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const filterDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target)) {
+        setFilterDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filterOptions = [
+    { value: 'all', label: 'كل الاستشارات' },
+    { value: 'active', label: 'استشارات نشطة' },
+    { value: 'follow_up', label: 'متابعة ما بعد الجلسة' },
+    { value: 'completed', label: 'استشارات مكتملة' }
+  ];
+  const currentFilterObj = filterOptions.find(o => o.value === consultationFilter) || filterOptions[0];
 
   // Formatting state for rich editor (Bold, Italic, Underline)
   const [isBold, setIsBold] = useState(false);
@@ -193,8 +213,6 @@ export default function ChatPage({ navigate }) {
 
         if (targetChat) {
           handleSelectChat(targetChat);
-        } else if (validChats.length > 0) {
-          handleSelectChat(validChats[0]);
         }
       } catch (err) {
         showToast('فشل تحميل قائمة المحادثات.', 'error');
@@ -285,6 +303,14 @@ export default function ChatPage({ navigate }) {
 
     return () => clearInterval(interval);
   }, [activeAppt, token]);
+
+  const handleCloseChat = () => {
+    setActiveAppt(null);
+    setMessages([]);
+    if (window.history && window.history.pushState) {
+      window.history.pushState({}, '', window.location.pathname);
+    }
+  };
 
   const handleSelectChat = async (appt) => {
     setActiveAppt(appt);
@@ -428,8 +454,7 @@ export default function ChatPage({ navigate }) {
         setAppointments(prev => {
           const updated = prev.filter(a => String(a.id) !== String(apptId));
           if (activeAppt && String(activeAppt.id) === String(apptId)) {
-            if (updated.length > 0) { handleSelectChat(updated[0]); }
-            else { setActiveAppt(null); setMessages([]); }
+            handleCloseChat();
           }
           return updated;
         });
@@ -628,8 +653,8 @@ export default function ChatPage({ navigate }) {
     if (!statusStr) return 'استشارة نشطة';
     if (statusStr === 'completed') return 'متابعة ما بعد الجلسة (مكتملة)';
     if (statusStr === 'confirmed' || statusStr === 'pending_approval' || statusStr === 'pending_payment') {
-      const isPast = new Date(scheduledAt) < new Date();
-      return isPast ? 'قيد الانعقاد / متابعة' : 'تحدث ما قبل الجلسة (نشطة)';
+      const isPast = scheduledAt && new Date(scheduledAt) < new Date();
+      return isPast ? 'متابعة ما بعد الجلسة (انقضى الموعد)' : 'تحدث ما قبل الجلسة (نشطة)';
     }
     if (statusStr.startsWith('cancelled') || statusStr === 'no_show') return 'استشارة ملغاة';
     return 'استشارة نشطة';
@@ -642,17 +667,19 @@ export default function ChatPage({ navigate }) {
   // Filter and sort appointments: pinned first, then by last message time (most recent first)
   let rawFiltered = appointments
     .filter(a => {
-      // Never exclude the currently active appointment!
-      if (activeAppt && String(a.id) === String(activeAppt.id)) return true;
       if (hiddenChatIds.includes(String(a.id))) return false;
 
       const pName = (getPartnerName(a) || '').toLowerCase();
       const matchesSearch = !chatSearch || pName.includes(chatSearch.toLowerCase());
 
+      const isPast = a.scheduled_at && new Date(a.scheduled_at) < new Date();
+
       let matchesStatus = true;
       if (consultationFilter === 'active') {
-        matchesStatus = a.status !== 'completed' && !String(a.status || '').startsWith('cancelled');
-      } else if (consultationFilter === 'follow_up' || consultationFilter === 'completed') {
+        matchesStatus = a.status !== 'completed' && !String(a.status || '').startsWith('cancelled') && !isPast;
+      } else if (consultationFilter === 'follow_up') {
+        matchesStatus = a.status === 'completed' || (isPast && !String(a.status || '').startsWith('cancelled'));
+      } else if (consultationFilter === 'completed') {
         matchesStatus = a.status === 'completed';
       }
 
@@ -668,11 +695,17 @@ export default function ChatPage({ navigate }) {
       return tB.localeCompare(tA);
     });
 
-  if (activeAppt && !rawFiltered.some(a => String(a.id) === String(activeAppt.id))) {
-    rawFiltered = [activeAppt, ...rawFiltered];
-  }
-
   const filteredAppointments = rawFiltered;
+
+  // Automatically deselect activeAppt if it gets filtered out when changing filters or search
+  useEffect(() => {
+    if (activeAppt) {
+      const isStillAvailable = filteredAppointments.some(a => String(a.id) === String(activeAppt.id));
+      if (!isStillAvailable) {
+        handleCloseChat();
+      }
+    }
+  }, [consultationFilter, chatSearch, appointments]);
 
   const renderAttachmentCard = (attachmentUrl, isMe) => {
     if (!attachmentUrl) return null;
@@ -849,16 +882,54 @@ export default function ChatPage({ navigate }) {
                 المحادثات
               </span>
 
-              <select
-                value={consultationFilter}
-                onChange={e => setConsultationFilter(e.target.value)}
-                className="conversations-select-filter"
-              >
-                <option value="all">كل الاستشارات</option>
-                <option value="active">استشارات نشطة</option>
-                <option value="follow_up">متابعة ما بعد الجلسة</option>
-                <option value="completed">استشارات مكتملة</option>
-              </select>
+              <div className="conversations-custom-select" ref={filterDropdownRef}>
+                <button
+                  type="button"
+                  className={`conversations-select-trigger ${filterDropdownOpen ? 'open' : ''}`}
+                  onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
+                >
+                  <span className="trigger-label">{currentFilterObj.label}</span>
+                  <svg
+                    className={`trigger-arrow ${filterDropdownOpen ? 'rotated' : ''}`}
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+
+                {filterDropdownOpen && (
+                  <div className="conversations-select-menu">
+                    {filterOptions.map(opt => {
+                      const isSelected = consultationFilter === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          className={`conversations-option-item ${isSelected ? 'selected' : ''}`}
+                          onClick={() => {
+                            setConsultationFilter(opt.value);
+                            setFilterDropdownOpen(false);
+                          }}
+                        >
+                          <span className="option-text">{opt.label}</span>
+                          {isSelected && (
+                            <svg className="option-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="search-input-wrapper">
@@ -970,22 +1041,39 @@ export default function ChatPage({ navigate }) {
                 <div className="chat-partner-title-area">
                   <h2>{getPartnerName(activeAppt)}</h2>
 
-                  <span className="code-badge">
-                    CON-{String(activeAppt.id).substring(0, 6).toUpperCase()}
-                  </span>
                   <span className="topic-subtext">
                     {activeAppt.notes || activeAppt.service_name || 'استشارة تخصصية'} — {getStatusLabel(activeAppt.status, activeAppt.scheduled_at)}
                   </span>
                 </div>
 
-                {!isDetailsVisible && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {!isDetailsVisible && (
+                    <button
+                      onClick={() => setIsDetailsVisible(true)}
+                      style={{ background: '#F8FAFC', border: '1px solid #BCCCDC', padding: '5px 12px', borderRadius: '8px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600, color: '#0D3C5C' }}
+                    >
+                      إظهار التفاصيل ◄
+                    </button>
+                  )}
                   <button
-                    onClick={() => setIsDetailsVisible(true)}
-                    style={{ background: '#F8FAFC', border: '1px solid #BCCCDC', padding: '4px 10px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}
+                    onClick={handleCloseChat}
+                    title="إغلاق المحادثة الحالية"
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#64748B',
+                      padding: '4px 8px',
+                      fontSize: '0.82rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      transition: 'color 0.15s ease'
+                    }}
+                    onMouseOver={e => e.currentTarget.style.color = '#EF4444'}
+                    onMouseOut={e => e.currentTarget.style.color = '#64748B'}
                   >
-                    إظهار التفاصيل ◄
+                    إغلاق المحادثة
                   </button>
-                )}
+                </div>
               </div>
 
               {/* Messages Viewport */}
@@ -1147,8 +1235,37 @@ export default function ChatPage({ navigate }) {
               </div>
             </>
           ) : (
-            <div style={{ margin: 'auto', color: '#627D98', textAlign: 'center' }}>
-              اختر محادثة لبدء التراسل.
+            <div style={{
+              margin: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '40px',
+              textAlign: 'center',
+              color: '#64748B'
+            }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                background: '#F1F5F9',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '16px',
+                color: '#005D9C'
+              }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+              </div>
+              <h3 style={{ margin: '0 0 6px', fontSize: '1.05rem', fontWeight: 800, color: '#0D3C5C' }}>
+                لا توجد محادثة مفتوحة
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748B' }}>
+                اختر محادثة من القائمة الجانبية لبدء التواصل والتراسل.
+              </p>
             </div>
           )}
         </div>

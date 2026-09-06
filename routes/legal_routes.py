@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, status, UploadFile, File, Form, HTTPException
 from helpers.enums import UserRole
 from models import User
@@ -73,8 +74,15 @@ async def upload_judgment(
     )
 
 @router.get("/laws")
-def get_laws(current_user: User = Depends(get_current_user)):
-    return LegalController.get_laws()
+def get_laws(
+    q: Optional[str] = None,
+    type: Optional[str] = None,
+    status: Optional[str] = None,
+    year_from: Optional[int] = None,
+    year_to: Optional[int] = None,
+    current_user: User = Depends(get_current_user)
+):
+    return LegalController.get_laws(q=q, year_from=year_from, year_to=year_to)
 
 @router.get("/laws/{law_id}")
 def get_law_tree(

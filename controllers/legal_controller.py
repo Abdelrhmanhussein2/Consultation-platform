@@ -194,8 +194,8 @@ class LegalController:
             )
 
     @staticmethod
-    def get_laws():
-        return LegalGraphService.get_laws()
+    def get_laws(q: str = None, year_from: int = None, year_to: int = None):
+        return LegalGraphService.get_laws(q=q, year_from=year_from, year_to=year_to)
 
     @staticmethod
     def get_law_tree(law_id: str, version_name: str = None):

@@ -64,15 +64,28 @@ export default function MyAppointmentsPage({ navigate }) {
     }
   };
 
-  const handleCancel = async (id) => {
-    const reason = prompt('يرجى كتابة سبب إلغاء الاستشارة:');
-    if (!reason) return;
+  const [cancelModalApptId, setCancelModalApptId] = useState(null);
+  const [cancelReasonText, setCancelReasonText] = useState('');
+  const [cancellingLoading, setCancellingLoading] = useState(false);
+
+  const handleOpenCancelModal = (id) => {
+    setCancelModalApptId(id);
+    setCancelReasonText('');
+  };
+
+  const confirmCancelSubmit = async () => {
+    if (!token || !cancelModalApptId) return;
+    const reason = cancelReasonText.trim() || 'تم إلغاء الموعد بناءً على طلب المستخدم';
+    setCancellingLoading(true);
     try {
-      await appointmentService.cancelAppointment(id, reason, token);
-      alert('تم إلغاء الاستشارة بنجاح');
+      await appointmentService.cancelAppointment(cancelModalApptId, reason, token);
+      setCancelModalApptId(null);
+      setCancelReasonText('');
       fetchAppointments();
     } catch (err) {
       alert(err.message || 'فشلت عملية الإلغاء');
+    } finally {
+      setCancellingLoading(false);
     }
   };
 
@@ -493,7 +506,7 @@ export default function MyAppointmentsPage({ navigate }) {
 
                   {appt.status !== 'cancelled' && appt.status !== 'completed' && appt.status !== 'cancelled_by_user' && appt.status !== 'cancelled_by_consultant' && (
                     <button
-                      onClick={() => handleCancel(appt.id)}
+                      onClick={() => handleOpenCancelModal(appt.id)}
                       style={{
                         backgroundColor: '#FEF2F2',
                         color: '#EF4444',
@@ -539,6 +552,75 @@ export default function MyAppointmentsPage({ navigate }) {
           consultantName={payingAppt.consultant_name || 'المستشار'}
           serviceName={payingAppt.service_name || 'جلسة استشارية ضريبية'}
         />
+      )}
+
+      {/* CUSTOM STYLED CANCELLATION REASON MODAL */}
+      {cancelModalApptId && (
+        <div className="consultantModalBackdrop open" onClick={() => setCancelModalApptId(null)}>
+          <div className="consultantModalShell" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="consultantModalHeader">
+              <div>
+                <span className="consultantModalEyebrow" style={{ color: '#d86d5d' }}>إلغاء الاستشارة</span>
+                <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#123d57', margin: '4px 0' }}>سبب إلغاء الموعد</h2>
+                <p style={{ fontSize: '12px', color: '#607987', margin: 0 }}>يرجى توضيح سبب الإلغاء لمشاركته مع المستشار والمنصة.</p>
+              </div>
+              <button className="consultantModalClose" onClick={() => setCancelModalApptId(null)}>×</button>
+            </div>
+            <div className="consultantModalBody" style={{ padding: '20px' }}>
+              <textarea
+                style={{
+                  width: '100%',
+                  minHeight: '110px',
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  border: '1px solid #dce5ea',
+                  fontFamily: 'inherit',
+                  fontSize: '13px',
+                  outline: 'none',
+                  resize: 'vertical',
+                  marginBottom: '16px',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="اكتب سبب إلغاء الموعد هنا..."
+                value={cancelReasonText}
+                onChange={(e) => setCancelReasonText(e.target.value)}
+              />
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  style={{
+                    padding: '9px 18px',
+                    borderRadius: '9px',
+                    border: '1px solid #dce5ea',
+                    background: '#fff',
+                    color: '#475569',
+                    cursor: 'pointer',
+                    fontWeight: '700',
+                    fontSize: '12px'
+                  }}
+                  onClick={() => setCancelModalApptId(null)}
+                >
+                  تراجع
+                </button>
+                <button
+                  style={{
+                    padding: '9px 24px',
+                    borderRadius: '9px',
+                    border: 'none',
+                    background: '#d86d5d',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontWeight: '800',
+                    fontSize: '12px'
+                  }}
+                  onClick={confirmCancelSubmit}
+                  disabled={cancellingLoading}
+                >
+                  {cancellingLoading ? 'جاري...' : 'تأكيد الإلغاء'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

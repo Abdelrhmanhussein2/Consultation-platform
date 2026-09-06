@@ -15,7 +15,7 @@
   --portal-text-muted: #64748B;
   --portal-border-color: #E2E8F0;
   --portal-card-bg: #FFFFFF;
-  --portal-shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
+  --portal-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
   --portal-shadow-md: 0 4px 12px rgba(13, 60, 92, 0.08);
   --portal-shadow-lg: 0 10px 25px rgba(13, 60, 92, 0.12);
   --portal-radius-sm: 8px;
@@ -345,8 +345,15 @@
 }
 
 @keyframes dropIn {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .notif-header {
@@ -520,10 +527,13 @@
   .portal-sidebar {
     width: 80px;
   }
+
   .portal-wrapper {
     margin-right: 80px;
   }
-  .brand-text-box, .nav-label {
+
+  .brand-text-box,
+  .nav-label {
     display: none;
   }
 }
@@ -532,9 +542,11 @@
   .portal-header {
     padding: 0 16px;
   }
+
   .header-search {
     display: none;
   }
+
   .portal-content-body {
     padding: 16px;
   }
@@ -558,9 +570,11 @@
 .sidebar-nav::-webkit-scrollbar {
   width: 4px;
 }
+
 .sidebar-nav::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .sidebar-nav::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 4px;
@@ -575,9 +589,11 @@
   padding: 24px;
   transition: all 0.2s ease;
 }
+
 .card:hover {
   box-shadow: 0 10px 25px rgba(13, 60, 92, 0.06);
 }
+
 .input-field {
   border: 1.5px solid #E2E8F0;
   border-radius: 12px;
@@ -591,15 +607,18 @@
   color: #1E293B;
   text-align: right;
 }
+
 .input-field:focus {
   border-color: #0E7490;
   box-shadow: 0 0 0 3px rgba(14, 116, 144, 0.1);
 }
+
 .input-field:disabled {
   background: #F1F5F9;
   color: #94A3B8;
   cursor: not-allowed;
 }
+
 .btn-primary {
   background: linear-gradient(135deg, #F5A52A, #E08A00);
   color: #FFFFFF;
@@ -613,11 +632,13 @@
   font-family: 'Cairo', sans-serif;
   box-shadow: 0 4px 12px rgba(245, 165, 42, 0.2);
 }
+
 .btn-primary:hover {
   background: linear-gradient(135deg, #E08A00, #C27500);
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(245, 165, 42, 0.3);
 }
+
 .btn-secondary {
   background: #FFFFFF;
   color: #475569;
@@ -630,10 +651,12 @@
   font-size: 13px;
   font-family: 'Cairo', sans-serif;
 }
+
 .btn-secondary:hover {
   background: #F8FAFC;
   border-color: #CBD5E1;
 }
+
 .btn-navy {
   background: #0D3C5C;
   color: #FFFFFF;
@@ -647,10 +670,12 @@
   font-family: 'Cairo', sans-serif;
   box-shadow: 0 4px 12px rgba(13, 60, 92, 0.1);
 }
+
 .btn-navy:hover {
   background: #07253B;
   transform: translateY(-1px);
 }
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -659,6 +684,7 @@
   font-size: 11px;
   font-weight: 700;
 }
+
 .form-label {
   display: block;
   font-size: 13px;
@@ -666,6 +692,7 @@
   color: #334155;
   margin-bottom: 8px;
 }
+
 .form-label .req {
   color: #EF4444;
 }
@@ -678,6 +705,7 @@
   overflow: hidden;
   width: 100%;
 }
+
 .rich-editor-toolbar {
   border-bottom: 1.5px solid #F1F5F9;
   padding: 10px 14px;
@@ -686,6 +714,7 @@
   flex-wrap: wrap;
   background: #F8FAFC;
 }
+
 .rich-editor-toolbar button {
   width: 34px;
   height: 34px;
@@ -699,10 +728,12 @@
   justify-content: center;
   transition: all 0.15s ease;
 }
+
 .rich-editor-toolbar button:hover {
   background: #E2E8F0;
   color: #0D3C5C;
 }
+
 .rich-editor textarea {
   border: none;
   outline: none;
@@ -715,6 +746,3 @@
   color: #1E293B;
   box-sizing: border-box;
 }
-
-
-

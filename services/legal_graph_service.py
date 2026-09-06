@@ -239,13 +239,28 @@ class LegalGraphService:
             session.execute_write(lambda tx: tx.run(query, links=links))
 
     @staticmethod
-    def get_laws():
+    def get_laws(q: str = None, year_from: int = None, year_to: int = None):
         """
-        Retrieves all Law nodes in the database.
+        Retrieves Law nodes in the database with optional filtering.
         """
-        query = """
+        where_clauses = []
+        params = {}
+        if q:
+            where_clauses.append("toLower(coalesce(p.title, l.law_id, '')) CONTAINS toLower($q)")
+            params["q"] = q
+        if year_from is not None:
+            where_clauses.append("coalesce(p.year, l.year, 0) >= $year_from")
+            params["year_from"] = year_from
+        if year_to is not None:
+            where_clauses.append("coalesce(p.year, l.year, 0) <= $year_to")
+            params["year_to"] = year_to
+
+        where_str = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+        query = f"""
         MATCH (l:Law)
         WITH l, properties(l) AS p
+        {where_str}
         RETURN l.law_id AS law_id, 
                coalesce(p.title, l.law_id, 'تشريع ضريبي') AS title, 
                coalesce(p.number, 0) AS number, 
@@ -253,7 +268,7 @@ class LegalGraphService:
         ORDER BY year DESC, number ASC
         """
         with neo4j_db.get_session() as session:
-            return session.execute_read(lambda tx: tx.run(query).data())
+            return session.execute_read(lambda tx: tx.run(query, **params).data())
 
     @staticmethod
     def get_law_version_tree(law_id: str, version_name: str = None):

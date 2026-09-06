@@ -64,59 +64,9 @@ def list_consultants(
     )
 
 
-@router.get(
-    "/{profile_id}",
-    response_model=ConsultantPublicProfileOut,
-    summary="Get a consultant's public profile",
-)
-def get_consultant_public_profile(
-    profile_id: str,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-):
-    """
-    Returns the full public profile of an approved consultant,
-    including their bio, specialization, rating, and active services.
-    Visible to both users and consultants.
-    """
-    return ConsultantController.get_public_profile(db, profile_id)
-
-
-@router.get(
-    "/{profile_id}/services",
-    response_model=List[ConsultantServiceOut],
-    summary="List all active services for a consultant",
-)
-def get_consultant_services_public(
-    profile_id: str,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-):
-    """
-    Returns all active services offered by a specific consultant.
-    Visible to both users and consultants.
-    """
-    return ConsultantController.get_consultant_services_public(db, profile_id)
-
-
-@router.get(
-    "/{profile_id}/ratings",
-    summary="List all published ratings for a consultant",
-)
-def get_consultant_ratings_public(
-    profile_id: str,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-):
-    """
-    Returns all published ratings and reviews for a specific consultant.
-    Visible to both users and consultants.
-    """
-    return RatingController.get_consultant_ratings(db, profile_id)
-
-
 # ─────────────────────────────────────────────────────────────────────
 # CONSULTANT SELF-MANAGEMENT ENDPOINTS (consultant role required)
+# Must be defined BEFORE dynamic /{profile_id} routes to prevent 'me' from matching as profile_id
 # ─────────────────────────────────────────────────────────────────────
 
 @router.get(
@@ -178,7 +128,6 @@ def update_my_profile(
     return ConsultantController.update_profile(db, current_user, profile_in)
 
 
-
 @router.get(
     "/me/clients",
     response_model=List[ClientSummaryOut],
@@ -208,6 +157,61 @@ def get_my_services(
 ):
     """Returns all services (active and inactive) belonging to the logged-in consultant."""
     return ConsultantController.get_my_services(db, current_user)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# PUBLIC PROFILE & SERVICES ENDPOINTS (by profile_id)
+# ─────────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/{profile_id}",
+    response_model=ConsultantPublicProfileOut,
+    summary="Get a consultant's public profile",
+)
+def get_consultant_public_profile(
+    profile_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Returns the full public profile of an approved consultant,
+    including their bio, specialization, rating, and active services.
+    Visible to both users and consultants.
+    """
+    return ConsultantController.get_public_profile(db, profile_id)
+
+
+@router.get(
+    "/{profile_id}/services",
+    response_model=List[ConsultantServiceOut],
+    summary="List all active services for a consultant",
+)
+def get_consultant_services_public(
+    profile_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Returns all active services offered by a specific consultant.
+    Visible to both users and consultants.
+    """
+    return ConsultantController.get_consultant_services_public(db, profile_id)
+
+
+@router.get(
+    "/{profile_id}/ratings",
+    summary="List all published ratings for a consultant",
+)
+def get_consultant_ratings_public(
+    profile_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Returns all published ratings and reviews for a specific consultant.
+    Visible to both users and consultants.
+    """
+    return RatingController.get_consultant_ratings(db, profile_id)
 
 
 @router.post(

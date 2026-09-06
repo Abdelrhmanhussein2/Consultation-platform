@@ -1,0 +1,27 @@
+/* ── USER HEADER EXTRA STYLES ────────────────────────────────────────── */
+.sub-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(39, 134, 95, 0.12);
+  color: #1b6345;
+  border: 1px solid rgba(39, 134, 95, 0.25);
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  margin-left: 12px;
+  transition: all 0.2s ease;
+}
+.sub-pill:hover {
+  background: rgba(39, 134, 95, 0.2);
+}
+.sub-pill.expiring {
+  background: rgba(239, 68, 68, 0.12);
+  color: #DC2626;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+.sub-pill.expiring:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
