@@ -136,14 +136,26 @@ export default function ConsultantSessionsPage({ navigate }) {
     }
   };
 
-  const handleReject = async (apptId) => {
-    if (!token) return;
-    const reason = prompt("يرجى إدخال سبب الرفض:");
-    if (reason === null) return;
+  const [rejectModalApptId, setRejectModalApptId] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+
+  const handleOpenRejectModal = (apptId) => {
+    setRejectModalApptId(apptId);
+    setRejectionReason('');
+  };
+
+  const confirmRejectSubmit = async () => {
+    if (!token || !rejectModalApptId) return;
+    const apptId = rejectModalApptId;
+    const reasonText = rejectionReason.trim() || "تم الرفض من قبل المستشار";
+
     setActionLoadingId(apptId);
     try {
-      await consultantService.rejectAppointment(apptId, reason || "تم الرفض من قبل المستشار", token);
+      await consultantService.rejectAppointment(apptId, reasonText, token);
       await fetchPageData();
+      showToast('تم رفض طلب الاستشارة وإعلام العميل.');
+      setRejectModalApptId(null);
+      setRejectionReason('');
     } catch (err) {
       showToast(err.message || 'فشلت عملية رفض الجلسة', 'error');
     } finally {
@@ -407,7 +419,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                     {isPending && (
                       <>
                         <button
-                          onClick={() => handleReject(appt.id)}
+                          onClick={() => handleOpenRejectModal(appt.id)}
                           disabled={actionLoadingId === appt.id}
                           style={{
                             backgroundColor: '#FFFFFF',
@@ -621,6 +633,75 @@ export default function ConsultantSessionsPage({ navigate }) {
         onClose={() => setActiveVideoApptId(null)}
         onSessionEnd={() => fetchPageData()}
       />
+
+      {/* CUSTOM STYLED REJECTION REASON MODAL */}
+      {rejectModalApptId && (
+        <div className="consultantModalBackdrop open" onClick={() => setRejectModalApptId(null)}>
+          <div className="consultantModalShell" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="consultantModalHeader">
+              <div>
+                <span className="consultantModalEyebrow" style={{ color: '#d86d5d' }}>رفض الموعد</span>
+                <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#123d57', margin: '4px 0' }}>إدخال سبب رفض الاستشارة</h2>
+                <p style={{ fontSize: '12px', color: '#607987', margin: 0 }}>يرجى كتابة سبب عدم قبول الموعد لإرساله إلى العميل.</p>
+              </div>
+              <button className="consultantModalClose" onClick={() => setRejectModalApptId(null)}>×</button>
+            </div>
+            <div className="consultantModalBody" style={{ padding: '20px' }}>
+              <textarea
+                style={{
+                  width: '100%',
+                  minHeight: '110px',
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  border: '1px solid #dce5ea',
+                  fontFamily: 'inherit',
+                  fontSize: '13px',
+                  outline: 'none',
+                  resize: 'vertical',
+                  marginBottom: '16px',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="اكتب سبب الرفض التوضيحي هنا..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+              />
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  style={{
+                    padding: '9px 18px',
+                    borderRadius: '9px',
+                    border: '1px solid #dce5ea',
+                    background: '#fff',
+                    color: '#475569',
+                    cursor: 'pointer',
+                    fontWeight: '700',
+                    fontSize: '12px'
+                  }}
+                  onClick={() => setRejectModalApptId(null)}
+                >
+                  إلغاء
+                </button>
+                <button
+                  style={{
+                    padding: '9px 24px',
+                    borderRadius: '9px',
+                    border: 'none',
+                    background: '#d86d5d',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontWeight: '800',
+                    fontSize: '12px'
+                  }}
+                  onClick={confirmRejectSubmit}
+                  disabled={actionLoadingId === rejectModalApptId}
+                >
+                  {actionLoadingId === rejectModalApptId ? 'جاري...' : 'تأكيد الرفض'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
