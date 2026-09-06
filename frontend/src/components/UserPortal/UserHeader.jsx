@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { apiFetch } from '../../services/api';
 import { notificationService } from '../../services/notificationService';
 import NotificationDropdown from './NotificationDropdown';
 import UserProfileDropdown from './UserProfileDropdown';
 import { SearchIcon, BellIcon, AiIcon, SidebarToggleIcon } from './Icons';
+import './UserHeader.css';
 
 export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar }) {
   const { user, token, logout } = useAuth();
@@ -12,30 +14,35 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeSub, setActiveSub] = useState(null);
 
   const notifRef = useRef(null);
   const userMenuRef = useRef(null);
 
-  // Fetch unread count & notifications from backend service
+  // Fetch unread count, notifications & subscription status
   useEffect(() => {
     if (!token) return;
 
     const fetchNotifs = async () => {
       try {
-        const [cntData, notifData] = await Promise.all([
+        const [cntData, notifData, subData] = await Promise.all([
           notificationService.getUnreadCount(token),
-          notificationService.getMyNotifications(token)
+          notificationService.getMyNotifications(token),
+          apiFetch('/api/subscriptions/my-subscription', {}, token).catch(() => null)
         ]);
 
-        setUnreadCount(cntData.unread_count || 0);
+        setUnreadCount(cntData?.unread_count || 0);
         setNotifications(notifData || []);
+        if (subData && subData.has_subscription) {
+          setActiveSub(subData);
+        }
       } catch (err) {
         // Silently handle errors
       }
     };
 
     fetchNotifs();
-    const interval = setInterval(fetchNotifs, 3000); // Fast live poll every 3s
+    const interval = setInterval(fetchNotifs, 10000); // Poll every 10s
     const onFocus = () => fetchNotifs();
     window.addEventListener('focus', onFocus);
     return () => {
@@ -229,6 +236,20 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
 
       {/* Action Buttons & User Badge */}
       <div className="header-actions">
+
+        {/* Subscription Pill */}
+        {activeSub && activeSub.has_subscription && (
+          <div 
+            className={`sub-pill ${activeSub.remaining_days <= 7 ? 'expiring' : ''}`}
+            onClick={() => navigate('/subscriptions')}
+            style={{ cursor: 'pointer' }}
+            title="تفاصيل الاشتراك"
+          >
+            <span>{activeSub.plan_name}</span>
+            <span style={{ opacity: 0.6 }}>•</span>
+            <span>{activeSub.remaining_days} يوم متبقي</span>
+          </div>
+        )}
 
         {/* Notifications */}
         <div className="notification-container" ref={notifRef}>

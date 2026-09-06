@@ -159,7 +159,7 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
   );
 
   const clientNavItems = [
-    { path: '/dashboard', label: 'لوحة التحكم', IconComponent: DashboardIcon },
+    { path: '/dashboard', label: 'الرئيسية', IconComponent: DashboardIcon },
     { path: '/calendar', label: 'جدول المواعيد والتقويم', IconComponent: AppointmentsIcon },
     { path: '/subscriptions', label: 'الباقات والاشتراكات', IconComponent: SubscriptionsIcon },
     { path: '/quick-consultation', label: 'استشارة سريعة', IconComponent: QuickIcon },
