@@ -166,18 +166,54 @@ export default function UserDashboard({ navigate }) {
   // Activity Click Handler - Navigates directly to the item's target page
   const handleActivityClick = (act) => {
     setShowAllActivity(false);
+
+    // Check if the activity item represents a chat message or conversation update
+    const isChatMessage = (act.title || '').includes('رسالة') || 
+                          (act.sub || '').includes('رسالة') || 
+                          (act.title || '').includes('شات') || 
+                          (act.title || '').includes('محادثة') ||
+                          act.type === 'message' ||
+                          act.category === 'chat';
+
+    if (isChatMessage) {
+      if (act.appointment_id) {
+        navigate(`/chat?apptId=${act.appointment_id}`);
+        return;
+      }
+      if (act.rawId && act.type === 'consultation') {
+        navigate(`/chat?apptId=${act.rawId}`);
+        return;
+      }
+      // Search in appointments for a matching partner name in title or subtitle
+      const titleOrSub = `${act.title || ''} ${act.sub || ''}`.toLowerCase();
+      const partnerNameMatch = appointments.find(a => {
+        const pName = (a.consultant_name || a.client_name || a.consultant?.full_name || a.user?.full_name || '').toLowerCase();
+        return pName && pName.length > 2 && titleOrSub.includes(pName);
+      });
+      if (partnerNameMatch) {
+        navigate(`/chat?apptId=${partnerNameMatch.id}`);
+        return;
+      }
+      if (act.link && act.link.includes('/chat?apptId=')) {
+        navigate(act.link);
+        return;
+      }
+      navigate('/chat');
+      return;
+    }
+
     if (act.link) {
       navigate(act.link);
       return;
     }
     if (act.category === 'consults' || act.type === 'consultation') {
-      navigate(act.rawId ? `/my-appointments?openApptId=${act.rawId}` : '/my-appointments');
+      navigate(act.rawId ? `/chat?apptId=${act.rawId}` : '/chat');
     } else if (act.category === 'tickets' || act.type === 'ticket') {
       navigate('/support/tickets');
     } else if (act.category === 'alerts' || act.type === 'notif') {
       navigate('/regulations');
     } else {
-      navigate('/my-appointments');
+      navigate('/chat');
     }
   };
 
@@ -191,7 +227,8 @@ export default function UserDashboard({ navigate }) {
       date: n.created_at ? new Date(n.created_at).toLocaleDateString('ar-EG') : 'اليوم',
       category: 'alerts',
       sub: n.message || 'تحديث على منصتك الضريبية',
-      link: n.link || n.url || '/chat'
+      link: n.link || n.url || null,
+      appointment_id: n.appointment_id || n.appt_id || n.data?.appointment_id || null
     })),
     ...appointments.map(a => ({
       id: `appt-${a.id}`,
@@ -201,7 +238,8 @@ export default function UserDashboard({ navigate }) {
       date: a.scheduled_at ? new Date(a.scheduled_at).toLocaleDateString('ar-EG') : (a.appointment_date ? new Date(a.appointment_date).toLocaleDateString('ar-EG') : 'مؤخراً'),
       category: 'consults',
       sub: `المستشار/العميل: ${a.consultant_name || a.client_name || a.consultant?.full_name || a.user?.full_name || 'د. أحمد مسعد'} • ${getStatusLabel(a.status)}`,
-      link: `/my-appointments?openApptId=${a.id}`
+      link: `/chat?apptId=${a.id}`,
+      appointment_id: a.id
     })),
     ...tickets.map(t => ({
       id: `ticket-${t.id}`,
