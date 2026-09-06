@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from helpers.database import get_db
 from models import User
-from schemes.refunded_invoice_schemes import RefundedInvoiceOut, RefundedInvoiceCreate
+from schemes.refunded_invoice_schemes import RefundedInvoiceOut, RefundedInvoiceCreate, RefundedInvoiceUpdate
 from controllers.refunded_invoice_controller import RefundedInvoiceController
 from routes.deps import get_current_active_user
 
@@ -47,3 +47,27 @@ def create_refunded_invoice(
     current_user: User = Depends(get_current_active_user),
 ):
     return RefundedInvoiceController.create_refunded_invoice(db, data)
+
+@router.put(
+    "/{refund_id}",
+    response_model=RefundedInvoiceOut,
+    summary="Update a refunded invoice request"
+)
+def update_refunded_invoice(
+    refund_id: str,
+    data: RefundedInvoiceUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    return RefundedInvoiceController.update_refunded_invoice(db, refund_id, data)
+
+@router.delete(
+    "/{refund_id}",
+    summary="Delete a refunded invoice request"
+)
+def delete_refunded_invoice(
+    refund_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    return RefundedInvoiceController.delete_refunded_invoice(db, refund_id)

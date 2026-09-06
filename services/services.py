@@ -1788,16 +1788,28 @@ class InvoiceService:
     @staticmethod
     def get_next_number(db: Session) -> dict:
         from datetime import datetime
-        from models.invoice import Invoice
+        from sqlalchemy import text
         year = datetime.now().year
+        
+        # Calculate next invoice number from DB sequence & MAX DB invoice_number
         try:
-            count = db.query(Invoice).count()
-            seq = count + 1
+            seq_val = db.execute(text("SELECT last_value FROM invoice_number_seq")).scalar()
+            max_db = db.execute(text("SELECT MAX(CAST(SUBSTRING(invoice_number FROM '(\\d+)$') AS INTEGER)) FROM invoices WHERE invoice_number LIKE 'INV-%'")).scalar()
+            next_seq = max(int(seq_val or 1), int(max_db or 0) + 1)
         except Exception:
-            seq = 1
+            next_seq = 1
+
+        # Calculate next payment reference number from DB sequence & MAX DB reference_number
+        try:
+            ref_val = db.execute(text("SELECT last_value FROM payment_reference_seq")).scalar()
+            max_ref = db.execute(text("SELECT MAX(CAST(SUBSTRING(reference_number FROM '(\\d+)$') AS INTEGER)) FROM invoices WHERE reference_number LIKE 'TX-%'")).scalar()
+            next_ref = max(int(ref_val or 1), int(max_ref or 0) + 1)
+        except Exception:
+            next_ref = next_seq
+
         return {
-            "next_invoice_number": f"INV-{year}-{seq:06d}",
-            "next_reference_number": f"TX-{year}-{seq:06d}"
+            "next_invoice_number": f"INV-{year}-{next_seq:06d}",
+            "next_reference_number": f"TX-{year}-{next_ref:06d}"
         }
 
 

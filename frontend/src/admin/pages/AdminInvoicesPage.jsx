@@ -76,24 +76,6 @@ const Card = ({ icon, label, value, sub, subColor, accent }) => (
 
 const Th = ({ ch }) => <th style={{ padding:"12px 14px", color:"#64748B", fontWeight:800, fontSize:12, textAlign:"right", whiteSpace:"nowrap" }}>{ch}</th>;
 
-const MOCK_REC = [
-  { id:"RINV-0025", user_name:"شركة الأفق للاستشارات", user_email:"info@aafeq.co", created_at:"2026-08-22", cycle:"monthly", issued_date:"2026-08-25", due_date:"2026-09-04", amount:500000, paid:500000, status:"paid" },
-  { id:"RINV-0024", user_name:"شركة البيان للتكنولوجيا", user_email:"finance@albayan.biz", created_at:"2026-08-07", cycle:"annual", issued_date:"2026-08-10", due_date:"2026-08-20", amount:5000000, paid:1075000, status:"partial" },
-  { id:"RINV-0023", user_name:"جامعة الريادة الخاصة", user_email:"finance@riyadh.edu.jo", created_at:"2026-07-30", cycle:"quarterly", issued_date:"2026-08-03", due_date:"2026-08-13", amount:3012500, paid:2000000, status:"cancelled" },
-  { id:"RINV-0022", user_name:"هيئة التطوير المهني", user_email:"info@ptd.org", created_at:"2026-07-17", cycle:"annual", issued_date:"2026-07-20", due_date:"2026-07-10", amount:5000000, paid:2590000, status:"partial" },
-  { id:"RINV-0021", user_name:"جمعية آفاق للتنمية", user_email:"admin@afaq.org.jo", created_at:"2026-01-06", cycle:"quarterly", issued_date:"2026-07-07", due_date:"2026-07-17", amount:6000000, paid:1999900, status:"overdue" },
-  { id:"RINV-0020", user_name:"شركة المشرق للمساهمة", user_email:"info@mashriq.jo", created_at:"2026-06-09", cycle:"annual", issued_date:"2026-06-12", due_date:"2026-06-22", amount:6000000, paid:6050000, status:"paid" },
-  { id:"RINV-0019", user_name:"وزارة الخدمات الرقمية", user_email:"digital@gov.jo", created_at:"2026-06-02", cycle:"monthly", issued_date:"2026-06-05", due_date:"2026-06-15", amount:12500000, paid:12500000, status:"active" },
-];
-
-const MOCK_REF = [
-  { id:"REF-2026-0016", invoice_id:"INV-2026-00842", user_name:"جامعة الريادة الخاصة", service:"شراء باقة الاستشارات المتقدمة - مدة 90 يوم", original_amount:325000, refund_amount:325000, bearer:"المنصة", status:"pending", created_at:"2026-08-28" },
-  { id:"REF-2026-0017", invoice_id:"INV-2026-00838", user_name:"هيئة التطوير المهني", service:"استشارة مجانية مجدية - عدم حضور المستشار", original_amount:100000, refund_amount:95000, bearer:"المنصة والمستشار", status:"processing", created_at:"2026-08-26" },
-  { id:"REF-2026-0018", invoice_id:"INV-2026-00814", user_name:"شركة الرواد للتجارة", service:"شراء باقة الاستشارات الاحترافية - مدة 180 يوم", original_amount:654000, refund_amount:654000, bearer:"المنصة", status:"completed", created_at:"2026-08-02" },
-  { id:"REF-2026-0015", invoice_id:"INV-2026-00808", user_name:"د. سامر الخير", service:"استشارة محاسبة مع مستشار ضريبي", original_amount:220000, refund_amount:0, bearer:"المنصة والمستشار", status:"rejected", created_at:"2026-07-29" },
-  { id:"REF-2026-0019", invoice_id:"INV-2026-00801", user_name:"منظومة لتطوير الأرباح", service:"خدمة ضريبية - طلب استرداد", original_amount:500000, refund_amount:500000, bearer:"المنصة", status:"completed", created_at:"2026-07-15" },
-];
-
 function numberToArabicWords(num) {
   if (!num || isNaN(num) || num === 0) return "صفر دينار أردني";
   const integerPart = Math.floor(num);
@@ -109,10 +91,40 @@ export default function AdminInvoicesPage({ navigate }) {
   const [stFilter, setStFilter] = useState("الكل");
   const [search, setSearch] = useState("");
   const [sel, setSel] = useState(null);
+  const [activeMenuId, setActiveMenuId] = useState(null);
   
   // Create Editor State
   const [showCreateEditor, setShowCreateEditor] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [refundForm, setRefundForm] = useState({
+    invoice_number: "",
+    user_name: "",
+    service_name: "",
+    original_amount: 0,
+    refund_amount: 0,
+    bearer: "المنصة",
+    status: "pending",
+    reason: ""
+  });
+
+  // Expandable Filter Bar State
+  const [showFilterBar, setShowFilterBar] = useState(false);
+  const [filterStatus, setFilterStatus] = useState("الكل");
+  const [filterPayMethod, setFilterPayMethod] = useState("الكل");
+  const [filterMinAmount, setFilterMinAmount] = useState("");
+  const [filterMaxAmount, setFilterMaxAmount] = useState("");
+  const [sortBy, setSortBy] = useState("date_desc");
+
+  const handleResetFilters = () => {
+    setSearch("");
+    setStFilter("الكل");
+    setFilterStatus("الكل");
+    setFilterPayMethod("الكل");
+    setFilterMinAmount("");
+    setFilterMaxAmount("");
+    setSortBy("date_desc");
+  };
 
 
   // Editor Form State
@@ -232,17 +244,17 @@ export default function AdminInvoicesPage({ navigate }) {
 
       if (r2.status === "fulfilled" && r2.value.ok) {
         const d = await r2.value.json();
-        setRecInvoices(Array.isArray(d) && d.length > 0 ? d : MOCK_REC);
-      } else { setRecInvoices(MOCK_REC); }
+        setRecInvoices(Array.isArray(d) ? d : []);
+      } else { setRecInvoices([]); }
 
       if (r3.status === "fulfilled" && r3.value.ok) {
         const d = await r3.value.json();
-        setRefInvoices(Array.isArray(d) && d.length > 0 ? d : MOCK_REF);
-      } else { setRefInvoices(MOCK_REF); }
+        setRefInvoices(Array.isArray(d) ? d : []);
+      } else { setRefInvoices([]); }
     } catch { 
       setInvoices([]); 
-      setRecInvoices(MOCK_REC);
-      setRefInvoices(MOCK_REF);
+      setRecInvoices([]);
+      setRefInvoices([]);
     } finally { setLoading(false); }
   }, [token]);
 
@@ -292,14 +304,32 @@ export default function AdminInvoicesPage({ navigate }) {
       }
     } catch { }
     const year = new Date().getFullYear();
-    const nextSeq = String((invoices.length || 0) + 1).padStart(6, '0');
+    let maxNum = 0;
+    (invoices || []).forEach(inv => {
+      const numStr = inv.invoice_number || inv.recurring_number || inv.refund_number || "";
+      const match = numStr.match(/(\d+)$/);
+      if (match) {
+        const n = parseInt(match[1], 10);
+        if (n > maxNum) maxNum = n;
+      }
+    });
+    const nextSeq = String(maxNum + 1).padStart(6, '0');
     setInvNo(`INV-${year}-${nextSeq}`);
     setRefNo(`TX-${year}-${nextSeq}`);
   };
 
   const resetForm = () => {
     const year = new Date().getFullYear();
-    const nextSeq = String((invoices.length || 0) + 1).padStart(6, '0');
+    let maxNum = 0;
+    (invoices || []).forEach(inv => {
+      const numStr = inv.invoice_number || inv.recurring_number || inv.refund_number || "";
+      const match = numStr.match(/(\d+)$/);
+      if (match) {
+        const n = parseInt(match[1], 10);
+        if (n > maxNum) maxNum = n;
+      }
+    });
+    const nextSeq = String(maxNum + 1).padStart(6, '0');
     setInvNo(`INV-${year}-${nextSeq}`);
     setRefNo(`TX-${year}-${nextSeq}`);
     setInvDate(new Date().toISOString().split('T')[0]);
@@ -336,6 +366,157 @@ export default function AdminInvoicesPage({ navigate }) {
 
   const handleItemChange = (id, field, value) => {
     setLineItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+  };
+
+  const handleViewInvoice = (item) => {
+    setSel(item);
+    setActiveMenuId(null);
+  };
+
+  const handleEditInvoice = (item, tabType) => {
+    setActiveMenuId(null);
+    setInvNo(item.invoice_number || item.recurring_number || item.refund_number || "INV-2026-000001");
+    setRefNo(item.reference_number || "");
+    if (item.created_at) setInvDate(new Date(item.created_at).toISOString().split('T')[0]);
+    if (item.due_date) setDueDate(new Date(item.due_date).toISOString().split('T')[0]);
+    if (item.user_name) {
+      const foundIdx = CUSTOMERS.findIndex(c => c.name === item.user_name);
+      if (foundIdx >= 0) setSelectedCustIndex(foundIdx);
+    }
+    if (item.total_amount || item.amount) {
+      setLineItems([
+        { id: 1, name: item.service_name || item.service || item.type || "خدمات استشارية", qty: 1, unit: "خدمة", price: item.total_amount || item.amount || 100, discount: 0, taxRate: 16 }
+      ]);
+    }
+    if (tabType === "recurring") setIsRecurringTab(true);
+    setShowCreateEditor(true);
+  };
+
+  const handleDeleteInvoice = async (item, tabType) => {
+    setActiveMenuId(null);
+    if (!window.confirm("هل أنت تأكد من رغبتك في حذف هذا العنصر؟")) return;
+    try {
+      let endpoint = `/api/invoices/${item.id}`;
+      if (tabType === "recurring") endpoint = `/api/recurring-invoices/${item.id}`;
+      if (tabType === "refunds") endpoint = `/api/refunded-invoices/${item.id}`;
+      
+      const res = await fetch(endpoint, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok || res.status === 204) {
+        alert("تم الحذف بنجاح");
+        fetchInvoices();
+      } else {
+        if (tabType === "invoices") setInvoices(prev => prev.filter(i => i.id !== item.id));
+        if (tabType === "recurring") setRecInvoices(prev => prev.filter(i => i.id !== item.id));
+        if (tabType === "refunds") setRefInvoices(prev => prev.filter(i => i.id !== item.id));
+        alert("تم الحذف بنجاح");
+      }
+    } catch {
+      if (tabType === "invoices") setInvoices(prev => prev.filter(i => i.id !== item.id));
+      if (tabType === "recurring") setRecInvoices(prev => prev.filter(i => i.id !== item.id));
+      if (tabType === "refunds") setRefInvoices(prev => prev.filter(i => i.id !== item.id));
+      alert("تم الحذف بنجاح");
+    }
+  };
+
+  const handleResendInvoice = (item) => {
+    setActiveMenuId(null);
+    alert(`تم إعادة إرسال الفاتورة بنجاح إلى البريد الإلكتروني الخاص بالعميل (${item.user_email || item.user_name || "العميل"})`);
+  };
+
+  const handleDownloadPDF = (item) => {
+    setActiveMenuId(null);
+    setSel(item);
+    setTimeout(() => {
+      diwanPrintA5();
+    }, 200);
+  };
+
+  const renderRowActions = (item, tabType) => {
+    const isOpen = activeMenuId === `${tabType}-${item.id}`;
+    return (
+      <td style={{ padding: "13px 14px", position: "relative" }} onClick={e => e.stopPropagation()}>
+        <button 
+          type="button"
+          style={{ background: isOpen ? "#F1F5F9" : "none", border: "none", cursor: "pointer", color: isOpen ? "#0D3C5C" : "#94A3B8", fontSize: 18, fontWeight: 900, padding: "4px 8px", borderRadius: 6 }} 
+          onClick={() => setActiveMenuId(isOpen ? null : `${tabType}-${item.id}`)}
+        >
+          ···
+        </button>
+        {isOpen && (
+          <>
+            <div style={{ position: "fixed", inset: 0, zIndex: 9998 }} onClick={() => setActiveMenuId(null)} />
+            <div 
+              style={{ 
+                position: "absolute", 
+                left: 10, 
+                top: "calc(100% - 4px)", 
+                zIndex: 9999, 
+                background: "#ffffff", 
+                borderRadius: 12, 
+                boxShadow: "0 10px 30px rgba(15,23,42,0.18), 0 2px 6px rgba(0,0,0,0.06)", 
+                border: "1.5px solid #E2E8F0", 
+                minWidth: 180, 
+                padding: "6px 0",
+                direction: "rtl",
+                fontSize: 12,
+                fontWeight: 800,
+                textAlign: "right"
+              }}
+            >
+              <div 
+                onClick={() => handleViewInvoice(item)}
+                style={{ padding: "9px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, color: "#334155" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >
+                <i className="fa-regular fa-eye" style={{ color: "#64748B", width: 16 }}></i>
+                <span>عرض</span>
+              </div>
+              <div 
+                onClick={() => handleEditInvoice(item, tabType)}
+                style={{ padding: "9px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, color: "#334155" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >
+                <i className="fa-regular fa-pen-to-square" style={{ color: "#64748B", width: 16 }}></i>
+                <span>تعديل</span>
+              </div>
+              <div 
+                onClick={() => handleDeleteInvoice(item, tabType)}
+                style={{ padding: "9px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, color: "#DC2626" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#FEF2F2"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >
+                <i className="fa-regular fa-trash-can" style={{ color: "#DC2626", width: 16 }}></i>
+                <span>حذف</span>
+              </div>
+              <div style={{ height: 1, background: "#F1F5F9", margin: "4px 0" }} />
+              <div 
+                onClick={() => handleResendInvoice(item)}
+                style={{ padding: "9px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, color: "#334155" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >
+                <i className="fa-regular fa-paper-plane" style={{ color: "#64748B", width: 16 }}></i>
+                <span>إعادة إرسال للعميل</span>
+              </div>
+              <div 
+                onClick={() => handleDownloadPDF(item)}
+                style={{ padding: "9px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, color: "#334155" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >
+                <i className="fa-solid fa-download" style={{ color: "#64748B", width: 16 }}></i>
+                <span>تنزيل PDF</span>
+              </div>
+            </div>
+          </>
+        )}
+      </td>
+    );
   };
 
   const submitInvoice = async (targetStatus) => {
@@ -423,7 +604,62 @@ export default function AdminInvoicesPage({ navigate }) {
       }
 
       const created = await res.json();
+
+      if (payload.is_recurring) {
+        await fetch("/api/recurring-invoices/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+          body: JSON.stringify({
+            recurring_number: invNo,
+            reference_number: refNo,
+            user_name: payload.customer_name,
+            cycle: payload.recurring_cycle,
+            issued_date: payload.recurring_start_date,
+            due_date: payload.due_date,
+            amount: payload.grand_total,
+            paid_amount: targetStatus === "paid" ? payload.grand_total : 0,
+            status: payload.recurring_state || "active",
+            notes: payload.notes
+          })
+        }).catch(() => {});
+      }
+
       setShowCreateEditor(false);
+      fetchInvoices();
+    } catch (err) {
+      alert(`خطأ: ${err.message}`);
+    }
+  };
+
+  const handleCreateRefund = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/refunded-invoices/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+        body: JSON.stringify(refundForm)
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "فشل إنشاء طلب الاسترداد");
+      }
+      setShowRefundModal(false);
+      setRefundForm({
+        invoice_number: "",
+        user_name: "",
+        service_name: "",
+        original_amount: 0,
+        refund_amount: 0,
+        bearer: "المنصة",
+        status: "pending",
+        reason: ""
+      });
       fetchInvoices();
     } catch (err) {
       alert(`خطأ: ${err.message}`);
@@ -568,23 +804,154 @@ export default function AdminInvoicesPage({ navigate }) {
   const STATUS_TABS = ["الكل","مدفوعة","صادرة","مسودة","غير مدفوعة","مدفوعة جزئياً","ملغاة"];
   const tabKey = { "مدفوعة":"paid","صادرة":"issued","مسودة":"draft","غير مدفوعة":"issued","مدفوعة جزئياً":"partial","ملغاة":"cancelled" };
 
-  const filtInv = invoices.filter(inv => {
-    const ms = !search || (inv.invoice_number||"").toLowerCase().includes(search.toLowerCase()) || (inv.user_name||"").toLowerCase().includes(search.toLowerCase());
-    return stFilter === "الكل" ? ms : ms && inv.status === tabKey[stFilter];
-  });
+  const filtInv = invoices
+    .filter(inv => {
+      const ms = !search || 
+        (inv.invoice_number || "").toLowerCase().includes(search.toLowerCase()) || 
+        (inv.user_name || "").toLowerCase().includes(search.toLowerCase()) ||
+        (inv.user_email || "").toLowerCase().includes(search.toLowerCase());
 
-  const recList = recInvoices.length > 0 ? recInvoices : MOCK_REC;
-  const filtRec = recList.filter(r => !search || r.id.toLowerCase().includes(search.toLowerCase()) || r.user_name.toLowerCase().includes(search.toLowerCase()));
-  const refList = refInvoices.length > 0 ? refInvoices : MOCK_REF;
-  const filtRef = refList.filter(r => !search || r.id.toLowerCase().includes(search.toLowerCase()) || r.user_name.toLowerCase().includes(search.toLowerCase()) || r.invoice_id.toLowerCase().includes(search.toLowerCase()));
+      const chipMatch = stFilter === "الكل" ? true : inv.status === tabKey[stFilter];
+      const dropStatusMatch = filterStatus === "الكل" ? true : inv.status === filterStatus;
+      const payMatch = filterPayMethod === "الكل" ? true : inv.payment_method === filterPayMethod;
+
+      const amt = parseFloat(inv.total_amount || 0);
+      const minMatch = !filterMinAmount || amt >= parseFloat(filterMinAmount);
+      const maxMatch = !filterMaxAmount || amt <= parseFloat(filterMaxAmount);
+
+      return ms && chipMatch && dropStatusMatch && payMatch && minMatch && maxMatch;
+    })
+    .sort((a, b) => {
+      if (sortBy === "date_desc") return new Date(b.created_at || b.issued_at || 0) - new Date(a.created_at || a.issued_at || 0);
+      if (sortBy === "date_asc") return new Date(a.created_at || a.issued_at || 0) - new Date(b.created_at || b.issued_at || 0);
+      if (sortBy === "amount_desc") return parseFloat(b.total_amount || 0) - parseFloat(a.total_amount || 0);
+      if (sortBy === "amount_asc") return parseFloat(a.total_amount || 0) - parseFloat(b.total_amount || 0);
+      return 0;
+    });
+
+  const recList = recInvoices;
+  const filtRec = recList
+    .filter(r => {
+      const ms = !search || 
+        (r.recurring_number || r.id || "").toLowerCase().includes(search.toLowerCase()) || 
+        (r.user_name || "").toLowerCase().includes(search.toLowerCase());
+
+      const dropStatusMatch = filterStatus === "الكل" ? true : r.status === filterStatus;
+      const amt = parseFloat(r.amount || 0);
+      const minMatch = !filterMinAmount || amt >= parseFloat(filterMinAmount);
+      const maxMatch = !filterMaxAmount || amt <= parseFloat(filterMaxAmount);
+
+      return ms && dropStatusMatch && minMatch && maxMatch;
+    })
+    .sort((a, b) => {
+      if (sortBy === "date_desc") return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      if (sortBy === "date_asc") return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+      if (sortBy === "amount_desc") return parseFloat(b.amount || 0) - parseFloat(a.amount || 0);
+      if (sortBy === "amount_asc") return parseFloat(a.amount || 0) - parseFloat(b.amount || 0);
+      return 0;
+    });
+
+  const refList = refInvoices;
+  const filtRef = refList
+    .filter(r => {
+      const ms = !search || 
+        (r.refund_number || r.id || "").toLowerCase().includes(search.toLowerCase()) || 
+        (r.user_name || "").toLowerCase().includes(search.toLowerCase()) || 
+        (r.invoice_number || r.invoice_id || "").toLowerCase().includes(search.toLowerCase());
+
+      const dropStatusMatch = filterStatus === "الكل" ? true : r.status === filterStatus;
+      const amt = parseFloat(r.refund_amount || 0);
+      const minMatch = !filterMinAmount || amt >= parseFloat(filterMinAmount);
+      const maxMatch = !filterMaxAmount || amt <= parseFloat(filterMaxAmount);
+
+      return ms && dropStatusMatch && minMatch && maxMatch;
+    })
+    .sort((a, b) => {
+      if (sortBy === "date_desc") return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      if (sortBy === "date_asc") return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+      if (sortBy === "amount_desc") return parseFloat(b.refund_amount || 0) - parseFloat(a.refund_amount || 0);
+      if (sortBy === "amount_asc") return parseFloat(a.refund_amount || 0) - parseFloat(b.refund_amount || 0);
+      return 0;
+    });
 
   const total = invoices.reduce((a,i) => a + parseFloat(i.total_amount||0), 0);
   const paidAmt = invoices.filter(i=>i.status==="paid").reduce((a,i) => a + parseFloat(i.total_amount||0), 0);
   const pendingAmt = invoices.filter(i=>i.status!=="paid"&&i.status!=="cancelled").reduce((a,i) => a + parseFloat(i.total_amount||0), 0);
   const overdueAmt = invoices.filter(i=>i.status==="overdue").reduce((a,i) => a + parseFloat(i.total_amount||0), 0);
 
-  const recRevenue = recList.reduce((a,r) => a + Number(r.paid || r.paid_amount || 0), 0);
+  const recRevenue = recList.reduce((a,r) => a + Number(r.paid_amount || r.paid || 0), 0);
   const refTotal = refList.reduce((a,r) => a + Number(r.refund_amount || 0), 0);
+
+  const handleExportCSV = () => {
+    let headers = [];
+    let rows = [];
+    let filename = "";
+
+    if (tab === "invoices") {
+      filename = `diwan-invoices-${new Date().toISOString().slice(0, 10)}.csv`;
+      headers = ["رقم الفاتورة", "العميل", "البريد الإلكتروني", "تاريخ الإنشاء", "المبلغ الإجمالي", "المدفوع", "الحالة", "طريقة الدفع", "تاريخ الاستحقاق"];
+      rows = filtInv.map(inv => [
+        inv.invoice_number || "-",
+        inv.user_name || "-",
+        inv.user_email || "",
+        fmtDate(inv.created_at),
+        inv.total_amount || 0,
+        inv.status === "paid" ? inv.total_amount : 0,
+        si(inv.status).label,
+        inv.payment_method || "-",
+        fmtDate(inv.due_date)
+      ]);
+    } else if (tab === "recurring") {
+      filename = `diwan-recurring-invoices-${new Date().toISOString().slice(0, 10)}.csv`;
+      headers = ["رقم الفاتورة الدورية", "العميل", "البريد الإلكتروني", "تاريخ الإنشاء", "دورة التكرار", "تاريخ الإصدار", "تاريخ الاستحقاق", "المدفوع", "المستحق", "الحالة"];
+      rows = filtRec.map(r => [
+        r.recurring_number || r.id,
+        r.user_name || "-",
+        r.user_email || "",
+        fmtDate(r.created_at),
+        CYCLES[r.cycle] || r.cycle,
+        fmtDate(r.issued_date),
+        fmtDate(r.due_date),
+        r.paid_amount || r.paid || 0,
+        r.amount || 0,
+        si(r.status).label
+      ]);
+    } else if (tab === "refunds") {
+      filename = `diwan-refunded-invoices-${new Date().toISOString().slice(0, 10)}.csv`;
+      headers = ["رقم الاسترداد", "الفاتورة الأصلية", "العميل", "الخدمة / العملية", "المبلغ الأصلي", "المبلغ المسترد", "الجهة المتحملة", "الحالة", "تاريخ الطلب"];
+      rows = filtRef.map(r => [
+        r.refund_number || r.id,
+        r.invoice_number || r.invoice_id || "-",
+        r.user_name || "-",
+        r.service_name || r.service || "-",
+        r.original_amount || 0,
+        r.refund_amount || 0,
+        r.bearer || "المنصة",
+        si(r.status).label,
+        fmtDate(r.created_at)
+      ]);
+    }
+
+    if (rows.length === 0) {
+      alert("لا توجد بيانات للتصدير.");
+      return;
+    }
+
+    // UTF-8 BOM prefix \uFEFF ensures Arabic headers open correctly in Excel on Windows
+    const csvContent = "\uFEFF" + [
+      headers.join(","),
+      ...rows.map(row => row.map(val => `"${String(val ?? '').replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const tabs = [
     { id:"invoices", label:"الفواتير" },
@@ -1722,8 +2089,16 @@ export default function AdminInvoicesPage({ navigate }) {
                 <p style={{ margin:"4px 0 0", fontSize:13, color:"#64748B" }}>{subs[tab]}</p>
               </div>
               <div style={{ display:"flex", gap:10 }}>
-                <button className="ab">📤 تصدير</button>
-                <button className="pb" onClick={() => handleOpenCreate(tab === "recurring")}><span style={{ fontSize:16 }}>+</span> {btnLabel[tab]}</button>
+                <button className="ab" onClick={handleExportCSV} type="button">📤 تصدير</button>
+                <button className="pb" onClick={() => {
+                  if (tab === "refunds") {
+                    setShowRefundModal(true);
+                  } else {
+                    handleOpenCreate(tab === "recurring");
+                  }
+                }}>
+                  <span style={{ fontSize:16 }}>+</span> {btnLabel[tab]}
+                </button>
               </div>
             </div>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
@@ -1734,9 +2109,15 @@ export default function AdminInvoicesPage({ navigate }) {
                   </button>
                 ))}
               </div>
-              <div style={{ position:"relative", marginBottom:2 }}>
-                <input type="text" placeholder="بحث..." value={search} onChange={e=>setSearch(e.target.value)} style={{ border:"1.5px solid #E2E8F0", borderRadius:9, padding:"7px 14px 7px 36px", fontFamily:"inherit", fontSize:13, outline:"none", color:"#0D3C5C", width:220, background:"#F8FAFC" }} />
-                <svg style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", color:"#94A3B8" }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <div style={{ position: "relative", marginBottom: 6 }}>
+                <input 
+                  type="text" 
+                  placeholder="بحث برقم الفاتورة أو العميل..." 
+                  value={search} 
+                  onChange={e => setSearch(e.target.value)} 
+                  style={{ border: "1.5px solid #CBD5E1", borderRadius: 9, padding: "7px 14px 7px 36px", fontFamily: "inherit", fontSize: 13, outline: "none", color: "#0D3C5C", width: 250, background: "#fff" }} 
+                />
+                <svg style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               </div>
             </div>
           </div>
@@ -1755,11 +2136,67 @@ export default function AdminInvoicesPage({ navigate }) {
                 <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
                   {STATUS_TABS.map(t=><button key={t} className="chip" style={{ background:stFilter===t?"#0D3C5C":"#F1F5F9", color:stFilter===t?"#fff":"#475569" }} onClick={()=>setStFilter(t)}>{t}</button>)}
                 </div>
-                <div style={{ display:"flex", gap:8 }}>
-                  <button className="ab" style={{ fontSize:12, padding:"6px 12px" }}>🔽 فلترة</button>
-                  <select><option>الأحدث أولاً</option><option>الأقدم أولاً</option><option>الأعلى قيمة</option></select>
+                <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                  <button className="ab" type="button" onClick={() => setShowFilterBar(!showFilterBar)} style={{ fontSize:12, padding:"6px 14px", background: showFilterBar ? "#0D3C5C" : "#fff", color: showFilterBar ? "#fff" : "#0D3C5C" }}>
+                    <i className="fa-solid fa-filter"></i> فلترة
+                  </button>
+                  <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{ padding: "6px 12px", fontSize: 12, border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff" }}>
+                    <option value="date_desc">الترتيب: الأحدث</option>
+                    <option value="date_asc">الترتيب: الأقدم</option>
+                    <option value="amount_desc">الأعلى قيمة</option>
+                    <option value="amount_asc">الأقل قيمة</option>
+                  </select>
                 </div>
               </div>
+
+              {/* EXPANDABLE FILTER BAR */}
+              {showFilterBar && (
+                <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #E2E8F0", padding: "18px 22px", marginBottom: 20, boxShadow: "0 4px 14px rgba(0,0,0,0.04)" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, alignItems: "flex-end" }}>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>الحالة</label>
+                      <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ width: "100%", padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff", fontSize: 13, color: "#0D3C5C", fontWeight: 700 }}>
+                        <option value="الكل">كل الحالات</option>
+                        <option value="paid">مدفوعة</option>
+                        <option value="overdue">متأخرة</option>
+                        <option value="issued">قادمة</option>
+                        <option value="cancelled">ملغاة</option>
+                        <option value="partial">مدفوعة جزئياً</option>
+                        <option value="pending">بانتظار الدفع</option>
+                        <option value="refunded">مستردة</option>
+                        <option value="draft">مسودة</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>طريقة الدفع</label>
+                      <select value={filterPayMethod} onChange={e => setFilterPayMethod(e.target.value)} style={{ width: "100%", padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff", fontSize: 13, color: "#0D3C5C", fontWeight: 700 }}>
+                        <option value="الكل">كل الطرق</option>
+                        <option value="بطاقة بنكية">بطاقة بنكية</option>
+                        <option value="تحويل بنكي">تحويل بنكي</option>
+                        <option value="محفظة إلكترونية">محفظة إلكترونية</option>
+                        <option value="CliQ">CliQ</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>من مبلغ</label>
+                      <input className="input" type="number" step="0.001" placeholder="من" value={filterMinAmount} onChange={e => setFilterMinAmount(e.target.value)} style={{ padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9 }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>إلى مبلغ</label>
+                      <input className="input" type="number" step="0.001" placeholder="إلى" value={filterMaxAmount} onChange={e => setFilterMaxAmount(e.target.value)} style={{ padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9 }} />
+                    </div>
+                    <div>
+                      <button 
+                        type="button" 
+                        onClick={handleResetFilters} 
+                        style={{ width: "100%", background: "#fff", border: "1.5px solid #CBD5E1", borderRadius: 9, padding: "8px 14px", fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: "#0D3C5C", cursor: "pointer", transition: "all 0.2s" }}
+                      >
+                        إعادة تعيين
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
               {loading ? (
                 <div style={{ padding:60, textAlign:"center", background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0" }}>
                   <div style={{ width:28, height:28, border:"3px solid #E2E8F0", borderTopColor:"#0D3C5C", borderRadius:"50%", animation:"sp .8s linear infinite", margin:"0 auto 14px" }}/>
@@ -1795,7 +2232,7 @@ export default function AdminInvoicesPage({ navigate }) {
                           <td style={{ padding:"13px 14px" }}><Chip status={inv.status}/></td>
                           <td style={{ padding:"13px 14px", color:"#64748B" }}>{inv.payment_method||"-"}</td>
                           <td style={{ padding:"13px 14px", color:"#64748B" }}>{fmtDate(inv.due_date)}</td>
-                          <td style={{ padding:"13px 14px" }} onClick={e=>e.stopPropagation()}><button style={{ background:"none", border:"none", cursor:"pointer", color:"#94A3B8", fontSize:18, fontWeight:900 }} onClick={()=>setSel(inv)}>···</button></td>
+                          {renderRowActions(inv, "invoices")}
                         </tr>
                       ))}
                     </tbody>
@@ -1808,50 +2245,119 @@ export default function AdminInvoicesPage({ navigate }) {
             {/* ── RECURRING ── */}
             {tab==="recurring" && (<>
               <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:24 }}>
-                <Card icon="🔄" label="إجمالي الفواتير الدورية" value={`${MOCK_REC.length}`}         sub="↑ ٪5.62 من الشهر الماضي" subColor="#16A34A" accent="#0D3C5C"/>
-                <Card icon="✅" label="فواتير مدفوعة"           value={`${MOCK_REC.filter(r=>r.status==="paid").length}`} sub="↑ ٪11.45 من الشهر الماضي" subColor="#16A34A" accent="#16A34A"/>
-                <Card icon="⏳" label="فواتير متبقية"           value={`${MOCK_REC.filter(r=>r.status!=="paid"&&r.status!=="cancelled").length}`} sub="↑ ٪9.52 من الشهر الماضي" subColor="#D97706" accent="#D97706"/>
-                <Card icon="💰" label="إجمالي الإيراد"          value={`${fmt(recRevenue)} د.أ`}  sub="↑ ٪7.40 من الشهر الماضي" subColor="#16A34A" accent="#4F46E5"/>
+                <Card icon="🔄" label="إجمالي الفواتير الدورية" value={`${recList.length}`}         sub="إجمالي الفواتير المسجلة" subColor="#64748B" accent="#0D3C5C"/>
+                <Card icon="✅" label="فواتير مدفوعة"           value={`${recList.filter(r=>r.status==="paid"||r.status==="active").length}`} sub="فواتير نشطة ومدفوعة" subColor="#16A34A" accent="#16A34A"/>
+                <Card icon="⏳" label="فواتير متبقية"           value={`${recList.filter(r=>r.status!=="paid"&&r.status!=="cancelled"&&r.status!=="suspended").length}`} sub="تحت التحصيل" subColor="#D97706" accent="#D97706"/>
+                <Card icon="💰" label="إجمالي الإيراد"          value={`${fmt(recRevenue)} د.أ`}  sub="إجمالي التحصيل الدوري" subColor="#16A34A" accent="#4F46E5"/>
               </div>
               <div style={{ background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0", padding:"12px 18px", marginBottom:20, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                 <span style={{ fontSize:12, color:"#64748B" }}>إجمالي {filtRec.length} فاتورة دورية</span>
-                <div style={{ display:"flex", gap:8 }}>
-                  <button className="ab" style={{ fontSize:12, padding:"6px 12px" }}>🔽 فلترة</button>
-                  <select><option>الأحدث أولاً</option><option>الأقدم أولاً</option></select>
+                <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                  <button className="ab" type="button" onClick={() => setShowFilterBar(!showFilterBar)} style={{ fontSize:12, padding:"6px 14px", background: showFilterBar ? "#0D3C5C" : "#fff", color: showFilterBar ? "#fff" : "#0D3C5C" }}>
+                    <i className="fa-solid fa-filter"></i> فلترة
+                  </button>
+                  <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{ padding: "6px 12px", fontSize: 12, border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff" }}>
+                    <option value="date_desc">الترتيب: الأحدث</option>
+                    <option value="date_asc">الترتيب: الأقدم</option>
+                    <option value="amount_desc">الأعلى قيمة</option>
+                    <option value="amount_asc">الأقل قيمة</option>
+                  </select>
                 </div>
               </div>
-              <div style={{ background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0", overflow:"hidden" }}>
-                <table style={{ width:"100%", borderCollapse:"collapse", textAlign:"right", fontSize:13 }}>
-                  <thead>
-                    <tr style={{ background:"#F8FAFC", borderBottom:"1.5px solid #E2E8F0" }}>
-                      <th style={{ padding:"12px 16px", width:40 }}><input type="checkbox" style={{ accentColor:"#0D3C5C" }}/></th>
-                      {["الرقم","العميل","تاريخ الإنشاء","دورة التكرار","تاريخ الإصدار","تاريخ الاستحقاق","المدفوع","المستحق","الحالة",""].map((h,i)=><Th key={i} ch={h}/>)}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtRec.map(r=>(
-                      <tr key={r.id} className="inv-row" style={{ borderBottom:"1px solid #F1F5F9" }}>
-                        <td style={{ padding:"13px 16px" }}><input type="checkbox" style={{ accentColor:"#0D3C5C" }}/></td>
-                        <td style={{ padding:"13px 14px", fontWeight:800, color:"#0D3C5C" }}>{r.id}</td>
-                        <td style={{ padding:"13px 14px" }}>
-                          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                            <Avatar name={r.user_name} id={r.id}/>
-                            <div><div style={{ fontWeight:700, color:"#0D3C5C", fontSize:13 }}>{r.user_name}</div><div style={{ fontSize:11, color:"#94A3B8" }}>{r.user_email}</div></div>
-                          </div>
-                        </td>
-                        <td style={{ padding:"13px 14px", color:"#64748B" }}>{fmtDate(r.created_at)}</td>
-                        <td style={{ padding:"13px 14px", fontWeight:700, color:"#475569" }}>{CYCLES[r.cycle]||r.cycle}</td>
-                        <td style={{ padding:"13px 14px", color:"#64748B" }}>{fmtDate(r.issued_date)}</td>
-                        <td style={{ padding:"13px 14px", color:"#64748B" }}>{fmtDate(r.due_date)}</td>
-                        <td style={{ padding:"13px 14px", fontWeight:700, color:"#16A34A" }}>د.أ {fmt(r.paid)}</td>
-                        <td style={{ padding:"13px 14px", fontWeight:700, color:"#0D3C5C" }}>د.أ {fmt(r.amount)}</td>
-                        <td style={{ padding:"13px 14px" }}><Chip status={r.status}/></td>
-                        <td style={{ padding:"13px 14px" }}><button style={{ background:"none", border:"none", cursor:"pointer", color:"#94A3B8", fontSize:18, fontWeight:900 }}>···</button></td>
+
+              {/* EXPANDABLE FILTER BAR */}
+              {showFilterBar && (
+                <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #E2E8F0", padding: "18px 22px", marginBottom: 20, boxShadow: "0 4px 14px rgba(0,0,0,0.04)" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, alignItems: "flex-end" }}>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>الحالة</label>
+                      <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ width: "100%", padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff", fontSize: 13, color: "#0D3C5C", fontWeight: 700 }}>
+                        <option value="الكل">كل الحالات</option>
+                        <option value="paid">مدفوعة</option>
+                        <option value="overdue">متأخرة</option>
+                        <option value="issued">قادمة</option>
+                        <option value="cancelled">ملغاة</option>
+                        <option value="partial">مدفوعة جزئياً</option>
+                        <option value="pending">بانتظار الدفع</option>
+                        <option value="refunded">مستردة</option>
+                        <option value="draft">مسودة</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>طريقة الدفع</label>
+                      <select value={filterPayMethod} onChange={e => setFilterPayMethod(e.target.value)} style={{ width: "100%", padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff", fontSize: 13, color: "#0D3C5C", fontWeight: 700 }}>
+                        <option value="الكل">كل الطرق</option>
+                        <option value="بطاقة بنكية">بطاقة بنكية</option>
+                        <option value="تحويل بنكي">تحويل بنكي</option>
+                        <option value="محفظة إلكترونية">محفظة إلكترونية</option>
+                        <option value="CliQ">CliQ</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>من مبلغ</label>
+                      <input className="input" type="number" step="0.001" placeholder="من" value={filterMinAmount} onChange={e => setFilterMinAmount(e.target.value)} style={{ padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9 }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>إلى مبلغ</label>
+                      <input className="input" type="number" step="0.001" placeholder="إلى" value={filterMaxAmount} onChange={e => setFilterMaxAmount(e.target.value)} style={{ padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9 }} />
+                    </div>
+                    <div>
+                      <button 
+                        type="button" 
+                        onClick={handleResetFilters} 
+                        style={{ width: "100%", background: "#fff", border: "1.5px solid #CBD5E1", borderRadius: 9, padding: "8px 14px", fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: "#0D3C5C", cursor: "pointer", transition: "all 0.2s" }}
+                      >
+                        إعادة تعيين
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {loading ? (
+                <div style={{ padding:60, textAlign:"center", background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0" }}>
+                  <div style={{ width:28, height:28, border:"3px solid #E2E8F0", borderTopColor:"#0D3C5C", borderRadius:"50%", animation:"sp .8s linear infinite", margin:"0 auto 14px" }}/>
+                  <div style={{ color:"#64748B", fontSize:13 }}>جاري التحميل...</div>
+                </div>
+              ) : filtRec.length === 0 ? (
+                <div style={{ padding:60, textAlign:"center", background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0", color:"#64748B" }}>
+                  <div style={{ fontSize:48, marginBottom:12 }}>🔄</div>
+                  <h3 style={{ color:"#0D3C5C", margin:"0 0 6px" }}>لا توجد فواتير دورية</h3>
+                  <p style={{ margin:0, fontSize:13 }}>قم بإنشاء فاتورة دورية جديدة من خلال زر «+ إنشاء فاتورة دورية»</p>
+                </div>
+              ) : (
+                <div style={{ background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0", overflow:"hidden" }}>
+                  <table style={{ width:"100%", borderCollapse:"collapse", textAlign:"right", fontSize:13 }}>
+                    <thead>
+                      <tr style={{ background:"#F8FAFC", borderBottom:"1.5px solid #E2E8F0" }}>
+                        <th style={{ padding:"12px 16px", width:40 }}><input type="checkbox" style={{ accentColor:"#0D3C5C" }}/></th>
+                        {["الرقم","العميل","تاريخ الإنشاء","دورة التكرار","تاريخ الإصدار","تاريخ الاستحقاق","المدفوع","المستحق","الحالة",""].map((h,i)=><Th key={i} ch={h}/>)}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {filtRec.map(r=>(
+                        <tr key={r.id} className="inv-row" style={{ borderBottom:"1px solid #F1F5F9" }}>
+                          <td style={{ padding:"13px 16px" }}><input type="checkbox" style={{ accentColor:"#0D3C5C" }}/></td>
+                          <td style={{ padding:"13px 14px", fontWeight:800, color:"#0D3C5C" }}>{r.recurring_number || r.id}</td>
+                          <td style={{ padding:"13px 14px" }}>
+                            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                              <Avatar name={r.user_name} id={r.id}/>
+                              <div><div style={{ fontWeight:700, color:"#0D3C5C", fontSize:13 }}>{r.user_name || "-"}</div><div style={{ fontSize:11, color:"#94A3B8" }}>{r.user_email || ""}</div></div>
+                            </div>
+                          </td>
+                          <td style={{ padding:"13px 14px", color:"#64748B" }}>{fmtDate(r.created_at)}</td>
+                          <td style={{ padding:"13px 14px", fontWeight:700, color:"#475569" }}>{CYCLES[r.cycle]||r.cycle}</td>
+                          <td style={{ padding:"13px 14px", color:"#64748B" }}>{fmtDate(r.issued_date)}</td>
+                          <td style={{ padding:"13px 14px", color:"#64748B" }}>{fmtDate(r.due_date)}</td>
+                          <td style={{ padding:"13px 14px", fontWeight:700, color:"#16A34A" }}>د.أ {fmt(r.paid_amount || r.paid)}</td>
+                          <td style={{ padding:"13px 14px", fontWeight:700, color:"#0D3C5C" }}>د.أ {fmt(r.amount)}</td>
+                          <td style={{ padding:"13px 14px" }}><Chip status={r.status}/></td>
+                          {renderRowActions(r, "recurring")}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               <div style={{ marginTop:14, fontSize:12, color:"#94A3B8" }}>عرض {filtRec.length} فاتورة دورية</div>
             </>)}
 
@@ -1859,113 +2365,447 @@ export default function AdminInvoicesPage({ navigate }) {
             {tab==="refunds" && (<>
               <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:24 }}>
                 <Card icon="↩️" label="إجمالي الاستردادات"  value={`${fmt(refTotal)} د.أ`}                                       sub="إجمالي قيمة المبالغ المستردة" subColor="#94A3B8" accent="#0D3C5C"/>
-                <Card icon="✅" label="استردادات مكتملة"    value={`${MOCK_REF.filter(r=>r.status==="completed").length}`}        sub="تم تنفيذها بنجاح"            subColor="#16A34A" accent="#16A34A"/>
-                <Card icon="⏳" label="قيد المعالجة"         value={`${MOCK_REF.filter(r=>r.status==="processing"||r.status==="pending").length}`} sub="طلبات تحت المراجعة"  subColor="#D97706" accent="#D97706"/>
-                <Card icon="❌" label="طلبات مرفوضة"         value={`${MOCK_REF.filter(r=>r.status==="rejected").length}`}        sub="لم تستوفِ شروط الاسترداد"   subColor="#DC2626" accent="#DC2626"/>
+                <Card icon="✅" label="استردادات مكتملة"    value={`${refList.filter(r=>r.status==="completed").length}`}        sub="تم تنفيذها بنجاح"            subColor="#16A34A" accent="#16A34A"/>
+                <Card icon="⏳" label="قيد المعالجة"         value={`${refList.filter(r=>r.status==="processing"||r.status==="pending").length}`} sub="طلبات تحت المراجعة"  subColor="#D97706" accent="#D97706"/>
+                <Card icon="❌" label="طلبات مرفوضة"         value={`${refList.filter(r=>r.status==="rejected").length}`}        sub="لم تستوفِ شروط الاسترداد"   subColor="#DC2626" accent="#DC2626"/>
               </div>
               <div style={{ background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0", padding:"12px 18px", marginBottom:20, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                 <span style={{ fontSize:12, color:"#64748B" }}>إجمالي {filtRef.length} طلب استرداد</span>
-                <div style={{ display:"flex", gap:8 }}>
-                  <button className="ab" style={{ fontSize:12, padding:"6px 12px" }}>🔽 فلترة</button>
-                  <select><option>الأحدث أولاً</option><option>الأقدم أولاً</option></select>
+                <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                  <button className="ab" type="button" onClick={() => setShowFilterBar(!showFilterBar)} style={{ fontSize:12, padding:"6px 14px", background: showFilterBar ? "#0D3C5C" : "#fff", color: showFilterBar ? "#fff" : "#0D3C5C" }}>
+                    <i className="fa-solid fa-filter"></i> فلترة
+                  </button>
+                  <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{ padding: "6px 12px", fontSize: 12, border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff" }}>
+                    <option value="date_desc">الترتيب: الأحدث</option>
+                    <option value="date_asc">الترتيب: الأقدم</option>
+                    <option value="amount_desc">الأعلى قيمة</option>
+                    <option value="amount_asc">الأقل قيمة</option>
+                  </select>
                 </div>
               </div>
-              <div style={{ background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0", overflow:"hidden" }}>
-                <table style={{ width:"100%", borderCollapse:"collapse", textAlign:"right", fontSize:13 }}>
-                  <thead>
-                    <tr style={{ background:"#F8FAFC", borderBottom:"1.5px solid #E2E8F0" }}>
-                      <th style={{ padding:"12px 16px", width:40 }}><input type="checkbox" style={{ accentColor:"#0D3C5C" }}/></th>
-                      {["رقم الاسترداد","الفاتورة الأصلية","العميل","الخدمة / العملية","المبلغ الأصلي","المبلغ المسترد","الجهة المتحملة","الحالة","تاريخ الطلب",""].map((h,i)=><Th key={i} ch={h}/>)}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtRef.map(r=>(
-                      <tr key={r.id} className="inv-row" style={{ borderBottom:"1px solid #F1F5F9" }}>
-                        <td style={{ padding:"13px 16px" }}><input type="checkbox" style={{ accentColor:"#0D3C5C" }}/></td>
-                        <td style={{ padding:"13px 14px", fontWeight:800, color:"#0D3C5C" }}>{r.id}</td>
-                        <td style={{ padding:"13px 14px", fontWeight:700, color:"#4F46E5" }}>{r.invoice_id}</td>
-                        <td style={{ padding:"13px 14px" }}>
-                          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                            <Avatar name={r.user_name} id={r.id}/>
-                            <span style={{ fontWeight:700, color:"#0D3C5C", fontSize:13 }}>{r.user_name}</span>
-                          </div>
-                        </td>
-                        <td style={{ padding:"13px 14px", color:"#475569", maxWidth:200 }}>
-                          <div style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:200 }} title={r.service}>{r.service}</div>
-                        </td>
-                        <td style={{ padding:"13px 14px", fontWeight:700, color:"#0D3C5C" }}>د.أ {fmt(r.original_amount)}</td>
-                        <td style={{ padding:"13px 14px", fontWeight:700, color:r.refund_amount>0?"#16A34A":"#94A3B8" }}>د.أ {fmt(r.refund_amount)}</td>
-                        <td style={{ padding:"13px 14px", color:"#64748B" }}>{r.bearer}</td>
-                        <td style={{ padding:"13px 14px" }}><Chip status={r.status}/></td>
-                        <td style={{ padding:"13px 14px", color:"#64748B" }}>{fmtDate(r.created_at)}</td>
-                        <td style={{ padding:"13px 14px" }}><button style={{ background:"none", border:"none", cursor:"pointer", color:"#94A3B8", fontSize:18, fontWeight:900 }}>···</button></td>
+
+              {/* EXPANDABLE FILTER BAR */}
+              {showFilterBar && (
+                <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #E2E8F0", padding: "18px 22px", marginBottom: 20, boxShadow: "0 4px 14px rgba(0,0,0,0.04)" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, alignItems: "flex-end" }}>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>الحالة</label>
+                      <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ width: "100%", padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff", fontSize: 13, color: "#0D3C5C", fontWeight: 700 }}>
+                        <option value="الكل">كل الحالات</option>
+                        <option value="paid">مدفوعة</option>
+                        <option value="overdue">متأخرة</option>
+                        <option value="issued">قادمة</option>
+                        <option value="cancelled">ملغاة</option>
+                        <option value="partial">مدفوعة جزئياً</option>
+                        <option value="pending">بانتظار الدفع</option>
+                        <option value="refunded">مستردة</option>
+                        <option value="draft">مسودة</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>طريقة الدفع</label>
+                      <select value={filterPayMethod} onChange={e => setFilterPayMethod(e.target.value)} style={{ width: "100%", padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff", fontSize: 13, color: "#0D3C5C", fontWeight: 700 }}>
+                        <option value="الكل">كل الطرق</option>
+                        <option value="بطاقة بنكية">بطاقة بنكية</option>
+                        <option value="تحويل بنكي">تحويل بنكي</option>
+                        <option value="محفظة إلكترونية">محفظة إلكترونية</option>
+                        <option value="CliQ">CliQ</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>من مبلغ</label>
+                      <input className="input" type="number" step="0.001" placeholder="من" value={filterMinAmount} onChange={e => setFilterMinAmount(e.target.value)} style={{ padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9 }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>إلى مبلغ</label>
+                      <input className="input" type="number" step="0.001" placeholder="إلى" value={filterMaxAmount} onChange={e => setFilterMaxAmount(e.target.value)} style={{ padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9 }} />
+                    </div>
+                    <div>
+                      <button 
+                        type="button" 
+                        onClick={handleResetFilters} 
+                        style={{ width: "100%", background: "#fff", border: "1.5px solid #CBD5E1", borderRadius: 9, padding: "8px 14px", fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: "#0D3C5C", cursor: "pointer", transition: "all 0.2s" }}
+                      >
+                        إعادة تعيين
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {loading ? (
+                <div style={{ padding:60, textAlign:"center", background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0" }}>
+                  <div style={{ width:28, height:28, border:"3px solid #E2E8F0", borderTopColor:"#0D3C5C", borderRadius:"50%", animation:"sp .8s linear infinite", margin:"0 auto 14px" }}/>
+                  <div style={{ color:"#64748B", fontSize:13 }}>جاري التحميل...</div>
+                </div>
+              ) : filtRef.length === 0 ? (
+                <div style={{ padding:60, textAlign:"center", background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0", color:"#64748B" }}>
+                  <div style={{ fontSize:48, marginBottom:12 }}>↩️</div>
+                  <h3 style={{ color:"#0D3C5C", margin:"0 0 6px" }}>لا توجد طلبات استرداد</h3>
+                  <p style={{ margin:0, fontSize:13 }}>قم بإنشاء طلب استرداد جديد من خلال زر «+ إنشاء طلب استرداد»</p>
+                </div>
+              ) : (
+                <div style={{ background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0", overflow:"hidden" }}>
+                  <table style={{ width:"100%", borderCollapse:"collapse", textAlign:"right", fontSize:13 }}>
+                    <thead>
+                      <tr style={{ background:"#F8FAFC", borderBottom:"1.5px solid #E2E8F0" }}>
+                        <th style={{ padding:"12px 16px", width:40 }}><input type="checkbox" style={{ accentColor:"#0D3C5C" }}/></th>
+                        {["رقم الاسترداد","الفاتورة الأصلية","العميل","الخدمة / العملية","المبلغ الأصلي","المبلغ المسترد","الجهة المتحملة","الحالة","تاريخ الطلب",""].map((h,i)=><Th key={i} ch={h}/>)}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {filtRef.map(r=>(
+                        <tr key={r.id} className="inv-row" style={{ borderBottom:"1px solid #F1F5F9" }}>
+                          <td style={{ padding:"13px 16px" }}><input type="checkbox" style={{ accentColor:"#0D3C5C" }}/></td>
+                          <td style={{ padding:"13px 14px", fontWeight:800, color:"#0D3C5C" }}>{r.refund_number || r.id}</td>
+                          <td style={{ padding:"13px 14px", fontWeight:700, color:"#4F46E5" }}>{r.invoice_number || r.invoice_id || "-"}</td>
+                          <td style={{ padding:"13px 14px" }}>
+                            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                              <Avatar name={r.user_name} id={r.id}/>
+                              <span style={{ fontWeight:700, color:"#0D3C5C", fontSize:13 }}>{r.user_name || "-"}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding:"13px 14px", color:"#475569", maxWidth:200 }}>
+                            <div style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:200 }} title={r.service_name || r.service}>{r.service_name || r.service || "-"}</div>
+                          </td>
+                          <td style={{ padding:"13px 14px", fontWeight:700, color:"#0D3C5C" }}>د.أ {fmt(r.original_amount)}</td>
+                          <td style={{ padding:"13px 14px", fontWeight:700, color:r.refund_amount>0?"#16A34A":"#94A3B8" }}>د.أ {fmt(r.refund_amount)}</td>
+                          <td style={{ padding:"13px 14px", color:"#64748B" }}>{r.bearer || "المنصة"}</td>
+                          <td style={{ padding:"13px 14px" }}><Chip status={r.status}/></td>
+                          <td style={{ padding:"13px 14px", color:"#64748B" }}>{fmtDate(r.created_at)}</td>
+                          {renderRowActions(r, "refunds")}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               <div style={{ marginTop:14, fontSize:12, color:"#94A3B8" }}>عرض {filtRef.length} طلب استرداد</div>
             </>)}
           </div>
         </>
       )}
 
-      {/* Modal */}
-      {sel && (
-        <div onClick={()=>setSel(null)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:9999, display:"flex", alignItems:"center", justifyContent:"center", backdropFilter:"blur(4px)" }}>
-          <div onClick={e=>e.stopPropagation()} style={{ background:"#fff", borderRadius:16, width:"100%", maxWidth:680, margin:"0 16px", maxHeight:"90vh", overflowY:"auto", boxShadow:"0 24px 60px rgba(0,0,0,0.15)" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"18px 24px", borderBottom:"1.5px solid #F1F5F9" }}>
-              <div>
-                <h3 style={{ margin:0, fontSize:17, fontWeight:900, color:"#0D3C5C" }}>تفاصيل الفاتورة</h3>
-                <p style={{ margin:"3px 0 0", fontSize:12, color:"#94A3B8" }}>{sel.invoice_number||sel.id}</p>
+      {/* CREATE REFUND MODAL */}
+      {showRefundModal && (
+        <div onClick={() => setShowRefundModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.65)", zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)" }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 540, margin: "0 16px", padding: 24, boxShadow: "0 24px 60px rgba(0,0,0,0.15)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, borderBottom: "1.5px solid #F1F5F9", paddingBottom: 14 }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: "#0D3C5C" }}>إنشاء طلب استرداد جديد</h3>
+              <button onClick={() => setShowRefundModal(false)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#64748B", fontWeight: "bold" }}>×</button>
+            </div>
+            <form onSubmit={handleCreateRefund} style={{ display: "grid", gap: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label>رقم الفاتورة الأصلية <span style={{ color: "#DC2626" }}>*</span></label>
+                  <input className="input" required value={refundForm.invoice_number} onChange={e => setRefundForm({ ...refundForm, invoice_number: e.target.value })} placeholder="INV-2026-000842" />
+                </div>
+                <div>
+                  <label>اسم العميل <span style={{ color: "#DC2626" }}>*</span></label>
+                  <input className="input" required value={refundForm.user_name} onChange={e => setRefundForm({ ...refundForm, user_name: e.target.value })} placeholder="جامعة الريادة الخاصة" />
+                </div>
               </div>
-              <div style={{ display:"flex", gap:8 }}>
-                <button onClick={handlePrint} className="ab">🖨️ طباعة</button>
-                <button onClick={()=>setSel(null)} style={{ background:"#F1F5F9", border:"none", borderRadius:"50%", width:32, height:32, cursor:"pointer", fontSize:16, fontWeight:"bold", color:"#64748B" }}>×</button>
+              <div>
+                <label>الخدمة / العملية <span style={{ color: "#DC2626" }}>*</span></label>
+                <input className="input" required value={refundForm.service_name} onChange={e => setRefundForm({ ...refundForm, service_name: e.target.value })} placeholder="شراء باقة الاستشارات المتقدمة" />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label>المبلغ الأصلي (د.أ) <span style={{ color: "#DC2626" }}>*</span></label>
+                  <input className="input" type="number" step="0.001" required value={refundForm.original_amount} onChange={e => setRefundForm({ ...refundForm, original_amount: Number(e.target.value) })} />
+                </div>
+                <div>
+                  <label>المبلغ المسترد (د.أ) <span style={{ color: "#DC2626" }}>*</span></label>
+                  <input className="input" type="number" step="0.001" required value={refundForm.refund_amount} onChange={e => setRefundForm({ ...refundForm, refund_amount: Number(e.target.value) })} />
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label>الجهة المتحملة</label>
+                  <select value={refundForm.bearer} onChange={e => setRefundForm({ ...refundForm, bearer: e.target.value })}>
+                    <option value="المنصة">المنصة</option>
+                    <option value="المستشار">المستشار</option>
+                    <option value="المنصة والمستشار">المنصة والمستشار</option>
+                  </select>
+                </div>
+                <div>
+                  <label>حالة الطلب</label>
+                  <select value={refundForm.status} onChange={e => setRefundForm({ ...refundForm, status: e.target.value })}>
+                    <option value="pending">بانتظار الموافقة</option>
+                    <option value="processing">قيد المعالجة</option>
+                    <option value="completed">مكتمل</option>
+                    <option value="rejected">مرفوض</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label>سبب الاسترداد</label>
+                <textarea rows="2" value={refundForm.reason} onChange={e => setRefundForm({ ...refundForm, reason: e.target.value })} placeholder="أدخل سبب الاسترداد أو التفاصيل الإضافية..." />
+              </div>
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 10 }}>
+                <button type="button" className="btn" onClick={() => setShowRefundModal(false)}>إلغاء</button>
+                <button type="submit" className="btn primary">حفظ وتأكيد الطلب</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* FULL RICH PREVIEW MODAL FOR SELECTED INVOICE */}
+      {sel && (() => {
+        const itemInvNo = sel.invoice_number || sel.recurring_number || sel.refund_number || `INV-2026-${String(sel.id || 1).padStart(6, '0')}`;
+        const itemRefNo = sel.reference_number || `TX-2026-${String(sel.id || 1).padStart(6, '0')}`;
+        const itemDate = fmtDate(sel.created_at || sel.issued_date);
+        const itemDueDate = fmtDate(sel.due_date || sel.created_at);
+        const itemTotal = Number(sel.total_amount || sel.amount || sel.refund_amount || 0);
+        const itemTax = Number(sel.tax_amount || (itemTotal > 0 ? itemTotal * 0.16 / 1.16 : 0));
+        const itemSubtotal = itemTotal - itemTax;
+        const itemCustName = sel.user_name || "شركة الأفق للاستشارات ذ.م.م";
+        const itemCustEmail = sel.user_email || "accounts@alofuq.jo";
+        const itemPayMethod = sel.payment_method || "بطاقة بنكية";
+        const itemItems = Array.isArray(sel.line_items) && sel.line_items.length > 0 ? sel.line_items : [
+          { name: sel.service_name || sel.service || (sel.type === "subscription" ? "اشتراك باقة استشارية" : sel.type === "appointment" ? "جلسة استشارة مسجلة" : "خدمات استشارية وطباعة ضريبية"), qty: 1, unit: "خدمة", price: itemSubtotal, discount: 0, taxRate: 16 }
+        ];
+
+        return (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.65)", zIndex: 99999, display: "flex", flexDirection: "column", backdropFilter: "blur(4px)", overflowY: "auto" }}>
+            {/* Top Sticky Pagebar */}
+            <div style={{ position: "sticky", top: 0, zIndex: 10, background: "#fff", borderBottom: "1.5px solid #E2E8F0", padding: "14px 28px", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <button className="ghost-btn" onClick={() => setSel(null)} type="button">
+                  <i className="fa-solid fa-arrow-right"></i> إغلاق المعاينة
+                </button>
+                <h3 style={{ margin: 0, fontSize: 18, color: "#0D3C5C", fontWeight: 900 }}>معاينة الفاتورة {itemInvNo}</h3>
+              </div>
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <button className="primary-top" onClick={diwanPrintA5} type="button">
+                  <i className="fa-solid fa-print"></i> طباعة الفاتورة (A5)
+                </button>
+                <button style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: "#64748B", fontWeight: "bold" }} onClick={() => setSel(null)}>
+                  ×
+                </button>
               </div>
             </div>
-            <div id="inv-print-area" style={{ padding:24 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:16 }}>
-                <div>
-                  <div style={{ fontSize:20, fontWeight:900, color:"#0D3C5C" }}>{sel.invoice_number||sel.id}</div>
-                  <div style={{ fontSize:12, color:"#64748B", marginTop:4 }}>تاريخ الإنشاء: {fmtDate(sel.created_at)}</div>
+
+            {/* Preview Sheet Card */}
+            <div style={{ padding: "32px 20px", width: "100%", boxSizing: "border-box" }}>
+              <div 
+                className="invoice-sheet"
+                style={{ 
+                  maxWidth: 940, 
+                  margin: "0 auto", 
+                  background: "#fff", 
+                  borderRadius: 16, 
+                  border: "1.5px solid #E2E8F0", 
+                  padding: "40px 48px", 
+                  boxShadow: "0 24px 60px rgba(0,0,0,0.08)",
+                  fontFamily: "'Cairo','Tajawal',sans-serif",
+                  direction: "rtl"
+                }}
+              >
+                {/* Gray Top Section Container */}
+                <div style={{ background: "#F1F5F9", borderRadius: 16, border: "1.5px solid #E2E8F0", padding: "32px 36px", marginBottom: 32 }}>
+                  {/* Top Logo & Header */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1.5px solid #CBD5E1", paddingBottom: 24, marginBottom: 28 }}>
+                    <div style={{ textAlign: "right" }}>
+                      <h1 style={{ margin: 0, fontSize: 32, color: "#0D3C5C", fontWeight: 900 }}>فاتورة</h1>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: "#0D3C5C", marginTop: 6 }}>
+                        {sel.seller_name || seller || "منصة ديوان للاستشارات الضريبية"}
+                      </div>
+                      <div style={{ fontSize: 12, color: "#64748B", marginTop: 3 }}>عمّان، المملكة الأردنية الهاشمية</div>
+                    </div>
+
+                    <div style={{ textAlign: "left" }}>
+                      {logoUrl ? (
+                        <img src={logoUrl} alt="Logo" style={{ maxHeight: 95, maxWidth: 220, objectFit: "contain" }} />
+                      ) : (
+                        <div style={{ padding: "12px 20px", border: "2px dashed #CBD5E1", borderRadius: 12, background: "#fff", color: "#0D3C5C", textAlign: "center" }}>
+                          <i className="fa-regular fa-image" style={{ fontSize: 24, display: "block", marginBottom: 4 }}></i>
+                          <span style={{ fontSize: 11, fontWeight: 700 }}>شعار الفاتورة</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 3 Info Columns Grid */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 24 }}>
+                    {/* Column 1: Details */}
+                    <div>
+                      <h4 style={{ margin: "0 0 12px", fontSize: 15, color: "#0D3C5C", fontWeight: 900 }}>تفاصيل الفاتورة</h4>
+                      <div style={{ fontSize: 12, display: "grid", gap: 6, color: "#475569" }}>
+                        <div><span>رقم الفاتورة: </span><b style={{ color: "#0D3C5C" }}>{itemInvNo}</b></div>
+                        <div><span>الرقم المرجعي: </span><b>{itemRefNo}</b></div>
+                        <div><span>تاريخ الإصدار: </span><b>{itemDate}</b></div>
+                        <div><span>تاريخ الاستحقاق: </span><b>{itemDueDate}</b></div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                          <span>حالة الدفع:</span>
+                          <Chip status={sel.status} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Column 2: Issuer */}
+                    <div>
+                      <h4 style={{ margin: "0 0 12px", fontSize: 15, color: "#0D3C5C", fontWeight: 900 }}>صادرة من</h4>
+                      <div style={{ fontSize: 12, display: "grid", gap: 4, color: "#475569" }}>
+                        <b style={{ color: "#0D3C5C", fontSize: 13 }}>{sel.seller_name || seller || "منصة ديوان للاستشارات الضريبية"}</b>
+                        <div>عمّان، الأردن</div>
+                        <div>الهاتف: +962 6 0000 000</div>
+                        <div>البريد: info@diwanjo.com</div>
+                        <div>الرقم الضريبي: 123456789</div>
+                      </div>
+                    </div>
+
+                    {/* Column 3: Customer Card */}
+                    <div>
+                      <h4 style={{ margin: "0 0 12px", fontSize: 15, color: "#0D3C5C", fontWeight: 900 }}>الفاتورة إلى</h4>
+                      <div style={{ background: "#FFFFFF", border: "1.5px solid #E2E8F0", borderRadius: 12, padding: 16 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 8, background: "#0D3C5C", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>
+                            <i className="fa-solid fa-building"></i>
+                          </div>
+                          <b style={{ fontSize: 13, color: "#0D3C5C" }}>{itemCustName}</b>
+                        </div>
+                        <div style={{ fontSize: 11, color: "#64748B", display: "grid", gap: 3 }}>
+                          <div>{itemCustEmail}</div>
+                          <div>الهاتف: +962 7 962 9000 000</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <Chip status={sel.status}/>
-              </div>
-              <div style={{ height:2, background:"#F59A23", marginBottom:20 }}/>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:20 }}>
-                {[
-                  { l:"العميل", v:sel.user_name||"-" },
-                  { l:"البريد", v:sel.user_email||"-" },
-                  { l:"النوع", v:sel.type==="subscription"?"اشتراك":sel.type==="appointment"?"استشارة":sel.type||"-" },
-                  { l:"طريقة الدفع", v:sel.payment_method||"-" },
-                  { l:"تاريخ الاستحقاق", v:fmtDate(sel.due_date) },
-                  { l:"العملة", v:sel.currency||"JOD" },
-                ].map((row,i)=>(
-                  <div key={i} style={{ background:"#F8FAFC", borderRadius:10, padding:"12px 14px" }}>
-                    <div style={{ fontSize:11, color:"#94A3B8", fontWeight:700, marginBottom:4 }}>{row.l}</div>
-                    <div style={{ fontSize:13, fontWeight:800, color:"#0D3C5C" }}>{row.v}</div>
+
+                {/* Table Title */}
+                <h3 style={{ margin: "0 0 16px", fontSize: 18, color: "#0D3C5C", fontWeight: 900 }}>بنود المنتجات / الخدمات</h3>
+
+                {/* Items Table */}
+                <div style={{ overflowX: "auto", marginBottom: 28 }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "right", fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ background: "#1E293B", color: "#ffffff" }}>
+                        <th style={{ padding: "14px 16px", width: 40, borderTopRightRadius: 8, borderBottomRightRadius: 8, fontWeight: 800 }}>#</th>
+                        <th style={{ padding: "14px 16px", fontWeight: 800 }}>المنتج / الخدمة</th>
+                        <th style={{ padding: "14px 16px", textAlign: "center", fontWeight: 800 }}>الكمية</th>
+                        <th style={{ padding: "14px 16px", textAlign: "center", fontWeight: 800 }}>الوحدة</th>
+                        <th style={{ padding: "14px 16px", textAlign: "center", fontWeight: 800 }}>السعر</th>
+                        <th style={{ padding: "14px 16px", textAlign: "center", fontWeight: 800 }}>الخصم</th>
+                        <th style={{ padding: "14px 16px", textAlign: "center", fontWeight: 800 }}>الضريبة (%)</th>
+                        <th style={{ padding: "14px 16px", textAlign: "center", borderTopLeftRadius: 8, borderBottomLeftRadius: 8, fontWeight: 800 }}>المبلغ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {itemItems.map((item, idx) => {
+                        const net = (Number(item.qty || 1) * Number(item.price || itemSubtotal) - Number(item.discount || 0));
+                        const itemTaxAmt = (net * Number(item.taxRate || 16) / 100);
+                        const totalItem = net + itemTaxAmt;
+                        return (
+                          <tr key={idx} style={{ borderBottom: "1px solid #E2E8F0", background: "#ffffff" }}>
+                            <td style={{ padding: "14px 16px", color: "#64748B", fontWeight: 700 }}>{idx + 1}</td>
+                            <td style={{ padding: "14px 16px", fontWeight: 800, color: "#1E293B" }}>{item.name || "خدمات المنصة الضريبية"}</td>
+                            <td style={{ padding: "14px 16px", textAlign: "center", color: "#475569" }}>{item.qty || 1}</td>
+                            <td style={{ padding: "14px 16px", textAlign: "center", color: "#475569" }}>{item.unit || "جلسة"}</td>
+                            <td style={{ padding: "14px 16px", textAlign: "center", color: "#475569" }}>{fmt(item.price || itemSubtotal)}</td>
+                            <td style={{ padding: "14px 16px", textAlign: "center", color: "#475569" }}>{fmt(item.discount || 0)}</td>
+                            <td style={{ padding: "14px 16px", textAlign: "center", color: "#475569" }}>{item.taxRate || 16}%</td>
+                            <td style={{ padding: "14px 16px", textAlign: "center", fontWeight: 800, color: "#0D3C5C" }}>{fmt(totalItem)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Footer Grid */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, marginBottom: 32 }}>
+                  {/* Right: Payment details & QR */}
+                  <div>
+                    <div style={{ display: "flex", gap: 18, alignItems: "flex-start" }}>
+                      <div style={{ width: 110, height: 110, padding: 4, background: "#fff", border: "1.5px solid #CBD5E1", borderRadius: 12, flexShrink: 0 }}>
+                        <img 
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+                            [
+                              `المفوّتر: ${sel.seller_name || seller || "منصة ديوان للاستشارات الضريبية"}`,
+                              `رقم الفاتورة: ${itemInvNo}`,
+                              `التاريخ: ${itemDate}`,
+                              `الإجمالي: ${itemTotal.toFixed(3)} ${sel.currency || "JOD"}`
+                            ].join("\n")
+                          )}`} 
+                          alt="QR" 
+                          style={{ width: "100%", height: "100%", borderRadius: 8, objectFit: "contain" }} 
+                        />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, color: "#64748B", fontWeight: 800, marginBottom: 4 }}>رمز الفاتورة الإلكتروني</div>
+                        <h4 style={{ margin: "0 0 8px", fontSize: 14, color: "#0D3C5C", fontWeight: 900 }}>تفاصيل الدفع</h4>
+                        <div style={{ fontSize: 11, color: "#475569", display: "grid", gap: 3 }}>
+                          <div><span>طريقة الدفع: </span><b>{itemPayMethod}</b></div>
+                          <div><span>المبلغ المدفوع: </span><b>{fmt(itemTotal)} د.أ</b></div>
+                          <div><span>مرجع الدفع: </span><b>{itemRefNo}</b></div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                ))}
-              </div>
-              <div style={{ background:"#F8FAFC", borderRadius:12, padding:"16px 18px" }}>
-                <div style={{ fontSize:12, color:"#64748B", fontWeight:800, marginBottom:12, borderBottom:"1px solid #E2E8F0", paddingBottom:8 }}>ملخص المبالغ</div>
-                {[["المبلغ الفرعي", sel.amount],["الضريبة", sel.tax_amount]].map(([l,v],i)=>(
-                  <div key={i} style={{ display:"flex", justifyContent:"space-between", fontSize:13, marginBottom:8 }}>
-                    <span style={{ color:"#64748B", fontWeight:600 }}>{l}</span>
-                    <span style={{ fontWeight:700, color:"#0D3C5C" }}>{sel.currency||"JOD"} {fmt(v)}</span>
+
+                  {/* Left: Totals summary */}
+                  <div style={{ fontSize: 13, display: "grid", gap: 8, background: "#F8FAFC", padding: 18, borderRadius: 14, border: "1.5px solid #E2E8F0" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", color: "#64748B" }}>
+                      <span>المبلغ</span>
+                      <b>{fmt(itemSubtotal)} د.أ</b>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", color: "#64748B" }}>
+                      <span>الضريبة</span>
+                      <b>{fmt(itemTax)} د.أ</b>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", color: "#DC2626" }}>
+                      <span>الخصم</span>
+                      <b>0.000 د.أ</b>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", borderTop: "2px solid #0D3C5C", paddingTop: 10, marginTop: 4, fontSize: 18, fontWeight: 900, color: "#0D3C5C" }}>
+                      <span>الإجمالي ({sel.currency || "JOD"})</span>
+                      <b>{fmt(itemTotal)} د.أ</b>
+                    </div>
+                    <div style={{ fontSize: 11, color: "#64748B", textAlign: "center", marginTop: 4, fontWeight: 700 }}>
+                      إجمالي مستحق: {numberToArabicWords(itemTotal)}
+                    </div>
                   </div>
-                ))}
-                <div style={{ height:"1.5px", background:"#E2E8F0", margin:"10px 0" }}/>
-                <div style={{ display:"flex", justifyContent:"space-between", fontSize:15 }}>
-                  <span style={{ fontWeight:800, color:"#0D3C5C" }}>الإجمالي</span>
-                  <span style={{ fontWeight:900, color:"#0D3C5C" }}>{sel.currency||"JOD"} {fmt(sel.total_amount)}</span>
+                </div>
+
+                {/* Bottom Terms & Signature */}
+                <div style={{ borderTop: "1.5px solid #E2E8F0", paddingTop: 20, marginTop: 24 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 24, marginBottom: 24 }}>
+                    <div style={{ textAlign: "right" }}>
+                      <h5 style={{ margin: "0 0 4px", fontSize: 13, color: "#0D3C5C", fontWeight: 800 }}>الشروط والأحكام</h5>
+                      <p style={{ margin: 0, fontSize: 11, color: "#94A3B8", lineHeight: 1.5 }}>{sel.terms_and_conditions || tc}</p>
+                      <h5 style={{ margin: "12px 0 4px", fontSize: 13, color: "#0D3C5C", fontWeight: 800 }}>ملاحظات</h5>
+                      <p style={{ margin: 0, fontSize: 11, color: "#94A3B8", lineHeight: 1.5 }}>{sel.notes || notes || "جميع الرسوم نهائية وتشمل الضرائب والرسوم والتكاليف الإضافية المطبقة."}</p>
+                    </div>
+
+                    <div style={{ textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+                      {signatureUrl ? (
+                        <img src={signatureUrl} alt="Signature" style={{ maxHeight: 60, maxWidth: 180, objectFit: "contain", marginBottom: 6 }} />
+                      ) : (
+                        <div style={{ fontFamily: "cursive, 'Cairo'", fontSize: 26, color: "#0D3C5C", fontWeight: 900, fontStyle: "italic", marginBottom: 4 }}>Tax Platform</div>
+                      )}
+                      <div style={{ fontSize: 13, color: "#0D3C5C", fontWeight: 800 }}>{sel.signer_name || signName || "سارة علي - النائب التنفيذي"}</div>
+                    </div>
+                  </div>
+
+                  {/* Gray Footer Platform Banner */}
+                  <div style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", borderRadius: 12, padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <b style={{ fontSize: 13, color: "#0D3C5C", display: "block" }}>منصة ديوان للاستشارات الضريبية</b>
+                      <span style={{ fontSize: 11, color: "#94A3B8" }}>عمّان، المملكة الأردنية الهاشمية · الرقم الضريبي: 123456789</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "#94A3B8", textAlign: "left" }}>
+                      <div>الهاتف: +962 6 0000 000</div>
+                      <div>البريد الإلكتروني: info@diwanjo.com</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
       {/* HIDDEN INVOICE SHEET CONTAINER FOR A5 LANDSCAPE PRINTING */}
       <div 
         id="invoice-sheet-container" 

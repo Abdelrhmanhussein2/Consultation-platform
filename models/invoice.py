@@ -20,7 +20,7 @@ class Invoice(Base):
     customer_type = Column(String(100), nullable=True)
     tax_treatment = Column(String(100), nullable=True)
     tax_enabled = Column(Boolean, nullable=False, default=True)
-    logo_url = Column(String(500), nullable=True)
+    logo_url = Column(Text, nullable=True)
     
     appointment_id = Column(UUID(as_uuid=True), ForeignKey("appointments.id"), nullable=True)
     issued_to_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
@@ -56,7 +56,7 @@ class Invoice(Base):
     e_invoice_id = Column(String(100), nullable=True)
     e_invoice_status = Column(String(50), nullable=True)
     signer_name = Column(String(255), nullable=True)
-    signature_url = Column(String(500), nullable=True)
+    signature_url = Column(Text, nullable=True)
 
     is_recurring = Column(Boolean, nullable=False, default=False)
     recurring_cycle = Column(String(50), nullable=True)

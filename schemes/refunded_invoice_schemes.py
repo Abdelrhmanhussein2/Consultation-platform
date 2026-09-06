@@ -16,6 +16,19 @@ class RefundedInvoiceCreate(BaseModel):
     status: str = "pending"
     reason: Optional[str] = None
 
+class RefundedInvoiceUpdate(BaseModel):
+    refund_number: Optional[str] = None
+    reference_number: Optional[str] = None
+    invoice_number: Optional[str] = None
+    user_id: Optional[UUID] = None
+    user_name: Optional[str] = None
+    service_name: Optional[str] = None
+    original_amount: Optional[float] = None
+    refund_amount: Optional[float] = None
+    bearer: Optional[str] = None
+    status: Optional[str] = None
+    reason: Optional[str] = None
+
 class RefundedInvoiceOut(BaseModel):
     id: str
     refund_number: Optional[str] = None

@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from helpers.database import get_db
 from models import User
-from schemes.recurring_invoice_schemes import RecurringInvoiceOut, RecurringInvoiceCreate
+from schemes.recurring_invoice_schemes import RecurringInvoiceOut, RecurringInvoiceCreate, RecurringInvoiceUpdate
 from controllers.recurring_invoice_controller import RecurringInvoiceController
 from routes.deps import get_current_active_user
 
@@ -47,3 +47,27 @@ def create_recurring_invoice(
     current_user: User = Depends(get_current_active_user),
 ):
     return RecurringInvoiceController.create_recurring_invoice(db, data)
+
+@router.put(
+    "/{recurring_id}",
+    response_model=RecurringInvoiceOut,
+    summary="Update a recurring invoice"
+)
+def update_recurring_invoice(
+    recurring_id: str,
+    data: RecurringInvoiceUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    return RecurringInvoiceController.update_recurring_invoice(db, recurring_id, data)
+
+@router.delete(
+    "/{recurring_id}",
+    summary="Delete a recurring invoice"
+)
+def delete_recurring_invoice(
+    recurring_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    return RecurringInvoiceController.delete_recurring_invoice(db, recurring_id)
