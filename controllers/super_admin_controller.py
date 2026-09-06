@@ -411,5 +411,115 @@ class SuperAdminController:
                 detail=f"Failed to delete payment: {str(e)}"
             )
 
+    @staticmethod
+    def admin_update_user_profile(db: Session, user_id: str, update_in: dict, current_admin: User):
+        """
+        Updates user profile data live in PostgreSQL.
+        """
+        try:
+            user_uuid = uuid.UUID(user_id)
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="معرف المستخدم غير صحيح")
+        try:
+            return SuperAdminService.admin_update_user_profile(db, user_uuid, update_in, current_admin.id)
+        except ValueError as ve:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to update user: {str(e)}")
+
+    @staticmethod
+    def admin_reset_user_password(db: Session, user_id: str, payload: dict, current_admin: User):
+        """
+        Resets user password directly or sends reset link notification.
+        """
+        try:
+            user_uuid = uuid.UUID(user_id)
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="معرف المستخدم غير صحيح")
+        try:
+            new_pass = payload.get("new_password")
+            mode = payload.get("mode", "admin")
+            return SuperAdminService.admin_reset_user_password(db, user_uuid, new_pass, mode, current_admin.id)
+        except ValueError as ve:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to reset password: {str(e)}")
+
+    @staticmethod
+    def admin_delete_user(db: Session, user_id: str, current_admin: User):
+        """
+        Deletes user from PostgreSQL.
+        """
+        try:
+            user_uuid = uuid.UUID(user_id)
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="معرف المستخدم غير صحيح")
+        try:
+            return SuperAdminService.admin_delete_user(db, user_uuid, current_admin.id)
+        except ValueError as ve:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to delete user: {str(e)}")
+
+    @staticmethod
+    def admin_get_login_history(
+        db: Session,
+        year: Optional[str] = None,
+        month: Optional[str] = None,
+        user_id: Optional[str] = None,
+        search: Optional[str] = None,
+        page: int = 1,
+        limit: int = 100
+    ):
+        """
+        Retrieves user login audit logs from database.
+        """
+        try:
+            return SuperAdminService.admin_get_login_history(db, year, month, user_id, search, page, limit)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get login history: {str(e)}")
+
+    @staticmethod
+    def admin_delete_login_history(db: Session, log_id: str, current_admin: User):
+        """
+        Deletes a login history audit record.
+        """
+        try:
+            return SuperAdminService.admin_delete_login_history(db, log_id, current_admin.id)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to delete log: {str(e)}")
+
+    @staticmethod
+    def admin_get_account_roles(db: Session):
+        """
+        Retrieves corporate account roles.
+        """
+        try:
+            return SuperAdminService.admin_get_account_roles(db)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get account roles: {str(e)}")
+
+    @staticmethod
+    def admin_save_account_roles(db: Session, roles_list: list, current_admin: User):
+        """
+        Saves corporate account roles list to database.
+        """
+        try:
+            return SuperAdminService.admin_save_account_roles(db, roles_list, current_admin.id)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to save account roles: {str(e)}")
+
+    @staticmethod
+    def get_dashboard_stats(db: Session, period: str = "week"):
+        """
+        Retrieves real-time dashboard aggregates and list feed from database.
+        """
+        try:
+            return SuperAdminService.get_dashboard_stats(db, period)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get dashboard stats: {str(e)}")
+
+
+
 
 

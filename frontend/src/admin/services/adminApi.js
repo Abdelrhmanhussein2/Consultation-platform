@@ -73,6 +73,11 @@ async function adminRequest(endpoint, options = {}) {
       throw new Error(errorMsg);
     }
 
+    // Automatically trigger live reactive sync across the platform
+    if (typeof window !== 'undefined' && options.method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(options.method.toUpperCase())) {
+      window.dispatchEvent(new CustomEvent('admin_data_updated', { detail: { endpoint } }));
+    }
+
     return data;
   } catch (err) {
     console.error(`Admin API Error [${endpoint}]:`, err);
@@ -83,8 +88,8 @@ async function adminRequest(endpoint, options = {}) {
 /* ══════════════════════════════════════════════════════════════════
    DASHBOARD & STATS
    ══════════════════════════════════════════════════════════════════ */
-export async function getDashboardStats() {
-  return adminRequest('/super-admin/dashboard/stats');
+export async function getDashboardStats(period = 'week') {
+  return adminRequest(`/super-admin/dashboard/stats?period=${period}`);
 }
 
 export async function getAuditLogs(limit = 20) {
@@ -101,7 +106,56 @@ export async function getAdminUsers(params = {}) {
 
 export async function toggleUserActive(userId) {
   return adminRequest(`/super-admin/users/${userId}/toggle-active`, {
-    method: 'PATCH'
+    method: 'POST'
+  });
+}
+
+export async function updateUserProfile(userId, profileData) {
+  return adminRequest(`/super-admin/users/${userId}/profile`, {
+    method: 'PATCH',
+    body: JSON.stringify(profileData)
+  });
+}
+
+export async function resetUserPassword(userId, { new_password, mode = 'admin' }) {
+  return adminRequest(`/super-admin/users/${userId}/reset-password`, {
+    method: 'POST',
+    body: JSON.stringify({ new_password, mode })
+  });
+}
+
+export async function deleteAdminUser(userId) {
+  return adminRequest(`/super-admin/users/${userId}`, {
+    method: 'DELETE'
+  });
+}
+
+export async function adminAddUserDirect(userData) {
+  return adminRequest('/super-admin/users/add', {
+    method: 'POST',
+    body: JSON.stringify(userData)
+  });
+}
+
+export async function getLoginHistory(params = {}) {
+  const query = new URLSearchParams(params).toString();
+  return adminRequest(`/super-admin/login-history${query ? `?${query}` : ''}`);
+}
+
+export async function deleteLoginLog(logId) {
+  return adminRequest(`/super-admin/login-history/${logId}`, {
+    method: 'DELETE'
+  });
+}
+
+export async function getAccountRoles() {
+  return adminRequest('/super-admin/account-roles');
+}
+
+export async function saveAccountRoles(rolesList) {
+  return adminRequest('/super-admin/account-roles', {
+    method: 'POST',
+    body: JSON.stringify(rolesList)
   });
 }
 
@@ -290,7 +344,7 @@ export async function assignUserRole(userId, { role_name, role_type, permissions
 
 export async function getAdminUsersList(params = {}) {
   const query = new URLSearchParams(params).toString();
-  return adminRequest(`/super-admin/users/all${query ? `?${query}` : ''}`);
+  return adminRequest(`/super-admin/users${query ? `?${query}` : ''}`);
 }
 
 

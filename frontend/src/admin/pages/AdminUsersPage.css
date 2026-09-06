@@ -680,7 +680,7 @@
   scrollbar-width: thin;
 }
 
-.profile-main-scroll > * {
+.profile-main-scroll>* {
   direction: rtl !important;
 }
 
@@ -697,7 +697,7 @@
   scrollbar-width: thin;
 }
 
-.profile-side-scroll > * {
+.profile-side-scroll>* {
   direction: rtl !important;
 }
 
@@ -1046,9 +1046,17 @@
   border-radius: 0 16px 16px 0 !important;
 }
 
-.profile-kpi-box:nth-child(2):after { background: #16845A !important; }
-.profile-kpi-box:nth-child(3):after { background: #164D70 !important; }
-.profile-kpi-box:nth-child(4):after { background: #E69A32 !important; }
+.profile-kpi-box:nth-child(2):after {
+  background: #16845A !important;
+}
+
+.profile-kpi-box:nth-child(3):after {
+  background: #164D70 !important;
+}
+
+.profile-kpi-box:nth-child(4):after {
+  background: #E69A32 !important;
+}
 
 .profile-kpi-box small {
   display: block;
@@ -1233,9 +1241,17 @@
   background: var(--admin-orange) !important;
 }
 
-.profile-metric-box:nth-child(2):after { background: #16845A !important; }
-.profile-metric-box:nth-child(3):after { background: #164D70 !important; }
-.profile-metric-box:nth-child(4):after { background: #7A8791 !important; }
+.profile-metric-box:nth-child(2):after {
+  background: #16845A !important;
+}
+
+.profile-metric-box:nth-child(3):after {
+  background: #164D70 !important;
+}
+
+.profile-metric-box:nth-child(4):after {
+  background: #7A8791 !important;
+}
 
 .profile-metric-box small {
   color: #758998 !important;
@@ -1359,8 +1375,15 @@
 }
 
 @keyframes modalPop {
-  from { opacity: 0; transform: scale(0.97) translateY(8px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .drill-modal-accent {
@@ -1765,28 +1788,92 @@
 }
 
 @keyframes toastFade {
-  from { opacity: 0; transform: translate(-50%, 10px); }
-  to { opacity: 1; transform: translate(-50%, 0); }
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 
 /* Responsive adjustments */
 @media (max-width: 1000px) {
-  .users-searchbar { grid-template-columns: 1fr 1fr; }
-  .users-search-input { grid-column: 1 / -1; height: 50px; }
-  .users-search-btn { grid-column: 1 / -1; }
-  .users-content { grid-template-columns: 1fr; }
-  .users-filters { position: static; }
-  .profile-shell-grid { display: block; overflow-y: auto; }
-  .profile-main-scroll, .profile-side-scroll { height: auto; overflow: visible; padding: 20px 0; direction: rtl !important; }
-  .profile-viewport-shell { overflow: auto; }
+  .users-searchbar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .users-search-input {
+    grid-column: 1 / -1;
+    height: 50px;
+  }
+
+  .users-search-btn {
+    grid-column: 1 / -1;
+  }
+
+  .users-content {
+    grid-template-columns: 1fr;
+  }
+
+  .users-filters {
+    position: static;
+  }
+
+  .profile-shell-grid {
+    display: block;
+    overflow-y: auto;
+  }
+
+  .profile-main-scroll,
+  .profile-side-scroll {
+    height: auto;
+    overflow: visible;
+    padding: 20px 0;
+    direction: rtl !important;
+  }
+
+  .profile-viewport-shell {
+    overflow: auto;
+  }
 }
 
 @media (max-width: 760px) {
-  .users-hero { grid-template-columns: 1fr; gap: 15px; }
-  .users-hero h1 { font-size: 42px; }
-  .users-cards-grid { grid-template-columns: 1fr; }
-  .users-searchbar { grid-template-columns: 1fr; border-radius: 24px; }
-  .users-top-filter { border-right: 0; border-top: 1px solid #edf0f2; min-height: 45px; }
-  .drill-modal-panel, .drill-modal-panel.wide { width: 100% !important; max-height: 94vh !important; border-radius: 22px !important; }
-  .drill-modal-backdrop { align-items: flex-end !important; padding: 8px !important; }
+  .users-hero {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .users-hero h1 {
+    font-size: 42px;
+  }
+
+  .users-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .users-searchbar {
+    grid-template-columns: 1fr;
+    border-radius: 24px;
+  }
+
+  .users-top-filter {
+    border-right: 0;
+    border-top: 1px solid #edf0f2;
+    min-height: 45px;
+  }
+
+  .drill-modal-panel,
+  .drill-modal-panel.wide {
+    width: 100% !important;
+    max-height: 94vh !important;
+    border-radius: 22px !important;
+  }
+
+  .drill-modal-backdrop {
+    align-items: flex-end !important;
+    padding: 8px !important;
+  }
 }

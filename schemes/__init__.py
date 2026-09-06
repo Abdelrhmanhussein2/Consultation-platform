@@ -44,6 +44,7 @@ from schemes.schemes import (
 
     # Admin User Stats & Lists
     RoleCount, EntityTypeCount, UserStatsOut, AdminUserListOut, AdminAddUserRequest,
+    AdminUpdateUserRequest, AdminResetPasswordRequest, AccountRoleSchema, AccountRoleCreate,
 
     # Admin Broadcast Notification
     AdminBroadcastNotification, BroadcastResultOut,

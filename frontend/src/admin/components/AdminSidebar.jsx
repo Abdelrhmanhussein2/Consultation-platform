@@ -32,10 +32,10 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
     // 2. Reports & Analytics
     { id: 'reports', label: 'التقارير والتحليلات', path: '/admin/reports', icon: IconReports },
 
-    // 3. Accounts (Users & Consultants) - The 3rd Item with Expandable Submenu & Auto Default
-    { 
-      id: 'accounts', 
-      label: 'المستخدمون والمستشارون', 
+    // 3. Accounts (Users & Consultants)
+    {
+      id: 'accounts',
+      label: 'المستخدمون والمستشارون',
       icon: IconUsers,
       defaultPath: '/admin/users',
       subItems: [
@@ -44,16 +44,28 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
       ]
     },
 
-    // 4. Financial & Subscriptions - Grouped
-    { 
-      id: 'finance_group', 
-      label: 'المالية والاشتراكات', 
-      icon: IconFinancial,
-      defaultPath: '/admin/payments',
+    // 4. User Accounts & Login History (New Hub)
+    {
+      id: 'user_accounts_group',
+      label: 'إدارة الحسابات وسجل الدخول',
+      icon: IconSecurity,
+      defaultPath: '/admin/user-accounts',
       subItems: [
-        { id: 'payments', label: 'طلبات الدفع والتحويلات', path: '/admin/payments' },
-        { id: 'subscriptions', label: 'الباقات والاشتراكات', path: '/admin/subscriptions' },
-        { id: 'financial', label: 'النظام المالي والمحافظ', path: '/admin/financial' }
+        { id: 'uacc_list', label: 'إدارة حسابات المستخدمين', path: '/admin/user-accounts' },
+        { id: 'uacc_history', label: 'سجل دخول المستخدمين', path: '/admin/user-accounts/history' },
+        { id: 'uacc_roles', label: 'أدوار وصلاحيات الحسابات', path: '/admin/user-accounts/roles' }
+      ]
+    },
+
+    // 4. RBAC Roles & Permissions
+    {
+      id: 'rbac_group',
+      label: 'الأدوار والصلاحيات (RBAC)',
+      icon: IconRbac,
+      defaultPath: '/admin/rbac',
+      subItems: [
+        { id: 'rbac_roles', label: 'الأدوار والصلاحيات', path: '/admin/rbac' },
+        { id: 'rbac_users', label: 'المستخدمون وإسناد الأدوار', path: '/admin/rbac/users' }
       ]
     },
 
@@ -63,10 +75,23 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
     // 6. Sessions & Consultations
     { id: 'sessions', label: 'سجل الحجوزات والجلسات', path: '/admin/sessions', icon: IconSessions },
 
-    // 6. AI & Knowledge - Grouped
-    { 
-      id: 'ai_knowledge', 
-      label: 'الذكاء الاصطناعي والمعرفة', 
+    // 7. Financial & Subscriptions - Grouped
+    {
+      id: 'finance_group',
+      label: 'المالية والاشتراكات',
+      icon: IconFinancial,
+      defaultPath: '/admin/payments',
+      subItems: [
+        { id: 'payments', label: 'طلبات الدفع والتحويلات', path: '/admin/payments' },
+        { id: 'subscriptions', label: 'الباقات والاشتراكات', path: '/admin/subscriptions' },
+        { id: 'financial', label: 'النظام المالي والمحافظ', path: '/admin/financial' }
+      ]
+    },
+
+    // 8. AI & Knowledge - Grouped
+    {
+      id: 'ai_knowledge',
+      label: 'الذكاء الاصطناعي والمعرفة',
       icon: IconKnowledge,
       defaultPath: '/admin/knowledge',
       subItems: [
@@ -76,10 +101,10 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
       ]
     },
 
-    // 8. Support & Tickets - Grouped (Default -> /admin/tickets)
-    { 
-      id: 'support_group', 
-      label: 'الدعم والتذاكر', 
+    // 9. Support & Tickets - Grouped
+    {
+      id: 'support_group',
+      label: 'الدعم والتذاكر',
       icon: IconTickets,
       defaultPath: '/admin/tickets',
       subItems: [
@@ -88,23 +113,22 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
       ]
     },
 
-    // 9. Notifications
+    // 10. Notifications
     { id: 'notifications', label: 'الإشعارات', path: '/admin/notifications', icon: IconNotifications },
 
-    // 10. Security & Governance - Grouped
-    { 
-      id: 'governance', 
-      label: 'الأمان والصلاحيات', 
+    // 11. Security & Audit Logs - Grouped
+    {
+      id: 'security_group',
+      label: 'الأمان وسجل التدقيق',
       icon: IconSecurity,
-      defaultPath: '/admin/rbac',
+      defaultPath: '/admin/security',
       subItems: [
-        { id: 'rbac', label: 'الأدوار والصلاحيات (RBAC)', path: '/admin/rbac' },
         { id: 'security', label: 'مركز الأمان وحماية البيانات', path: '/admin/security' },
         { id: 'audit', label: 'سجل التدقيق والعمليات', path: '/admin/audit-logs' }
       ]
     },
 
-    // 11. Platform Settings
+    // 12. Platform Settings
     { id: 'settings', label: 'إعدادات المنصة', path: '/admin/settings', icon: IconSettings }
   ];
 
@@ -144,7 +168,7 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
   const handleGroupClick = (e, item) => {
     e.preventDefault();
     const isCurrentlyExpanded = !!expandedGroups[item.id];
-    
+
     // Toggle expand state
     setExpandedGroups(prev => ({ ...prev, [item.id]: !isCurrentlyExpanded }));
 
@@ -186,9 +210,9 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
             width: '100%'
           }}
         >
-          <img 
-            src="/logo_white.png" 
-            alt="شعار منصة ديوان" 
+          <img
+            src="/logo_white.png"
+            alt="شعار منصة ديوان"
             style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
             onError={(e) => { e.target.src = '/logo.png'; }}
           />

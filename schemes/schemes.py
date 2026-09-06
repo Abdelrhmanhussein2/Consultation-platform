@@ -257,7 +257,7 @@ class UserOut(BaseModel):
     language: str = "ar"
     email_notifications: bool = True
     appointment_reminders: bool = True
-    permissions: List[AdminPermission] = []
+    permissions: List[str] = []
     is_active: bool
     verification_status: VerificationStatus
     policy_agreements: List[UserPolicyAgreementOut] = []
@@ -863,6 +863,35 @@ class AdminAddUserRequest(BaseModel):
             raise ValueError('Password must contain at least one special character')
         return v
 
+class AdminUpdateUserRequest(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    title: Optional[str] = None
+    legal_form: Optional[str] = None
+    entity_type: Optional[str] = None
+    company_name: Optional[str] = None
+    tax_number: Optional[str] = None
+    commercial_register: Optional[str] = None
+    sector: Optional[str] = None
+    is_active: Optional[bool] = None
+    plan: Optional[str] = None
+    role: Optional[str] = None
+    address: Optional[str] = None
+
+class AdminResetPasswordRequest(BaseModel):
+    new_password: Optional[str] = None
+    mode: str = "admin"  # "admin" or "link"
+
+class AccountRoleSchema(BaseModel):
+    id: int
+    name: str
+    perms: List[str]
+
+class AccountRoleCreate(BaseModel):
+    name: str
+    perms: List[str]
+
 # =====================================================================
 # ADMIN BROADCAST NOTIFICATION
 # =====================================================================
@@ -1048,7 +1077,7 @@ class AdminCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8)
     phone: Optional[str] = Field(None, max_length=20)
-    permissions: List[AdminPermission] = []
+    permissions: List[str] = []
 
     @field_validator('password')
     @classmethod
@@ -1067,7 +1096,7 @@ class AdminCreate(BaseModel):
         return v
 
 class AdminUpdatePermissions(BaseModel):
-    permissions: List[AdminPermission]
+    permissions: List[str]
 
 
 # =====================================================================

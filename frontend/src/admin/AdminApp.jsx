@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import AdminLayout from './components/AdminLayout';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminUsersPage from './pages/AdminUsersPage';
+import AdminUserAccountsPage from './pages/AdminUserAccountsPage';
 import AdminConsultantsPage from './pages/AdminConsultantsPage';
 import AdminFinancialPage from './pages/AdminFinancialPage';
 import AdminSessionsPage from './pages/AdminSessionsPage';
@@ -63,8 +64,8 @@ export default function AdminApp({ currentPath = '/admin', navigate }) {
 
   // Normalize path by stripping query params and trailing slashes (e.g. /admin/calendar?foo=bar -> /admin/calendar)
   const pathname = currentPath ? currentPath.split('?')[0] : '/admin';
-  const normalizedPath = (pathname && pathname.length > 1) 
-    ? pathname.replace(/\/+$/, '') 
+  const normalizedPath = (pathname && pathname.length > 1)
+    ? pathname.replace(/\/+$/, '')
     : (pathname || '/admin');
 
   const renderAdminContent = () => {
@@ -74,6 +75,12 @@ export default function AdminApp({ currentPath = '/admin', navigate }) {
         return <AdminReportsPage navigate={navigate} />;
       case '/admin/users':
         return <AdminUsersPage navigate={navigate} />;
+      case '/admin/user-accounts':
+        return <AdminUserAccountsPage view="users" navigate={navigate} />;
+      case '/admin/user-accounts/history':
+        return <AdminUserAccountsPage view="history" navigate={navigate} />;
+      case '/admin/user-accounts/roles':
+        return <AdminUserAccountsPage view="roles" navigate={navigate} />;
       case '/admin/consultants':
         return <AdminConsultantsPage navigate={navigate} />;
       case '/admin/financial':
@@ -86,10 +93,11 @@ export default function AdminApp({ currentPath = '/admin', navigate }) {
         return <AdminTicketsPage navigate={navigate} />;
       case '/admin/chats':
         return <AdminChatManagementPage navigate={navigate} />;
-      case '/admin/settings':
-        return <AdminSettingsPage navigate={navigate} />;
       case '/admin/rbac':
-        return <AdminRbacPage navigate={navigate} />;
+        return <AdminRbacPage view="roles" navigate={navigate} />;
+      case '/admin/rbac/users':
+      case '/admin/rbac-users':
+        return <AdminRbacPage view="users" navigate={navigate} />;
       case '/admin/audit-logs':
         return <AdminAuditLogsPage navigate={navigate} />;
       case '/admin/security':
@@ -108,6 +116,8 @@ export default function AdminApp({ currentPath = '/admin', navigate }) {
         return <AdminKnowledgePage navigate={navigate} />;
       case '/admin/prompts':
         return <AdminPromptsPage navigate={navigate} />;
+      case '/admin/settings':
+        return <AdminSettingsPage navigate={navigate} />;
 
       case '/admin/ai-coordinator':
         return (

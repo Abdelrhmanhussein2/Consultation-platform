@@ -1,0 +1,983 @@
+/* ==========================================================================
+   DIWAN TAX PLATFORM - ADMIN USER ACCOUNTS & LOGIN HISTORY
+   ========================================================================== */
+
+:root {
+  --uacc-bg: #f6f8fa;
+  --uacc-card: #ffffff;
+  --uacc-text: #17212b;
+  --uacc-muted: #7d8994;
+  --uacc-line: #e4e9ed;
+  --uacc-head: #f6f8fb;
+  --uacc-green: #11b981;
+  --uacc-green-dark: #07815e;
+  --uacc-cyan: #31bfd0;
+  --uacc-pink: #ff3366;
+  --uacc-orange: #ff9f1a;
+  --uacc-slate: #697681;
+  --uacc-shadow: 0 14px 34px rgba(27, 44, 59, 0.07);
+  --uacc-shadow-lg: 0 26px 70px rgba(18, 31, 42, 0.20);
+}
+
+.uacc-page {
+  padding: 24px 20px 60px;
+  max-width: 1600px;
+  margin: 0 auto;
+  direction: rtl;
+  font-family: 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--uacc-text);
+}
+
+/* Page Header */
+.uacc-page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.uacc-title-wrap h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: #0b2e4b;
+}
+
+.uacc-breadcrumb {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #929da7;
+  font-size: 12.5px;
+}
+
+.uacc-breadcrumb .uacc-active {
+  color: var(--uacc-green-dark);
+  font-weight: 700;
+}
+
+/* Top Action Buttons */
+.uacc-top-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.uacc-top-action-btn {
+  height: 38px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--uacc-green);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 15px;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(17, 185, 129, 0.20);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.uacc-top-action-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(0.96);
+  box-shadow: 0 6px 16px rgba(17, 185, 129, 0.28);
+}
+
+.uacc-top-action-btn.secondary {
+  background: #0D3C5C;
+  box-shadow: 0 4px 12px rgba(13, 60, 92, 0.20);
+}
+
+.uacc-top-action-btn.secondary:hover {
+  box-shadow: 0 6px 16px rgba(13, 60, 92, 0.28);
+}
+
+.uacc-top-action-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Card Container */
+.uacc-card {
+  background: #fff;
+  border: 1px solid var(--uacc-line);
+  border-radius: 14px;
+  box-shadow: var(--uacc-shadow);
+  padding: 20px 22px 18px;
+}
+
+/* Toolbar */
+.uacc-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.uacc-toolbar-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.uacc-select,
+.uacc-input {
+  height: 38px;
+  border: 1px solid #ccd6de;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 12px;
+  font-size: 12px;
+  color: var(--uacc-text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.uacc-select:focus,
+.uacc-input:focus,
+.uacc-textarea:focus {
+  border-color: #11b981;
+  box-shadow: 0 0 0 3px rgba(17, 185, 129, 0.12);
+}
+
+.uacc-entries-label {
+  font-size: 12px;
+  color: #44515c;
+  font-weight: 600;
+}
+
+.uacc-search {
+  width: 250px;
+  text-align: right;
+}
+
+.uacc-filter-select {
+  min-width: 160px;
+}
+
+/* Table Container */
+.uacc-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--uacc-line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.uacc-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1100px;
+}
+
+.uacc-table thead th {
+  background: var(--uacc-head);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #3b4854;
+  text-align: right;
+  padding: 14px 14px;
+  border-bottom: 1px solid var(--uacc-line);
+  white-space: nowrap;
+}
+
+.uacc-table tbody td {
+  font-size: 12.5px;
+  padding: 13px 14px;
+  border-bottom: 1px solid #edf1f3;
+  vertical-align: middle;
+  color: #243340;
+}
+
+.uacc-table tbody tr:hover {
+  background: #fbfdfc;
+}
+
+/* Cells styling */
+.uacc-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #eff4f6;
+  border: 2px solid var(--uacc-green);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 14px;
+  color: #374754;
+}
+
+.uacc-name {
+  font-weight: 700;
+  color: #12283a;
+  display: block;
+}
+
+.uacc-sub {
+  display: block;
+  font-size: 10.5px;
+  color: #8d98a2;
+  margin-top: 3px;
+}
+
+/* Badges */
+.uacc-badge {
+  display: inline-flex;
+  min-width: 82px;
+  justify-content: center;
+  align-items: center;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.uacc-badge.green {
+  background: #e6f9f2;
+  color: #08775a;
+  border: 1px solid #b7ecd7;
+}
+
+.uacc-badge.pink {
+  background: #ffeef2;
+  color: #d81b4d;
+  border: 1px solid #ffccd8;
+}
+
+/* Action Button Set */
+.uacc-action-set {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+
+.uacc-icon-btn {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.15s, filter 0.15s;
+}
+
+.uacc-icon-btn:hover {
+  transform: translateY(-1.5px);
+  filter: brightness(0.96);
+}
+
+.uacc-icon-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.uacc-icon-btn.green { background: var(--uacc-green); }
+.uacc-icon-btn.cyan { background: var(--uacc-cyan); }
+.uacc-icon-btn.pink { background: var(--uacc-pink); }
+.uacc-icon-btn.orange { background: var(--uacc-orange); }
+.uacc-icon-btn.slate { background: var(--uacc-slate); }
+.uacc-icon-btn.light {
+  background: #fff;
+  color: #66737e;
+  border: 1px solid #d7dfe5;
+}
+.uacc-icon-btn.light:hover {
+  background: #f3f7f8;
+  color: #47545f;
+}
+
+.uacc-tooltip {
+  position: absolute;
+  bottom: 42px;
+  right: 50%;
+  transform: translateX(50%);
+  background: #1f2937;
+  color: #fff;
+  border-radius: 5px;
+  padding: 5px 8px;
+  font-size: 10px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 40;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.uacc-icon-btn:hover .uacc-tooltip {
+  opacity: 1;
+}
+
+/* Footer & Pagination */
+.uacc-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 18px;
+  font-size: 12px;
+  color: #5f6c77;
+}
+
+.uacc-pagination {
+  display: flex;
+  gap: 6px;
+}
+
+.uacc-page-btn {
+  min-width: 34px;
+  height: 34px;
+  border: 1px solid #d9e0e6;
+  border-radius: 7px;
+  background: #fff;
+  color: #55636e;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.uacc-page-btn:hover:not(.active) {
+  background: #f3f6f8;
+  border-color: #ccd6de;
+}
+
+.uacc-page-btn.active {
+  background: var(--uacc-green);
+  color: #fff;
+  border-color: var(--uacc-green);
+}
+
+/* History Filter Bar */
+.uacc-history-filter-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-bottom: 16px;
+  background: #f8fafb;
+  border: 1px solid #e2e8ec;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.uacc-compact-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.uacc-compact-filter label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #4a5763;
+  margin: 0 2px;
+}
+
+.uacc-compact-filter select {
+  height: 36px;
+  min-width: 110px;
+  padding: 0 10px;
+  font-size: 12px;
+  border-radius: 7px;
+}
+
+.uacc-compact-filter.user-filter select {
+  min-width: 190px;
+}
+
+.uacc-history-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.uacc-history-filter-separator {
+  width: 1px;
+  height: 26px;
+  background: #d8e0e6;
+  margin: 0 4px;
+}
+
+/* Mono cells & pills */
+.uacc-mono-cell {
+  display: block;
+  width: 100%;
+  direction: ltr;
+  text-align: right;
+  unicode-bidi: plaintext;
+  font-variant-numeric: tabular-nums;
+  font-family: inherit;
+  font-size: 11.5px;
+  color: #3b4854;
+}
+
+.uacc-country-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.uacc-country-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--uacc-green);
+  display: inline-block;
+}
+
+/* Modals & Overlays */
+.uacc-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 28, 38, 0.58);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+  animation: uaccFadeIn 0.15s ease-out;
+}
+
+.uacc-overlay.show {
+  display: flex;
+}
+
+@keyframes uaccFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.uacc-modal {
+  width: 780px;
+  max-width: 96vw;
+  max-height: 92vh;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: var(--uacc-shadow-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: uaccSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.uacc-modal.sm { width: 560px; }
+.uacc-modal.lg { width: 920px; }
+
+@keyframes uaccSlideUp {
+  from { transform: translateY(16px); opacity: 0.8; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.uacc-modal-head {
+  min-height: 64px;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--uacc-line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+}
+
+.uacc-modal-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0b2e4b;
+}
+
+.uacc-close-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #e0e6ea;
+  background: #f3f6f7;
+  color: #66737e;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.uacc-close-btn:hover {
+  background: #e5eaee;
+  color: #243340;
+}
+
+.uacc-close-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.2;
+}
+
+.uacc-modal-body {
+  padding: 20px 22px;
+  overflow-y: auto;
+  background: #fafbfc;
+}
+
+.uacc-modal-actions {
+  padding: 14px 22px;
+  border-top: 1px solid var(--uacc-line);
+  display: flex;
+  gap: 10px;
+  background: #fff;
+}
+
+.uacc-btn {
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.uacc-btn.green {
+  background: var(--uacc-green);
+  color: #fff;
+}
+.uacc-btn.green:hover {
+  filter: brightness(0.96);
+  box-shadow: 0 4px 12px rgba(17, 185, 129, 0.25);
+}
+
+.uacc-btn.gray {
+  background: #697681;
+  color: #fff;
+}
+.uacc-btn.gray:hover {
+  filter: brightness(0.96);
+}
+
+.uacc-btn.danger {
+  background: #dc2626;
+  color: #fff;
+}
+
+/* Profile Form Sections inside Modal */
+.uacc-profile-section {
+  border: 1px solid var(--uacc-line);
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.uacc-profile-section-head {
+  padding: 11px 16px;
+  background: #f8fafb;
+  border-bottom: 1px solid var(--uacc-line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.uacc-profile-section-head h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: #172a3a;
+}
+
+.uacc-profile-section-head span {
+  font-size: 10.5px;
+  color: #8a96a0;
+}
+
+.uacc-profile-section-body {
+  padding: 16px;
+}
+
+.uacc-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.uacc-form-grid .full {
+  grid-column: 1 / -1;
+}
+
+.uacc-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.uacc-field label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #445360;
+  margin-bottom: 6px;
+}
+
+.uacc-field input,
+.uacc-field select,
+.uacc-field textarea {
+  width: 100%;
+}
+
+.uacc-input.uacc-input-error {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+}
+
+.uacc-field-error-msg {
+  font-size: 11px;
+  color: #dc2626;
+  font-weight: 700;
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.uacc-field-hint {
+  font-size: 10.5px;
+  color: #8c97a0;
+  margin-top: 4px;
+  direction: ltr;
+  text-align: right;
+}
+
+/* Password Modal */
+.uacc-password-current {
+  border: 1px solid #dfe6ea;
+  border-radius: 10px;
+  background: #f8fafb;
+  padding: 13px 15px;
+}
+
+.uacc-password-current .label {
+  font-size: 11px;
+  color: #7b8792;
+  font-weight: 600;
+}
+
+.uacc-password-current .value-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.uacc-password-current code {
+  direction: ltr;
+  background: #fff;
+  border: 1px solid #e0e6ea;
+  border-radius: 7px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #1e2d38;
+  font-weight: 700;
+}
+
+.uacc-form-note {
+  font-size: 10.5px;
+  color: #86919b;
+  margin-top: 6px;
+  line-height: 1.55;
+}
+
+.uacc-password-mode-tabs {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.uacc-password-mode-tab {
+  flex: 1;
+  height: 40px;
+  border: 1px solid #d8e0e6;
+  background: #fff;
+  border-radius: 8px;
+  font-size: 11.5px;
+  color: #5c6974;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.uacc-password-mode-tab.active {
+  background: #eaf9f4;
+  color: var(--uacc-green-dark);
+  border-color: #b9dfd1;
+  font-weight: 800;
+}
+
+.uacc-reset-choice {
+  margin-top: 14px;
+}
+
+.uacc-password-policy {
+  font-size: 10.5px;
+  color: #7c8893;
+  line-height: 1.7;
+  margin-top: 8px;
+}
+
+/* Session Details Hero & Cards in Log Modal */
+.uacc-log-hero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid #dfe6ea;
+  border-radius: 12px;
+  background: #fff;
+  padding: 15px 18px;
+  margin-bottom: 14px;
+}
+
+.uacc-log-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.uacc-log-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  background: #edf7f4;
+  border: 2px solid var(--uacc-green);
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  font-weight: 800;
+  color: #274f42;
+}
+
+.uacc-log-identity h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #12283a;
+}
+
+.uacc-log-identity p {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  color: #7c8892;
+}
+
+.uacc-log-status {
+  min-width: 90px;
+  height: 32px;
+  border-radius: 7px;
+  background: #e8f8f2;
+  color: #08775a;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  border: 1px solid #bcead8;
+}
+
+.uacc-log-sections {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.uacc-log-section {
+  border: 1px solid #dfe6ea;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.uacc-log-section-head {
+  padding: 10px 14px;
+  background: #f8fafb;
+  border-bottom: 1px solid #e5eaee;
+  font-size: 12px;
+  font-weight: 800;
+  color: #2a3946;
+}
+
+.uacc-log-section-body {
+  padding: 6px 14px;
+}
+
+.uacc-log-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid #eef1f3;
+}
+
+.uacc-log-detail-row:last-child {
+  border-bottom: 0;
+}
+
+.uacc-log-detail-row span {
+  font-size: 11px;
+  color: #86919a;
+}
+
+.uacc-log-detail-row b {
+  font-size: 11.5px;
+  color: #1f2b35;
+  text-align: left;
+  max-width: 65%;
+  word-break: break-word;
+}
+
+.uacc-log-location {
+  margin-top: 12px;
+  border: 1px solid #dfe6ea;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f8fbfa, #f3f6f8);
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.uacc-log-location .city {
+  font-size: 13px;
+  font-weight: 800;
+  color: #112a3d;
+}
+
+.uacc-log-location .coords {
+  font-size: 10.5px;
+  color: #7e8992;
+  margin-top: 4px;
+  direction: ltr;
+}
+
+.uacc-log-security {
+  margin-top: 12px;
+  border: 1px solid #d8eadf;
+  background: #f5fbf8;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 11px;
+  color: #3b6657;
+  line-height: 1.65;
+}
+
+/* Permissions & Roles */
+.uacc-perm-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.uacc-perm-card {
+  border: 1px solid var(--uacc-line);
+  border-radius: 9px;
+  padding: 12px 14px;
+  background: #fff;
+}
+
+.uacc-perm-card label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 12px;
+  line-height: 1.5;
+  cursor: pointer;
+  color: #2b3945;
+}
+
+.uacc-perm-card input {
+  width: auto;
+  height: auto;
+  margin-top: 2px;
+  accent-color: var(--uacc-green);
+}
+
+.uacc-permissions-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.uacc-permission {
+  display: inline-flex;
+  align-items: center;
+  background: var(--uacc-green);
+  color: #fff;
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.uacc-role-name {
+  font-weight: 800;
+  color: #12283a;
+  display: block;
+}
+
+.uacc-role-scope {
+  display: block;
+  color: #8a96a0;
+  font-size: 11px;
+  margin-top: 3px;
+}
+
+/* Toast Notification */
+.uacc-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  background: #0f172a;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  font-size: 12.5px;
+  font-weight: 700;
+  z-index: 2000;
+  animation: uaccSlideInLeft 0.25s ease-out;
+}
+
+@keyframes uaccSlideInLeft {
+  from { transform: translateX(-40px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@media (max-width: 900px) {
+  .uacc-toolbar { flex-direction: column; align-items: stretch; }
+  .uacc-search { width: 100%; }
+  .uacc-history-filter-bar { align-items: stretch; }
+  .uacc-form-grid { grid-template-columns: 1fr; }
+  .uacc-log-sections { grid-template-columns: 1fr; }
+  .uacc-perm-grid { grid-template-columns: 1fr; }
+}

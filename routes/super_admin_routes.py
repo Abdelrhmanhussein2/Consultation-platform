@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Query, Body
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 
 from helpers.database import get_db
 from helpers.enums import UserRole, EntityType, NotificationAudience, NotificationType, TicketCategory, TicketPriority, TicketStatus
@@ -10,6 +10,7 @@ from schemes import (
     ServiceExpansionRequestOut, ServiceExpansionReviewAction,
     CredentialOut, CredentialReview,
     UserStatsOut, AdminUserListOut, AdminAddUserRequest,
+    AdminUpdateUserRequest, AdminResetPasswordRequest,
     AdminBroadcastNotification, BroadcastResultOut,
     AdminSessionOut, AdminSessionJoinOut, AdminUpdateSessionStatus,
     TicketOut, TicketReplyOut, AdminTicketCreate,
@@ -195,6 +196,11 @@ def admin_add_user(
     response_model=UserOut,
     summary="Enable or disable a user account",
 )
+@router.patch(
+    "/users/{user_id}/toggle-active",
+    response_model=UserOut,
+    summary="Enable or disable a user account (PATCH)",
+)
 def toggle_user_active(
     user_id: str,
     db: Session = Depends(get_db),
@@ -202,6 +208,116 @@ def toggle_user_active(
 ):
     """Toggles a user's active state. Super admin cannot deactivate their own account."""
     return SuperAdminController.toggle_user_active(db, user_id, current_admin.id)
+
+
+@router.patch(
+    "/users/{user_id}/profile",
+    summary="Update a user's profile metadata and settings in real time",
+)
+@router.post(
+    "/users/{user_id}/profile",
+    summary="Update a user's profile metadata and settings (POST alias)",
+)
+@router.put(
+    "/users/{user_id}/profile",
+    summary="Update a user's profile metadata and settings (PUT alias)",
+)
+def update_user_profile(
+    user_id: str,
+    update_in: dict,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_users),
+):
+    """Updates user profile attributes (name, phone, title, taxNo, regNo, entity, sector, active status) in PostgreSQL."""
+    return SuperAdminController.admin_update_user_profile(db, user_id, update_in, current_admin)
+
+
+@router.post(
+    "/users/{user_id}/reset-password",
+    summary="Admin reset user password directly or dispatch reset link",
+)
+def reset_user_password(
+    user_id: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_users),
+):
+    """Directly sets a new bcrypt hashed password or dispatches a reset notification link."""
+    return SuperAdminController.admin_reset_user_password(db, user_id, payload, current_admin)
+
+
+@router.delete(
+    "/users/{user_id}",
+    summary="Delete or deactivate user permanently from platform",
+)
+def delete_user(
+    user_id: str,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_users),
+):
+    """Removes a user account and profile from the database."""
+    return SuperAdminController.admin_delete_user(db, user_id, current_admin)
+
+
+@router.get(
+    "/login-history",
+    summary="Get user login history and session activity records",
+)
+def get_login_history(
+    year: Optional[str] = Query(None, description="Filter by Year"),
+    month: Optional[str] = Query(None, description="Filter by Month"),
+    user_id: Optional[str] = Query(None, description="Filter by User ID"),
+    search: Optional[str] = Query(None, description="Search keyword"),
+    page: int = Query(1, ge=1),
+    limit: int = Query(100, ge=1, le=200),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_users),
+):
+    """Returns login audit history with IP, browser, device, OS, location, and status."""
+    return SuperAdminController.admin_get_login_history(db, year, month, user_id, search, page, limit)
+
+
+@router.delete(
+    "/login-history/{log_id}",
+    summary="Delete a login history log record",
+)
+def delete_login_history(
+    log_id: str,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_users),
+):
+    """Deletes an audit entry from database."""
+    return SuperAdminController.admin_delete_login_history(db, log_id, current_admin)
+
+
+@router.get(
+    "/account-roles",
+    summary="Get corporate account roles and permissions",
+)
+def get_account_roles(
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_users),
+):
+    """Returns corporate account roles and their associated permissions."""
+    return SuperAdminController.admin_get_account_roles(db)
+
+
+@router.post(
+    "/account-roles",
+    summary="Save / update corporate account roles list",
+)
+@router.put(
+    "/account-roles",
+    summary="Save / update corporate account roles list (PUT)",
+)
+def save_account_roles(
+    roles_in: List[Dict[str, Any]] = Body(...),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_users),
+):
+    """Saves customized corporate account roles into platform settings."""
+    return SuperAdminController.admin_save_account_roles(db, roles_in, current_admin)
+
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -630,6 +746,34 @@ def assign_user_role(
         permissions=assignment_in.get("permissions"),
         current_admin_id=current_admin.id
     )
+
+
+@router.get(
+    "/audit-logs",
+    summary="Get recent security audit logs",
+)
+def get_audit_logs(
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_admins),
+):
+    """
+    Returns recent system audit trail logs from database.
+    """
+    from models import AdminActionLog
+    logs = db.query(AdminActionLog).order_by(AdminActionLog.created_at.desc()).limit(limit).all()
+    return [
+        {
+            "id": str(log.id),
+            "admin_id": str(log.admin_id),
+            "admin_name": log.admin.full_name if log.admin else "مدير النظام",
+            "action": log.action_type,
+            "resource": log.target_entity_type,
+            "details": log.details,
+            "created_at": log.created_at.isoformat() if log.created_at else None
+        }
+        for log in logs
+    ]
 
 
 
@@ -1067,6 +1211,27 @@ def delete_payment(
 ):
     """Deletes a payment record from the system."""
     return SuperAdminController.delete_payment_record(db, payment_id)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# DASHBOARD REAL-TIME STATS (require_admin)
+# ─────────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/dashboard/stats",
+    summary="Get real-time live aggregates and metrics for the Admin Central Dashboard",
+)
+def get_dashboard_stats(
+    period: str = Query("week", description="day, week, month, quarter, half, year"),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    """
+    Returns real live counts, chart series, recent applications, tickets, ratings, and policies
+    directly queried from PostgreSQL for the Admin Central Command dashboard.
+    """
+    return SuperAdminController.get_dashboard_stats(db, period)
+
 
 
 
