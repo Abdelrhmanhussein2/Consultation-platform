@@ -259,7 +259,9 @@ export default function ConsultantsPage({ navigate }) {
         consultantService.getConsultants(f, token),
         consultantService.getSpecializations()
       ]);
+      // Backend يستثني المستشار الحالي تلقائياً من النتائج
       setAll(Array.isArray(cd) ? cd : []);
+
       setSpecs(Array.isArray(sd) ? sd : []);
     } catch (e) {
       console.error('fetchData error:', e);

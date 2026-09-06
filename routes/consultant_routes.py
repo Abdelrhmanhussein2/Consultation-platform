@@ -61,6 +61,8 @@ def list_consultants(
         platform_only=platform_only,
         page=page,
         limit=limit,
+        # استثناء المستشار الحالي من قائمة زملائه
+        exclude_user_id=current_user.id if current_user.role.value == "consultant" else None,
     )
 
 

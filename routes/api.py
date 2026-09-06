@@ -17,6 +17,8 @@ from routes.template_routes import router as template_router
 from routes.favorite_routes import router as favorite_router
 from routes.subscription_routes import router as subscription_router
 from routes.chat_ai_routes import router as chat_ai_router
+from routes.recurring_invoice_routes import router as recurring_invoice_router
+from routes.refunded_invoice_routes import router as refunded_invoice_router
 
 api_router = APIRouter(prefix="/api")
 
@@ -30,6 +32,8 @@ api_router.include_router(legal_router)
 api_router.include_router(session_router)
 api_router.include_router(notification_router)
 api_router.include_router(invoice_router)
+api_router.include_router(recurring_invoice_router)
+api_router.include_router(refunded_invoice_router)
 api_router.include_router(specialization_router)
 api_router.include_router(chat_router)
 api_router.include_router(ticket_router)
@@ -39,6 +43,7 @@ api_router.include_router(template_router)
 api_router.include_router(favorite_router)
 api_router.include_router(subscription_router)
 api_router.include_router(chat_ai_router)
+
 
 
 

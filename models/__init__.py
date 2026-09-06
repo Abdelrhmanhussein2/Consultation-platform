@@ -15,6 +15,8 @@ from models.appointment_cancellation import AppointmentCancellation
 from models.rating import Rating
 from models.notification import Notification
 from models.invoice import Invoice
+from models.recurring_invoice import RecurringInvoice
+from models.refunded_invoice import RefundedInvoice
 from models.admin_action_log import AdminActionLog
 from models.refresh_token import RefreshToken
 

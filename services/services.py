@@ -557,6 +557,7 @@ class ConsultantService:
         page: int = 1,
         limit: int = 20,
         platform_only: bool = False,
+        exclude_user_id=None,
     ) -> list[dict]:
         """
         Returns a paginated list of approved consultant cards with optional filters.
@@ -572,6 +573,10 @@ class ConsultantService:
             )
             .filter(ConsultantProfile.verification_status == VerificationStatus.approved)
         )
+
+        # استثناء المستشار الحالي من قائمة الزملاء
+        if exclude_user_id is not None:
+            query = query.filter(ConsultantProfile.user_id != exclude_user_id)
 
         if platform_only:
             query = query.join(User, ConsultantProfile.user_id == User.id).filter(
@@ -1711,6 +1716,18 @@ class InvoiceService:
         return query.order_by(Invoice.created_at.desc()).offset(offset).limit(limit).all()
 
     @staticmethod
+    def get_all_invoices(
+        db: Session,
+        page: int = 1,
+        limit: int = 50,
+    ) -> list[Invoice]:
+        """
+        Retrieves all invoices for admin.
+        """
+        offset = (page - 1) * limit
+        return db.query(Invoice).order_by(Invoice.created_at.desc()).offset(offset).limit(limit).all()
+
+    @staticmethod
     def get_invoice_by_id(
         db: Session,
         user_id: uuid.UUID,
@@ -1728,6 +1745,61 @@ class InvoiceService:
         if not invoice:
             raise ValueError("الفاتورة غير موجودة أو ليس لديك صلاحية للوصول إليها")
         return invoice
+
+    @staticmethod
+    def create_invoice(db: Session, data: dict) -> Invoice:
+        """
+        Creates a new invoice and generates invoice_number and reference_number via PostgreSQL sequences.
+        """
+        from services.invoice_service_utils import generate_invoice_number, generate_payment_reference_number
+        from helpers.enums import InvoiceType
+        from datetime import datetime
+
+        if not data.get("type"):
+            data["type"] = InvoiceType.client_invoice
+
+        # Use PostgreSQL sequence if missing, placeholder, random pattern, or marked auto-generate
+        inv_no_str = str(data.get("invoice_number") or "").strip()
+        if not inv_no_str or inv_no_str == "(توليد تلقائي متسلسل)" or inv_no_str.startswith("INV-2026-"):
+            data["invoice_number"] = generate_invoice_number(db)
+
+        ref_no_str = str(data.get("reference_number") or "").strip()
+        if not ref_no_str or ref_no_str == "(توليد تلقائي متسلسل)" or ref_no_str.startswith("TX-2026-"):
+            data["reference_number"] = generate_payment_reference_number(db)
+
+        # Parse string dates if provided
+        for date_field in ["issued_at", "due_date", "paid_at", "recurring_start_date", "recurring_next_date"]:
+            if date_field in data and isinstance(data[date_field], str):
+                try:
+                    val = data[date_field]
+                    if len(val) == 10:
+                        data[date_field] = datetime.strptime(val, "%Y-%m-%d")
+                    else:
+                        data[date_field] = datetime.fromisoformat(val)
+                except Exception:
+                    data[date_field] = None
+
+        invoice = Invoice(**data)
+        db.add(invoice)
+        db.commit()
+        db.refresh(invoice)
+        return invoice
+
+    @staticmethod
+    def get_next_number(db: Session) -> dict:
+        from datetime import datetime
+        from models.invoice import Invoice
+        year = datetime.now().year
+        try:
+            count = db.query(Invoice).count()
+            seq = count + 1
+        except Exception:
+            seq = 1
+        return {
+            "next_invoice_number": f"INV-{year}-{seq:06d}",
+            "next_reference_number": f"TX-{year}-{seq:06d}"
+        }
+
 
 
 # =====================================================================

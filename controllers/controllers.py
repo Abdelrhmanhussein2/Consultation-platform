@@ -227,6 +227,7 @@ class ConsultantController:
         platform_only: bool,
         page: int,
         limit: int,
+        exclude_user_id=None,
     ) -> list[dict]:
         """Lists all approved consultants with optional filters."""
         return ConsultantService.list_consultants(
@@ -239,6 +240,7 @@ class ConsultantController:
             platform_only=platform_only,
             page=page,
             limit=limit,
+            exclude_user_id=exclude_user_id,
         )
 
     @staticmethod
@@ -733,12 +735,26 @@ class InvoiceController:
 
     @staticmethod
     def get_my_invoices(
-        db: Session, current_user: User, status_filter, page: int, limit: int
+        db: Session, current_user, status_filter, page: int, limit: int
     ):
         """Retrieves paginated invoices for the logged-in user."""
+        user_id = current_user.id if current_user and hasattr(current_user, 'id') else None
+        if not user_id:
+            return []
         return InvoiceService.get_user_invoices(
-            db, current_user.id, status=status_filter, page=page, limit=limit
+            db, user_id, status=status_filter, page=page, limit=limit
         )
+
+
+    @staticmethod
+    def get_all_invoices(db: Session, page: int = 1, limit: int = 50):
+        """Retrieves all invoices for admin."""
+        return InvoiceService.get_all_invoices(db, page=page, limit=limit)
+
+    @staticmethod
+    def get_next_number(db: Session):
+        """Retrieves next sequential invoice and reference numbers."""
+        return InvoiceService.get_next_number(db)
 
     @staticmethod
     def get_invoice_detail(db: Session, current_user: User, invoice_id: str):
@@ -751,6 +767,15 @@ class InvoiceController:
             )
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    @staticmethod
+    def create_invoice(db: Session, current_user, invoice_in):
+        """Creates a new invoice and returns generated reference_number."""
+        inv_dict = invoice_in.dict(exclude_unset=True) if hasattr(invoice_in, 'dict') else invoice_in
+        if current_user and hasattr(current_user, 'id') and not inv_dict.get("issued_to_user_id"):
+            inv_dict["issued_to_user_id"] = current_user.id
+        return InvoiceService.create_invoice(db, inv_dict)
+
 
 
 # =====================================================================

@@ -84,6 +84,7 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
       subItems: [
         { id: 'payments', label: 'طلبات الدفع والتحويلات', path: '/admin/payments' },
         { id: 'subscriptions', label: 'الباقات والاشتراكات', path: '/admin/subscriptions' },
+        { id: 'invoices', label: 'الفواتير', path: '/admin/invoices' },
         { id: 'financial', label: 'النظام المالي والمحافظ', path: '/admin/financial' }
       ]
     },
