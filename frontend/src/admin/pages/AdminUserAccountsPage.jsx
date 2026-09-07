@@ -174,7 +174,9 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
       const logs = await getLoginHistory({
         year: historyYear,
         month: historyMonth,
-        search: historySearch
+        user_id: historyUser,
+        search: historySearch,
+        limit: 200
       });
       if (Array.isArray(logs)) {
         setHistoryList(logs);
@@ -186,7 +188,7 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
 
   useEffect(() => {
     loadHistoryFromDb();
-  }, [historyYear, historyMonth, historySearch]);
+  }, [historyYear, historyMonth, historyUser, historySearch]);
 
   // ══════════════════════════════════════════════════════════════════════════
   // TAB 3: ROLES DATA (PERSISTENT IN DB)
@@ -548,13 +550,23 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
   const filteredHistory = useMemo(() => {
     const q = historySearch.trim().toLowerCase();
     return historyList.filter(h => {
-      const matchSearch = !q || h.name.toLowerCase().includes(q) || h.email.toLowerCase().includes(q) || h.ip.includes(q);
+      const matchSearch = !q || 
+        (h.name && h.name.toLowerCase().includes(q)) || 
+        (h.email && h.email.toLowerCase().includes(q)) || 
+        (h.ip && h.ip.includes(q)) ||
+        (h.city && h.city.toLowerCase().includes(q));
       const matchUser = !historyUser || String(h.userId) === String(historyUser);
-      const parts = h.last.split(' ')[0].split('-');
-      const rowMonth = parts[1];
-      const rowYear = parts[2];
-      const matchYear = !historyYear || rowYear === historyYear;
-      const matchMonth = !historyMonth || rowMonth === historyMonth;
+      let matchYear = true;
+      let matchMonth = true;
+      if (h.last && h.last.includes('-')) {
+        const parts = h.last.split(' ')[0].split('-');
+        if (parts.length >= 3) {
+          const rowMonth = parts[1];
+          const rowYear = parts[2];
+          matchYear = !historyYear || rowYear === historyYear;
+          matchMonth = !historyMonth || rowMonth === historyMonth;
+        }
+      }
       return matchSearch && matchUser && matchYear && matchMonth;
     });
   }, [historyList, historySearch, historyUser, historyYear, historyMonth]);
@@ -585,23 +597,10 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
 
         <div className="uacc-top-actions">
           {currentSection === 'users' && (
-            <>
-              <button className="uacc-top-action-btn" type="button" onClick={handleOpenAddUser}>
-                <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
-                <span>إضافة مستخدم</span>
-              </button>
-              <button
-                className="uacc-top-action-btn secondary"
-                type="button"
-                onClick={() => {
-                  if (navigate) navigate('/admin/user-accounts/history');
-                  else setCurrentSection('history');
-                }}
-              >
-                <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /><path d="M12 7v5l3 2" /></svg>
-                <span>سجل الدخول</span>
-              </button>
-            </>
+            <button className="uacc-top-action-btn" type="button" onClick={handleOpenAddUser}>
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+              <span>إضافة مستخدم</span>
+            </button>
           )}
 
           {currentSection === 'history' && (
@@ -864,7 +863,7 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
               <button
                 className="uacc-icon-btn green"
                 title="تطبيق الفلتر"
-                onClick={() => setHistoryPage(1)}
+                onClick={() => { setHistoryPage(1); loadHistoryFromDb(); }}
               >
                 <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
                 <span className="uacc-tooltip">تطبيق الفلتر</span>
@@ -891,7 +890,7 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
               <button
                 className="uacc-icon-btn pink"
                 title="تحديث السجل"
-                onClick={() => { setHistoryPage(1); showToast('تم تحديث السجل'); }}
+                onClick={() => { setHistoryPage(1); loadHistoryFromDb(); showToast('تم تحديث السجل من قاعدة البيانات'); }}
               >
                 <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0 2 5" /><path d="M20 4v7h-7" /></svg>
                 <span className="uacc-tooltip">تحديث السجل</span>

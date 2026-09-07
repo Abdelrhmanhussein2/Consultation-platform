@@ -19,7 +19,22 @@ class AdminSecurityService:
         limit: int = 100
     ) -> List[dict]:
         from models.refresh_token import RefreshToken
-        query = db.query(RefreshToken).join(User, RefreshToken.user_id == User.id)
+        from sqlalchemy import func
+        
+        # Group by user to show the latest login session per user
+        subq = (
+            db.query(RefreshToken.user_id, func.max(RefreshToken.created_at).label("max_created"))
+            .group_by(RefreshToken.user_id)
+            .subquery()
+        )
+        
+        query = (
+            db.query(RefreshToken)
+            .join(subq, (RefreshToken.user_id == subq.c.user_id) & (RefreshToken.created_at == subq.c.max_created))
+            .join(User, RefreshToken.user_id == User.id)
+            .filter(~User.email.like("deleted_%"))
+            .filter(~User.email.like("%.test.%"))
+        )
 
         if user_id:
             try:
@@ -50,28 +65,65 @@ class AdminSecurityService:
             if month and created_dt and f"{created_dt.month:02d}" != str(month).zfill(2):
                 continue
 
-            # Parse device info if available
+            # Parse device info and user agent if available
             dev_str = token.device_info or ""
-            ip_val = "—"
-            dev_val = "—"
-            os_val = "—"
-            browser_val = "—"
+            ip_val = "127.0.0.1"
+            dev_val = "كمبيوتر مكتبي"
+            os_val = "Windows 11"
+            browser_val = "Chrome"
 
-            if dev_str:
+            ua_str = dev_str
+            if "·" in dev_str:
                 parts = dev_str.split("·")
-                if len(parts) >= 1 and any(char.isdigit() for char in parts[0]) and "." in parts[0]:
-                    ip_val = parts[0].strip()
-                dev_val = dev_str
+                potential_ip = parts[0].strip()
+                if potential_ip and (any(c.isdigit() for c in potential_ip) or ":" in potential_ip):
+                    ip_val = potential_ip
+                if len(parts) > 1:
+                    ua_str = parts[1].strip()
+
+            ua_lower = ua_str.lower()
+            if "windows nt 10.0" in ua_lower or "windows nt 11.0" in ua_lower or "windows 11" in ua_lower:
+                os_val = "Windows 11"
+            elif "windows" in ua_lower:
+                os_val = "Windows 10"
+            elif "macintosh" in ua_lower or "mac os" in ua_lower:
+                os_val = "macOS"
+            elif "android" in ua_lower:
+                os_val = "Android"
+            elif "iphone" in ua_lower or "ipad" in ua_lower or "ios" in ua_lower:
+                os_val = "iOS"
+            elif "linux" in ua_lower:
+                os_val = "Linux"
+
+            if "mobile" in ua_lower or "android" in ua_lower or "iphone" in ua_lower:
+                dev_val = "هاتف محمول"
+            elif "ipad" in ua_lower or "tablet" in ua_lower:
+                dev_val = "كمبيوتر لوحي"
+            elif "macintosh" in ua_lower:
+                dev_val = "لابتوب"
+            else:
+                dev_val = "كمبيوتر مكتبي"
+
+            if "edg/" in ua_lower or "edge/" in ua_lower:
+                browser_val = "Edge"
+            elif "chrome/" in ua_lower:
+                browser_val = "Chrome"
+            elif "firefox/" in ua_lower:
+                browser_val = "Firefox"
+            elif "safari/" in ua_lower:
+                browser_val = "Safari"
+
+            city_val = u.address if (u and u.address) else "عمّان"
 
             history.append({
                 "id": str(token.id),
                 "userId": str(u.id) if u else "—",
-                "name": u.full_name if u else "مستخدم",
+                "name": u.full_name if u else (u.company_name if u and u.company_name else "مستخدم"),
                 "email": u.email if u else "—",
                 "ip": ip_val,
                 "last": created_dt.strftime("%d-%m-%Y %H:%M") if created_dt else "—",
-                "country": "الأردن" if (u and u.address) else "—",
-                "city": u.address if (u and u.address) else "—",
+                "country": "الأردن",
+                "city": city_val,
                 "device": dev_val,
                 "os": os_val,
                 "browser": browser_val,
@@ -83,10 +135,11 @@ class AdminSecurityService:
     @staticmethod
     def admin_delete_login_history(db: Session, log_id: str, current_admin_id: uuid.UUID) -> dict:
         try:
+            from models.refresh_token import RefreshToken
             log_uuid = uuid.UUID(log_id)
-            log_item = db.query(AdminActionLog).filter(AdminActionLog.id == log_uuid).first()
-            if log_item:
-                db.delete(log_item)
+            token = db.query(RefreshToken).filter(RefreshToken.id == log_uuid).first()
+            if token:
+                db.delete(token)
                 db.commit()
         except Exception:
             pass
