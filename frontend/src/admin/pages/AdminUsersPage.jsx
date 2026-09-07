@@ -1,6 +1,47 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './AdminUsersPage.css';
 import { getAdminUsers, createAdminUser } from '../services/adminApi';
+import ModernSelect from '../../components/ModernSelect';
+
+const LEGAL_OPTIONS = [
+  { value: '', label: 'الصفة القانونية' },
+  { value: 'فرد', label: 'فرد' },
+  { value: 'مؤسسة فردية', label: 'مؤسسة فردية' },
+  { value: 'شركة ذات مسؤولية محدودة', label: 'شركة ذات مسؤولية محدودة' },
+  { value: 'شركة تضامن', label: 'شركة تضامن' },
+  { value: 'شركة توصية بسيطة', label: 'شركة توصية بسيطة' },
+  { value: 'شركة مساهمة عامة', label: 'شركة مساهمة عامة' },
+  { value: 'شركة مساهمة خاصة', label: 'شركة مساهمة خاصة' },
+  { value: 'جامعة', label: 'جامعة' },
+  { value: 'أكاديمي وباحث', label: 'أكاديمي وباحث' },
+  { value: 'جمعية ومنظمة', label: 'جمعية ومنظمة' },
+  { value: 'جهة حكومية', label: 'جهة حكومية' },
+  { value: 'هيئة عامة', label: 'هيئة عامة' },
+  { value: 'هيئة خاصة', label: 'هيئة خاصة' }
+];
+
+const SECTOR_OPTIONS = [
+  { value: '', label: 'القطاع' },
+  { value: 'خدمات', label: 'خدمات' },
+  { value: 'تجارة', label: 'تجارة' },
+  { value: 'صناعة', label: 'صناعة' },
+  { value: 'مقاولات', label: 'مقاولات' },
+  { value: 'زراعة', label: 'زراعة' }
+];
+
+const STATUS_OPTIONS = [
+  { value: '', label: 'حالة الحساب' },
+  { value: 'نشط', label: 'نشط' },
+  { value: 'غير نشط', label: 'غير نشط' }
+];
+
+const SORT_OPTIONS = [
+  { value: 'active', label: 'الأكثر نشاطًا' },
+  { value: 'newest', label: 'الأحدث' },
+  { value: 'oldest', label: 'الأقدم' },
+  { value: 'consult', label: 'الأكثر استشارات' },
+  { value: 'name', label: 'الاسم أ–ي' }
+];
 
 // ══════════════════════════════════════════════════════════════════════════
 // CANONICAL 60 CLIENTS DATASET
@@ -290,7 +331,6 @@ export default function AdminUsersPage({ navigate }) {
             return map[u.sector] || u.sector || 'خدمات';
           };
 
-          // Merge API users with canonical data
           const apiFormatted = data.map((u, i) => ({
             id: u.id || `u_api_${i + 1}`,
             name: u.full_name || u.company_name || 'مستخدم المنصة',
@@ -300,26 +340,25 @@ export default function AdminUsersPage({ navigate }) {
             activity: u.company_name || u.bio || 'خدمات مهنية واستشارات',
             status: u.is_active ? 'نشط' : 'غير نشط',
             online: !!u.is_active,
-            plan: 'باقة الأعمال',
-            consult: u.total_consultations || (i % 5) + 1,
-            success: u.completed_consultations || (i % 5) + 1,
-            video: Math.ceil(((u.total_consultations || 4) * 2) / 3),
-            chat: Math.floor((u.total_consultations || 4) / 3),
-            tickets: u.tickets_count || 1,
-            usage: u.total_consultations > 10 ? 'مرتفع' : u.total_consultations > 3 ? 'متوسط' : 'منخفض',
+            plan: 'الباقة الأساسية',
+            consult: Number(u.sessions_count ?? u.total_consultations ?? u.total_sessions ?? 0),
+            success: Number(u.completed_consultations ?? u.completed_sessions ?? u.sessions_count ?? 0),
+            video: Number(u.video_sessions ?? 0),
+            chat: Number(u.chat_sessions ?? 0),
+            tickets: Number(u.tickets_count ?? 0),
+            usage: (u.sessions_count || u.total_consultations || 0) > 10 ? 'مرتفع' : (u.sessions_count || u.total_consultations || 0) > 3 ? 'متوسط' : (u.sessions_count || u.total_consultations || 0) > 0 ? 'منخفض' : 'لم يستخدم بعد',
             created: 100 - i,
-            last: 'الآن',
-            tax: u.tax_number || '200123456',
-            national: u.national_id || '200045678',
-            reg: '47192',
-            email: u.email || 'user@diwan.jo',
-            phone: u.phone || '+962 7 9000 0000',
+            last: u.last_login || 'الآن',
+            tax: u.tax_number || '—',
+            national: u.national_id || '—',
+            reg: u.commercial_register || '—',
+            email: u.email || '—',
+            phone: u.phone || '—',
             city: u.address || 'عمّان',
-            joined: u.created_at ? new Date(u.created_at).toLocaleDateString('ar-JO') : '01 يناير 2026'
+            joined: u.created_at ? new Date(u.created_at).toLocaleDateString('ar-JO') : '—'
           }));
-          const merged = [...apiFormatted, ...CANONICAL_USERS.slice(apiFormatted.length)];
-          setUsersList(merged);
-          setFilteredUsers(merged);
+          setUsersList(apiFormatted);
+          setFilteredUsers(apiFormatted);
         }
       } catch (err) {
         console.warn('Backend users loaded fallback to rich dataset:', err);
@@ -1280,44 +1319,40 @@ export default function AdminUsersPage({ navigate }) {
         </div>
 
         <div className="users-top-filter">
-          <select value={legalTopFilter} onChange={(e) => setLegalTopFilter(e.target.value)}>
-            <option value="">الصفة القانونية</option>
-            <option value="فرد">فرد</option>
-            <option value="مؤسسة فردية">مؤسسة فردية</option>
-            <option value="شركة ذات مسؤولية محدودة">شركة ذات مسؤولية محدودة</option>
-            <option value="شركة تضامن">شركة تضامن</option>
-            <option value="شركة توصية بسيطة">شركة توصية بسيطة</option>
-            <option value="شركة مساهمة عامة">شركة مساهمة عامة</option>
-            <option value="شركة مساهمة خاصة">شركة مساهمة خاصة</option>
-            <option value="جامعة">جامعة</option>
-            <option value="أكاديمي وباحث">أكاديمي وباحث</option>
-            <option value="جمعية ومنظمة">جمعية ومنظمة</option>
-            <option value="جهة حكومية">جهة حكومية</option>
-            <option value="هيئة عامة">هيئة عامة</option>
-            <option value="هيئة خاصة">هيئة خاصة</option>
-          </select>
+          <ModernSelect
+            options={LEGAL_OPTIONS}
+            value={legalTopFilter}
+            onChange={(val) => setLegalTopFilter(val)}
+            placeholder="الصفة القانونية"
+            dropdownWidth="220px"
+          />
         </div>
 
         <div className="users-top-filter">
-          <select value={sectorTopFilter} onChange={(e) => setSectorTopFilter(e.target.value)}>
-            <option value="">القطاع</option>
-            <option value="خدمات">خدمات</option>
-            <option value="تجارة">تجارة</option>
-            <option value="صناعة">صناعة</option>
-            <option value="مقاولات">مقاولات</option>
-            <option value="زراعة">زراعة</option>
-          </select>
+          <ModernSelect
+            options={SECTOR_OPTIONS}
+            value={sectorTopFilter}
+            onChange={(val) => setSectorTopFilter(val)}
+            placeholder="القطاع"
+            dropdownWidth="160px"
+          />
         </div>
 
         <div className="users-top-filter">
-          <select value={statusTopFilter} onChange={(e) => setStatusTopFilter(e.target.value)}>
-            <option value="">حالة الحساب</option>
-            <option value="نشط">نشط</option>
-            <option value="غير نشط">غير نشط</option>
-          </select>
+          <ModernSelect
+            options={STATUS_OPTIONS}
+            value={statusTopFilter}
+            onChange={(val) => setStatusTopFilter(val)}
+            placeholder="حالة الحساب"
+            dropdownWidth="150px"
+          />
         </div>
 
         <button className="users-search-btn" onClick={() => showToast(`تم العثور على ${filteredUsers.length} نتيجة`)}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
           بحث المستخدمين
         </button>
       </div>
@@ -1332,6 +1367,10 @@ export default function AdminUsersPage({ navigate }) {
           <div className="users-filter-head">
             <h2>التصفية</h2>
             <button className="users-clear-btn" onClick={handleClearFilters}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginLeft: 4 }}>
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
               مسح الكل
             </button>
           </div>
@@ -1428,13 +1467,19 @@ export default function AdminUsersPage({ navigate }) {
             </div>
             <div className="users-toolset">
               <div className="users-sort">
-                <select value={sortFilter} onChange={(e) => setSortFilter(e.target.value)}>
-                  <option value="active">الأكثر نشاطًا</option>
-                  <option value="newest">الأحدث</option>
-                  <option value="oldest">الأقدم</option>
-                  <option value="consult">الأكثر استشارات</option>
-                  <option value="name">الاسم أ–ي</option>
-                </select>
+                <ModernSelect
+                  options={SORT_OPTIONS}
+                  value={sortFilter}
+                  onChange={(val) => setSortFilter(val)}
+                  placeholder="ترتيب حسب"
+                  dropdownWidth="175px"
+                  align="left"
+                  prefixIcon={
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 4 }}>
+                      <path d="M11 5h10M11 9h7M11 13h4M3 17l3 3 3-3M6 18V4" />
+                    </svg>
+                  }
+                />
               </div>
             </div>
           </div>

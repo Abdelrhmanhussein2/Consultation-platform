@@ -783,6 +783,9 @@ class AdminUserListOut(BaseModel):
     bio: Optional[str] = None
     verification_status: Optional[VerificationStatus] = None
     price_per_hour: Optional[Decimal] = None
+    address: Optional[str] = None
+    title: Optional[str] = None
+    sessions_count: Optional[int] = 0
 
     class Config:
         from_attributes = True

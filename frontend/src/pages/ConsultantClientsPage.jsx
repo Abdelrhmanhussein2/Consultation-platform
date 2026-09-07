@@ -2,6 +2,47 @@ import React, { useState, useEffect, useRef } from 'react';
 import '../admin/pages/AdminUsersPage.css';
 import { useAuth } from '../context/AuthContext';
 import { consultantService } from '../services/consultantService';
+import ModernSelect from '../components/ModernSelect';
+
+const LEGAL_OPTIONS = [
+  { value: '', label: 'الصفة القانونية' },
+  { value: 'فرد', label: 'فرد' },
+  { value: 'مؤسسة فردية', label: 'مؤسسة فردية' },
+  { value: 'شركة ذات مسؤولية محدودة', label: 'شركة ذات مسؤولية محدودة' },
+  { value: 'شركة تضامن', label: 'شركة تضامن' },
+  { value: 'شركة توصية بسيطة', label: 'شركة توصية بسيطة' },
+  { value: 'شركة مساهمة عامة', label: 'شركة مساهمة عامة' },
+  { value: 'شركة مساهمة خاصة', label: 'شركة مساهمة خاصة' },
+  { value: 'جامعة', label: 'جامعة' },
+  { value: 'أكاديمي وباحث', label: 'أكاديمي وباحث' },
+  { value: 'جمعية ومنظمة', label: 'جمعية ومنظمة' },
+  { value: 'جهة حكومية', label: 'جهة حكومية' },
+  { value: 'هيئة عامة', label: 'هيئة عامة' },
+  { value: 'هيئة خاصة', label: 'هيئة خاصة' }
+];
+
+const SECTOR_OPTIONS = [
+  { value: '', label: 'القطاع' },
+  { value: 'خدمات', label: 'خدمات' },
+  { value: 'تجارة', label: 'تجارة' },
+  { value: 'صناعة', label: 'صناعة' },
+  { value: 'مقاولات', label: 'مقاولات' },
+  { value: 'زراعة', label: 'زراعة' }
+];
+
+const STATUS_OPTIONS = [
+  { value: '', label: 'حالة الحساب' },
+  { value: 'نشط', label: 'نشط' },
+  { value: 'غير نشط', label: 'غير نشط' }
+];
+
+const SORT_OPTIONS = [
+  { value: 'active', label: 'الأكثر نشاطًا' },
+  { value: 'newest', label: 'الأحدث' },
+  { value: 'oldest', label: 'الأقدم' },
+  { value: 'consult', label: 'الأكثر استشارات' },
+  { value: 'name', label: 'الاسم أ–ي' }
+];
 
 // ══════════════════════════════════════════════════════════════════════════
 // CANONICAL 60 CLIENTS DATASET
@@ -128,24 +169,25 @@ export default function ConsultantClientsPage({ navigate }) {
             activity: c.company_name || 'خدمات واستشارات',
             status: c.is_active ? 'نشط' : 'غير نشط',
             online: !!c.is_active,
-            plan: 'باقة الأعمال',
-            consult: c.total_sessions || (i % 4) + 1,
-            success: c.completed_sessions || (i % 4) + 1,
-            video: c.video_sessions || Math.ceil(((c.total_sessions || 3) * 2) / 3),
-            chat: c.chat_sessions || Math.floor((c.total_sessions || 3) / 3),
-            tickets: 1,
-            usage: (c.total_sessions || 0) > 8 ? 'مرتفع' : (c.total_sessions || 0) > 2 ? 'متوسط' : 'منخفض',
+            plan: 'الباقة الأساسية',
+            consult: Number(c.total_sessions ?? 0),
+            success: Number(c.completed_sessions ?? 0),
+            video: Number(c.video_sessions ?? 0),
+            chat: Number(c.chat_sessions ?? 0),
+            tickets: Number(c.tickets_count ?? c.tickets ?? 0),
+            usage: (c.total_sessions || 0) > 8 ? 'مرتفع' : (c.total_sessions || 0) > 2 ? 'متوسط' : (c.total_sessions || 0) > 0 ? 'منخفض' : 'لم يستخدم بعد',
             created: 90 - i,
-            last: 'الآن',
-            tax: c.tax_number || '200123456',
-            national: '200045678',
-            reg: '47192',
+            last: c.last_appointment_at ? new Date(c.last_appointment_at).toLocaleDateString('ar-JO') : 'الآن',
+            tax: c.tax_number || '—',
+            national: c.national_id || '—',
+            reg: c.commercial_register || c.reg || '—',
             city: c.address || 'عمّان',
-            joined: c.first_session_at ? new Date(c.first_session_at).toLocaleDateString('ar-JO') : '14 مايو 2026'
+            email: c.email || '—',
+            phone: c.phone || '—',
+            joined: c.first_session_at ? new Date(c.first_session_at).toLocaleDateString('ar-JO') : '—'
           }));
-          const merged = [...apiClients, ...CANONICAL_CLIENTS.slice(apiClients.length)];
-          setClientsList(merged);
-          setFilteredClients(merged);
+          setClientsList(apiClients);
+          setFilteredClients(apiClients);
         }
       } catch (err) {
         console.warn('Consultant clients loaded fallback to canonical list:', err);
@@ -473,44 +515,40 @@ export default function ConsultantClientsPage({ navigate }) {
         </div>
 
         <div className="users-top-filter">
-          <select value={legalTopFilter} onChange={(e) => setLegalTopFilter(e.target.value)}>
-            <option value="">الصفة القانونية</option>
-            <option value="فرد">فرد</option>
-            <option value="مؤسسة فردية">مؤسسة فردية</option>
-            <option value="شركة ذات مسؤولية محدودة">شركة ذات مسؤولية محدودة</option>
-            <option value="شركة تضامن">شركة تضامن</option>
-            <option value="شركة توصية بسيطة">شركة توصية بسيطة</option>
-            <option value="شركة مساهمة عامة">شركة مساهمة عامة</option>
-            <option value="شركة مساهمة خاصة">شركة مساهمة خاصة</option>
-            <option value="جامعة">جامعة</option>
-            <option value="أكاديمي وباحث">أكاديمي وباحث</option>
-            <option value="جمعية ومنظمة">جمعية ومنظمة</option>
-            <option value="جهة حكومية">جهة حكومية</option>
-            <option value="هيئة عامة">هيئة عامة</option>
-            <option value="هيئة خاصة">هيئة خاصة</option>
-          </select>
+          <ModernSelect
+            options={LEGAL_OPTIONS}
+            value={legalTopFilter}
+            onChange={(val) => setLegalTopFilter(val)}
+            placeholder="الصفة القانونية"
+            dropdownWidth="220px"
+          />
         </div>
 
         <div className="users-top-filter">
-          <select value={sectorTopFilter} onChange={(e) => setSectorTopFilter(e.target.value)}>
-            <option value="">القطاع</option>
-            <option value="خدمات">خدمات</option>
-            <option value="تجارة">تجارة</option>
-            <option value="صناعة">صناعة</option>
-            <option value="مقاولات">مقاولات</option>
-            <option value="زراعة">زراعة</option>
-          </select>
+          <ModernSelect
+            options={SECTOR_OPTIONS}
+            value={sectorTopFilter}
+            onChange={(val) => setSectorTopFilter(val)}
+            placeholder="القطاع"
+            dropdownWidth="160px"
+          />
         </div>
 
         <div className="users-top-filter">
-          <select value={statusTopFilter} onChange={(e) => setStatusTopFilter(e.target.value)}>
-            <option value="">حالة الحساب</option>
-            <option value="نشط">نشط</option>
-            <option value="غير نشط">غير نشط</option>
-          </select>
+          <ModernSelect
+            options={STATUS_OPTIONS}
+            value={statusTopFilter}
+            onChange={(val) => setStatusTopFilter(val)}
+            placeholder="حالة الحساب"
+            dropdownWidth="150px"
+          />
         </div>
 
         <button className="users-search-btn" onClick={() => showToast(`تم العثور على ${filteredClients.length} عميل`)}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
           بحث العملاء
         </button>
       </div>
@@ -525,6 +563,10 @@ export default function ConsultantClientsPage({ navigate }) {
           <div className="users-filter-head">
             <h2>التصفية</h2>
             <button className="users-clear-btn" onClick={handleClearFilters}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginLeft: 4 }}>
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
               مسح الكل
             </button>
           </div>
@@ -617,13 +659,19 @@ export default function ConsultantClientsPage({ navigate }) {
             </div>
             <div className="users-toolset">
               <div className="users-sort">
-                <select value={sortFilter} onChange={(e) => setSortFilter(e.target.value)}>
-                  <option value="active">الأكثر نشاطًا</option>
-                  <option value="newest">الأحدث</option>
-                  <option value="oldest">الأقدم</option>
-                  <option value="consult">الأكثر استشارات</option>
-                  <option value="name">الاسم أ–ي</option>
-                </select>
+                <ModernSelect
+                  options={SORT_OPTIONS}
+                  value={sortFilter}
+                  onChange={(val) => setSortFilter(val)}
+                  placeholder="ترتيب حسب"
+                  dropdownWidth="175px"
+                  align="left"
+                  prefixIcon={
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 4 }}>
+                      <path d="M11 5h10M11 9h7M11 13h4M3 17l3 3 3-3M6 18V4" />
+                    </svg>
+                  }
+                />
               </div>
             </div>
           </div>
@@ -732,12 +780,12 @@ export default function ConsultantClientsPage({ navigate }) {
                     <div className="profile-meta-line">
                       <span>💼 {activeClient.sector}</span>
                       <span>🛡️ عميل موثّق</span>
-                      <span>⏱️ آخر جلسة معك: 28 أغسطس 2026</span>
+                      <span>⏱️ آخر جلسة معك: {activeClient.last}</span>
                     </div>
                   </div>
                   <div className="profile-right-meta">
                     <span className="account-id">العلاقة الاستشارية</span>
-                    <strong>5 جلسات معك</strong>
+                    <strong>{activeClient.consult} جلسات معك</strong>
                     <span className="consultant-context-pill" style={{ marginTop: 6, display: 'inline-block' }}>
                       {activeClient.online ? 'متصل الآن' : 'عميل نشط'}
                     </span>

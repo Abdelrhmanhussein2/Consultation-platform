@@ -1,6 +1,22 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import CreateRefundInvoiceModal from "../components/CreateRefundInvoiceModal";
+import ModernSelect from "../../components/ModernSelect";
+
+const SORT_OPTIONS = [
+  { value: "date_desc", label: "الأحدث" },
+  { value: "date_asc", label: "الأقدم" },
+  { value: "amount_desc", label: "الأعلى قيمة" },
+  { value: "amount_asc", label: "الأقل قيمة" }
+];
+
+const REFUND_STATUS_OPTIONS = [
+  { value: "الكل", label: "كل الحالات" },
+  { value: "pending", label: "بانتظار الموافقة" },
+  { value: "processing", label: "قيد المعالجة" },
+  { value: "completed", label: "مكتمل" },
+  { value: "rejected", label: "مرفوض" }
+];
 
 const fmt = (n) => Number(n || 0).toLocaleString("ar-JO", { minimumFractionDigits: 3 });
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("zh-Hans-CN") : "-";
@@ -249,24 +265,36 @@ export default function AdminRefundedInvoicesPage({ navigate }) {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {STATUS_TABS.map(s => (
               <button key={s} type="button" className="ab" style={{ fontSize: 11, padding: "5px 12px", background: filterStatus === s ? "#0D3C5C" : "#fff", color: filterStatus === s ? "#fff" : "#0D3C5C", borderColor: filterStatus === s ? "#0D3C5C" : "#E2E8F0" }} onClick={() => setFilterStatus(s)}>
-                {s === "\u0627\u0644\u0643\u0644" ? "\u0627\u0644\u0643\u0644" : si(s).label}
+                {s === "الكل" ? "الكل" : si(s).label}
               </button>
             ))}
           </div>
-          <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ width: "auto", padding: "6px 12px", fontSize: 12, border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff" }}>
-            <option value="date_desc">\u0627\u0644\u0623\u062d\u062f\u062b</option><option value="date_asc">\u0627\u0644\u0623\u0642\u062f\u0645</option>
-            <option value="amount_desc">\u0627\u0644\u0623\u0639\u0644\u0649 \u0642\u064a\u0645\u0629</option><option value="amount_asc">\u0627\u0644\u0623\u0642\u0644 \u0642\u064a\u0645\u0629</option>
-          </select>
+          <div style={{ minWidth: 140 }}>
+            <ModernSelect
+              options={SORT_OPTIONS}
+              value={sortBy}
+              onChange={setSortBy}
+              placeholder="الترتيب..."
+            />
+          </div>
         </div>
 
         {/* FILTER BAR */}
         {showFilterBar && (
           <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #E2E8F0", padding: "16px 22px", marginBottom: 18 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: 14, alignItems: "flex-end" }}>
-              <div><label className="rl">\u0627\u0644\u062d\u0627\u0644\u0629</label><select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}><option value="\u0627\u0644\u0643\u0644">\u0643\u0644 \u0627\u0644\u062d\u0627\u0644\u0627\u062a</option><option value="pending">\u0628\u0627\u0646\u062a\u0638\u0627\u0631 \u0627\u0644\u0645\u0648\u0627\u0641\u0642\u0629</option><option value="processing">\u0642\u064a\u062f \u0627\u0644\u0645\u0639\u0627\u0644\u062c\u0629</option><option value="completed">\u0645\u0643\u062a\u0645\u0644</option><option value="rejected">\u0645\u0631\u0641\u0648\u0636</option></select></div>
-              <div><label className="rl">\u0645\u0646 \u0645\u0628\u0644\u063a</label><input className="inp" type="number" step="0.001" placeholder="0.000" value={filterMinAmount} onChange={e => setFilterMinAmount(e.target.value)} /></div>
-              <div><label className="rl">\u0625\u0644\u0649 \u0645\u0628\u0644\u063a</label><input className="inp" type="number" step="0.001" placeholder="999999" value={filterMaxAmount} onChange={e => setFilterMaxAmount(e.target.value)} /></div>
-              <button className="gb" type="button" onClick={() => { setSearch(""); setFilterStatus("\u0627\u0644\u0643\u0644"); setFilterMinAmount(""); setFilterMaxAmount(""); }}>\u0625\u0639\u0627\u062f\u0629 \u062a\u0639\u064a\u064a\u0646</button>
+              <div>
+                <label className="rl">الحالة</label>
+                <ModernSelect
+                  options={REFUND_STATUS_OPTIONS}
+                  value={filterStatus}
+                  onChange={setFilterStatus}
+                  placeholder="كل الحالات"
+                />
+              </div>
+              <div><label className="rl">من مبلغ</label><input className="inp" type="number" step="0.001" placeholder="0.000" value={filterMinAmount} onChange={e => setFilterMinAmount(e.target.value)} /></div>
+              <div><label className="rl">إلى مبلغ</label><input className="inp" type="number" step="0.001" placeholder="999999" value={filterMaxAmount} onChange={e => setFilterMaxAmount(e.target.value)} /></div>
+              <button className="gb" type="button" onClick={() => { setSearch(""); setFilterStatus("الكل"); setFilterMinAmount(""); setFilterMaxAmount(""); }}>إعادة تعيين</button>
             </div>
           </div>
         )}

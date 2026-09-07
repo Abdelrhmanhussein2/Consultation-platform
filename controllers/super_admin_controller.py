@@ -1,6 +1,6 @@
 import uuid
 from typing import Optional
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status as http_status
 from sqlalchemy.orm import Session
 from models import User
 from schemes import ConsultantApplicationAction, AdminBroadcastNotification, AdminAddUserRequest
@@ -16,10 +16,10 @@ class SuperAdminController:
         try:
             return SuperAdminService.admin_add_user(db, user_in)
         except ValueError as e:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=str(e))
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to add user: {str(e)}"
             )
     @staticmethod
@@ -40,7 +40,7 @@ class SuperAdminController:
             user_uuid = uuid.UUID(user_id)
         except ValueError:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail="Invalid user ID format"
             )
             
@@ -53,7 +53,7 @@ class SuperAdminController:
                 )
         except ValueError as e:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=str(e)
             )
 
@@ -77,7 +77,7 @@ class SuperAdminController:
             user_uuid = uuid.UUID(user_id)
         except ValueError:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail="Invalid user ID format"
             )
             
@@ -85,7 +85,7 @@ class SuperAdminController:
             return SuperAdminService.toggle_user_active(db, user_uuid, super_admin_id)
         except ValueError as e:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=str(e)
             )
 
@@ -126,7 +126,7 @@ class SuperAdminController:
             return SuperAdminService.admin_add_user(db, user_in)
         except ValueError as e:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=str(e)
             )
 
@@ -160,7 +160,7 @@ class SuperAdminController:
             appt_uuid = uuid.UUID(appointment_id)
         except ValueError:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail="Invalid appointment ID format"
             )
             
@@ -168,7 +168,7 @@ class SuperAdminController:
             return SuperAdminService.admin_update_session_status(db, appt_uuid, new_status)
         except ValueError as e:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=str(e)
             )
 
@@ -181,7 +181,7 @@ class SuperAdminController:
             appt_uuid = uuid.UUID(appointment_id)
         except ValueError:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail="Invalid appointment ID format"
             )
             
@@ -189,7 +189,7 @@ class SuperAdminController:
             return SuperAdminService.admin_join_session(db, appt_uuid, admin_user)
         except ValueError as e:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=str(e)
             )
 
@@ -211,7 +211,7 @@ class SuperAdminController:
             user_uuid = uuid.UUID(user_id)
         except ValueError:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail="Invalid user ID format"
             )
             
@@ -224,7 +224,7 @@ class SuperAdminController:
                 )
         except ValueError as e:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=str(e)
             )
 
@@ -237,7 +237,7 @@ class SuperAdminController:
             return SuperAdminService.create_system_policy(db, title, policy_type, version, content)
         except ValueError as e:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=str(e)
             )
 
@@ -267,7 +267,7 @@ class SuperAdminController:
             try:
                 status_enum = PayoutStatus(status)
             except ValueError:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="حالة طلب السحب غير صحيحة")
+                raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail="حالة طلب السحب غير صحيحة")
         return WalletService.admin_list_payouts(db, status=status_enum, limit=limit, offset=offset)
 
     @staticmethod
@@ -277,7 +277,7 @@ class SuperAdminController:
         try:
             payout_uuid = uuid.UUID(payout_id)
         except ValueError:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="معرف طلب السحب غير صالح")
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail="معرف طلب السحب غير صالح")
 
         try:
             return WalletService.admin_process_payout(
@@ -290,7 +290,7 @@ class SuperAdminController:
                 admin_notes=action_in.admin_notes
             )
         except ValueError as e:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     # ── Credential Review (Specializations & Certificates) ──────────────
 
@@ -305,13 +305,13 @@ class SuperAdminController:
         try:
             cred_uuid = uuid.UUID(credential_id)
         except ValueError:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid credential ID format")
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail="Invalid credential ID format")
         try:
             return ConsultantService.review_credential(
                 db, cred_uuid, current_user.id, review_in.status, review_in.rejection_reason
             )
         except ValueError as e:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     @staticmethod
     def get_reports_analytics(
@@ -340,7 +340,7 @@ class SuperAdminController:
             )
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to generate reports analytics: {str(e)}"
             )
 
@@ -353,7 +353,7 @@ class SuperAdminController:
             return SuperAdminService.get_dashboard_stats(db)
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to load dashboard stats: {str(e)}"
             )
 
@@ -366,7 +366,7 @@ class SuperAdminController:
             return SuperAdminService.list_all_payments_transfers(db)
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to load payments: {str(e)}"
             )
 
@@ -389,12 +389,12 @@ class SuperAdminController:
             )
         except ValueError as ve:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=http_status.HTTP_400_BAD_REQUEST,
                 detail=str(ve)
             )
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to process payment action: {str(e)}"
             )
 
@@ -407,7 +407,7 @@ class SuperAdminController:
             return SuperAdminService.delete_payment_record(db, payment_id)
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to delete payment: {str(e)}"
             )
 
@@ -419,13 +419,13 @@ class SuperAdminController:
         try:
             user_uuid = uuid.UUID(user_id)
         except ValueError:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="معرف المستخدم غير صحيح")
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail="معرف المستخدم غير صحيح")
         try:
             return SuperAdminService.admin_update_user_profile(db, user_uuid, update_in, current_admin.id)
         except ValueError as ve:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=str(ve))
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to update user: {str(e)}")
+            raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to update user: {str(e)}")
 
     @staticmethod
     def admin_reset_user_password(db: Session, user_id: str, payload: dict, current_admin: User):
@@ -435,15 +435,15 @@ class SuperAdminController:
         try:
             user_uuid = uuid.UUID(user_id)
         except ValueError:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="معرف المستخدم غير صحيح")
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail="معرف المستخدم غير صحيح")
         try:
             new_pass = payload.get("new_password")
             mode = payload.get("mode", "admin")
             return SuperAdminService.admin_reset_user_password(db, user_uuid, new_pass, mode, current_admin.id)
         except ValueError as ve:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=str(ve))
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to reset password: {str(e)}")
+            raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to reset password: {str(e)}")
 
     @staticmethod
     def admin_delete_user(db: Session, user_id: str, current_admin: User):
@@ -453,13 +453,13 @@ class SuperAdminController:
         try:
             user_uuid = uuid.UUID(user_id)
         except ValueError:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="معرف المستخدم غير صحيح")
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail="معرف المستخدم غير صحيح")
         try:
             return SuperAdminService.admin_delete_user(db, user_uuid, current_admin.id)
         except ValueError as ve:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=str(ve))
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to delete user: {str(e)}")
+            raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to delete user: {str(e)}")
 
     @staticmethod
     def admin_get_login_history(
@@ -477,7 +477,7 @@ class SuperAdminController:
         try:
             return SuperAdminService.admin_get_login_history(db, year, month, user_id, search, page, limit)
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get login history: {str(e)}")
+            raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get login history: {str(e)}")
 
     @staticmethod
     def admin_delete_login_history(db: Session, log_id: str, current_admin: User):
@@ -487,7 +487,7 @@ class SuperAdminController:
         try:
             return SuperAdminService.admin_delete_login_history(db, log_id, current_admin.id)
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to delete log: {str(e)}")
+            raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to delete log: {str(e)}")
 
     @staticmethod
     def admin_get_account_roles(db: Session):
@@ -497,7 +497,7 @@ class SuperAdminController:
         try:
             return SuperAdminService.admin_get_account_roles(db)
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get account roles: {str(e)}")
+            raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get account roles: {str(e)}")
 
     @staticmethod
     def admin_save_account_roles(db: Session, roles_list: list, current_admin: User):
@@ -507,7 +507,7 @@ class SuperAdminController:
         try:
             return SuperAdminService.admin_save_account_roles(db, roles_list, current_admin.id)
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to save account roles: {str(e)}")
+            raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to save account roles: {str(e)}")
 
     @staticmethod
     def get_dashboard_stats(db: Session, period: str = "week"):
@@ -517,7 +517,7 @@ class SuperAdminController:
         try:
             return SuperAdminService.get_dashboard_stats(db, period)
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get dashboard stats: {str(e)}")
+            raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get dashboard stats: {str(e)}")
 
 
 

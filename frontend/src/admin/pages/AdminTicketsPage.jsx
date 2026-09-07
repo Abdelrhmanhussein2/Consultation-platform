@@ -6,6 +6,7 @@ import {
   updateAdminTicketStatus, 
   closeAdminTicket 
 } from '../services/adminApi';
+import ModernSelect from '../../components/ModernSelect';
 
 // ══════════════════════════════════════════════════════════════════════════
 // STATUS & PRIORITY DEFINITIONS & COLOR CONFIGS
@@ -37,9 +38,9 @@ const CANNED_TEMPLATES = [
 ];
 
 const AI_SUGGESTIONS = [
-  { id: 'ai1', title: '✨ صياغة رد ترحيبي وحل سريع', text: 'أهلاً بك. نشكر لك تواصلك وحرصك. بخصوص استفسارك، تم فحص المشكلة ومعالجتها بنجاح. يمكنك الآن المتابعة دون أي عوائق.' },
-  { id: 'ai2', title: '✨ اعتذار رسمي وتأكيد المتابعة', text: 'نعتذر بشدة عن أي إزعاج قد تكون واجهته. نقوم حالياً بمتابعة طلبك كأولوية قصوى لضمان وصولك لكافة الخدمات بأعلى كفاءة.' },
-  { id: 'ai3', title: '✨ توجيه لحجز استشارة معتمدة', text: 'بناءً على طبيعة استفسارك التخصصية، يمكنك حجز جلسة استشارية مباشرة مع أحد خبرائنا الضريبيين المعتمدين عبر منصة ديوان.' }
+  { id: 'ai1', title: 'صياغة رد ترحيبي وحل سريع', text: 'أهلاً بك. نشكر لك تواصلك وحرصك. بخصوص استفسارك، تم فحص المشكلة ومعالجتها بنجاح. يمكنك الآن المتابعة دون أي عوائق.' },
+  { id: 'ai2', title: 'اعتذار رسمي وتأكيد المتابعة', text: 'نعتذر بشدة عن أي إزعاج قد تكون واجهته. نقوم حالياً بمتابعة طلبك كأولوية قصوى لضمان وصولك لكافة الخدمات بأعلى كفاءة.' },
+  { id: 'ai3', title: 'توجيه لحجز استشارة معتمدة', text: 'بناءً على طبيعة استفسارك التخصصية، يمكنك حجز جلسة استشارية مباشرة مع أحد خبرائنا الضريبيين المعتمدين عبر منصة ديوان.' }
 ];
 
 const CATEGORIES = {
@@ -56,6 +57,32 @@ const CATEGORIES = {
   'الإشعارات': ['لا أستلم إشعارات', 'إشعارات مكررة', 'محتوى الإشعار خاطئ', 'أخرى'],
   'أخرى': ['عام']
 };
+
+const TICKET_STATUS_OPTIONS = [
+  { value: '', label: 'كل الحالات' },
+  ...Object.keys(STATUS_CONFIG).map(st => ({ value: st, label: st }))
+];
+
+const TICKET_CATEGORY_OPTIONS = [
+  { value: '', label: 'كل الفئات' },
+  ...Object.keys(CATEGORIES).map(cat => ({ value: cat, label: cat }))
+];
+
+const TICKET_PRIORITY_OPTIONS = [
+  { value: '', label: 'كل الأولويات' },
+  { value: 'منخفضة', label: 'منخفضة' },
+  { value: 'متوسطة', label: 'متوسطة' },
+  { value: 'عالية', label: 'عالية' }
+];
+
+const TICKET_ASSIGNEE_OPTIONS = [
+  { value: '', label: 'كل المشرفين' },
+  { value: 'سارة خالد', label: 'سارة خالد' },
+  { value: 'محمد علي', label: 'محمد علي' },
+  { value: 'خالد عمر', label: 'خالد عمر' },
+  { value: 'مدير الدعم', label: 'مدير الدعم' },
+  { value: 'غير معين', label: 'غير معين' }
+];
 
 export default function AdminTicketsPage({ navigate }) {
   // ══════════════════════════════════════════════════════════════════════════
@@ -763,7 +790,7 @@ export default function AdminTicketsPage({ navigate }) {
       {/* Toast Notification */}
       {toastMsg && (
         <div style={{ position: 'fixed', bottom: '24px', left: '24px', background: '#0e3b5e', color: '#FFFFFF', padding: '12px 24px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', zIndex: 99999, display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700', fontSize: '13.5px', direction: 'rtl' }}>
-          <span>✅</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
           <span>{toastMsg}</span>
         </div>
       )}
@@ -783,7 +810,7 @@ export default function AdminTicketsPage({ navigate }) {
                 onClick={() => { setNewStatusVal(selectedTicket.status); setActiveModal('change-status'); }}
                 style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', padding: '8px 16px', borderRadius: '10px', fontSize: '12.5px', fontWeight: '700', color: '#374151', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}
               >
-                <span>🔄</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.13 15.57a10 10 0 1 0 3.73-10.51L2 8"/></svg>
                 <span>تحديث الحالة</span>
               </button>
 
@@ -791,7 +818,7 @@ export default function AdminTicketsPage({ navigate }) {
                 onClick={() => { setNewAssigneeVal(selectedTicket.assignee); setActiveModal('assign-ticket'); }}
                 style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', padding: '8px 16px', borderRadius: '10px', fontSize: '12.5px', fontWeight: '700', color: '#374151', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}
               >
-                <span>👤</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <span>تحويل الطلب</span>
               </button>
 
@@ -799,7 +826,7 @@ export default function AdminTicketsPage({ navigate }) {
                 onClick={() => { setNewPriorityVal(selectedTicket.priority); setActiveModal('change-priority'); }}
                 style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', padding: '8px 16px', borderRadius: '10px', fontSize: '12.5px', fontWeight: '700', color: '#374151', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}
               >
-                <span>🚩</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
                 <span>تغيير الأولوية</span>
               </button>
 
@@ -807,7 +834,7 @@ export default function AdminTicketsPage({ navigate }) {
                 onClick={() => setActiveModal('add-internal')}
                 style={{ background: '#FFFDF5', border: '1px solid #FCD34D', padding: '8px 16px', borderRadius: '10px', fontSize: '12.5px', fontWeight: '800', color: '#B45309', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}
               >
-                <span>📝</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                 <span>ملاحظة داخلية</span>
               </button>
             </div>
@@ -817,7 +844,7 @@ export default function AdminTicketsPage({ navigate }) {
               onClick={() => setSelectedTicketId(null)}
               style={{ background: '#0e3b5e', color: '#FFFFFF', border: 'none', padding: '9px 18px', borderRadius: '10px', fontWeight: '800', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
             >
-              <span>⬅</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
               <span>العودة لقائمة التذاكر</span>
             </button>
           </div>
@@ -1055,7 +1082,7 @@ export default function AdminTicketsPage({ navigate }) {
                         onMouseEnter={(e) => { e.currentTarget.style.background = '#F0FDFA'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                       >
-                        <span style={{ color: '#F59E0B' }}>✨</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z"/></svg>
                         <span>{aiEnhancing ? 'جاري التحسين الذكي...' : 'تحسين وصياغة النص'}</span>
                       </button>
 
@@ -1102,7 +1129,8 @@ export default function AdminTicketsPage({ navigate }) {
                               color: '#334155'
                             }}
                           >
-                            <span>📎 {file.name}</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                            <span>{file.name}</span>
                             <button
                               type="button"
                               onClick={() => handleRemoveFile(fIdx)}
@@ -1209,7 +1237,7 @@ export default function AdminTicketsPage({ navigate }) {
                           }}
                         >
                           <span>قوالب جاهزة</span>
-                          <span>📋</span>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
                         </button>
 
                         {showTemplatesDropdown && (
@@ -1234,7 +1262,9 @@ export default function AdminTicketsPage({ navigate }) {
                             {/* Header */}
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '10px', marginBottom: '8px', borderBottom: '1px solid #F1F5F9' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ fontSize: '13px', background: '#FEF3C7', padding: '4px 8px', borderRadius: '8px' }}>📋</span>
+                                <span style={{ fontSize: '13px', background: '#FEF3C7', padding: '4px 8px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+                                </span>
                                 <span style={{ fontSize: '13px', fontWeight: '800', color: '#1E293B' }}>قوالب الردود الجاهزة</span>
                               </div>
                               <button
@@ -1310,7 +1340,7 @@ export default function AdminTicketsPage({ navigate }) {
                           }}
                         >
                           <span>مساعد AI</span>
-                          <span style={{ color: '#F59E0B' }}>✨</span>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z"/></svg>
                         </button>
 
                         {showAiDropdown && (
@@ -1335,7 +1365,9 @@ export default function AdminTicketsPage({ navigate }) {
                             {/* Header */}
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '10px', marginBottom: '8px', borderBottom: '1px solid #F0F9FF' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ fontSize: '13px', background: '#E0F2FE', padding: '4px 8px', borderRadius: '8px' }}>✨</span>
+                                <span style={{ fontSize: '13px', background: '#E0F2FE', padding: '4px 8px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0284C7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z"/></svg>
+                                </span>
                                 <span style={{ fontSize: '13px', fontWeight: '800', color: '#0369A1' }}>اقتراحات المساعد الذكي التفاعلية</span>
                               </div>
                               <button
@@ -1374,7 +1406,10 @@ export default function AdminTicketsPage({ navigate }) {
                                 >
                                   <div style={{ fontWeight: '800', fontSize: '12.5px', color: '#0369A1', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                     <span>{ai.title}</span>
-                                    <span style={{ fontSize: '11px', color: '#0284C7', fontWeight: '800' }}>تطبيق ✨</span>
+                                    <span style={{ fontSize: '11px', color: '#0284C7', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                      <span>تطبيق</span>
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0284C7" strokeWidth="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z"/></svg>
+                                    </span>
                                   </div>
                                   <div style={{ fontSize: '11.5px', color: '#475569', lineHeight: '1.45', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                     {ai.text}
@@ -1405,7 +1440,7 @@ export default function AdminTicketsPage({ navigate }) {
                         }}
                       >
                         <span>إرفاق ملف</span>
-                        <span>📎</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                       </button>
 
                     </div>
@@ -1460,7 +1495,7 @@ export default function AdminTicketsPage({ navigate }) {
                     selectedTicket.attachments.map((att, i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F9FAFB', padding: '10px 14px', borderRadius: '10px', border: '1px solid #E5E7EB', textAlign: 'right' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ color: '#0e7490', fontSize: '16px' }}>📄</span>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0e7490" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                           <div>
                             <div style={{ fontSize: '12px', fontWeight: '700', color: '#374151' }}>{att.name}</div>
                             <div style={{ fontSize: '10px', color: '#9CA3AF' }}>{att.size}</div>
@@ -1485,13 +1520,100 @@ export default function AdminTicketsPage({ navigate }) {
           {/* 7 Summary KPI Cards (Click to Filter with 100% Exact Synchronization) */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '12px', direction: 'rtl' }}>
             {[
-              { id: 'all', label: 'جميع الطلبات', count: totalCount, icon: '📑', bg: 'rgba(14,59,94,0.08)', color: '#0e3b5e' },
-              { id: 'new', label: 'الجديدة', count: newCount, icon: '🔵', bg: '#F0F9FF', color: '#0284C7' },
-              { id: 'processing', label: 'قيد المعالجة', count: processingCount, icon: '🔄', bg: '#F0FDFA', color: '#0D9488' },
-              { id: 'waiting', label: 'بانتظار المستخدم', count: waitingCount, icon: '⏳', bg: '#FFFBEB', color: '#D97706' },
-              { id: 'delayed', label: 'المتأخرة', count: delayedCount, icon: '⚠️', bg: '#FEF2F2', color: '#DC2626' },
-              { id: 'solved', label: 'تم الحل اليوم', count: solvedTodayCount, icon: '✅', bg: '#ECFDF5', color: '#059669' },
-              { id: 'sla_breached', label: 'SLA مُخالَف', count: slaBreachedCount, icon: '🛡️', bg: '#FFF1F2', color: '#E11D48' }
+              {
+                id: 'all',
+                label: 'جميع الطلبات',
+                count: totalCount,
+                bg: 'rgba(14,59,94,0.08)',
+                color: '#0e3b5e',
+                icon: (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                  </svg>
+                )
+              },
+              {
+                id: 'new',
+                label: 'الجديدة',
+                count: newCount,
+                bg: '#F0F9FF',
+                color: '#0284C7',
+                icon: (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 8v8M8 12h8" />
+                  </svg>
+                )
+              },
+              {
+                id: 'processing',
+                label: 'قيد المعالجة',
+                count: processingCount,
+                bg: '#F0FDFA',
+                color: '#0D9488',
+                icon: (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21.5 2v6h-6M2.13 15.57a10 10 0 1 0 3.73-10.51L2 8" />
+                  </svg>
+                )
+              },
+              {
+                id: 'waiting',
+                label: 'بانتظار المستخدم',
+                count: waitingCount,
+                bg: '#FFFBEB',
+                color: '#D97706',
+                icon: (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                )
+              },
+              {
+                id: 'delayed',
+                label: 'المتأخرة',
+                count: delayedCount,
+                bg: '#FEF2F2',
+                color: '#DC2626',
+                icon: (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                )
+              },
+              {
+                id: 'solved',
+                label: 'تم الحل اليوم',
+                count: solvedTodayCount,
+                bg: '#ECFDF5',
+                color: '#059669',
+                icon: (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                )
+              },
+              {
+                id: 'sla_breached',
+                label: 'SLA مُخالَف',
+                count: slaBreachedCount,
+                bg: '#FFF1F2',
+                color: '#E11D48',
+                icon: (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                )
+              }
             ].map((card) => {
               const isSelected = activeKpiFilter === card.id;
               return (
@@ -1513,7 +1635,7 @@ export default function AdminTicketsPage({ navigate }) {
                     transition: 'all 0.2s'
                   }}
                 >
-                  <div style={{ width: '38px', height: '38px', background: card.bg, color: card.color, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px auto', fontSize: '18px' }}>
+                  <div style={{ width: '38px', height: '38px', background: card.bg, color: card.color, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px auto' }}>
                     {card.icon}
                   </div>
                   <div style={{ fontSize: '20px', fontWeight: '900', color: '#0e3b5e', lineHeight: '1.2' }}>{card.count}</div>
@@ -1528,109 +1650,135 @@ export default function AdminTicketsPage({ navigate }) {
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '14px' }}>
               
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', flex: 1 }}>
-                <div style={{ minWidth: '220px', flex: 1, position: 'relative' }}>
+                <div style={{ minWidth: '200px', flex: 1, position: 'relative' }}>
                   <input
                     type="text"
                     placeholder="ابحث برقم الطلب، الموضوع، أو العميل..."
                     value={filters.search}
                     onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#F8FAFC', outline: 'none', textAlign: 'right', direction: 'rtl' }}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '999px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#F8FAFC', outline: 'none', textAlign: 'right', direction: 'rtl' }}
                   />
                 </div>
 
-                <select
-                  value={filters.status}
-                  onChange={(e) => {
-                    setActiveKpiFilter('all');
-                    setFilters(prev => ({ ...prev, status: e.target.value }));
-                  }}
-                  style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#FFFFFF', outline: 'none' }}
-                >
-                  <option value="">كل الحالات</option>
-                  {Object.keys(STATUS_CONFIG).map(st => (
-                    <option key={st} value={st}>{st}</option>
-                  ))}
-                </select>
+                <div style={{ width: '140px' }}>
+                  <ModernSelect
+                    options={TICKET_STATUS_OPTIONS}
+                    value={filters.status}
+                    onChange={(val) => {
+                      setActiveKpiFilter('all');
+                      setFilters(prev => ({ ...prev, status: val }));
+                    }}
+                    placeholder="كل الحالات"
+                    dropdownWidth="150px"
+                  />
+                </div>
 
-                <select
-                  value={filters.category}
-                  onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
-                  style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#FFFFFF', outline: 'none' }}
-                >
-                  <option value="">كل الفئات</option>
-                  {Object.keys(CATEGORIES).map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
+                <div style={{ width: '140px' }}>
+                  <ModernSelect
+                    options={TICKET_CATEGORY_OPTIONS}
+                    value={filters.category}
+                    onChange={(val) => setFilters(prev => ({ ...prev, category: val }))}
+                    placeholder="كل الفئات"
+                    dropdownWidth="170px"
+                  />
+                </div>
 
-                <select
-                  value={filters.priority}
-                  onChange={(e) => setFilters(prev => ({ ...prev, priority: e.target.value }))}
-                  style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#FFFFFF', outline: 'none' }}
-                >
-                  <option value="">كل الأولويات</option>
-                  <option value="منخفضة">منخفضة</option>
-                  <option value="متوسطة">متوسطة</option>
-                  <option value="عالية">عالية</option>
-                </select>
+                <div style={{ width: '130px' }}>
+                  <ModernSelect
+                    options={TICKET_PRIORITY_OPTIONS}
+                    value={filters.priority}
+                    onChange={(val) => setFilters(prev => ({ ...prev, priority: val }))}
+                    placeholder="كل الأولويات"
+                    dropdownWidth="140px"
+                  />
+                </div>
 
-                <select
-                  value={filters.assignee}
-                  onChange={(e) => setFilters(prev => ({ ...prev, assignee: e.target.value }))}
-                  style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#FFFFFF', outline: 'none' }}
-                >
-                  <option value="">كل المشرفين</option>
-                  <option value="سارة خالد">سارة خالد</option>
-                  <option value="محمد علي">محمد علي</option>
-                  <option value="خالد عمر">خالد عمر</option>
-                  <option value="مدير الدعم">مدير الدعم</option>
-                  <option value="غير معين">غير معين</option>
-                </select>
+                <div style={{ width: '140px' }}>
+                  <ModernSelect
+                    options={TICKET_ASSIGNEE_OPTIONS}
+                    value={filters.assignee}
+                    onChange={(val) => setFilters(prev => ({ ...prev, assignee: val }))}
+                    placeholder="كل المشرفين"
+                    dropdownWidth="150px"
+                  />
+                </div>
 
                 <button
                   onClick={() => {
                     setActiveKpiFilter('all');
                     setFilters({ search: '', status: '', category: '', priority: '', assignee: '' });
                   }}
-                  style={{ padding: '10px 16px', background: '#F1F5F9', border: '1px solid #CBD5E1', borderRadius: '10px', fontSize: '13px', fontWeight: '700', color: '#475569', cursor: 'pointer' }}
+                  style={{
+                    padding: '8px 16px',
+                    height: '46px',
+                    background: '#F1F5F9',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: '999px',
+                    fontSize: '12.5px',
+                    fontWeight: '700',
+                    color: '#475569',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
                 >
-                  🔄 مسح
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                  </svg>
+                  <span>مسح</span>
                 </button>
               </div>
 
               {/* View Mode Toggle Switcher */}
-              <div style={{ display: 'flex', alignItems: 'center', background: '#F1F5F9', padding: '4px', borderRadius: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', background: '#F1F5F9', padding: '4px', borderRadius: '999px' }}>
                 <button
                   onClick={() => setAdminView('table')}
                   style={{
                     padding: '8px 16px',
-                    borderRadius: '8px',
+                    borderRadius: '999px',
                     border: 'none',
                     fontSize: '12.5px',
                     fontWeight: '800',
                     cursor: 'pointer',
                     background: adminView === 'table' ? '#FFFFFF' : 'transparent',
                     color: adminView === 'table' ? '#0e3b5e' : '#64748B',
-                    boxShadow: adminView === 'table' ? '0 2px 4px rgba(0,0,0,0.06)' : 'none'
+                    boxShadow: adminView === 'table' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
                   }}
                 >
-                  📊 جدول
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <path d="M3 9h18M3 15h18M9 3v18" />
+                  </svg>
+                  <span>جدول</span>
                 </button>
                 <button
                   onClick={() => setAdminView('kanban')}
                   style={{
                     padding: '8px 16px',
-                    borderRadius: '8px',
+                    borderRadius: '999px',
                     border: 'none',
                     fontSize: '12.5px',
                     fontWeight: '800',
                     cursor: 'pointer',
                     background: adminView === 'kanban' ? '#FFFFFF' : 'transparent',
                     color: adminView === 'kanban' ? '#0e3b5e' : '#64748B',
-                    boxShadow: adminView === 'kanban' ? '0 2px 4px rgba(0,0,0,0.06)' : 'none'
+                    boxShadow: adminView === 'kanban' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
                   }}
                 >
-                  📋 كانبان
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="5" height="18" rx="1" />
+                    <rect x="11" y="3" width="5" height="12" rx="1" />
+                    <rect x="19" y="3" width="2" height="8" rx="1" />
+                  </svg>
+                  <span>كانبان</span>
                 </button>
               </div>
             </div>
@@ -1694,9 +1842,9 @@ export default function AdminTicketsPage({ navigate }) {
                           <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                             <button
                               onClick={(e) => { e.stopPropagation(); setSelectedTicketId(t.id); }}
-                              style={{ background: '#0e7490', color: '#FFFFFF', border: 'none', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              style={{ background: '#0e7490', color: '#FFFFFF', border: 'none', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                             >
-                              <span>👁️</span>
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                               <span>فتح</span>
                             </button>
                           </td>
@@ -1790,17 +1938,24 @@ export default function AdminTicketsPage({ navigate }) {
                             <div style={{ fontSize: '12.5px', fontWeight: '700', color: '#1E293B', lineHeight: '1.4' }}>
                               {t.subject}
                             </div>
-                            <div style={{ fontSize: '11px', color: '#64748B', display: 'flex', justifyContent: 'space-between' }}>
-                              <span>👤 {t.user}</span>
-                              <span>📅 {t.created}</span>
+                            <div style={{ fontSize: '11px', color: '#64748B', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                {t.user}
+                              </span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                {t.created}
+                              </span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid #F1F5F9' }}>
                               <span style={{ fontSize: '11px', color: '#0e7490', fontWeight: '600' }}>{t.assignee}</span>
                               <button
                                 onClick={(e) => { e.stopPropagation(); setSelectedTicketId(t.id); }}
-                                style={{ background: 'transparent', border: 'none', color: '#E58A13', fontWeight: '800', fontSize: '11px', cursor: 'pointer' }}
+                                style={{ background: 'transparent', border: 'none', color: '#E58A13', fontWeight: '800', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                               >
-                                تفاصيل ⬅
+                                <span>تفاصيل</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                               </button>
                             </div>
                           </div>
@@ -1832,21 +1987,20 @@ export default function AdminTicketsPage({ navigate }) {
         >
           <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '24px', maxWidth: '400px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', textAlign: 'right' }}>
             <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0e3b5e', margin: '0 0 14px 0' }}>تحديث حالة الطلب</h3>
-            <select
-              value={newStatusVal}
-              onChange={(e) => setNewStatusVal(e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', marginBottom: '12px', fontSize: '13px', textAlign: 'right', direction: 'rtl' }}
-            >
-              {['جديد', 'قيد المراجعة', 'قيد المعالجة', 'بانتظار رد المستخدم', 'تم التصعيد', 'تم الحل', 'مغلق'].map(s => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
+            <div style={{ marginBottom: '12px' }}>
+              <ModernSelect
+                options={['جديد', 'قيد المراجعة', 'قيد المعالجة', 'بانتظار رد المستخدم', 'تم التصعيد', 'تم الحل', 'مغلق']}
+                value={newStatusVal}
+                onChange={(val) => setNewStatusVal(val)}
+                placeholder="اختر الحالة..."
+              />
+            </div>
             <textarea
               placeholder="ملاحظة (اختياري)..."
               value={statusNoteVal}
               onChange={(e) => setStatusNoteVal(e.target.value)}
               rows={2}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', marginBottom: '16px', fontSize: '13px', textAlign: 'right', direction: 'rtl' }}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', marginBottom: '16px', fontSize: '13px', textAlign: 'right', direction: 'rtl', outline: 'none' }}
             />
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
@@ -1876,24 +2030,20 @@ export default function AdminTicketsPage({ navigate }) {
             <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0e3b5e', margin: '0 0 14px 0' }}>تحويل الطلب</h3>
             <div style={{ marginBottom: '12px' }}>
               <label style={{ display: 'block', fontSize: '12px', color: '#6B7280', marginBottom: '4px' }}>الموظف الحالي:</label>
-              <div style={{ fontWeight: '800', fontSize: '13px', color: '#374151' }}>{selectedTicket?.assignee}</div>
+              <div style={{ fontWeight: '800', fontSize: '13px', color: '#374151', marginBottom: '8px' }}>{selectedTicket?.assignee}</div>
+              <ModernSelect
+                options={['سارة خالد', 'محمد علي', 'خالد عمر', 'مدير الدعم']}
+                value={newAssigneeVal}
+                onChange={(val) => setNewAssigneeVal(val)}
+                placeholder="اختر الموظف..."
+              />
             </div>
-            <select
-              value={newAssigneeVal}
-              onChange={(e) => setNewAssigneeVal(e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', marginBottom: '12px', fontSize: '13px', textAlign: 'right', direction: 'rtl' }}
-            >
-              <option value="سارة خالد">سارة خالد</option>
-              <option value="محمد علي">محمد علي</option>
-              <option value="خالد عمر">خالد عمر</option>
-              <option value="مدير الدعم">مدير الدعم</option>
-            </select>
             <textarea
               placeholder="سبب التحويل / ملاحظة داخلية..."
               value={assignNoteVal}
               onChange={(e) => setAssignNoteVal(e.target.value)}
               rows={2}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', marginBottom: '16px', fontSize: '13px', textAlign: 'right', direction: 'rtl' }}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', marginBottom: '16px', fontSize: '13px', textAlign: 'right', direction: 'rtl', outline: 'none' }}
             />
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
@@ -1921,21 +2071,20 @@ export default function AdminTicketsPage({ navigate }) {
         >
           <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '24px', maxWidth: '400px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', textAlign: 'right' }}>
             <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0e3b5e', margin: '0 0 14px 0' }}>تغيير الأولوية</h3>
-            <select
-              value={newPriorityVal}
-              onChange={(e) => setNewPriorityVal(e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', marginBottom: '12px', fontSize: '13px', textAlign: 'right', direction: 'rtl' }}
-            >
-              <option value="منخفضة">منخفضة</option>
-              <option value="متوسطة">متوسطة</option>
-              <option value="عالية">عالية</option>
-            </select>
+            <div style={{ marginBottom: '12px' }}>
+              <ModernSelect
+                options={['منخفضة', 'متوسطة', 'عالية']}
+                value={newPriorityVal}
+                onChange={(val) => setNewPriorityVal(val)}
+                placeholder="اختر الأولوية..."
+              />
+            </div>
             <textarea
               placeholder="سبب التغيير (اختياري)..."
               value={priorityNoteVal}
               onChange={(e) => setPriorityNoteVal(e.target.value)}
               rows={2}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', marginBottom: '16px', fontSize: '13px', textAlign: 'right', direction: 'rtl' }}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', marginBottom: '16px', fontSize: '13px', textAlign: 'right', direction: 'rtl', outline: 'none' }}
             />
             <div style={{ display: 'flex', gap: '10px' }}>
               <button

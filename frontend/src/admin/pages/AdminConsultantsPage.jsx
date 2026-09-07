@@ -248,7 +248,7 @@ export default function AdminConsultantsPage({ navigate }) {
             <span className="admin-kpi-title">جلسات</span>
           </div>
           <div className="admin-kpi-value-row">
-            <span className="admin-kpi-value">5</span>
+            <span className="admin-kpi-value">{consultants.reduce((sum, c) => sum + (c.sessionsCount || 0), 0)}</span>
           </div>
         </div>
       </div>

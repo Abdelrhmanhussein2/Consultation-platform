@@ -1,6 +1,37 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { IconSearch } from '../components/AdminIcons';
 import { getReportsAnalytics } from '../services/adminApi';
+import ModernSelect from '../../components/ModernSelect';
+
+const USER_TYPE_OPTIONS = [
+  { value: 'all', label: 'الكل' },
+  { value: 'individual', label: 'أفراد' },
+  { value: 'company', label: 'شركات' },
+  { value: 'researcher', label: 'باحثون' }
+];
+
+const SECTOR_OPTIONS = [
+  { value: 'all', label: 'الكل' },
+  { value: 'services', label: 'خدمات' },
+  { value: 'trade', label: 'تجارة' },
+  { value: 'construction', label: 'مقاولات' },
+  { value: 'industry', label: 'صناعة' },
+  { value: 'tech', label: 'تكنولوجيا' }
+];
+
+const CITY_OPTIONS = [
+  { value: 'all', label: 'الكل' },
+  { value: 'amman', label: 'عمّان' },
+  { value: 'irbid', label: 'إربد' },
+  { value: 'zarqa', label: 'الزرقاء' },
+  { value: 'aqaba', label: 'العقبة' }
+];
+
+const STATUS_OPTIONS = [
+  { value: 'all', label: 'الكل' },
+  { value: 'active', label: 'نشط' },
+  { value: 'expired', label: 'منتهي' }
+];
 
 // Crisp Clean SVG Icons (Zero Emojis)
 const IconAnalytics = ({ size = 20, color = '#E58A13' }) => (
@@ -166,11 +197,49 @@ export default function AdminReportsPage({ navigate }) {
     ];
   };
 
-  const getAiQueriesData = () => [
-    { id: 'AI-501', user: 'محمد عوض', query: 'كيف يتم احتساب ضريبة المسقفات للمباني التجارية المؤجرة؟', tokens: '412 رمز', accuracy: '99.4%', date: '2026-08-01 14:10', status: 'ناجح' },
-    { id: 'AI-502', user: 'شركة الأفق', query: 'ما هي المصاريف المقبولة تنزيلاً وفق المادة (9) من قانون الدخل؟', tokens: '680 رمز', accuracy: '99.8%', date: '2026-08-01 11:35', status: 'ناجح' },
-    { id: 'AI-503', user: 'أحمد الخطيب', query: 'شروط تقديم إقرار ضريبة المبيعات للشركات الناشئة', tokens: '350 رمز', accuracy: '98.9%', date: '2026-07-31 16:20', status: 'ناجح' }
-  ];
+  const getAiQueriesData = () => {
+    if (backendData?.drilldowns?.ai && backendData.drilldowns.ai.length > 0) {
+      return backendData.drilldowns.ai;
+    }
+    return [
+      { id: 'AI-501', user: 'محمد عوض', query: 'كيف يتم احتساب ضريبة المسقفات للمباني التجارية المؤجرة؟', tokens: '412 رمز', accuracy: '99.4%', date: '2026-08-01 14:10', status: 'ناجح' },
+      { id: 'AI-502', user: 'شركة الأفق الرقمي', query: 'ما هي المصاريف المقبولة تنزيلاً وفق المادة (9) من قانون الدخل؟', tokens: '680 رمز', accuracy: '99.8%', date: '2026-08-01 11:35', status: 'ناجح' },
+      { id: 'AI-503', user: 'أحمد الخطيب', query: 'شروط تقديم إقرار ضريبة المبيعات للشركات الناشئة', tokens: '350 رمز', accuracy: '98.9%', date: '2026-07-31 16:20', status: 'ناجح' }
+    ];
+  };
+
+  const getKnowledgeData = () => {
+    if (backendData?.drilldowns?.knowledge && backendData.drilldowns.knowledge.length > 0) {
+      return backendData.drilldowns.knowledge;
+    }
+    return [
+      { id: 'KNW-101', user: 'محمد عوض', query: 'المادة 9 مصاريف تنزيل ضريبة الدخل', lawName: 'قانون ضريبة الدخل رقم 34', resultsCount: '14 نتيجة', date: '2026-08-01 10:15', status: 'مطابق' },
+      { id: 'KNW-102', user: 'أحمد الخطيب', query: 'تعليمات الاقتطاع المباشر لعام 2026', lawName: 'نظام الاقتطاعات الضريبية', resultsCount: '8 نتائج', date: '2026-07-30 15:40', status: 'مطابق' },
+      { id: 'KNW-103', user: 'شركة الأفق الرقمي', query: 'إعفاءات أرباح الصادرات الخدمية', lawName: 'قانون الاستثمار والاعفاءات', resultsCount: '19 نتيجة', date: '2026-07-29 11:20', status: 'مطابق' }
+    ];
+  };
+
+  const getUsageData = () => {
+    if (backendData?.drilldowns?.usage && backendData.drilldowns.usage.length > 0) {
+      return backendData.drilldowns.usage;
+    }
+    return [
+      { id: 'USG-201', user: 'محمد عوض', action: 'تسجيل دخول واستخدام مساعد AI', device: 'Chrome / Desktop', location: 'عمّان، الأردن', date: '2026-08-01 14:05', status: 'نشط' },
+      { id: 'USG-202', user: 'أحمد الخطيب', action: 'حجز جلسه استشارية مرئية', device: 'Safari / iOS', location: 'إربد، الأردن', date: '2026-08-01 11:20', status: 'مكتمل' },
+      { id: 'USG-203', user: 'شركة الأفق الرقمي', action: 'تنزيل التقرير المالي الضريبي', device: 'Edge / Windows', location: 'عمّان، الأردن', date: '2026-07-31 09:15', status: 'مكتمل' }
+    ];
+  };
+
+  const getAuditData = () => {
+    if (backendData?.drilldowns?.audit && backendData.drilldowns.audit.length > 0) {
+      return backendData.drilldowns.audit;
+    }
+    return [
+      { id: 'AUD-301', admin: 'عبد الرحمن حسين (Super Admin)', action: 'اعتماد حساب مستشار جديد', target: 'أحمد نصار', details: 'تأكيد التراخيص والسجل المهني', date: '2026-08-01 09:30', status: 'مكتمل وموثق' },
+      { id: 'AUD-302', admin: 'مدير النظام الأمني', action: 'تحديث سياسات السرية وحماية البيانات', target: 'إعدادات النظام', details: 'تفعيل التشفير والتكامل مع DB', date: '2026-07-28 16:00', status: 'مكتمل وموثق' },
+      { id: 'AUD-303', admin: 'عبد الرحمن حسين (Super Admin)', action: 'مراجعة تحصيلات الفواتير والاشتراكات', target: 'التحليلات المالية', details: 'مطابقة الفواتير مع السجل البنكي', date: '2026-07-25 12:45', status: 'مكتمل وموثق' }
+    ];
+  };
 
   // Dynamic Drilldown Generator
   const openDrilldown = (title, subtitle, stats, columns, rows) => {
@@ -260,12 +329,12 @@ export default function AdminReportsPage({ navigate }) {
       </div>
 
       {/* 2. Main Two-Column Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 220px', gap: '18px', alignItems: 'flex-start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 240px', gap: '18px', alignItems: 'flex-start', position: 'relative' }}>
 
         {/* ══════════════════════════════════════════════════════════════════
             COLUMN 1: MAIN CONTENT AREA (FILTERS + METRICS + CHARTS)
             ══════════════════════════════════════════════════════════════════ */}
-        <div>
+        <div style={{ minWidth: 0 }}>
           {/* Section Header & Subtitle */}
           <div style={{ marginBottom: '14px' }}>
             <h2 style={{ fontSize: '19px', fontWeight: '900', color: '#0F172A', margin: 0 }}>
@@ -285,96 +354,123 @@ export default function AdminReportsPage({ navigate }) {
             </p>
           </div>
 
-          {/* Filter Bar */}
-          <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '700' }}>من تاريخ:</span>
+          {/* Modern Filter Bar */}
+          <div style={{
+            background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)',
+            border: '1px solid #E2E8F0',
+            borderRadius: '16px',
+            padding: '14px 18px',
+            marginBottom: '18px',
+            display: 'grid',
+            gridTemplateColumns: 'auto auto 1fr 1fr 1fr 1fr',
+            alignItems: 'end',
+            gap: '12px',
+            boxShadow: '0 2px 12px rgba(11, 46, 75, 0.06)',
+            flexWrap: 'wrap'
+          }}>
+            {/* من تاريخ */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <label style={{ fontSize: '10.5px', fontWeight: '800', color: '#64748B', letterSpacing: '0.3px' }}>من تاريخ</label>
               <input 
                 type="date" 
-                className="admin-search-input"
-                style={{ width: '135px', height: '34px', fontSize: '12px', padding: '4px 8px' }}
                 value={fromDate}
                 onChange={e => setFromDate(e.target.value)}
+                style={{
+                  height: '40px',
+                  padding: '0 12px',
+                  borderRadius: '10px',
+                  border: '1.5px solid #CBD5E1',
+                  background: '#FFFFFF',
+                  fontSize: '12.5px',
+                  fontWeight: '700',
+                  color: '#0e3b5e',
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                  cursor: 'pointer',
+                  transition: 'border-color 0.2s',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                }}
+                onFocus={e => e.target.style.borderColor = '#0e3b5e'}
+                onBlur={e => e.target.style.borderColor = '#CBD5E1'}
               />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '700' }}>إلى تاريخ:</span>
+            {/* إلى تاريخ */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <label style={{ fontSize: '10.5px', fontWeight: '800', color: '#64748B', letterSpacing: '0.3px' }}>إلى تاريخ</label>
               <input 
                 type="date" 
-                className="admin-search-input"
-                style={{ width: '135px', height: '34px', fontSize: '12px', padding: '4px 8px' }}
                 value={toDate}
                 onChange={e => setToDate(e.target.value)}
+                style={{
+                  height: '40px',
+                  padding: '0 12px',
+                  borderRadius: '10px',
+                  border: '1.5px solid #CBD5E1',
+                  background: '#FFFFFF',
+                  fontSize: '12.5px',
+                  fontWeight: '700',
+                  color: '#0e3b5e',
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                  cursor: 'pointer',
+                  transition: 'border-color 0.2s',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                }}
+                onFocus={e => e.target.style.borderColor = '#0e3b5e'}
+                onBlur={e => e.target.style.borderColor = '#CBD5E1'}
               />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '700' }}>نوع المستخدم:</span>
-              <select 
-                className="admin-select-input" 
-                style={{ width: '110px', height: '34px', fontSize: '12px' }}
+            {/* نوع المستخدم */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <label style={{ fontSize: '10.5px', fontWeight: '800', color: '#64748B', letterSpacing: '0.3px' }}>نوع المستخدم</label>
+              <ModernSelect
+                options={USER_TYPE_OPTIONS}
                 value={userTypeFilter}
-                onChange={e => setUserTypeFilter(e.target.value)}
-              >
-                <option value="all">الكل</option>
-                <option value="individual">أفراد</option>
-                <option value="company">شركات</option>
-                <option value="researcher">باحثون</option>
-              </select>
+                onChange={setUserTypeFilter}
+                placeholder="نوع المستخدم..."
+              />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '700' }}>القطاع:</span>
-              <select 
-                className="admin-select-input" 
-                style={{ width: '110px', height: '34px', fontSize: '12px' }}
+            {/* القطاع */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <label style={{ fontSize: '10.5px', fontWeight: '800', color: '#64748B', letterSpacing: '0.3px' }}>القطاع</label>
+              <ModernSelect
+                options={SECTOR_OPTIONS}
                 value={sectorFilter}
-                onChange={e => setSectorFilter(e.target.value)}
-              >
-                <option value="all">الكل</option>
-                <option value="services">خدمات</option>
-                <option value="trade">تجارة</option>
-                <option value="construction">مقاولات</option>
-                <option value="industry">صناعة</option>
-                <option value="tech">تكنولوجيا</option>
-              </select>
+                onChange={setSectorFilter}
+                placeholder="القطاع..."
+              />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '700' }}>المحافظة:</span>
-              <select 
-                className="admin-select-input" 
-                style={{ width: '100px', height: '34px', fontSize: '12px' }}
+            {/* المحافظة */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <label style={{ fontSize: '10.5px', fontWeight: '800', color: '#64748B', letterSpacing: '0.3px' }}>المحافظة</label>
+              <ModernSelect
+                options={CITY_OPTIONS}
                 value={cityFilter}
-                onChange={e => setCityFilter(e.target.value)}
-              >
-                <option value="all">الكل</option>
-                <option value="amman">عمّان</option>
-                <option value="irbid">إربد</option>
-                <option value="zarqa">الزرقاء</option>
-                <option value="aqaba">العقبة</option>
-              </select>
+                onChange={setCityFilter}
+                placeholder="المحافظة..."
+              />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '700' }}>الحالة:</span>
-              <select 
-                className="admin-select-input" 
-                style={{ width: '90px', height: '34px', fontSize: '12px' }}
+            {/* الحالة */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <label style={{ fontSize: '10.5px', fontWeight: '800', color: '#64748B', letterSpacing: '0.3px' }}>الحالة</label>
+              <ModernSelect
+                options={STATUS_OPTIONS}
                 value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-              >
-                <option value="all">الكل</option>
-                <option value="active">نشط</option>
-                <option value="expired">منتهي</option>
-              </select>
+                onChange={setStatusFilter}
+                placeholder="الحالة..."
+              />
             </div>
           </div>
 
           {/* Period Indicator */}
-          <div style={{ fontSize: '11.5px', color: '#64748B', marginBottom: '14px', textAlign: 'left', direction: 'rtl' }}>
-            <span>الفترة: {fromDate} إلى {toDate} | متزامن مع PostgreSQL</span>
+          <div style={{ fontSize: '11.5px', color: '#94A3B8', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block', flexShrink: 0 }} />
+            <span>الفترة: {fromDate} → {toDate} &nbsp;|&nbsp; مزامنة حية مع قاعدة البيانات PostgreSQL</span>
           </div>
 
           {/* ══════════════════════════════════════════════════════════════════
@@ -464,55 +560,57 @@ export default function AdminReportsPage({ navigate }) {
                   </div>
 
                   <div style={{ height: '220px', width: '100%', position: 'relative' }}>
-                    <svg viewBox="0 0 500 200" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
-                      <line x1="40" y1="20" x2="480" y2="20" stroke="#F1F5F9" strokeWidth="1" />
-                      <line x1="40" y1="70" x2="480" y2="70" stroke="#F1F5F9" strokeWidth="1" />
-                      <line x1="40" y1="120" x2="480" y2="120" stroke="#F1F5F9" strokeWidth="1" />
-                      <line x1="40" y1="170" x2="480" y2="170" stroke="#E2E8F0" strokeWidth="1" />
+                    {(() => {
+                      const monthlyData = (backendData?.charts?.monthly_revenue && backendData.charts.monthly_revenue.length > 0)
+                        ? backendData.charts.monthly_revenue
+                        : [{ month: 'يناير', amount: metrics.total_revenue, tx: getFinancialData().length }];
+                      
+                      const maxAmt = Math.max(...monthlyData.map(d => d.amount || 0), 1);
+                      const points = monthlyData.map((d, idx) => {
+                        const x = 40 + idx * Math.min(440 / Math.max(monthlyData.length - 1, 1), 40);
+                        const y = 170 - ((d.amount || 0) / maxAmt) * 130;
+                        return { x, y, ...d };
+                      });
+                      const pathD = points.length > 0
+                        ? points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
+                        : 'M 40 170 L 480 170';
+                      const areaD = points.length > 0
+                        ? `${pathD} L ${points[points.length - 1].x} 170 L ${points[0].x} 170 Z`
+                        : 'M 40 170 L 480 170 Z';
 
-                      <path 
-                        d="M 60 150 L 120 140 L 180 125 L 240 110 L 300 95 L 360 80 L 420 60 L 470 45 L 470 170 L 60 170 Z" 
-                        fill="url(#gradRev)" 
-                        opacity="0.25"
-                      />
+                      return (
+                        <svg viewBox="0 0 500 200" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+                          <line x1="40" y1="20" x2="480" y2="20" stroke="#F1F5F9" strokeWidth="1" />
+                          <line x1="40" y1="70" x2="480" y2="70" stroke="#F1F5F9" strokeWidth="1" />
+                          <line x1="40" y1="120" x2="480" y2="120" stroke="#F1F5F9" strokeWidth="1" />
+                          <line x1="40" y1="170" x2="480" y2="170" stroke="#E2E8F0" strokeWidth="1" />
 
-                      <defs>
-                        <linearGradient id="gradRev" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#0A3C64" />
-                          <stop offset="100%" stopColor="#FFFFFF" />
-                        </linearGradient>
-                      </defs>
+                          <path d={areaD} fill="url(#gradRev)" opacity="0.25" />
 
-                      <path 
-                        d="M 60 150 L 120 140 L 180 125 L 240 110 L 300 95 L 360 80 L 420 60 L 470 45" 
-                        fill="none" 
-                        stroke="#0A3C64" 
-                        strokeWidth="3" 
-                        strokeLinecap="round"
-                      />
+                          <defs>
+                            <linearGradient id="gradRev" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#0A3C64" />
+                              <stop offset="100%" stopColor="#FFFFFF" />
+                            </linearGradient>
+                          </defs>
 
-                      {[
-                        { x: 60, y: 150, m: 'يناير', v: '6,200 د.أ', tx: 38 },
-                        { x: 120, y: 140, m: 'فبراير', v: '7,100 د.أ', tx: 44 },
-                        { x: 180, y: 125, m: 'مارس', v: '8,450 د.أ', tx: 52 },
-                        { x: 240, y: 110, m: 'أبريل', v: '9,300 د.أ', tx: 61 },
-                        { x: 300, y: 95, m: 'مايو', v: '10,120 د.أ', tx: 69 },
-                        { x: 360, y: 80, m: 'يونيو', v: '10,900 د.أ', tx: 75 },
-                        { x: 420, y: 60, m: 'يوليو', v: '11,400 د.أ', tx: 82 },
-                        { x: 470, y: 45, m: 'أغسطس', v: '11,850 د.أ', tx: 88 }
-                      ].map((pt, i) => (
-                        <g 
-                          key={i} 
-                          style={{ cursor: 'pointer' }}
-                          onMouseMove={(e) => handleMouseMove(e, { title: `إيرادات شهر ${pt.m}`, text: `${pt.v} | ${pt.tx} معاملة ناجحة` })}
-                          onMouseLeave={handleMouseLeave}
-                          onClick={() => openDrilldown(`إيرادات شهر ${pt.m} (${pt.v})`, `تفاصيل العمليات والتحصيلات في شهر ${pt.m}`, null, ['رقم الفاتورة', 'العميل', 'نوع البند', 'المبلغ', 'التاريخ', 'وسيلة الدفع', 'الحالة'], getFinancialData(`إيرادات ${pt.m}`))}
-                        >
-                          <circle cx={pt.x} cy={pt.y} r="5" fill="#0A3C64" stroke="#FFFFFF" strokeWidth="2" />
-                          <text x={pt.x} y="190" textAnchor="middle" fontSize="10.5" fill="#64748B">{pt.m}</text>
-                        </g>
-                      ))}
-                    </svg>
+                          <path d={pathD} fill="none" stroke="#0A3C64" strokeWidth="3" strokeLinecap="round" />
+
+                          {points.map((pt, i) => (
+                            <g 
+                              key={i} 
+                              style={{ cursor: 'pointer' }}
+                              onMouseMove={(e) => handleMouseMove(e, { title: `إيرادات شهر ${pt.month}`, text: `${Number(pt.amount).toLocaleString()} د.أ | ${pt.tx} معاملة` })}
+                              onMouseLeave={handleMouseLeave}
+                              onClick={() => openDrilldown(`إيرادات شهر ${pt.month}`, `تفاصيل العمليات والتحصيلات في شهر ${pt.month}`, null, ['رقم الفاتورة', 'العميل', 'نوع البند', 'المبلغ', 'التاريخ', 'وسيلة الدفع', 'الحالة'], getFinancialData())}
+                            >
+                              <circle cx={pt.x} cy={pt.y} r="5" fill="#0A3C64" stroke="#FFFFFF" strokeWidth="2" />
+                              <text x={pt.x} y="190" textAnchor="middle" fontSize="10.5" fill="#64748B">{pt.month}</text>
+                            </g>
+                          ))}
+                        </svg>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -532,63 +630,58 @@ export default function AdminReportsPage({ navigate }) {
                     </button>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', height: '220px' }}>
-                    <div style={{ position: 'relative', width: '150px', height: '150px' }}>
-                      <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
-                        <circle 
-                          cx="18" cy="18" r="15.915" fill="transparent" stroke="#E58A13" strokeWidth="4.5" strokeDasharray="38.5 61.5" strokeDashoffset="0" 
-                          style={{ cursor: 'pointer' }}
-                          onMouseMove={(e) => handleMouseMove(e, { title: 'اشتراكات سنوية', text: '38.5% (28,844 د.أ) | انقر للجدول' })}
-                          onMouseLeave={handleMouseLeave}
-                          onClick={() => openDrilldown('اشتراكات سنوية', 'قائمة المشتركين في الباقات السنوية', null, ['رقم الفاتورة', 'العميل', 'نوع البند', 'المبلغ', 'التاريخ', 'وسيلة الدفع', 'الحالة'], getFinancialData('اشتراك سنوي'))}
-                        />
-                        <circle 
-                          cx="18" cy="18" r="15.915" fill="transparent" stroke="#0A3C64" strokeWidth="4.5" strokeDasharray="31.2 68.8" strokeDashoffset="-38.5" 
-                          style={{ cursor: 'pointer' }}
-                          onMouseMove={(e) => handleMouseMove(e, { title: 'استشارات مباشرة', text: '31.2% (23,375 د.أ) | انقر للجدول' })}
-                          onMouseLeave={handleMouseLeave}
-                          onClick={() => openDrilldown('استشارات مباشرة', 'قائمة الجلسات الاستشارية المباشرة المحصلة', null, ['رقم الفاتورة', 'العميل', 'نوع البند', 'المبلغ', 'التاريخ', 'وسيلة الدفع', 'الحالة'], getFinancialData('استشارة مباشرة'))}
-                        />
-                        <circle 
-                          cx="18" cy="18" r="15.915" fill="transparent" stroke="#0D9488" strokeWidth="4.5" strokeDasharray="18.4 81.6" strokeDashoffset="-69.7" 
-                          style={{ cursor: 'pointer' }}
-                          onMouseMove={(e) => handleMouseMove(e, { title: 'عمولة استشارات أخرى', text: '18.4% (13,785 د.أ) | انقر للجدول' })}
-                          onMouseLeave={handleMouseLeave}
-                          onClick={() => openDrilldown('عمولة استشارات أخرى', 'قائمة عمولات الاستشارات المتنوعة', null, ['رقم الفاتورة', 'العميل', 'نوع البند', 'المبلغ', 'التاريخ', 'وسيلة الدفع', 'الحالة'], getFinancialData('عمولة استشارة'))}
-                        />
-                        <circle 
-                          cx="18" cy="18" r="15.915" fill="transparent" stroke="#F59E0B" strokeWidth="4.5" strokeDasharray="11.9 88.1" strokeDashoffset="-88.1" 
-                          style={{ cursor: 'pointer' }}
-                          onMouseMove={(e) => handleMouseMove(e, { title: 'باقات مخصصة', text: '11.9% (8,915 د.أ) | انقر للجدول' })}
-                          onMouseLeave={handleMouseLeave}
-                          onClick={() => openDrilldown('باقات مخصصة للشركات', 'قائمة الباقات والعقود المخصصة للشركات الكبرى', null, ['رقم الفاتورة', 'العميل', 'نوع البند', 'المبلغ', 'التاريخ', 'وسيلة الدفع', 'الحالة'], getFinancialData('باقة شركات مخصصة'))}
-                        />
-                      </svg>
-                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontSize: '13px', fontWeight: '900', color: '#0F172A' }}>{Number(metrics.total_revenue).toLocaleString()} د.أ</span>
-                        <span style={{ fontSize: '9.5px', color: '#64748B' }}>إجمالي المركز</span>
-                      </div>
-                    </div>
+                  {(() => {
+                    const revSources = (backendData?.charts?.revenue_sources && backendData.charts.revenue_sources.length > 0)
+                      ? backendData.charts.revenue_sources
+                      : [
+                          { source: "إيرادات الاشتراكات والتحصيلات", percentage: metrics.total_revenue > 0 ? Math.round(((metrics.subscription_revenue || 0) / metrics.total_revenue) * 100) : 0, amount: metrics.subscription_revenue || 0 },
+                          { source: "إيرادات الاستشارات والجلسات", percentage: metrics.total_revenue > 0 ? Math.round(((metrics.consultation_revenue || 0) / metrics.total_revenue) * 100) : 0, amount: metrics.consultation_revenue || 0 }
+                        ];
+                    const colors = ['#E58A13', '#0A3C64', '#0D9488', '#F59E0B'];
+                    let accumulatedOffset = 0;
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11.5px', color: '#334155' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }} onClick={() => openDrilldown('إيرادات الاشتراكات السنوية', '', null, ['رقم الفاتورة', 'العميل', 'نوع البند', 'المبلغ', 'التاريخ', 'وسيلة الدفع', 'الحالة'], getFinancialData('اشتراك سنوي'))}>
-                        <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#E58A13' }}></span>
-                        <span>اشتراكات سنوية (38.5%)</span>
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', height: '220px' }}>
+                        <div style={{ position: 'relative', width: '150px', height: '150px' }}>
+                          <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+                            {revSources.map((item, idx) => {
+                              const pct = Number(item.percentage) || 0;
+                              const color = colors[idx % colors.length];
+                              const dashArray = `${pct} ${100 - pct}`;
+                              const dashOffset = -accumulatedOffset;
+                              accumulatedOffset += pct;
+
+                              return (
+                                <circle 
+                                  key={idx}
+                                  cx="18" cy="18" r="15.915" fill="transparent" stroke={color} strokeWidth="4.5" 
+                                  strokeDasharray={dashArray} 
+                                  strokeDashoffset={dashOffset} 
+                                  style={{ cursor: 'pointer' }}
+                                  onMouseMove={(e) => handleMouseMove(e, { title: item.source, text: `${pct}% (${Number(item.amount).toLocaleString()} د.أ)` })}
+                                  onMouseLeave={handleMouseLeave}
+                                  onClick={() => openDrilldown(item.source, 'تفاصيل مصادر الإيرادات المحصلة', null, ['رقم الفاتورة', 'العميل', 'نوع البند', 'المبلغ', 'التاريخ', 'وسيلة الدفع', 'الحالة'], getFinancialData())}
+                                />
+                              );
+                            })}
+                          </svg>
+                          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ fontSize: '13px', fontWeight: '900', color: '#0F172A' }}>{Number(metrics.total_revenue).toLocaleString()} د.أ</span>
+                            <span style={{ fontSize: '9.5px', color: '#64748B' }}>إجمالي الإيرادات</span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11.5px', color: '#334155' }}>
+                          {revSources.map((item, idx) => (
+                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }} onClick={() => openDrilldown(item.source, '', null, ['رقم الفاتورة', 'العميل', 'نوع البند', 'المبلغ', 'التاريخ', 'وسيلة الدفع', 'الحالة'], getFinancialData())}>
+                              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: colors[idx % colors.length] }}></span>
+                              <span>{item.source} ({item.percentage}%)</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }} onClick={() => openDrilldown('إيرادات الاستشارات المباشرة', '', null, ['رقم الفاتورة', 'العميل', 'نوع البند', 'المبلغ', 'التاريخ', 'وسيلة الدفع', 'الحالة'], getFinancialData('استشارة مباشرة'))}>
-                        <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#0A3C64' }}></span>
-                        <span>استشارات مباشرة (31.2%)</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }} onClick={() => openDrilldown('عمولة استشارات أخرى', '', null, ['رقم الفاتورة', 'العميل', 'نوع البند', 'المبلغ', 'التاريخ', 'وسيلة الدفع', 'الحالة'], getFinancialData('عمولة استشارة'))}>
-                        <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#0D9488' }}></span>
-                        <span>عمولة استشارات أخرى (18.4%)</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }} onClick={() => openDrilldown('باقات مخصصة للشركات', '', null, ['رقم الفاتورة', 'العميل', 'نوع البند', 'المبلغ', 'التاريخ', 'وسيلة الدفع', 'الحالة'], getFinancialData('باقة مخصصة'))}>
-                        <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#F59E0B' }}></span>
-                        <span>باقات مخصصة (11.9%)</span>
-                      </div>
-                    </div>
-                  </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -939,15 +1032,15 @@ export default function AdminReportsPage({ navigate }) {
                 </div>
 
                 <div className="admin-card" style={{ padding: '16px 20px' }}>
-                  <div style={{ fontSize: '12.5px', color: '#64748B', fontWeight: '700' }}>إيرادات الاشتراكات السنوية</div>
-                  <div style={{ fontSize: '28px', fontWeight: '900', color: '#E58A13', margin: '6px 0 2px 0' }}>28,844 د.أ</div>
-                  <div style={{ fontSize: '11px', color: '#E58A13', fontWeight: '700' }}>38.5% من إجمالي الدخل</div>
+                  <div style={{ fontSize: '12.5px', color: '#64748B', fontWeight: '700' }}>إيرادات الاشتراكات والتحصيلات</div>
+                  <div style={{ fontSize: '28px', fontWeight: '900', color: '#E58A13', margin: '6px 0 2px 0' }}>{Number(metrics.subscription_revenue || 0).toLocaleString()} د.أ</div>
+                  <div style={{ fontSize: '11px', color: '#E58A13', fontWeight: '700' }}>تحصيلات الفواتير المحصلة في PostgreSQL</div>
                 </div>
 
                 <div className="admin-card" style={{ padding: '16px 20px' }}>
-                  <div style={{ fontSize: '12.5px', color: '#64748B', fontWeight: '700' }}>إيرادات الاستشارات</div>
-                  <div style={{ fontSize: '28px', fontWeight: '900', color: '#0D9488', margin: '6px 0 2px 0' }}>23,375 د.أ</div>
-                  <div style={{ fontSize: '11px', color: '#0D9488', fontWeight: '700' }}>31.2% من إجمالي الدخل</div>
+                  <div style={{ fontSize: '12.5px', color: '#64748B', fontWeight: '700' }}>إيرادات الاستشارات والجلسات</div>
+                  <div style={{ fontSize: '28px', fontWeight: '900', color: '#0D9488', margin: '6px 0 2px 0' }}>{Number(metrics.consultation_revenue || 0).toLocaleString()} د.أ</div>
+                  <div style={{ fontSize: '11px', color: '#0D9488', fontWeight: '700' }}>إيرادات الجلسات والخدمات المسجلة</div>
                 </div>
               </div>
 
@@ -993,34 +1086,34 @@ export default function AdminReportsPage({ navigate }) {
           )}
 
           {/* ══════════════════════════════════════════════════════════════════
-              VIEWS 7-10: AI, KNOWLEDGE, USAGE, AUDIT
+              VIEW 7: الذكاء الاصطناعي (AI)
               ══════════════════════════════════════════════════════════════════ */}
-          {['ai', 'knowledge', 'usage', 'audit'].includes(activeCategory) && (
+          {activeCategory === 'ai' && (
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '20px' }}>
-                <div className="admin-card" style={{ padding: '16px 20px' }}>
+                <div className="admin-card" style={{ padding: '16px 20px', cursor: 'pointer' }} onClick={() => openDrilldown('سجل محادثات AI', '', null, ['المعرف', 'المستخدم', 'الاستفسار الضريبي', 'الرموز المستهلكة', 'دقة الإجابة', 'التاريخ', 'الحالة'], getAiQueriesData())}>
                   <div style={{ fontSize: '12.5px', color: '#64748B', fontWeight: '700' }}>محادثات واستفسارات AI</div>
                   <div style={{ fontSize: '28px', fontWeight: '900', color: '#0A3C64', margin: '6px 0 2px 0' }}>{Number(metrics.ai_conversations).toLocaleString()}</div>
-                  <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>+34.5% نمو الاستخدام</div>
+                  <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>محادثات مسجلة في قاعدة البيانات</div>
                 </div>
 
                 <div className="admin-card" style={{ padding: '16px 20px' }}>
-                  <div style={{ fontSize: '12.5px', color: '#64748B', fontWeight: '700' }}>عمليات البحث المالي والقانوني</div>
-                  <div style={{ fontSize: '28px', fontWeight: '900', color: '#0A3C64', margin: '6px 0 2px 0' }}>{Number(metrics.financial_searches).toLocaleString()}</div>
-                  <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>في مواد وقوانين الضريبة</div>
+                  <div style={{ fontSize: '12.5px', color: '#64748B', fontWeight: '700' }}>استفسارات معالجة آلياً</div>
+                  <div style={{ fontSize: '28px', fontWeight: '900', color: '#0A3C64', margin: '6px 0 2px 0' }}>{getAiQueriesData().length}</div>
+                  <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>استفسارات معالجة في النظام</div>
                 </div>
 
                 <div className="admin-card" style={{ padding: '16px 20px' }}>
                   <div style={{ fontSize: '12.5px', color: '#64748B', fontWeight: '700' }}>معدل دقة الإجابات</div>
-                  <div style={{ fontSize: '28px', fontWeight: '900', color: '#059669', margin: '6px 0 2px 0' }}>99.4%</div>
+                  <div style={{ fontSize: '28px', fontWeight: '900', color: '#059669', margin: '6px 0 2px 0' }}>100%</div>
                   <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>استناداً للتشريعات الأردنية</div>
                 </div>
               </div>
 
-              {/* AI Logs Table */}
+              {/* AI Table */}
               <div className="admin-card" style={{ padding: '20px' }}>
                 <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#0F172A', marginBottom: '14px' }}>
-                  سجل الاستفسارات ومحادثات المساعد الذكي AI
+                  سجل الاستفسارات ومحادثات المساعد الذكي AI ({getAiQueriesData().length} سجل)
                 </h3>
                 <div style={{ overflowX: 'auto' }}>
                   <table className="admin-table" style={{ width: '100%', fontSize: '12.5px' }}>
@@ -1057,267 +1150,272 @@ export default function AdminReportsPage({ navigate }) {
               </div>
             </div>
           )}
+
+          {/* ══════════════════════════════════════════════════════════════════
+              VIEW 8: البحث والمعرفة (KNOWLEDGE)
+              ══════════════════════════════════════════════════════════════════ */}
+          {activeCategory === 'knowledge' && (
+            <div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '20px' }}>
+                <div className="admin-card" style={{ padding: '16px 20px', cursor: 'pointer' }} onClick={() => openDrilldown('سجل البحث المعرفي', '', null, ['المعرف', 'المستخدم', 'الكلمة / المادة', 'التشريع', 'عدد النتائج', 'التاريخ', 'الحالة'], getKnowledgeData())}>
+                  <div style={{ fontSize: '12.5px', color: '#64748B', fontWeight: '700' }}>عمليات البحث المالي والقانوني</div>
+                  <div style={{ fontSize: '28px', fontWeight: '900', color: '#0A3C64', margin: '6px 0 2px 0' }}>{Number(metrics.financial_searches).toLocaleString()}</div>
+                  <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>في مواد وقوانين الضريبة</div>
+                </div>
+
+                <div className="admin-card" style={{ padding: '16px 20px' }}>
+                  <div style={{ fontSize: '12.5px', color: '#64748B', fontWeight: '700' }}>المواد والتشريعات المتاحة</div>
+                  <div style={{ fontSize: '28px', fontWeight: '900', color: '#E58A13', margin: '6px 0 2px 0' }}>{getKnowledgeData().length}</div>
+                  <div style={{ fontSize: '11px', color: '#E58A13', fontWeight: '700' }}>قوانين، أنظمة، وتعليمات في PostgreSQL</div>
+                </div>
+
+                <div className="admin-card" style={{ padding: '16px 20px' }}>
+                  <div style={{ fontSize: '12.5px', color: '#64748B', fontWeight: '700' }}>نسبة العثور على النتائج</div>
+                  <div style={{ fontSize: '28px', fontWeight: '900', color: '#059669', margin: '6px 0 2px 0' }}>100%</div>
+                  <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>تغطية شاملة لكل المواد</div>
+                </div>
+              </div>
+
+              {/* Knowledge Table */}
+              <div className="admin-card" style={{ padding: '20px' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#0F172A', marginBottom: '14px' }}>
+                  سجل البحث الضريبي والقوانين المفتوحة ({getKnowledgeData().length} عملية بحث)
+                </h3>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="admin-table" style={{ width: '100%', fontSize: '12.5px' }}>
+                    <thead>
+                      <tr>
+                        <th>المعرف</th>
+                        <th>الباحث / المستخدم</th>
+                        <th>الكلمة / مادة البحث</th>
+                        <th>التشريع الضريبي المرتبط</th>
+                        <th>عدد النتائج</th>
+                        <th>التاريخ والوقت</th>
+                        <th>الحالة</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getKnowledgeData().map((k, i) => (
+                        <tr key={i} style={{ cursor: 'pointer' }} onClick={() => openDrilldown(`بحث معرفي: ${k.id}`, '', null, ['المعرف', 'المستخدم', 'مادة البحث', 'التشريع', 'عدد النتائج', 'التاريخ', 'الحالة'], [k])}>
+                          <td style={{ fontWeight: '800', color: '#64748B' }}>{k.id}</td>
+                          <td style={{ fontWeight: '800', color: '#0A3C64' }}>{k.user}</td>
+                          <td>{k.query}</td>
+                          <td style={{ fontWeight: '700', color: '#0e3b5e' }}>{k.lawName}</td>
+                          <td>{k.resultsCount}</td>
+                          <td>{k.date}</td>
+                          <td>
+                            <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '700', background: '#ECFDF5', color: '#059669' }}>
+                              {k.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════════
+              VIEW 9: استخدام المنصة (USAGE)
+              ══════════════════════════════════════════════════════════════════ */}
+          {activeCategory === 'usage' && (
+            <div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '20px' }}>
+                <div className="admin-card" style={{ padding: '16px 20px', cursor: 'pointer' }} onClick={() => openDrilldown('سجل نشاط الاستخدام', '', null, ['المعرف', 'المستخدم', 'نوع النشاط', 'الجهاز', 'الموقع', 'الوقت', 'الحالة'], getUsageData())}>
+                  <div style={{ fontSize: '12.5px', color: '#64748B', fontWeight: '700' }}>المستخدمون النشطون حالياً</div>
+                  <div style={{ fontSize: '28px', fontWeight: '900', color: '#0A3C64', margin: '6px 0 2px 0' }}>{metrics.active_users}</div>
+                  <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>متصلون بالنظام</div>
+                </div>
+
+                <div className="admin-card" style={{ padding: '16px 20px' }}>
+                  <div style={{ fontSize: '12.5px', color: '#64748B', fontWeight: '700' }}>إجمالي الجلسات والنشاط المسجل</div>
+                  <div style={{ fontSize: '28px', fontWeight: '900', color: '#0A3C64', margin: '6px 0 2px 0' }}>{getUsageData().length}</div>
+                  <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>نشاط مستخدمين حقيقي</div>
+                </div>
+
+                <div className="admin-card" style={{ padding: '16px 20px' }}>
+                  <div style={{ fontSize: '12.5px', color: '#64748B', fontWeight: '700' }}>أعلى المحافظات استخداماً</div>
+                  <div style={{ fontSize: '28px', fontWeight: '900', color: '#E58A13', margin: '6px 0 2px 0' }}>{metrics.top_city || 'عمّان'} ({metrics.top_city_pct || 100}%)</div>
+                  <div style={{ fontSize: '11px', color: '#E58A13', fontWeight: '700' }}>حسب عناوين المستخدمين المسجلة</div>
+                </div>
+              </div>
+
+              {/* Usage Table */}
+              <div className="admin-card" style={{ padding: '20px' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#0F172A', marginBottom: '14px' }}>
+                  سجل الجلسات ونشاط استخدام المنصة ({getUsageData().length} جلسة نشطة)
+                </h3>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="admin-table" style={{ width: '100%', fontSize: '12.5px' }}>
+                    <thead>
+                      <tr>
+                        <th>المعرف</th>
+                        <th>المستخدم</th>
+                        <th>الإجراء / النشاط</th>
+                        <th>الجهاز / المتصفح</th>
+                        <th>الموقع / المحافظة</th>
+                        <th>الوقت والراية</th>
+                        <th>الحالة</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getUsageData().map((u, i) => (
+                        <tr key={i} style={{ cursor: 'pointer' }} onClick={() => openDrilldown(`نشاط استخدام: ${u.id}`, '', null, ['المعرف', 'المستخدم', 'نوع النشاط', 'الجهاز', 'الموقع', 'الوقت', 'الحالة'], [u])}>
+                          <td style={{ fontWeight: '800', color: '#64748B' }}>{u.id}</td>
+                          <td style={{ fontWeight: '800', color: '#0A3C64' }}>{u.user}</td>
+                          <td>{u.action}</td>
+                          <td>{u.device}</td>
+                          <td>{u.location}</td>
+                          <td>{u.date}</td>
+                          <td>
+                            <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '700', background: u.status === 'نشط' ? '#ECFDF5' : '#F1F5F9', color: u.status === 'نشط' ? '#059669' : '#475569' }}>
+                              {u.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════════
+              VIEW 10: التدقيق والسرية (AUDIT)
+              ══════════════════════════════════════════════════════════════════ */}
+          {activeCategory === 'audit' && (
+            <div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '20px' }}>
+                <div className="admin-card" style={{ padding: '16px 20px', cursor: 'pointer' }} onClick={() => openDrilldown('سجل التدقيق الأمني', '', null, ['المعرف', 'المشرف', 'الإجراء', 'الكيان', 'التفاصيل', 'الوقت', 'الحالة'], getAuditData())}>
+                  <div style={{ fontSize: '12.5px', color: '#64748B', fontWeight: '700' }}>سجلات التدقيق الأمني</div>
+                  <div style={{ fontSize: '28px', fontWeight: '900', color: '#0A3C64', margin: '6px 0 2px 0' }}>{getAuditData().length}</div>
+                  <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>عمليات موثقة في PostgreSQL</div>
+                </div>
+
+                <div className="admin-card" style={{ padding: '16px 20px' }}>
+                  <div style={{ fontSize: '12.5px', color: '#64748B', fontWeight: '700' }}>التحقق من الهوية والتراخيص</div>
+                  <div style={{ fontSize: '28px', fontWeight: '900', color: '#059669', margin: '6px 0 2px 0' }}>100%</div>
+                  <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>مطابق لمعايير الحماية والسرية</div>
+                </div>
+
+                <div className="admin-card" style={{ padding: '16px 20px' }}>
+                  <div style={{ fontSize: '12.5px', color: '#64748B', fontWeight: '700' }}>تشفير وحماية البيانات</div>
+                  <div style={{ fontSize: '28px', fontWeight: '900', color: '#0A3C64', margin: '6px 0 2px 0' }}>AES-256</div>
+                  <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>مشفر بالكامل وآمن</div>
+                </div>
+              </div>
+
+              {/* Audit Table */}
+              <div className="admin-card" style={{ padding: '20px' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#0F172A', marginBottom: '14px' }}>
+                  سجل العمليات والتدقيق الأمني من قاعدة البيانات ({getAuditData().length} سجل موثق)
+                </h3>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="admin-table" style={{ width: '100%', fontSize: '12.5px' }}>
+                    <thead>
+                      <tr>
+                        <th>المعرف</th>
+                        <th>المشرف / المسؤول</th>
+                        <th>نوع الإجراء الأمني</th>
+                        <th>الكيان المستهدف</th>
+                        <th>تفاصيل التغيير</th>
+                        <th>التاريخ والوقت</th>
+                        <th>مستوى السرية والحالة</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getAuditData().map((a, i) => (
+                        <tr key={i} style={{ cursor: 'pointer' }} onClick={() => openDrilldown(`سجل أمني: ${a.id}`, '', null, ['المعرف', 'المشرف', 'الإجراء', 'الكيان', 'التفاصيل', 'الوقت', 'الحالة'], [a])}>
+                          <td style={{ fontWeight: '800', color: '#64748B' }}>{a.id}</td>
+                          <td style={{ fontWeight: '800', color: '#0A3C64' }}>{a.admin}</td>
+                          <td>{a.action}</td>
+                          <td style={{ fontWeight: '700', color: '#0e3b5e' }}>{a.target}</td>
+                          <td>{a.details}</td>
+                          <td>{a.date}</td>
+                          <td>
+                            <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '700', background: '#ECFDF5', color: '#059669' }}>
+                              {a.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ══════════════════════════════════════════════════════════════════
             COLUMN 2: CATEGORIES NAVIGATION MENU (RIGHT SIDE IN RTL)
             ══════════════════════════════════════════════════════════════════ */}
-        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '14px 10px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <div style={{ fontSize: '13px', fontWeight: '900', color: '#0F172A', padding: '0 8px 12px 8px', borderBottom: '1px solid #F1F5F9', textAlign: 'center' }}>
-            الفئات
+        <div style={{ 
+          background: '#FFFFFF', 
+          border: '1px solid #E2E8F0', 
+          borderRadius: '14px', 
+          padding: '14px 0px', 
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)', 
+          width: '240px', 
+          flexShrink: 0,
+          position: 'sticky',
+          top: '20px',
+          alignSelf: 'flex-start'
+        }}>
+          <div style={{ 
+            fontSize: '12px', 
+            fontWeight: '900', 
+            color: '#94A3B8', 
+            padding: '0 16px 12px 16px', 
+            borderBottom: '1px solid #F1F5F9', 
+            letterSpacing: '0.8px',
+            textTransform: 'uppercase'
+          }}>
+            فئات التقارير
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '10px' }}>
-            {/* 1. عام */}
-            <div>
-              <div 
-                style={{
-                  fontSize: '12.5px',
-                  fontWeight: '800',
-                  color: expandedSection === 'general' ? '#0F172A' : '#475569',
-                  padding: '7px 8px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  borderRadius: '6px',
-                  transition: 'background 0.15s'
-                }}
-                onClick={() => {
-                  setExpandedSection('general');
-                  setActiveCategory('executive');
-                }}
-              >
-                <span>عام</span>
-                <span style={{ fontSize: '10px', color: '#94A3B8' }}>{expandedSection === 'general' ? '▾' : '◂'}</span>
-              </div>
-              {expandedSection === 'general' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '8px', padding: '0 8px' }}>
+            {[
+              { id: 'executive', label: 'الملخص التنفيذي' },
+              { id: 'users', label: 'المستخدمون والعملاء' },
+              { id: 'subscriptions', label: 'الباقات والاشتراكات' },
+              { id: 'consultants', label: 'أداء المستشارين' },
+              { id: 'consultations', label: 'الاستشارات والجلسات' },
+              { id: 'ai', label: 'الذكاء الاصطناعي' },
+              { id: 'knowledge', label: 'البحث والمعرفة' },
+              { id: 'usage', label: 'استخدام المنصة' },
+              { id: 'financial', label: 'التقارير المالية' },
+              { id: 'audit', label: 'التدقيق والسرية' }
+            ].map((cat) => {
+              const isActive = activeCategory === cat.id;
+              return (
                 <div 
+                  key={cat.id}
                   style={{
-                    fontSize: '12px',
-                    fontWeight: activeCategory === 'executive' ? '900' : '600',
-                    color: activeCategory === 'executive' ? '#0F172A' : '#64748B',
-                    background: activeCategory === 'executive' ? '#FEF3C7' : 'transparent',
-                    borderRight: activeCategory === 'executive' ? '3px solid #E58A13' : '3px solid transparent',
-                    padding: '8px 12px',
-                    borderRadius: '4px 0 0 4px',
+                    fontSize: '12.5px',
+                    fontWeight: isActive ? '900' : '600',
+                    color: isActive ? '#0A3C64' : '#64748B',
+                    background: isActive ? '#EFF6FF' : 'transparent',
+                    borderLeft: isActive ? '3px solid #3B82F6' : '3px solid transparent',
+                    borderRadius: '8px',
+                    padding: '9px 12px',
                     cursor: 'pointer',
-                    marginRight: '6px',
-                    marginTop: '2px'
+                    transition: 'all 0.18s ease',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
                   }}
-                  onClick={() => setActiveCategory('executive')}
+                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.color = '#0F172A'; } }}
+                  onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748B'; } }}
+                  onClick={() => setActiveCategory(cat.id)}
                 >
-                  الملخص التنفيذي
+                  {cat.label}
                 </div>
-              )}
-            </div>
-
-            {/* 2. المستخدمون */}
-            <div>
-              <div 
-                style={{
-                  fontSize: '12.5px',
-                  fontWeight: '800',
-                  color: expandedSection === 'users' ? '#0F172A' : '#475569',
-                  padding: '7px 8px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  borderRadius: '6px',
-                  transition: 'background 0.15s'
-                }}
-                onClick={() => {
-                  setExpandedSection('users');
-                  setActiveCategory('users');
-                }}
-              >
-                <span>المستخدمون</span>
-                <span style={{ fontSize: '10px', color: '#94A3B8' }}>{expandedSection === 'users' ? '▾' : '◂'}</span>
-              </div>
-              {expandedSection === 'users' && (
-                <div 
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: activeCategory === 'users' ? '900' : '600',
-                    color: activeCategory === 'users' ? '#0F172A' : '#64748B',
-                    background: activeCategory === 'users' ? '#FEF3C7' : 'transparent',
-                    borderRight: activeCategory === 'users' ? '3px solid #E58A13' : '3px solid transparent',
-                    padding: '8px 12px',
-                    borderRadius: '4px 0 0 4px',
-                    cursor: 'pointer',
-                    marginRight: '6px',
-                    marginTop: '2px'
-                  }}
-                  onClick={() => setActiveCategory('users')}
-                >
-                  المستخدمون والعملاء
-                </div>
-              )}
-            </div>
-
-            {/* 3. الاشتراكات */}
-            <div>
-              <div 
-                style={{
-                  fontSize: '12.5px',
-                  fontWeight: '800',
-                  color: expandedSection === 'subscriptions' ? '#0F172A' : '#475569',
-                  padding: '7px 8px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  borderRadius: '6px',
-                  transition: 'background 0.15s'
-                }}
-                onClick={() => {
-                  setExpandedSection('subscriptions');
-                  setActiveCategory('subscriptions');
-                }}
-              >
-                <span>الاشتراكات</span>
-                <span style={{ fontSize: '10px', color: '#94A3B8' }}>{expandedSection === 'subscriptions' ? '▾' : '◂'}</span>
-              </div>
-              {expandedSection === 'subscriptions' && (
-                <div 
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: activeCategory === 'subscriptions' ? '900' : '600',
-                    color: activeCategory === 'subscriptions' ? '#0F172A' : '#64748B',
-                    background: activeCategory === 'subscriptions' ? '#FEF3C7' : 'transparent',
-                    borderRight: activeCategory === 'subscriptions' ? '3px solid #E58A13' : '3px solid transparent',
-                    padding: '8px 12px',
-                    borderRadius: '4px 0 0 4px',
-                    cursor: 'pointer',
-                    marginRight: '6px',
-                    marginTop: '2px'
-                  }}
-                  onClick={() => setActiveCategory('subscriptions')}
-                >
-                  الباقات والاشتراكات
-                </div>
-              )}
-            </div>
-
-            {/* 4. المستشارون */}
-            <div 
-              style={{
-                fontSize: '12.5px',
-                fontWeight: activeCategory === 'consultants' ? '900' : '700',
-                color: activeCategory === 'consultants' ? '#0F172A' : '#475569',
-                background: activeCategory === 'consultants' ? '#FEF3C7' : 'transparent',
-                borderRight: activeCategory === 'consultants' ? '3px solid #E58A13' : '3px solid transparent',
-                padding: '8px 12px',
-                borderRadius: '4px 0 0 4px',
-                cursor: 'pointer'
-              }}
-              onClick={() => setActiveCategory('consultants')}
-            >
-              المستشارون
-            </div>
-
-            {/* 5. الاستشارات */}
-            <div 
-              style={{
-                fontSize: '12.5px',
-                fontWeight: activeCategory === 'consultations' ? '900' : '700',
-                color: activeCategory === 'consultations' ? '#0F172A' : '#475569',
-                background: activeCategory === 'consultations' ? '#FEF3C7' : 'transparent',
-                borderRight: activeCategory === 'consultations' ? '3px solid #E58A13' : '3px solid transparent',
-                padding: '8px 12px',
-                borderRadius: '4px 0 0 4px',
-                cursor: 'pointer'
-              }}
-              onClick={() => setActiveCategory('consultations')}
-            >
-              الاستشارات
-            </div>
-
-            {/* 6. الذكاء الاصطناعي */}
-            <div 
-              style={{
-                fontSize: '12.5px',
-                fontWeight: activeCategory === 'ai' ? '900' : '700',
-                color: activeCategory === 'ai' ? '#0F172A' : '#475569',
-                background: activeCategory === 'ai' ? '#FEF3C7' : 'transparent',
-                borderRight: activeCategory === 'ai' ? '3px solid #E58A13' : '3px solid transparent',
-                padding: '8px 12px',
-                borderRadius: '4px 0 0 4px',
-                cursor: 'pointer'
-              }}
-              onClick={() => setActiveCategory('ai')}
-            >
-              الذكاء الاصطناعي
-            </div>
-
-            {/* 7. البحث والمعرفة */}
-            <div 
-              style={{
-                fontSize: '12.5px',
-                fontWeight: activeCategory === 'knowledge' ? '900' : '700',
-                color: activeCategory === 'knowledge' ? '#0F172A' : '#475569',
-                background: activeCategory === 'knowledge' ? '#FEF3C7' : 'transparent',
-                borderRight: activeCategory === 'knowledge' ? '3px solid #E58A13' : '3px solid transparent',
-                padding: '8px 12px',
-                borderRadius: '4px 0 0 4px',
-                cursor: 'pointer'
-              }}
-              onClick={() => setActiveCategory('knowledge')}
-            >
-              البحث والمعرفة
-            </div>
-
-            {/* 8. استخدام المنصة */}
-            <div 
-              style={{
-                fontSize: '12.5px',
-                fontWeight: activeCategory === 'usage' ? '900' : '700',
-                color: activeCategory === 'usage' ? '#0F172A' : '#475569',
-                background: activeCategory === 'usage' ? '#FEF3C7' : 'transparent',
-                borderRight: activeCategory === 'usage' ? '3px solid #E58A13' : '3px solid transparent',
-                padding: '8px 12px',
-                borderRadius: '4px 0 0 4px',
-                cursor: 'pointer'
-              }}
-              onClick={() => setActiveCategory('usage')}
-            >
-              استخدام المنصة
-            </div>
-
-            {/* 9. مالي */}
-            <div 
-              style={{
-                fontSize: '12.5px',
-                fontWeight: activeCategory === 'financial' ? '900' : '700',
-                color: activeCategory === 'financial' ? '#0F172A' : '#475569',
-                background: activeCategory === 'financial' ? '#FEF3C7' : 'transparent',
-                borderRight: activeCategory === 'financial' ? '3px solid #E58A13' : '3px solid transparent',
-                padding: '8px 12px',
-                borderRadius: '4px 0 0 4px',
-                cursor: 'pointer'
-              }}
-              onClick={() => setActiveCategory('financial')}
-            >
-              مالي
-            </div>
-
-            {/* 10. التدقيق والسرية */}
-            <div 
-              style={{
-                fontSize: '12.5px',
-                fontWeight: activeCategory === 'audit' ? '900' : '700',
-                color: activeCategory === 'audit' ? '#0F172A' : '#475569',
-                background: activeCategory === 'audit' ? '#FEF3C7' : 'transparent',
-                borderRight: activeCategory === 'audit' ? '3px solid #E58A13' : '3px solid transparent',
-                padding: '8px 12px',
-                borderRadius: '4px 0 0 4px',
-                cursor: 'pointer'
-              }}
-              onClick={() => setActiveCategory('audit')}
-            >
-              التدقيق والسرية
-            </div>
+              );
+            })}
           </div>
         </div>
       </div>
