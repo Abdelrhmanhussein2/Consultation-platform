@@ -40,8 +40,8 @@ const iconsMap = {
         <path d="M2.5 20c0-3.1 2.4-5 5.5-5s5.5 1.9 5.5 5M18 7v6M15 10h6" fill="none" stroke="currentColor" strokeWidth="1.65" />
       </svg>
     ),
-    target: '/admin/users',
-    tag: 'عملاء مسجلين بالمنصة'
+    target: '/admin/users?tab=pending',
+    tag: 'طلبات قيد المراجعة'
   },
   consult: {
     cls: 'ico-consult',

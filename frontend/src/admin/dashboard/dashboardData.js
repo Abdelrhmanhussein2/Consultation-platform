@@ -123,7 +123,7 @@ export const row1Cards = [
   {
     t: 'انضمام المستخدمين',
     kind: 'users',
-    path: '/admin/users',
+    path: '/admin/users?tab=pending',
     rows: []
   }
 ];

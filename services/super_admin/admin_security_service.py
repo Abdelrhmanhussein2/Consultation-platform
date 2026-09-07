@@ -18,49 +18,64 @@ class AdminSecurityService:
         page: int = 1,
         limit: int = 100
     ) -> List[dict]:
-        cities = ["عمّان", "إربد", "عجلون", "العقبة", "معان", "الكرك", "الزرقاء", "جرش", "الطفيلة", "مادبا"]
-        devices = ["كمبيوتر مكتبي", "لابتوب", "هاتف محمول", "آيباد", "كمبيوتر لوحي"]
-        systems = ["Windows 11", "macOS", "Android", "iOS", "Linux"]
-        browsers = ["Chrome", "Edge", "Safari", "Firefox"]
+        from models.refresh_token import RefreshToken
+        query = db.query(RefreshToken).join(User, RefreshToken.user_id == User.id)
 
-        users = db.query(User).all()
-        user_map = {str(u.id): u for u in users}
+        if user_id:
+            try:
+                u_uuid = uuid.UUID(user_id)
+                query = query.filter(RefreshToken.user_id == u_uuid)
+            except Exception:
+                pass
 
-        logs = db.query(AdminActionLog).order_by(AdminActionLog.created_at.desc()).limit(150).all()
+        if search:
+            s_pat = f"%{search.strip()}%"
+            query = query.filter(
+                or_(
+                    User.full_name.ilike(s_pat),
+                    User.email.ilike(s_pat)
+                )
+            )
+
+        tokens = query.order_by(RefreshToken.created_at.desc()).limit(limit).all()
         history = []
 
-        for i, log in enumerate(logs):
-            u = user_map.get(str(log.admin_id))
-            history.append({
-                "id": str(log.id),
-                "userId": str(log.admin_id),
-                "name": u.full_name if u else "مستخدم النظام",
-                "email": u.email if u else "admin@diwan.jo",
-                "ip": f"185.98.{30 + (i % 20)}.{70 + (i % 50)}",
-                "last": log.created_at.strftime("%d-%m-%Y %H:%M") if log.created_at else datetime.now().strftime("%d-%m-%Y %H:%M"),
-                "country": "الأردن",
-                "city": cities[i % len(cities)],
-                "device": devices[i % len(devices)],
-                "os": systems[i % len(systems)],
-                "browser": browsers[i % len(browsers)],
-                "status": "ناجح"
-            })
+        for token in tokens:
+            u = token.user
+            created_dt = token.created_at
+            
+            # Filter by year / month if specified
+            if year and created_dt and str(created_dt.year) != str(year):
+                continue
+            if month and created_dt and f"{created_dt.month:02d}" != str(month).zfill(2):
+                continue
 
-        for i, u in enumerate(users):
-            created_dt = u.created_at or datetime.now()
+            # Parse device info if available
+            dev_str = token.device_info or ""
+            ip_val = "—"
+            dev_val = "—"
+            os_val = "—"
+            browser_val = "—"
+
+            if dev_str:
+                parts = dev_str.split("·")
+                if len(parts) >= 1 and any(char.isdigit() for char in parts[0]) and "." in parts[0]:
+                    ip_val = parts[0].strip()
+                dev_val = dev_str
+
             history.append({
-                "id": f"usr-log-{u.id}",
-                "userId": str(u.id),
-                "name": u.full_name,
-                "email": u.email,
-                "ip": f"185.98.{20 + (i % 30)}.{50 + (i % 60)}",
-                "last": created_dt.strftime("%d-%m-%Y %H:%M"),
-                "country": "الأردن",
-                "city": cities[i % len(cities)],
-                "device": devices[i % len(devices)],
-                "os": systems[i % len(systems)],
-                "browser": browsers[i % len(browsers)],
-                "status": "ناجح"
+                "id": str(token.id),
+                "userId": str(u.id) if u else "—",
+                "name": u.full_name if u else "مستخدم",
+                "email": u.email if u else "—",
+                "ip": ip_val,
+                "last": created_dt.strftime("%d-%m-%Y %H:%M") if created_dt else "—",
+                "country": "الأردن" if (u and u.address) else "—",
+                "city": u.address if (u and u.address) else "—",
+                "device": dev_val,
+                "os": os_val,
+                "browser": browser_val,
+                "status": "ملغي / منتهي" if token.is_revoked else "ناجح"
             })
 
         return history

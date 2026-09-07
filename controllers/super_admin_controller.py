@@ -64,8 +64,10 @@ class SuperAdminController:
         """
         if page < 1:
             page = 1
-        if limit < 1 or limit > 100:
-            limit = 20
+        if limit < 1:
+            limit = 50
+        elif limit > 500:
+            limit = 500
         return SuperAdminService.list_all_users(db, role, page, limit)
 
     @staticmethod
@@ -97,6 +99,26 @@ class SuperAdminController:
         return SuperAdminService.get_user_stats(db)
 
     @staticmethod
+    def get_user_full_profile(db: Session, user_id: str):
+        """
+        Fetches comprehensive real profile, documents, appointments, subscriptions, and logs.
+        """
+        try:
+            user_uuid = uuid.UUID(user_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=http_status.HTTP_400_BAD_REQUEST,
+                detail="Invalid user ID format"
+            )
+        try:
+            return SuperAdminService.get_user_full_profile(db, user_uuid)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND,
+                detail=str(e)
+            )
+
+    @staticmethod
     def list_all_users_admin(
         db: Session,
         search: str = None,
@@ -111,8 +133,10 @@ class SuperAdminController:
         """
         if page < 1:
             page = 1
-        if limit < 1 or limit > 100:
-            limit = 20
+        if limit < 1:
+            limit = 50
+        elif limit > 500:
+            limit = 500
         return SuperAdminService.list_all_users_admin(
             db, search, role, entity_type, is_active, page, limit
         )

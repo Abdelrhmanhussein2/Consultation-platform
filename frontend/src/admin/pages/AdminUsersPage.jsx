@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './AdminUsersPage.css';
-import { getAdminUsers, createAdminUser } from '../services/adminApi';
+import { getAdminUsers, createAdminUser, getPendingUsers, handleUserAction, getUserFullProfile } from '../services/adminApi';
 import ModernSelect from '../../components/ModernSelect';
 
 const LEGAL_OPTIONS = [
@@ -44,72 +44,6 @@ const SORT_OPTIONS = [
 ];
 
 // ══════════════════════════════════════════════════════════════════════════
-// CANONICAL 60 CLIENTS DATASET
-// ══════════════════════════════════════════════════════════════════════════
-const CANONICAL_USERS = [
-  { "id": 1, "name": "شركة الأفق للحلول الرقمية", "initial": "أ", "legal": "شركة ذات مسؤولية محدودة", "sector": "خدمات", "activity": "تقنية واستشارات أعمال", "status": "نشط", "online": true, "plan": "باقة الأعمال", "consult": 18, "success": 17, "video": 11, "chat": 7, "tickets": 3, "usage": "مرتفع", "created": 60, "last": "منذ 6 دقائق", "tax": "200123456", "national": "200045678", "reg": "47192", "email": "finance@ofok.jo", "phone": "+962 7 9000 2148", "city": "عمّان", "joined": "14 مايو 2026" },
-  { "id": 2, "name": "مؤسسة الريادة التجارية", "initial": "ر", "legal": "مؤسسة فردية", "sector": "تجارة", "activity": "تجارة وتوزيع", "status": "نشط", "online": false, "plan": "الباقة الاحترافية", "consult": 12, "success": 11, "video": 5, "chat": 7, "tickets": 1, "usage": "متوسط", "created": 59, "last": "منذ ساعتين", "tax": "100846291", "national": "—", "reg": "31844", "email": "owner@riyadah.jo", "phone": "+962 7 9123 4078", "city": "الزرقاء", "joined": "02 يونيو 2026" },
-  { "id": 3, "name": "ليان محمود الخطيب", "initial": "ل", "legal": "فرد", "sector": "خدمات", "activity": "خدمات مهنية", "status": "نشط", "online": true, "plan": "الباقة الأساسية", "consult": 6, "success": 6, "video": 2, "chat": 4, "tickets": 0, "usage": "منخفض", "created": 58, "last": "الآن", "tax": "—", "national": "—", "reg": "—", "email": "layan.khatib@email.com", "phone": "+962 7 9555 8210", "city": "عمّان", "joined": "18 يونيو 2026" },
-  { "id": 4, "name": "المتحدة للصناعات الدوائية", "initial": "م", "legal": "شركة مساهمة خاصة", "sector": "صناعة", "activity": "صناعات دوائية", "status": "نشط", "online": false, "plan": "باقة الأعمال", "consult": 27, "success": 25, "video": 19, "chat": 8, "tickets": 4, "usage": "مرتفع", "created": 57, "last": "أمس، 4:20 م", "tax": "200786554", "national": "200098214", "reg": "55891", "email": "tax@unitedpharma.jo", "phone": "+962 6 565 4420", "city": "عمّان", "joined": "03 مارس 2026" },
-  { "id": 5, "name": "جمعية خطوة للتنمية", "initial": "خ", "legal": "جمعية ومنظمة", "sector": "خدمات", "activity": "تنمية مجتمعية", "status": "غير نشط", "online": false, "plan": "الباقة الأساسية", "consult": 4, "success": 4, "video": 1, "chat": 3, "tickets": 2, "usage": "منخفض", "created": 56, "last": "منذ 18 يومًا", "tax": "—", "national": "—", "reg": "JAS-9012", "email": "admin@khotwa.org.jo", "phone": "+962 7 9441 0923", "city": "إربد", "joined": "21 يناير 2026" },
-  { "id": 6, "name": "هيئة تطوير المشاريع", "initial": "هـ", "legal": "هيئة عامة", "sector": "خدمات", "activity": "تطوير ودعم المشاريع", "status": "نشط", "online": false, "plan": "باقة الأعمال", "consult": 21, "success": 20, "video": 14, "chat": 7, "tickets": 1, "usage": "متوسط", "created": 55, "last": "منذ 3 ساعات", "tax": "GOV-2081", "national": "G-10298", "reg": "—", "email": "tax@pda.gov.jo", "phone": "+962 6 500 8122", "city": "عمّان", "joined": "11 فبراير 2026" },
-  { "id": 7, "name": "أحمد يوسف العجارمة", "initial": "أ", "legal": "فرد", "sector": "خدمات", "activity": "تعليم وتدريب", "status": "نشط", "online": true, "plan": "الباقة الاحترافية", "consult": 5, "success": 3, "video": 4, "chat": 1, "tickets": 4, "usage": "منخفض", "created": 54, "last": "الآن", "tax": "—", "national": "—", "reg": "—", "email": "account7@client7.jo", "phone": "+962 7 97511 0287", "city": "عمّان", "joined": "01 يناير 2026" },
-  { "id": 8, "name": "مؤسسة الرواد", "initial": "ا", "legal": "مؤسسة فردية", "sector": "صناعة", "activity": "صناعات بلاستيكية", "status": "نشط", "online": false, "plan": "باقة الأعمال", "consult": 6, "success": 4, "video": 3, "chat": 3, "tickets": 3, "usage": "متوسط", "created": 53, "last": "منذ 12 دقيقة", "tax": "200013848", "national": "—", "reg": "31096", "email": "account8@client8.jo", "phone": "+962 7 98584 0328", "city": "إربد", "joined": "02 فبراير 2026" },
-  { "id": 9, "name": "شركة المشرق", "initial": "ا", "legal": "شركة ذات مسؤولية محدودة", "sector": "زراعة", "activity": "إنتاج زراعي", "status": "نشط", "online": false, "plan": "الباقة الأساسية", "consult": 3, "success": 3, "video": 3, "chat": 0, "tickets": 5, "usage": "مرتفع", "created": 52, "last": "منذ ساعة", "tax": "200015579", "national": "200019341", "reg": "31233", "email": "account9@client9.jo", "phone": "+962 7 99657 0369", "city": "الزرقاء", "joined": "03 مارس 2026" },
-  { "id": 10, "name": "شركة الأمان لـتوزيع مواد غذائية", "initial": "ا", "legal": "شركة تضامن", "sector": "تجارة", "activity": "توزيع مواد غذائية", "status": "غير نشط", "online": false, "plan": "الباقة الاحترافية", "consult": 23, "success": 23, "video": 15, "chat": 8, "tickets": 2, "usage": "منخفض", "created": 51, "last": "أمس، 11:10 ص", "tax": "200017310", "national": "200021490", "reg": "31370", "email": "account10@client10.jo", "phone": "+962 7 90730 0410", "city": "العقبة", "joined": "04 أبريل 2026" },
-  { "id": 11, "name": "شركة الصفوة", "initial": "ا", "legal": "شركة توصية بسيطة", "sector": "مقاولات", "activity": "تشطيبات ومقاولات", "status": "نشط", "online": false, "plan": "باقة الأعمال", "consult": 35, "success": 32, "video": 12, "chat": 23, "tickets": 3, "usage": "متوسط", "created": 50, "last": "منذ 3 أيام", "tax": "200019041", "national": "200023639", "reg": "31507", "email": "account11@client11.jo", "phone": "+962 7 91803 0451", "city": "السلط", "joined": "05 مايو 2026" },
-  { "id": 12, "name": "شركة الرؤية", "initial": "ا", "legal": "شركة مساهمة عامة", "sector": "تجارة", "activity": "توزيع مواد غذائية", "status": "نشط", "online": false, "plan": "الباقة الأساسية", "consult": 15, "success": 12, "video": 13, "chat": 2, "tickets": 5, "usage": "مرتفع", "created": 49, "last": "منذ أسبوع", "tax": "200020772", "national": "200025788", "reg": "31644", "email": "account12@client12.jo", "phone": "+962 7 92876 0492", "city": "مادبا", "joined": "06 يونيو 2026" },
-  { "id": 13, "name": "شركة المنار لـتشطيبات ومقاولات", "initial": "ا", "legal": "شركة مساهمة خاصة", "sector": "مقاولات", "activity": "تشطيبات ومقاولات", "status": "نشط", "online": false, "plan": "الباقة الاحترافية", "consult": 34, "success": 33, "video": 34, "chat": 0, "tickets": 5, "usage": "منخفض", "created": 48, "last": "الآن", "tax": "200022503", "national": "200027937", "reg": "31781", "email": "account13@client13.jo", "phone": "+962 7 93949 0533", "city": "جرش", "joined": "07 يوليو 2026" },
-  { "id": 14, "name": "جامعة الواحة", "initial": "ا", "legal": "جامعة", "sector": "خدمات", "activity": "خدمات صحية", "status": "غير نشط", "online": false, "plan": "باقة الأعمال", "consult": 20, "success": 18, "video": 16, "chat": 4, "tickets": 1, "usage": "متوسط", "created": 47, "last": "منذ 12 دقيقة", "tax": "200024234", "national": "200030086", "reg": "31918", "email": "account14@client14.jo", "phone": "+962 7 94022 0574", "city": "الكرك", "joined": "08 أغسطس 2026" },
-  { "id": 15, "name": "رائد فؤاد الحياري — باحث", "initial": "ر", "legal": "أكاديمي وباحث", "sector": "صناعة", "activity": "صناعات هندسية", "status": "نشط", "online": false, "plan": "الباقة الأساسية", "consult": 31, "success": 30, "video": 19, "chat": 12, "tickets": 2, "usage": "مرتفع", "created": 46, "last": "منذ ساعة", "tax": "—", "national": "—", "reg": "—", "email": "account15@client15.jo", "phone": "+962 7 95095 0615", "city": "عمّان", "joined": "09 يناير 2026" },
-  { "id": 16, "name": "جمعية المستقبل لـتقنيات زراعية", "initial": "ا", "legal": "جمعية ومنظمة", "sector": "زراعة", "activity": "تقنيات زراعية", "status": "نشط", "online": true, "plan": "الباقة الاحترافية", "consult": 31, "success": 28, "video": 6, "chat": 25, "tickets": 5, "usage": "منخفض", "created": 45, "last": "أمس، 11:10 ص", "tax": "200027696", "national": "200034384", "reg": "32192", "email": "account16@client16.jo", "phone": "+962 7 96168 0656", "city": "إربد", "joined": "10 فبراير 2026" },
-  { "id": 17, "name": "مديرية التميز", "initial": "ا", "legal": "جهة حكومية", "sector": "صناعة", "activity": "صناعات بلاستيكية", "status": "نشط", "online": false, "plan": "باقة الأعمال", "consult": 9, "success": 7, "video": 2, "chat": 7, "tickets": 5, "usage": "متوسط", "created": 44, "last": "منذ 3 أيام", "tax": "200029427", "national": "200036533", "reg": "—", "email": "account17@client17.jo", "phone": "+962 7 97241 0697", "city": "الزرقاء", "joined": "11 مارس 2026" },
-  { "id": 18, "name": "هيئة المدار", "initial": "ا", "legal": "هيئة عامة", "sector": "زراعة", "activity": "زراعة عضوية", "status": "غير نشط", "online": false, "plan": "الباقة الأساسية", "consult": 5, "success": 2, "video": 1, "chat": 4, "tickets": 3, "usage": "مرتفع", "created": 43, "last": "منذ أسبوع", "tax": "200031158", "national": "200038682", "reg": "—", "email": "account18@client18.jo", "phone": "+962 7 98314 0738", "city": "العقبة", "joined": "12 أبريل 2026" },
-  { "id": 19, "name": "هيئة البركة لـاستيراد وتصدير", "initial": "ا", "legal": "هيئة خاصة", "sector": "تجارة", "activity": "استيراد وتصدير", "status": "نشط", "online": false, "plan": "الباقة الاحترافية", "consult": 30, "success": 28, "video": 29, "chat": 1, "tickets": 4, "usage": "منخفض", "created": 42, "last": "الآن", "tax": "200032889", "national": "200040831", "reg": "32603", "email": "account19@client19.jo", "phone": "+962 7 99387 0779", "city": "السلط", "joined": "13 مايو 2026" },
-  { "id": 20, "name": "نور أحمد الشوابكة", "initial": "ن", "legal": "فرد", "sector": "مقاولات", "activity": "مقاولات كهروميكانيكية", "status": "نشط", "online": false, "plan": "باقة الأعمال", "consult": 21, "success": 20, "video": 21, "chat": 0, "tickets": 2, "usage": "متوسط", "created": 41, "last": "منذ 12 دقيقة", "tax": "—", "national": "—", "reg": "—", "email": "account20@client20.jo", "phone": "+962 7 90460 0820", "city": "مادبا", "joined": "14 يونيو 2026" },
-  { "id": 21, "name": "مؤسسة البنيان", "initial": "ا", "legal": "مؤسسة فردية", "sector": "خدمات", "activity": "استشارات إدارية", "status": "نشط", "online": false, "plan": "الباقة الأساسية", "consult": 2, "success": 1, "video": 1, "chat": 1, "tickets": 4, "usage": "مرتفع", "created": 40, "last": "منذ ساعة", "tax": "200036351", "national": "—", "reg": "32877", "email": "account21@client21.jo", "phone": "+962 7 91533 0861", "city": "جرش", "joined": "15 يوليو 2026" },
-  { "id": 22, "name": "شركة الحقول لـمقاولات كهروميكانيكية", "initial": "ا", "legal": "شركة ذات مسؤولية محدودة", "sector": "مقاولات", "activity": "مقاولات كهروميكانيكية", "status": "غير نشط", "online": false, "plan": "الباقة الاحترافية", "consult": 28, "success": 27, "video": 9, "chat": 19, "tickets": 0, "usage": "منخفض", "created": 39, "last": "أمس، 11:10 ص", "tax": "200038082", "national": "200047278", "reg": "33014", "email": "account22@client22.jo", "phone": "+962 7 92606 0902", "city": "الكرك", "joined": "16 أغسطس 2026" },
-  { "id": 23, "name": "شركة السهل", "initial": "ا", "legal": "شركة تضامن", "sector": "خدمات", "activity": "استشارات إدارية", "status": "نشط", "online": false, "plan": "باقة الأعمال", "consult": 3, "success": 1, "video": 0, "chat": 3, "tickets": 0, "usage": "متوسط", "created": 38, "last": "منذ 3 أيام", "tax": "200039813", "national": "200049427", "reg": "33151", "email": "account23@client23.jo", "phone": "+962 7 93679 0943", "city": "عمّان", "joined": "17 يناير 2026" },
-  { "id": 24, "name": "شركة العزم", "initial": "ا", "legal": "شركة توصية بسيطة", "sector": "صناعة", "activity": "صناعة أثاث", "status": "نشط", "online": false, "plan": "الباقة الأساسية", "consult": 4, "success": 4, "video": 4, "chat": 0, "tickets": 0, "usage": "مرتفع", "created": 37, "last": "منذ أسبوع", "tax": "200041544", "national": "200051576", "reg": "33288", "email": "account24@client24.jo", "phone": "+962 7 94752 0984", "city": "إربد", "joined": "18 فبراير 2026" },
-  { "id": 25, "name": "شركة القمم لـتعبئة وتصدير المنتجات الزراعية", "initial": "ا", "legal": "شركة مساهمة عامة", "sector": "زراعة", "activity": "تعبئة وتصدير المنتجات الزراعية", "status": "نشط", "online": true, "plan": "الباقة الاحترافية", "consult": 12, "success": 9, "video": 5, "chat": 7, "tickets": 1, "usage": "منخفض", "created": 36, "last": "الآن", "tax": "200043275", "national": "200053725", "reg": "33425", "email": "account25@client25.jo", "phone": "+962 7 95825 1025", "city": "الزرقاء", "joined": "19 مارس 2026" },
-  { "id": 26, "name": "شركة النهضة", "initial": "ا", "legal": "شركة مساهمة خاصة", "sector": "تجارة", "activity": "تجارة عامة", "status": "غير نشط", "online": false, "plan": "باقة الأعمال", "consult": 2, "success": 0, "video": 0, "chat": 2, "tickets": 2, "usage": "متوسط", "created": 35, "last": "منذ 12 دقيقة", "tax": "200045006", "national": "200055874", "reg": "33562", "email": "account26@client26.jo", "phone": "+962 7 96898 1066", "city": "العقبة", "joined": "20 أبريل 2026" },
-  { "id": 27, "name": "جامعة البيان", "initial": "ا", "legal": "جامعة", "sector": "زراعة", "activity": "دواجن وثروة حيوانية", "status": "نشط", "online": false, "plan": "الباقة الأساسية", "consult": 2, "success": 2, "video": 0, "chat": 2, "tickets": 0, "usage": "مرتفع", "created": 34, "last": "منذ ساعة", "tax": "200046737", "national": "200058023", "reg": "33699", "email": "account27@client27.jo", "phone": "+962 7 97971 1107", "city": "السلط", "joined": "21 مايو 2026" },
-  { "id": 28, "name": "سارة محمد الرواشدة — باحث", "initial": "س", "legal": "أكاديمي وباحث", "sector": "تجارة", "activity": "توزيع مواد غذائية", "status": "نشط", "online": false, "plan": "الباقة الاحترافية", "consult": 3, "success": 0, "video": 1, "chat": 2, "tickets": 1, "usage": "منخفض", "created": 33, "last": "أمس، 11:10 ص", "tax": "—", "national": "—", "reg": "—", "email": "account28@client28.jo", "phone": "+962 7 98044 1148", "city": "مادبا", "joined": "22 يونيو 2026" },
-  { "id": 29, "name": "جمعية الوفاق", "initial": "ا", "legal": "جمعية ومنظمة", "sector": "مقاولات", "activity": "مقاولات كهروميكانيكية", "status": "نشط", "online": false, "plan": "باقة الأعمال", "consult": 35, "success": 34, "video": 21, "chat": 14, "tickets": 1, "usage": "متوسط", "created": 32, "last": "منذ 3 أيام", "tax": "200050199", "national": "200062321", "reg": "33973", "email": "account29@client29.jo", "phone": "+962 7 99117 1189", "city": "جرش", "joined": "23 يوليو 2026" },
-  { "id": 30, "name": "مديرية الإبداع", "initial": "ا", "legal": "جهة حكومية", "sector": "خدمات", "activity": "استشارات إدارية", "status": "غير نشط", "online": false, "plan": "الباقة الأساسية", "consult": 8, "success": 6, "video": 5, "chat": 3, "tickets": 1, "usage": "مرتفع", "created": 31, "last": "منذ أسبوع", "tax": "200051930", "national": "200064470", "reg": "—", "email": "account30@client30.jo", "phone": "+962 7 90190 1230", "city": "الكرك", "joined": "24 أغسطس 2026" },
-  { "id": 31, "name": "هيئة الريادة لـصناعات هندسية", "initial": "ا", "legal": "هيئة عامة", "sector": "صناعة", "activity": "صناعات هندسية", "status": "نشط", "online": false, "plan": "الباقة الاحترافية", "consult": 4, "success": 2, "video": 3, "chat": 1, "tickets": 2, "usage": "منخفض", "created": 30, "last": "الآن", "tax": "200053661", "national": "200066619", "reg": "—", "email": "account31@client31.jo", "phone": "+962 7 91263 1271", "city": "عمّان", "joined": "25 يناير 2026" },
-  { "id": 32, "name": "هيئة الاستقرار", "initial": "ا", "legal": "هيئة خاصة", "sector": "خدمات", "activity": "تعليم وتدريب", "status": "نشط", "online": false, "plan": "باقة الأعمال", "consult": 11, "success": 9, "video": 6, "chat": 5, "tickets": 5, "usage": "متوسط", "created": 29, "last": "منذ 12 دقيقة", "tax": "200055392", "national": "200068768", "reg": "34384", "email": "account32@client32.jo", "phone": "+962 7 92336 1312", "city": "إربد", "joined": "26 فبراير 2026" },
-  { "id": 33, "name": "خالد أمين الطراونة", "initial": "خ", "legal": "فرد", "sector": "صناعة", "activity": "صناعات غذائية", "status": "نشط", "online": false, "plan": "الباقة الأساسية", "consult": 28, "success": 28, "video": 12, "chat": 16, "tickets": 3, "usage": "مرتفع", "created": 28, "last": "منذ ساعة", "tax": "—", "national": "—", "reg": "—", "email": "account33@client33.jo", "phone": "+962 7 93409 1353", "city": "الزرقاء", "joined": "27 مارس 2026" },
-  { "id": 34, "name": "مؤسسة العربية لـدواجن وثروة حيوانية", "initial": "ا", "legal": "مؤسسة فردية", "sector": "زراعة", "activity": "دواجن وثروة حيوانية", "status": "غير نشط", "online": false, "plan": "الباقة الاحترافية", "consult": 2, "success": 0, "video": 1, "chat": 1, "tickets": 3, "usage": "منخفض", "created": 27, "last": "أمس، 11:10 ص", "tax": "200058854", "national": "—", "reg": "34658", "email": "account34@client34.jo", "phone": "+962 7 94482 1394", "city": "العقبة", "joined": "01 أبريل 2026" },
-  { "id": 35, "name": "شركة المتكاملة", "initial": "ا", "legal": "شركة ذات مسؤولية محدودة", "sector": "تجارة", "activity": "توزيع مواد غذائية", "status": "نشط", "online": false, "plan": "باقة الأعمال", "consult": 10, "success": 9, "video": 5, "chat": 5, "tickets": 4, "usage": "متوسط", "created": 26, "last": "منذ 3 أيام", "tax": "200060585", "national": "200075215", "reg": "34795", "email": "account35@client35.jo", "phone": "+962 7 95555 1435", "city": "السلط", "joined": "02 مايو 2026" },
-  { "id": 36, "name": "شركة المتقدمة", "initial": "ا", "legal": "شركة تضامن", "sector": "مقاولات", "activity": "بنية تحتية", "status": "نشط", "online": false, "plan": "الباقة الأساسية", "consult": 26, "success": 26, "video": 10, "chat": 16, "tickets": 1, "usage": "مرتفع", "created": 25, "last": "منذ أسبوع", "tax": "200062316", "national": "200077364", "reg": "34932", "email": "account36@client36.jo", "phone": "+962 7 96628 1476", "city": "مادبا", "joined": "03 يونيو 2026" },
-  { "id": 37, "name": "شركة النخبة لـاستيراد وتصدير", "initial": "ا", "legal": "شركة توصية بسيطة", "sector": "تجارة", "activity": "استيراد وتصدير", "status": "نشط", "online": false, "plan": "الباقة الاحترافية", "consult": 3, "success": 0, "video": 1, "chat": 2, "tickets": 4, "usage": "منخفض", "created": 24, "last": "الآن", "tax": "200064047", "national": "200079513", "reg": "35069", "email": "account37@client37.jo", "phone": "+962 7 97701 1517", "city": "جرش", "joined": "04 يوليو 2026" },
-  { "id": 38, "name": "شركة الرواد", "initial": "ا", "legal": "شركة مساهمة عامة", "sector": "مقاولات", "activity": "مقاولات كهروميكانيكية", "status": "غير نشط", "online": false, "plan": "باقة الأعمال", "consult": 29, "success": 28, "video": 27, "chat": 2, "tickets": 5, "usage": "متوسط", "created": 23, "last": "منذ 12 دقيقة", "tax": "200065778", "national": "200081662", "reg": "35206", "email": "account38@client38.jo", "phone": "+962 7 98774 1558", "city": "الكرك", "joined": "05 أغسطس 2026" },
-  { "id": 39, "name": "شركة المشرق", "initial": "ا", "legal": "شركة مساهمة خاصة", "sector": "خدمات", "activity": "تعليم وتدريب", "status": "نشط", "online": false, "plan": "الباقة الأساسية", "consult": 22, "success": 21, "video": 5, "chat": 17, "tickets": 0, "usage": "مرتفع", "created": 22, "last": "منذ ساعة", "tax": "200067509", "national": "200083811", "reg": "35343", "email": "account39@client39.jo", "phone": "+962 7 99847 1599", "city": "عمّان", "joined": "06 يناير 2026" },
-  { "id": 40, "name": "جامعة الأمان", "initial": "ا", "legal": "جامعة", "sector": "صناعة", "activity": "صناعات هندسية", "status": "نشط", "online": false, "plan": "الباقة الاحترافية", "consult": 4, "success": 1, "video": 2, "chat": 2, "tickets": 0, "usage": "منخفض", "created": 21, "last": "أمس، 11:10 ص", "tax": "200069240", "national": "200085960", "reg": "35480", "email": "account40@client40.jo", "phone": "+962 7 90920 1640", "city": "إربد", "joined": "07 فبراير 2026" },
-  { "id": 41, "name": "يزن محمود الزعبي — باحث", "initial": "ي", "legal": "أكاديمي وباحث", "sector": "زراعة", "activity": "إنتاج زراعي", "status": "نشط", "online": false, "plan": "باقة الأعمال", "consult": 20, "success": 19, "video": 10, "chat": 10, "tickets": 1, "usage": "متوسط", "created": 20, "last": "منذ 3 أيام", "tax": "—", "national": "—", "reg": "—", "email": "account41@client41.jo", "phone": "+962 7 91993 1681", "city": "الزرقاء", "joined": "08 مارس 2026" },
-  { "id": 42, "name": "جمعية الرؤية", "initial": "ا", "legal": "جمعية ومنظمة", "sector": "صناعة", "activity": "صناعات غذائية", "status": "غير نشط", "online": false, "plan": "الباقة الأساسية", "consult": 13, "success": 12, "video": 11, "chat": 2, "tickets": 1, "usage": "مرتفع", "created": 19, "last": "منذ أسبوع", "tax": "200072702", "national": "200090258", "reg": "35754", "email": "account42@client42.jo", "phone": "+962 7 92066 1722", "city": "العقبة", "joined": "09 أبريل 2026" },
-  { "id": 43, "name": "مديرية المنار لـإنتاج زراعي", "initial": "ا", "legal": "جهة حكومية", "sector": "زراعة", "activity": "إنتاج زراعي", "status": "نشط", "online": true, "plan": "الباقة الاحترافية", "consult": 17, "success": 15, "video": 11, "chat": 6, "tickets": 0, "usage": "منخفض", "created": 18, "last": "الآن", "tax": "200074433", "national": "200092407", "reg": "—", "email": "account43@client43.jo", "phone": "+962 7 93139 1763", "city": "السلط", "joined": "10 مايو 2026" },
-  { "id": 44, "name": "هيئة الواحة", "initial": "ا", "legal": "هيئة عامة", "sector": "تجارة", "activity": "توزيع مواد غذائية", "status": "نشط", "online": false, "plan": "باقة الأعمال", "consult": 24, "success": 23, "video": 7, "chat": 17, "tickets": 3, "usage": "متوسط", "created": 17, "last": "منذ 12 دقيقة", "tax": "200076164", "national": "200094556", "reg": "—", "email": "account44@client44.jo", "phone": "+962 7 94212 1804", "city": "مادبا", "joined": "11 يونيو 2026" },
-  { "id": 45, "name": "هيئة الشرق", "initial": "ا", "legal": "هيئة خاصة", "sector": "مقاولات", "activity": "مقاولات كهروميكانيكية", "status": "نشط", "online": false, "plan": "الباقة الأساسية", "consult": 17, "success": 15, "video": 17, "chat": 0, "tickets": 2, "usage": "مرتفع", "created": 16, "last": "منذ ساعة", "tax": "200077895", "national": "200096705", "reg": "36165", "email": "account45@client45.jo", "phone": "+962 7 95285 1845", "city": "جرش", "joined": "12 يوليو 2026" },
-  { "id": 46, "name": "هبة جمال القضاة", "initial": "ه", "legal": "فرد", "sector": "خدمات", "activity": "خدمات قانونية", "status": "غير نشط", "online": false, "plan": "الباقة الاحترافية", "consult": 26, "success": 23, "video": 9, "chat": 17, "tickets": 1, "usage": "منخفض", "created": 15, "last": "أمس، 11:10 ص", "tax": "—", "national": "—", "reg": "—", "email": "account46@client46.jo", "phone": "+962 7 96358 1886", "city": "الكرك", "joined": "13 أغسطس 2026" },
-  { "id": 47, "name": "مؤسسة التميز", "initial": "ا", "legal": "مؤسسة فردية", "sector": "مقاولات", "activity": "مقاولات إنشائية", "status": "نشط", "online": false, "plan": "باقة الأعمال", "consult": 11, "success": 11, "video": 10, "chat": 1, "tickets": 2, "usage": "متوسط", "created": 14, "last": "منذ 3 أيام", "tax": "200081357", "national": "—", "reg": "36439", "email": "account47@client47.jo", "phone": "+962 7 97431 1927", "city": "عمّان", "joined": "14 يناير 2026" },
-  { "id": 48, "name": "شركة المدار", "initial": "ا", "legal": "شركة ذات مسؤولية محدودة", "sector": "خدمات", "activity": "استشارات إدارية", "status": "نشط", "online": false, "plan": "الباقة الأساسية", "consult": 7, "success": 6, "video": 3, "chat": 4, "tickets": 1, "usage": "مرتفع", "created": 13, "last": "منذ أسبوع", "tax": "200083088", "national": "200103152", "reg": "36576", "email": "account48@client48.jo", "phone": "+962 7 98504 1968", "city": "إربد", "joined": "15 فبراير 2026" },
-  { "id": 49, "name": "شركة البركة لـصناعات غذائية", "initial": "ا", "legal": "شركة تضامن", "sector": "صناعة", "activity": "صناعات غذائية", "status": "نشط", "online": false, "plan": "الباقة الاحترافية", "consult": 18, "success": 16, "video": 10, "chat": 8, "tickets": 5, "usage": "منخفض", "created": 12, "last": "الآن", "tax": "200084819", "national": "200105301", "reg": "36713", "email": "account49@client49.jo", "phone": "+962 7 99577 2009", "city": "الزرقاء", "joined": "16 مارس 2026" },
-  { "id": 50, "name": "شركة الإنجاز", "initial": "ا", "legal": "شركة توصية بسيطة", "sector": "زراعة", "activity": "إنتاج زراعي", "status": "غير نشط", "online": false, "plan": "باقة الأعمال", "consult": 19, "success": 19, "video": 10, "chat": 9, "tickets": 5, "usage": "متوسط", "created": 11, "last": "منذ 12 دقيقة", "tax": "200086550", "national": "200107450", "reg": "36850", "email": "account50@client50.jo", "phone": "+962 7 90650 2050", "city": "العقبة", "joined": "17 أبريل 2026" },
-  { "id": 51, "name": "شركة البنيان", "initial": "ا", "legal": "شركة مساهمة عامة", "sector": "تجارة", "activity": "استيراد وتصدير", "status": "نشط", "online": false, "plan": "الباقة الأساسية", "consult": 24, "success": 24, "video": 20, "chat": 4, "tickets": 5, "usage": "مرتفع", "created": 10, "last": "منذ ساعة", "tax": "200088281", "national": "200109599", "reg": "36987", "email": "account51@client51.jo", "phone": "+962 7 91723 2091", "city": "السلط", "joined": "18 مايو 2026" },
-  { "id": 52, "name": "شركة الحقول لـزراعة عضوية", "initial": "ا", "legal": "شركة مساهمة خاصة", "sector": "زراعة", "activity": "زراعة عضوية", "status": "نشط", "online": true, "plan": "الباقة الاحترافية", "consult": 19, "success": 19, "video": 19, "chat": 0, "tickets": 5, "usage": "منخفض", "created": 9, "last": "أمس، 11:10 ص", "tax": "200090012", "national": "200111748", "reg": "37124", "email": "account52@client52.jo", "phone": "+962 7 92796 2132", "city": "مادبا", "joined": "19 يونيو 2026" },
-  { "id": 53, "name": "جامعة السهل", "initial": "ا", "legal": "جامعة", "sector": "تجارة", "activity": "تجارة أجهزة ومعدات", "status": "نشط", "online": false, "plan": "باقة الأعمال", "consult": 23, "success": 22, "video": 16, "chat": 7, "tickets": 5, "usage": "متوسط", "created": 8, "last": "منذ 3 أيام", "tax": "200091743", "national": "200113897", "reg": "37261", "email": "account53@client53.jo", "phone": "+962 7 93869 2173", "city": "جرش", "joined": "20 يوليو 2026" },
-  { "id": 54, "name": "ميساء علي البطاينة — باحث", "initial": "م", "legal": "أكاديمي وباحث", "sector": "مقاولات", "activity": "مقاولات كهروميكانيكية", "status": "غير نشط", "online": false, "plan": "الباقة الأساسية", "consult": 33, "success": 33, "video": 28, "chat": 5, "tickets": 1, "usage": "مرتفع", "created": 7, "last": "منذ أسبوع", "tax": "—", "national": "—", "reg": "—", "email": "account54@client54.jo", "phone": "+962 7 94942 2214", "city": "الكرك", "joined": "21 أغسطس 2026" },
-  { "id": 55, "name": "جمعية القمم لـخدمات قانونية", "initial": "ا", "legal": "جمعية ومنظمة", "sector": "خدمات", "activity": "خدمات قانونية", "status": "نشط", "online": false, "plan": "الباقة الاحترافية", "consult": 14, "success": 11, "video": 11, "chat": 3, "tickets": 1, "usage": "منخفض", "created": 6, "last": "الآن", "tax": "200095205", "national": "200118195", "reg": "37535", "email": "account55@client55.jo", "phone": "+962 7 95015 2255", "city": "عمّان", "joined": "22 يناير 2026" },
-  { "id": 56, "name": "مديرية النهضة", "initial": "ا", "legal": "جهة حكومية", "sector": "صناعة", "activity": "صناعات دوائية", "status": "نشط", "online": false, "plan": "باقة الأعمال", "consult": 26, "success": 23, "video": 12, "chat": 14, "tickets": 4, "usage": "متوسط", "created": 5, "last": "منذ 12 دقيقة", "tax": "200096936", "national": "200120344", "reg": "—", "email": "account56@client56.jo", "phone": "+962 7 96088 2296", "city": "إربد", "joined": "23 فبراير 2026" },
-  { "id": 57, "name": "هيئة البيان", "initial": "ا", "legal": "هيئة عامة", "sector": "خدمات", "activity": "تعليم وتدريب", "status": "نشط", "online": false, "plan": "الباقة الأساسية", "consult": 4, "success": 3, "video": 1, "chat": 3, "tickets": 3, "usage": "مرتفع", "created": 4, "last": "منذ ساعة", "tax": "200098667", "national": "200122493", "reg": "—", "email": "account57@client57.jo", "phone": "+962 7 97161 2337", "city": "الزرقاء", "joined": "24 مارس 2026" },
-  { "id": 58, "name": "هيئة الرسالة لـصناعات بلاستيكية", "initial": "ا", "legal": "هيئة خاصة", "sector": "صناعة", "activity": "صناعات بلاستيكية", "status": "غير نشط", "online": false, "plan": "الباقة الاحترافية", "consult": 21, "success": 19, "video": 16, "chat": 5, "tickets": 4, "usage": "منخفض", "created": 3, "last": "أمس، 11:10 ص", "tax": "200100398", "national": "200124642", "reg": "37946", "email": "account58@client58.jo", "phone": "+962 7 98234 2378", "city": "العقبة", "joined": "25 أبريل 2026" },
-  { "id": 59, "name": "عمر خالد حداد", "initial": "ع", "legal": "فرد", "sector": "زراعة", "activity": "تعبئة وتصدير المنتجات الزراعية", "status": "نشط", "online": false, "plan": "باقة الأعمال", "consult": 17, "success": 16, "video": 7, "chat": 10, "tickets": 5, "usage": "متوسط", "created": 2, "last": "منذ 3 أيام", "tax": "—", "national": "—", "reg": "—", "email": "account59@client59.jo", "phone": "+962 7 99307 2419", "city": "السلط", "joined": "26 مايو 2026" },
-  { "id": 60, "name": "مؤسسة الإبداع", "initial": "ا", "legal": "مؤسسة فردية", "sector": "تجارة", "activity": "توزيع مواد غذائية", "status": "نشط", "online": false, "plan": "الباقة الأساسية", "consult": 16, "success": 15, "video": 6, "chat": 10, "tickets": 3, "usage": "مرتفع", "created": 1, "last": "منذ أسبوع", "tax": "200103860", "national": "—", "reg": "38220", "email": "account60@client60.jo", "phone": "+962 7 90380 2460", "city": "مادبا", "joined": "27 يونيو 2026" }
-];
-
-// ══════════════════════════════════════════════════════════════════════════
 // KNOWLEDGE TOPIC QUESTIONS DICTIONARY
 // ══════════════════════════════════════════════════════════════════════════
 const TOPIC_DATA = {
@@ -138,12 +72,23 @@ const TOPIC_QUESTIONS = {
   'طلبات إعادة النظر': ['متى يمكن تقديم طلب إعادة نظر؟', 'ما الفرق عن الاعتراض؟', 'ما المدة المتوقعة للبت؟']
 };
 
-export default function AdminUsersPage({ navigate }) {
-  // Master users list
-  const [usersList, setUsersList] = useState(CANONICAL_USERS);
-  const [filteredUsers, setFilteredUsers] = useState(CANONICAL_USERS);
+export default function AdminUsersPage({ navigate, currentPath, initialTab }) {
+  // Navigation & Tab state
+  const isPendingUrl = (currentPath && (currentPath.includes('tab=pending') || currentPath.includes('/pending'))) || (typeof window !== 'undefined' && window.location.search.includes('tab=pending'));
+  const [activeTab, setActiveTab] = useState(initialTab === 'pending' || isPendingUrl ? 'pending' : 'approved');
+
+  // Master users list (Approved & Active)
+  const [usersList, setUsersList] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 12;
+
+  // Pending verification users list (100% Real PostgreSQL Data)
+  const [pendingUsers, setPendingUsers] = useState([]);
+  const [loadingPending, setLoadingPending] = useState(false);
+  const [rejectingUser, setRejectingUser] = useState(null);
+  const [rejectReason, setRejectReason] = useState('يرجى استكمال الوثائق والبيانات الرسمية المطلوبة لتفعيل الحساب.');
+  const [actionLoadingId, setActionLoadingId] = useState(null);
 
   // Filter States
   const [searchInput, setSearchInput] = useState('');
@@ -290,82 +235,149 @@ export default function AdminUsersPage({ navigate }) {
 
   const mainScrollRef = useRef(null);
 
-  // Sync users with backend API on mount
-  useEffect(() => {
-    async function loadBackendUsers() {
-      try {
-        const data = await getAdminUsers();
-        if (data && Array.isArray(data) && data.length > 0) {
-          const mapLegal = (u) => {
-            if (u.legal_form) {
-              const map = {
-                individual: 'فرد',
-                sole_proprietorship: 'مؤسسة فردية',
-                llc: 'شركة ذات مسؤولية محدودة',
-                general_partnership: 'شركة تضامن',
-                limited_partnership: 'شركة توصية بسيطة',
-                public_joint_stock: 'شركة مساهمة عامة',
-                private_joint_stock: 'شركة مساهمة خاصة',
-                university: 'جامعة',
-                researcher: 'أكاديمي وباحث',
-                ngo: 'جمعية ومنظمة',
-                government: 'جهة حكومية',
-                public_authority: 'هيئة عامة',
-                private_authority: 'هيئة خاصة'
-              };
-              if (map[u.legal_form]) return map[u.legal_form];
-            }
-            if (u.entity_type === 'company') return 'شركة ذات مسؤولية محدودة';
-            if (u.entity_type === 'researcher') return 'أكاديمي وباحث';
-            return 'فرد';
-          };
-
-          const mapSector = (u) => {
+  // Load Approved / Active Platform Users
+  const loadBackendUsers = async () => {
+    try {
+      const data = await getAdminUsers({ role: 'user', limit: 100 });
+      if (data && Array.isArray(data)) {
+        const mapLegal = (u) => {
+          if (u.legal_form) {
             const map = {
-              services: 'خدمات',
-              trade: 'تجارة',
-              industry: 'صناعة',
-              contracting: 'مقاولات',
-              agriculture: 'زراعة'
+              individual: 'فرد',
+              sole_proprietorship: 'مؤسسة فردية',
+              llc: 'شركة ذات مسؤولية محدودة',
+              general_partnership: 'شركة تضامن',
+              limited_partnership: 'شركة توصية بسيطة',
+              public_joint_stock: 'شركة مساهمة عامة',
+              private_joint_stock: 'شركة مساهمة خاصة',
+              university: 'جامعة',
+              researcher: 'أكاديمي وباحث',
+              ngo: 'جمعية ومنظمة',
+              government: 'جهة حكومية',
+              public_authority: 'هيئة عامة',
+              private_authority: 'هيئة خاصة'
             };
-            return map[u.sector] || u.sector || 'خدمات';
-          };
+            if (map[u.legal_form]) return map[u.legal_form];
+          }
+          if (u.entity_type === 'company') return 'شركة ذات مسؤولية محدودة';
+          if (u.entity_type === 'researcher') return 'أكاديمي وباحث';
+          return 'فرد';
+        };
 
-          const apiFormatted = data.map((u, i) => ({
-            id: u.id || `u_api_${i + 1}`,
-            name: u.full_name || u.company_name || 'مستخدم المنصة',
-            initial: (u.full_name || u.company_name || 'م').charAt(0),
-            legal: mapLegal(u),
-            sector: mapSector(u),
-            activity: u.company_name || u.bio || 'خدمات مهنية واستشارات',
-            status: u.is_active ? 'نشط' : 'غير نشط',
-            online: !!u.is_active,
-            plan: 'الباقة الأساسية',
-            consult: Number(u.sessions_count ?? u.total_consultations ?? u.total_sessions ?? 0),
-            success: Number(u.completed_consultations ?? u.completed_sessions ?? u.sessions_count ?? 0),
-            video: Number(u.video_sessions ?? 0),
-            chat: Number(u.chat_sessions ?? 0),
-            tickets: Number(u.tickets_count ?? 0),
-            usage: (u.sessions_count || u.total_consultations || 0) > 10 ? 'مرتفع' : (u.sessions_count || u.total_consultations || 0) > 3 ? 'متوسط' : (u.sessions_count || u.total_consultations || 0) > 0 ? 'منخفض' : 'لم يستخدم بعد',
-            created: 100 - i,
-            last: u.last_login || 'الآن',
-            tax: u.tax_number || '—',
-            national: u.national_id || '—',
-            reg: u.commercial_register || '—',
-            email: u.email || '—',
-            phone: u.phone || '—',
-            city: u.address || 'عمّان',
-            joined: u.created_at ? new Date(u.created_at).toLocaleDateString('ar-JO') : '—'
-          }));
-          setUsersList(apiFormatted);
-          setFilteredUsers(apiFormatted);
-        }
-      } catch (err) {
-        console.warn('Backend users loaded fallback to rich dataset:', err);
+        const mapSector = (u) => {
+          const map = {
+            services: 'خدمات',
+            trade: 'تجارة',
+            industry: 'صناعة',
+            contracting: 'مقاولات',
+            agriculture: 'زراعة'
+          };
+          return map[u.sector] || u.sector || 'خدمات';
+        };
+
+        const apiFormatted = data.map((u, i) => ({
+          id: u.id || `u_api_${i + 1}`,
+          name: u.full_name || u.company_name || 'مستخدم المنصة',
+          initial: (u.full_name || u.company_name || 'م').charAt(0),
+          legal: mapLegal(u),
+          sector: mapSector(u),
+          status: u.is_active ? 'نشط' : 'معطّل',
+          online: false,
+          plan: 'الباقة الأساسية',
+          consult: Number(u.sessions_count ?? u.total_consultations ?? u.total_sessions ?? 0),
+          success: Number(u.completed_consultations ?? u.completed_sessions ?? u.sessions_count ?? 0),
+          video: Number(u.video_sessions ?? 0),
+          chat: Number(u.chat_sessions ?? 0),
+          tickets: Number(u.tickets_count ?? 0),
+          usage: (u.sessions_count || u.total_consultations || 0) > 10 ? 'مرتفع' : (u.sessions_count || u.total_consultations || 0) > 3 ? 'متوسط' : (u.sessions_count || u.total_consultations || 0) > 0 ? 'منخفض' : 'لم يستخدم بعد',
+          created: 100 - i,
+          last: u.last_login || (u.created_at ? new Date(u.created_at).toLocaleDateString('ar-JO') : '—'),
+          tax: u.tax_number || '—',
+          national: u.national_id || '—',
+          reg: u.commercial_register || '—',
+          email: u.email || '—',
+          phone: u.phone || '—',
+          city: u.address || 'عمّان',
+          joined: u.created_at ? new Date(u.created_at).toLocaleDateString('ar-JO') : '—',
+          raw: u
+        }));
+        setUsersList(apiFormatted);
+        setFilteredUsers(apiFormatted);
       }
+    } catch (err) {
+      console.warn('Backend users load error:', err);
     }
+  };
+
+  // Load Pending Client Verification Requests (100% Real from PostgreSQL)
+  const loadPendingUsers = async () => {
+    setLoadingPending(true);
+    try {
+      const data = await getPendingUsers();
+      if (Array.isArray(data)) {
+        setPendingUsers(data);
+      }
+    } catch (err) {
+      console.warn('Pending users load error:', err);
+    } finally {
+      setLoadingPending(false);
+    }
+  };
+
+  // Sync users with backend API on mount + reactive auto-refresh
+  useEffect(() => {
     loadBackendUsers();
+    loadPendingUsers();
+
+    const handleDataUpdate = () => {
+      loadBackendUsers();
+      loadPendingUsers();
+    };
+
+    window.addEventListener('admin_data_updated', handleDataUpdate);
+    return () => window.removeEventListener('admin_data_updated', handleDataUpdate);
   }, []);
+
+  // Update tab if currentPath changes
+  useEffect(() => {
+    if (currentPath && (currentPath.includes('tab=pending') || currentPath.includes('/pending'))) {
+      setActiveTab('pending');
+    }
+  }, [currentPath]);
+
+  // Handle Approve User Action
+  const handleApproveUser = async (u) => {
+    const confirmName = u.full_name || u.company_name || u.email;
+    if (!window.confirm(`هل أنت متأكد من رغبتك في اعتماد وتفعيل حساب "${confirmName}"؟`)) {
+      return;
+    }
+    setActionLoadingId(u.id);
+    try {
+      await handleUserAction(u.id, 'approve');
+      showToast(`تم اعتماد وتفعيل حساب ${confirmName} بنجاح! 🎉`);
+      await Promise.all([loadPendingUsers(), loadBackendUsers()]);
+    } catch (err) {
+      alert(err.message || 'حدث خطأ أثناء اعتماد الحساب');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Handle Reject User Action
+  const handleConfirmReject = async () => {
+    if (!rejectingUser) return;
+    setActionLoadingId(rejectingUser.id);
+    try {
+      await handleUserAction(rejectingUser.id, 'reject', rejectReason);
+      showToast(`تم رفض طلب انضمام ${rejectingUser.full_name || rejectingUser.email}`);
+      setRejectingUser(null);
+      await Promise.all([loadPendingUsers(), loadBackendUsers()]);
+    } catch (err) {
+      alert(err.message || 'حدث خطأ أثناء رفض الطلب');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   // Filter Engine
   useEffect(() => {
@@ -443,11 +455,43 @@ export default function AdminUsersPage({ navigate }) {
     window.scrollTo({ top: 180, behavior: 'smooth' });
   };
 
-  // Open Profile
-  const openProfile = (user) => {
+  // Open Profile (Loads 100% Real Live Database Data)
+  const openProfile = async (user) => {
     setActiveProfile(user);
     setActiveProfileTab('overview');
     document.body.style.overflow = 'hidden';
+
+    try {
+      if (user.id && !String(user.id).startsWith('u_api_') && !String(user.id).startsWith('u_')) {
+        const fullData = await getUserFullProfile(user.id);
+        if (fullData) {
+          setActiveProfile(prev => ({
+            ...prev,
+            ...fullData,
+            name: fullData.full_name || fullData.company_name || prev.name,
+            tax: fullData.tax_number || prev.tax,
+            national: fullData.national_id || prev.national,
+            consult: fullData.stats?.total_consultations ?? 0,
+            success: fullData.stats?.completed_consultations ?? 0,
+            video: fullData.stats?.video_sessions ?? 0,
+            chat: fullData.stats?.chat_sessions ?? 0,
+            tickets: fullData.stats?.tickets_count ?? 0,
+            topics: fullData.topics || [],
+            total_topic_signals: fullData.total_topic_signals || 0,
+            stats: fullData.stats || null,
+            documents: fullData.documents || [],
+            appointments: fullData.appointments || [],
+            subscription: fullData.subscription || null,
+            ticketsList: fullData.tickets || [],
+            logsList: fullData.logs || [],
+            online: fullData.is_online ?? false,
+            last: fullData.last_login || prev.last
+          }));
+        }
+      }
+    } catch (err) {
+      console.warn('Could not fetch full user profile details:', err);
+    }
   };
 
   const closeProfile = () => {
@@ -1302,65 +1346,318 @@ export default function AdminUsersPage({ navigate }) {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════
-          TOP SEARCHBAR & QUICK FILTERS
+          PRIMARY SUB-NAVIGATION TABS (APPROVED USERS vs PENDING REQUESTS)
           ══════════════════════════════════════════════════════════════════ */}
-      <div className="users-searchbar">
-        <div className="users-search-input">
-          <svg className="icon" style={{ width: 18, height: 18, fill: 'none', stroke: '#0B2E4B', strokeWidth: 1.8 }} viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="7" />
-            <path d="m20 20-3.5-3.5" />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', margin: '14px 0 24px 0', borderBottom: '2px solid #E2E8F0', paddingBottom: '14px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setActiveTab('approved')}
+            style={{
+              background: activeTab === 'approved' ? '#0e3b5e' : '#F1F5F9',
+              color: activeTab === 'approved' ? '#FFFFFF' : '#475569',
+              border: activeTab === 'approved' ? 'none' : '1px solid #CBD5E1',
+              padding: '10px 22px',
+              borderRadius: '12px',
+              fontWeight: '800',
+              fontSize: '14px',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              boxShadow: activeTab === 'approved' ? '0 4px 14px rgba(14,59,94,0.18)' : 'none',
+              transition: 'all 0.2s'
+            }}
+          >
+            <span>👥 المستخدمون المعتمدون</span>
+            <span style={{
+              background: activeTab === 'approved' ? 'rgba(255,255,255,0.25)' : '#E2E8F0',
+              color: activeTab === 'approved' ? '#FFFFFF' : '#0F172A',
+              padding: '2px 10px',
+              borderRadius: '20px',
+              fontSize: '12px',
+              fontWeight: '900'
+            }}>
+              {usersList.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('pending')}
+            style={{
+              background: activeTab === 'pending' ? '#D97706' : '#FEF3C7',
+              color: activeTab === 'pending' ? '#FFFFFF' : '#92400E',
+              border: activeTab === 'pending' ? 'none' : '1px solid #FCD34D',
+              padding: '10px 22px',
+              borderRadius: '12px',
+              fontWeight: '800',
+              fontSize: '14px',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              boxShadow: activeTab === 'pending' ? '0 4px 14px rgba(217,119,6,0.25)' : 'none',
+              transition: 'all 0.2s'
+            }}
+          >
+            <span>⏳ طلبات الانضمام قيد المراجعة</span>
+            <span style={{
+              background: activeTab === 'pending' ? '#FFFFFF' : '#D97706',
+              color: activeTab === 'pending' ? '#D97706' : '#FFFFFF',
+              padding: '2px 10px',
+              borderRadius: '20px',
+              fontSize: '12px',
+              fontWeight: '900'
+            }}>
+              {pendingUsers.length}
+            </span>
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => { loadBackendUsers(); loadPendingUsers(); showToast('تم تحديث البيانات مباشرة من الداتا بيز 🔄'); }}
+          style={{
+            background: '#FFFFFF',
+            color: '#0e3b5e',
+            border: '1px solid #CBD5E1',
+            padding: '8px 18px',
+            borderRadius: '10px',
+            fontWeight: '700',
+            fontSize: '13px',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
           </svg>
-          <input
-            type="text"
-            placeholder="ابحث بالاسم، الرقم الوطني، الرقم الضريبي أو البريد..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
-        </div>
-
-        <div className="users-top-filter">
-          <ModernSelect
-            options={LEGAL_OPTIONS}
-            value={legalTopFilter}
-            onChange={(val) => setLegalTopFilter(val)}
-            placeholder="الصفة القانونية"
-            dropdownWidth="220px"
-          />
-        </div>
-
-        <div className="users-top-filter">
-          <ModernSelect
-            options={SECTOR_OPTIONS}
-            value={sectorTopFilter}
-            onChange={(val) => setSectorTopFilter(val)}
-            placeholder="القطاع"
-            dropdownWidth="160px"
-          />
-        </div>
-
-        <div className="users-top-filter">
-          <ModernSelect
-            options={STATUS_OPTIONS}
-            value={statusTopFilter}
-            onChange={(val) => setStatusTopFilter(val)}
-            placeholder="حالة الحساب"
-            dropdownWidth="150px"
-          />
-        </div>
-
-        <button className="users-search-btn" onClick={() => showToast(`تم العثور على ${filteredUsers.length} نتيجة`)}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="7" />
-            <path d="m20 20-3.5-3.5" />
-          </svg>
-          بحث المستخدمين
+          تحديث مباشر
         </button>
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════
-          MAIN CONTENT WITH SIDEBAR FILTERS AND CARDS
+          VIEW 1: PENDING REGISTRATION REQUESTS (100% POSTGRESQL DATA)
           ══════════════════════════════════════════════════════════════════ */}
-      <div className="users-content">
+      {activeTab === 'pending' ? (
+        <div className="users-pending-container" style={{ marginBottom: '40px' }}>
+          <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '16px', padding: '18px 24px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
+                ⏳
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#92400E' }}>
+                  طلبات تسجيل المستخدمين والشركات بانتظار اعتماد الإدارة
+                </h3>
+                <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#B45309' }}>
+                  يتم سحب هذه الطلبات مباشرة من جدول `users` في قاعدة البيانات حيث `verification_status = pending`.
+                </p>
+              </div>
+            </div>
+            <div style={{ background: '#FFFFFF', border: '1px solid #FCD34D', borderRadius: '10px', padding: '6px 14px', fontSize: '13px', fontWeight: '800', color: '#92400E' }}>
+              إجمالي المعلقين: {pendingUsers.length}
+            </div>
+          </div>
+
+          {loadingPending ? (
+            <div style={{ textAlign: 'center', padding: '60px 20px', background: '#FFFFFF', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
+              <div style={{ fontSize: '15px', fontWeight: '800', color: '#0e3b5e' }}>جاري استرجاع طلبات الانضمام المعلقة من الداتا بيز...</div>
+            </div>
+          ) : pendingUsers.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px 20px', background: '#FFFFFF', borderRadius: '20px', border: '1px dashed #CBD5E1' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#F0FDF4', color: '#16A34A', fontSize: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto' }}>
+                ✓
+              </div>
+              <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#0e3b5e', margin: '0 0 6px 0' }}>لا توجد طلبات انضمام معلقة حالياً</h3>
+              <p style={{ fontSize: '13.5px', color: '#64748B', margin: 0 }}>
+                جميع حسابات المستخدمين والعملاء مفعلة ومعتمدة في النظام بنسبة 100%.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }}>
+              {pendingUsers.map((u) => {
+                const mapEntity = {
+                  individual: 'حساب فردي',
+                  company: 'منشأة / شركة',
+                  researcher: 'باحث / أكاديمي'
+                };
+                const entityLabel = mapEntity[u.entity_type] || u.entity_type || 'عميل جديد';
+                const displayName = u.full_name || u.company_name || u.email;
+
+                return (
+                  <div
+                    key={u.id}
+                    style={{
+                      background: '#FFFFFF',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '20px',
+                      padding: '24px',
+                      boxShadow: '0 8px 24px rgba(11,46,75,0.06)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      position: 'relative'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: '900' }}>
+                            {displayName.charAt(0)}
+                          </div>
+                          <div>
+                            <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '900', color: '#0e3b5e' }}>
+                              {displayName}
+                            </h4>
+                            <span style={{ fontSize: '12.5px', color: '#64748B' }}>
+                              {u.email}
+                            </span>
+                          </div>
+                        </div>
+                        <span style={{ background: '#FEF3C7', color: '#B45309', border: '1px solid #FCD34D', padding: '4px 10px', borderRadius: '8px', fontSize: '11.5px', fontWeight: '800' }}>
+                          ⏳ قيد المراجعة
+                        </span>
+                      </div>
+
+                      <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '12px 16px', marginBottom: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12.5px' }}>
+                        <div>
+                          <span style={{ color: '#64748B', display: 'block' }}>نوع الكيان:</span>
+                          <b style={{ color: '#0e3b5e' }}>{entityLabel}</b>
+                        </div>
+                        <div>
+                          <span style={{ color: '#64748B', display: 'block' }}>الهاتف:</span>
+                          <b style={{ color: '#0e3b5e', direction: 'ltr', display: 'inline-block' }}>{u.phone || '—'}</b>
+                        </div>
+                        <div>
+                          <span style={{ color: '#64748B', display: 'block' }}>الرقم الضريبي:</span>
+                          <b style={{ color: '#0e3b5e' }}>{u.tax_number || '—'}</b>
+                        </div>
+                        <div>
+                          <span style={{ color: '#64748B', display: 'block' }}>المدينة / العنوان:</span>
+                          <b style={{ color: '#0e3b5e' }}>{u.address || 'عمّان'}</b>
+                        </div>
+                      </div>
+
+                      <div style={{ fontSize: '12px', color: '#64748B', marginBottom: '16px' }}>
+                        📅 تاريخ التسجيل: <b>{u.created_at ? new Date(u.created_at).toLocaleDateString('ar-JO', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'اليوم'}</b>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '12px', borderTop: '1px solid #F1F5F9', paddingTop: '16px' }}>
+                      <button
+                        type="button"
+                        disabled={actionLoadingId === u.id}
+                        onClick={() => handleApproveUser(u)}
+                        style={{
+                          background: '#16A34A',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          padding: '10px',
+                          borderRadius: '10px',
+                          fontWeight: '800',
+                          fontSize: '13px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          boxShadow: '0 3px 10px rgba(22,163,74,0.2)'
+                        }}
+                      >
+                        ✓ اعتماد وتفعيل
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={actionLoadingId === u.id}
+                        onClick={() => setRejectingUser(u)}
+                        style={{
+                          background: '#FEF2F2',
+                          color: '#DC2626',
+                          border: '1px solid #FECACA',
+                          padding: '10px',
+                          borderRadius: '10px',
+                          fontWeight: '800',
+                          fontSize: '13px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        ✕ رفض الطلب
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* ══════════════════════════════════════════════════════════════════
+            VIEW 2: APPROVED USERS DIRECTORY (DEFAULT)
+            ══════════════════════════════════════════════════════════════════ */
+        <>
+          <div className="users-searchbar">
+            <div className="users-search-input">
+              <svg className="icon" style={{ width: 18, height: 18, fill: 'none', stroke: '#0B2E4B', strokeWidth: 1.8 }} viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+              <input
+                type="text"
+                placeholder="ابحث بالاسم، الرقم الوطني، الرقم الضريبي أو البريد..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+              />
+            </div>
+
+            <div className="users-top-filter">
+              <ModernSelect
+                options={LEGAL_OPTIONS}
+                value={legalTopFilter}
+                onChange={(val) => setLegalTopFilter(val)}
+                placeholder="الصفة القانونية"
+                dropdownWidth="220px"
+              />
+            </div>
+
+            <div className="users-top-filter">
+              <ModernSelect
+                options={SECTOR_OPTIONS}
+                value={sectorTopFilter}
+                onChange={(val) => setSectorTopFilter(val)}
+                placeholder="القطاع"
+                dropdownWidth="160px"
+              />
+            </div>
+
+            <div className="users-top-filter">
+              <ModernSelect
+                options={STATUS_OPTIONS}
+                value={statusTopFilter}
+                onChange={(val) => setStatusTopFilter(val)}
+                placeholder="حالة الحساب"
+                dropdownWidth="150px"
+              />
+            </div>
+
+            <button className="users-search-btn" onClick={() => showToast(`تم العثور على ${filteredUsers.length} نتيجة`)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+              بحث المستخدمين
+            </button>
+          </div>
+
+          <div className="users-content">
 
         {/* Sticky Filters Sidebar */}
         <aside className="users-filters">
@@ -1557,6 +1854,8 @@ export default function AdminUsersPage({ navigate }) {
           )}
         </main>
       </div>
+      </>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════
           PROFILE OVERLAY (FULL SCREEN VIEW)
@@ -1594,7 +1893,7 @@ export default function AdminUsersPage({ navigate }) {
                   </div>
                   <div className="profile-right-meta">
                     <span className="account-id">رقم الحساب</span>
-                    <strong>CUS-{String(1048 + Number(activeProfile.id || 1)).padStart(6, '0')}</strong>
+                    <strong>CUS-{String(activeProfile.id || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase() || '000001'}</strong>
                     <span className={`user-status-badge ${activeProfile.status === 'نشط' ? '' : 'inactive'}`} style={{ marginTop: 6, display: 'inline-block' }}>
                       {activeProfile.status}
                     </span>
@@ -1669,148 +1968,117 @@ export default function AdminUsersPage({ navigate }) {
                   {/* Section 3: Documents */}
                   <section className="profile-section-card" id="sec_docs">
                     <h2>الوثائق والتحقق</h2>
-                    <div className="profile-section-sub">الوثائق المرفقة بالحساب وحالة التحقق منها</div>
-                    <div className="profile-doc-list">
-                      {[
-                        { title: 'السجل التجاري', type: 'commercial', date: 'تم الرفع 14/05/2026' },
-                        { title: 'شهادة التسجيل الضريبي', type: 'tax', date: 'تم الرفع 14/05/2026' },
-                        { title: 'هوية المفوض بالتوقيع', type: 'authorized', date: 'آخر تحديث 22/06/2026' },
-                        { title: 'تفويض إدارة الحساب', type: 'delegation', date: 'صالح' }
-                      ].map((doc, i) => (
-                        <div
-                          key={i}
-                          className="profile-doc-item clickable-card"
-                          onClick={() => handleOpenDocument(doc.title, activeProfile, doc.type)}
-                        >
-                          <div className="profile-doc-ico">📄</div>
-                          <div>
-                            <strong>{doc.title}</strong>
-                            <small>PDF · {doc.date}</small>
+                    <div className="profile-section-sub">الوثائق المرفقة بالحساب في قاعدة البيانات</div>
+                    {activeProfile.documents && activeProfile.documents.length > 0 ? (
+                      <div className="profile-doc-list">
+                        {activeProfile.documents.map((doc, i) => (
+                          <div
+                            key={i}
+                            className="profile-doc-item clickable-card"
+                            onClick={() => handleOpenDocument(doc.filename, activeProfile, 'custom')}
+                          >
+                            <div className="profile-doc-ico">📄</div>
+                            <div>
+                              <strong>{doc.filename}</strong>
+                              <small>{doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : 'PDF'} · {doc.created_at ? new Date(doc.created_at).toLocaleDateString('ar-JO') : 'مرفوع'}</small>
+                            </div>
+                            <span className="profile-verified-tag">موثّق</span>
                           </div>
-                          <span className="profile-verified-tag">موثّق</span>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '36px 20px', background: '#F8FAFC', borderRadius: '16px', border: '1px dashed #CBD5E1', color: '#64748B' }}>
+                        <div style={{ fontSize: '24px', marginBottom: '8px' }}>📁</div>
+                        <b style={{ color: '#0e3b5e' }}>لا توجد وثائق رسمية مرفوعة حالياً</b>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '12.5px' }}>لم يقم العميل برفع أي ملفات أو وثائق سجل تجاري في حسابه حتى الآن.</p>
+                      </div>
+                    )}
                   </section>
 
                   {/* Section 4: Members */}
                   <section className="profile-section-card" id="sec_members">
                     <h2>المستخدمون والصلاحيات</h2>
-                    <div className="profile-section-sub">الأعضاء المرتبطون بنفس حساب المنشأة</div>
+                    <div className="profile-section-sub">الأعضاء المرتبطون بنفس الحساب</div>
                     <div className="profile-members-list">
-                      {[
-                        { name: 'محمد العلي', email: 'm.ali@client.jo', role: 'مدير الحساب', initials: 'م ع', seen: 'منذ 6 دقائق' },
-                        { name: 'سارة الخطيب', email: 's.khatib@client.jo', role: 'استشارات وفوترة', initials: 'س خ', seen: 'أمس' },
-                        { name: 'عمر النجار', email: 'o.najjar@client.jo', role: 'عرض فقط', initials: 'ع ن', seen: 'منذ 3 أيام' }
-                      ].map((member, i) => (
-                        <div
-                          key={i}
-                          className="profile-member-item clickable-card"
-                          onClick={() => handleOpenMember(member.name, member.email, member.role)}
-                        >
-                          <div className="profile-member-av">{member.initials}</div>
-                          <div>
-                            <b>{member.name}</b>
-                            <small>{member.email} · آخر دخول {member.seen}</small>
-                          </div>
-                          <span className="profile-role-tag">{member.role}</span>
+                      <div
+                        className="profile-member-item clickable-card"
+                        onClick={() => handleOpenMember(activeProfile.name, activeProfile.email, 'المالك الرئيسي للحساب')}
+                      >
+                        <div className="profile-member-av">{activeProfile.initial}</div>
+                        <div>
+                          <b>{activeProfile.name}</b>
+                          <small>{activeProfile.email} · {activeProfile.phone}</small>
                         </div>
-                      ))}
+                        <span className="profile-role-tag">المالك الرئيسي</span>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: '10px', fontSize: '12px', color: '#94A3B8' }}>
+                      ℹ️ هذا الحساب مسجل كـ ({activeProfile.legal}) مفرد، ولا توجد حسابات فرعية إضافية مرتبطة به.
                     </div>
                   </section>
 
                   {/* Section 5: Topic Interests */}
                   <section className="profile-section-card" id="sec_interests">
-                    <h2>المواضيع الأكثر اهتمامًا</h2>
-                    <div className="profile-section-sub">مبنية على الاستشارات والأسئلة والتفاعل داخل المنصة</div>
-                    <div className="profile-topic-bars">
-                      {[
-                        { topic: 'ضريبة الدخل', pct: 88 },
-                        { topic: 'ضريبة المبيعات', pct: 74 },
-                        { topic: 'الفوترة الإلكترونية', pct: 63 },
-                        { topic: 'الاعتراضات الضريبية', pct: 41 }
-                      ].map((item, i) => (
-                        <div
-                          key={i}
-                          className="profile-topic-line clickable-card"
-                          onClick={() => handleOpenTopic(item.topic)}
-                        >
-                          <b>{item.topic}</b>
-                          <div className="profile-topic-track">
-                            <i style={{ width: `${item.pct}%` }}></i>
+                    <h2>المواضيع والاهتمامات الضريبية</h2>
+                    <div className="profile-section-sub">مبنية على نشاط العميل وتخصصه ({activeProfile.sector})</div>
+                    {activeProfile.total_topic_signals > 0 && activeProfile.topics?.length > 0 ? (
+                      <div className="profile-topic-bars">
+                        {activeProfile.topics.map((item, i) => (
+                          <div
+                            key={i}
+                            className="profile-topic-line clickable-card"
+                            onClick={() => handleOpenTopic(item.topic)}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', marginBottom: '4px' }}>
+                              <b>{item.topic}</b>
+                              <small style={{ color: '#64748B', fontSize: '11px' }}>{item.count > 0 ? `${item.count} طلبات/جلسات` : 'لا توجد طلبات'}</small>
+                            </div>
+                            <div className="profile-topic-track">
+                              <i style={{ width: `${item.pct}%` }}></i>
+                            </div>
+                            <span>{item.pct}%</span>
                           </div>
-                          <span>{item.pct}%</span>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '32px 20px', background: '#F8FAFC', borderRadius: '16px', border: '1px dashed #CBD5E1', color: '#64748B' }}>
+                        <div style={{ fontSize: '24px', marginBottom: '8px' }}>📊</div>
+                        <b style={{ color: '#0e3b5e' }}>لا توجد اهتمامات ضريبية مسجلة بعد</b>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '12.5px' }}>
+                          لم يقم هذا الحساب بحجز استشارات أو رفع تذاكر استفسار ضريبية حتى الآن. يتم احتساب نسب الاهتمامات تلقائياً وفورياً من نشاط العميل الفعلي في المنصة.
+                        </p>
+                      </div>
+                    )}
                   </section>
 
                   {/* Section 6: Activity */}
                   <section className="profile-section-card" id="sec_activity">
-                    <h2>آخر نشاط على المنصة</h2>
-                    <div className="profile-activity-list">
-                      <div
-                        className="profile-activity-item clickable-card"
-                        onClick={() => handleOpenSession('جلسة استشارة فيديو — ضريبة الدخل', '28 أغسطس')}
-                      >
-                        <div className="profile-activity-ico">📹</div>
-                        <div>
-                          <b>جلسة استشارة فيديو — ضريبة الدخل</b>
-                          <small>مع المستشار أحمد العواملة · مكتملة بنجاح</small>
-                        </div>
-                        <time>28 أغسطس</time>
+                    <h2>سجل النشاط والاستشارات</h2>
+                    <div className="profile-section-sub">الاستشارات والعمليات الفعلية المسجلة في الداتا بيز</div>
+                    {activeProfile.appointments && activeProfile.appointments.length > 0 ? (
+                      <div className="profile-activity-list">
+                        {activeProfile.appointments.map((a, i) => (
+                          <div
+                            key={i}
+                            className="profile-activity-item clickable-card"
+                            onClick={() => handleOpenSession(a.title || 'استشارة ضريبية', a.scheduled_start ? new Date(a.scheduled_start).toLocaleDateString('ar-JO') : 'مكتملة')}
+                          >
+                            <div className="profile-activity-ico">{a.type?.includes('video') ? '📹' : '💬'}</div>
+                            <div>
+                              <b>{a.title || 'استشارة ضريبية'}</b>
+                              <small>مع المستشار: {a.consultant_name} · الحالة: {a.status === 'completed' ? 'مكتملة بنجاح' : a.status}</small>
+                            </div>
+                            <time>{a.scheduled_start ? new Date(a.scheduled_start).toLocaleDateString('ar-JO') : '—'}</time>
+                          </div>
+                        ))}
                       </div>
-
-                      <div
-                        className="profile-activity-item clickable-card"
-                        onClick={() => handleOpenSession('محادثة استشارية — الفوترة الإلكترونية', '25 أغسطس')}
-                      >
-                        <div className="profile-activity-ico">💬</div>
-                        <div>
-                          <b>محادثة استشارية — الفوترة الإلكترونية</b>
-                          <small>14 رسالة · تم إغلاق الجلسة</small>
-                        </div>
-                        <time>25 أغسطس</time>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '36px 20px', background: '#F8FAFC', borderRadius: '16px', border: '1px dashed #CBD5E1', color: '#64748B' }}>
+                        <div style={{ fontSize: '24px', marginBottom: '8px' }}>📝</div>
+                        <b style={{ color: '#0e3b5e' }}>لا توجد استشارات أو جلسات سابقة مسجلة</b>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '12.5px' }}>لم يقم هذا الحساب بحجز جلسات استشارية بعد.</p>
                       </div>
-
-                      <div
-                        className="profile-activity-item clickable-card"
-                        onClick={() => handleOpenSession('ملخص الاستشارة', '24 أغسطس')}
-                      >
-                        <div className="profile-activity-ico">📑</div>
-                        <div>
-                          <b>تحميل ملخص الاستشارة</b>
-                          <small>Tax-session-summary-0824.pdf</small>
-                        </div>
-                        <time>24 أغسطس</time>
-                      </div>
-
-                      <div
-                        className="profile-activity-item clickable-card"
-                        onClick={() => {
-                          openModal(
-                            'تحديث صلاحية عضو',
-                            '21 أغسطس · سجل النشاط الإداري',
-                            <div className="modal-list">
-                              <div className="modal-row">
-                                <div className="mi">🛡️</div>
-                                <div><b>تم تعديل صلاحيات سارة الخطيب</b><small>أضيفت صلاحية الفوترة وتم الإبقاء على صلاحية الاستشارات.</small></div>
-                                <span className="tag">بواسطة مدير الحساب</span>
-                              </div>
-                            </div>,
-                            false,
-                            'سجل النشاط'
-                          );
-                        }}
-                      >
-                        <div className="profile-activity-ico">🛡️</div>
-                        <div>
-                          <b>تحديث صلاحية عضو في الحساب</b>
-                          <small>تم تعديل صلاحيات سارة الخطيب</small>
-                        </div>
-                        <time>21 أغسطس</time>
-                      </div>
-                    </div>
+                    )}
                   </section>
 
                 </div>
@@ -1823,56 +2091,70 @@ export default function AdminUsersPage({ navigate }) {
                 <section className="profile-side-card">
                   <div className="profile-side-head">
                     <h3>ملخص الحساب</h3>
-                    <span className="profile-live-tag">
-                      {activeProfile.online ? 'متصل الآن' : 'نشط'}
+                    <span className="profile-live-tag" style={{
+                      background: activeProfile.online ? 'rgba(34, 197, 94, 0.12)' : (activeProfile.is_active ? 'rgba(14, 165, 233, 0.12)' : 'rgba(239, 68, 68, 0.12)'),
+                      color: activeProfile.online ? '#15803d' : (activeProfile.is_active ? '#0369a1' : '#b91c1c'),
+                      borderColor: activeProfile.online ? '#86efac' : (activeProfile.is_active ? '#7dd3fc' : '#fca5a5')
+                    }}>
+                      {activeProfile.online ? '● متصل الآن' : (activeProfile.is_active ? 'حساب مفعّل' : 'حساب معطّل')}
                     </span>
                   </div>
-                  <div className="profile-kpi-grid">
-                    <div className="profile-kpi-box clickable-card" onClick={() => handleOpenConsultations(activeProfile, 'all')}>
-                      <small>إجمالي الاستشارات</small>
-                      <b>{activeProfile.consult}</b>
-                      <span>+3 هذا الشهر</span>
-                    </div>
-                    <div className="profile-kpi-box clickable-card" onClick={() => handleOpenConsultations(activeProfile, 'success')}>
-                      <small>استشارات ناجحة</small>
-                      <b>{activeProfile.success}</b>
-                      <span>{Math.round((activeProfile.success / (activeProfile.consult || 1)) * 100)}% نجاح</span>
-                    </div>
-                    <div className="profile-kpi-box clickable-card" onClick={() => handleOpenConsultations(activeProfile, 'video')}>
-                      <small>مكالمات فيديو</small>
-                      <b>{activeProfile.video}</b>
-                      <span>{Math.round((activeProfile.video / (activeProfile.consult || 1)) * 100)}% من الجلسات</span>
-                    </div>
-                    <div className="profile-kpi-box clickable-card" onClick={() => handleOpenConsultations(activeProfile, 'chat')}>
-                      <small>محادثات</small>
-                      <b>{activeProfile.chat}</b>
-                      <span>{Math.round((activeProfile.chat / (activeProfile.consult || 1)) * 100)}% من الجلسات</span>
-                    </div>
-                  </div>
+                  {(() => {
+                    const apptsList = activeProfile.appointments || [];
+                    const hasApptsData = activeProfile.appointments !== undefined;
+                    const totalConsultCount = hasApptsData ? apptsList.length : (activeProfile.consult || 0);
+                    const completedConsultCount = hasApptsData ? apptsList.filter(a => ['completed', 'confirmed'].includes(String(a.status).toLowerCase())).length : (activeProfile.success || 0);
+                    const videoConsultCount = hasApptsData ? apptsList.filter(a => String(a.type).toLowerCase().includes('video')).length : (activeProfile.video || 0);
+                    const chatConsultCount = hasApptsData ? apptsList.filter(a => String(a.type).toLowerCase().includes('chat') || String(a.type).toLowerCase().includes('messaging')).length : (activeProfile.chat || 0);
+
+                    return (
+                      <div className="profile-kpi-grid">
+                        <div className="profile-kpi-box clickable-card" onClick={() => handleOpenConsultations(activeProfile, 'all')}>
+                          <small>إجمالي الاستشارات</small>
+                          <b>{totalConsultCount}</b>
+                          <span>{totalConsultCount > 0 ? `${totalConsultCount} جلسات` : 'لا يوجد'}</span>
+                        </div>
+                        <div className="profile-kpi-box clickable-card" onClick={() => handleOpenConsultations(activeProfile, 'success')}>
+                          <small>استشارات ناجحة</small>
+                          <b>{completedConsultCount}</b>
+                          <span>{totalConsultCount > 0 ? `${Math.round((completedConsultCount / totalConsultCount) * 100)}% نجاح` : '0%'}</span>
+                        </div>
+                        <div className="profile-kpi-box clickable-card" onClick={() => handleOpenConsultations(activeProfile, 'video')}>
+                          <small>مكالمات فيديو</small>
+                          <b>{videoConsultCount}</b>
+                          <span>{totalConsultCount > 0 ? `${Math.round((videoConsultCount / totalConsultCount) * 100)}% من الجلسات` : '0%'}</span>
+                        </div>
+                        <div className="profile-kpi-box clickable-card" onClick={() => handleOpenConsultations(activeProfile, 'chat')}>
+                          <small>محادثات</small>
+                          <b>{chatConsultCount}</b>
+                          <span>{totalConsultCount > 0 ? `${Math.round((chatConsultCount / totalConsultCount) * 100)}% من الجلسات` : '0%'}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </section>
 
                 {/* 2. Plan & Usage */}
                 <section className="profile-side-card">
                   <div className="profile-side-head">
                     <h3>الباقة والاستهلاك</h3>
-                    <span className="user-badge orange">{activeProfile.plan}</span>
+                    <span className="user-badge orange">{activeProfile.subscription?.plan_name || activeProfile.plan || 'الباقة الأساسية'}</span>
                   </div>
                   <div className="profile-plan-row clickable-card" onClick={() => handleOpenPlanUsage(activeProfile)}>
                     <div className="profile-donut-chart"></div>
                     <div className="profile-plan-copy">
-                      <b>68% مستخدم</b>
-                      <small>متبقي 32% من رصيد الباقة الحالية<br />التجديد: 14 سبتمبر 2026</small>
+                      <b>{activeProfile.subscription?.status === 'active' ? 'اشتراك نشط' : 'الباقة القياسية'}</b>
+                      <small>{activeProfile.subscription?.points_balance !== undefined ? `الرصيد: ${activeProfile.subscription.points_balance} نقطة` : 'لا يوجد استهلاك للباقة حالياً'}</small>
                     </div>
                   </div>
                   <div className="profile-usage-list">
                     {[
-                      { title: 'استهلاك النقاط', value: '680 / 1000 نقطة', displayVal: '680 / 1000', pct: 68 },
-                      { title: 'تحميل الوثائق', value: '24 / 40 عملية', displayVal: '24 / 40', pct: 60 },
-                      { title: 'طباعة الوثائق', value: '13 / 25 عملية', displayVal: '13 / 25', pct: 52 },
-                      { title: 'الجلسات الاستشارية المجانية', value: '2 / 3 جلسات', displayVal: '2 / 3', pct: 67 }
+                      { title: 'استهلاك النقاط', displayVal: activeProfile.subscription?.points_balance ? `${activeProfile.subscription.points_balance} نقطة` : '0 نقطة', pct: 0 },
+                      { title: 'تحميل الوثائق', displayVal: activeProfile.documents ? `${activeProfile.documents.length} ملفات` : '0 ملفات', pct: 0 },
+                      { title: 'الجلسات الاستشارية', displayVal: `${(activeProfile.appointments ? activeProfile.appointments.length : (activeProfile.consult || 0))} جلسة`, pct: (activeProfile.appointments ? activeProfile.appointments.length : (activeProfile.consult || 0)) ? Math.min(100, (activeProfile.appointments ? activeProfile.appointments.length : (activeProfile.consult || 0)) * 10) : 0 }
                     ].map((usage, i) => (
-                      <div key={i} className="profile-usage-row clickable-card" onClick={() => handleOpenUsage(usage.title, usage.value)}>
-                        <span>{usage.title.includes('المجانية') ? 'جلسات مجانية' : usage.title}</span>
+                      <div key={i} className="profile-usage-row clickable-card" onClick={() => handleOpenUsage(usage.title, usage.displayVal)}>
+                        <span>{usage.title}</span>
                         <div className="track">
                           <i style={{ width: `${usage.pct}%` }}></i>
                         </div>
@@ -1882,77 +2164,7 @@ export default function AdminUsersPage({ navigate }) {
                   </div>
                 </section>
 
-                {/* 3. 6-Months Activity Chart */}
-                <section className="profile-side-card">
-                  <div className="profile-side-head">
-                    <h3>النشاط خلال 6 أشهر</h3>
-                    <small style={{ color: 'var(--admin-muted)' }}>جلسات</small>
-                  </div>
-                  <div className="profile-activity-chart-box clickable-card">
-
-                    {/* Hover Tooltip */}
-                    <div
-                      className={`profile-chart-tooltip ${chartTooltip.show ? 'show' : ''}`}
-                      style={{ left: chartTooltip.x, top: chartTooltip.y }}
-                    >
-                      {chartTooltip.text}
-                    </div>
-
-                    <svg viewBox="0 0 320 110" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
-                      <defs>
-                        <linearGradient id="userActivityArea" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#F59A23" stopOpacity="0.22" />
-                          <stop offset="100%" stopColor="#F59A23" stopOpacity="0" />
-                        </linearGradient>
-                      </defs>
-                      <path d="M0 91 L48 75 L98 82 L150 51 L204 60 L260 30 L320 42 L320 110 L0 110 Z" fill="url(#userActivityArea)" />
-                      <polyline points="0,91 48,75 98,82 150,51 204,60 260,30 320,42" fill="none" stroke="#F59A23" strokeWidth="3" />
-                      <g fill="#0B2E4B">
-                        {[
-                          { cx: 8, cy: 91, m: 'مارس', count: 2 },
-                          { cx: 48, cy: 75, m: 'أبريل', count: 4 },
-                          { cx: 98, cy: 82, m: 'مايو', count: 3 },
-                          { cx: 150, cy: 51, m: 'يونيو', count: 7 },
-                          { cx: 204, cy: 60, m: 'يوليو', count: 6 },
-                          { cx: 260, cy: 30, m: 'أغسطس', count: 10 },
-                          { cx: 312, cy: 42, m: 'الحالي', count: 8 }
-                        ].map((pt, i) => (
-                          <circle
-                            key={i}
-                            cx={pt.cx}
-                            cy={pt.cy}
-                            r={4}
-                            style={{ cursor: 'pointer', transition: 'all 0.15s' }}
-                            onMouseEnter={(e) => {
-                              const rect = e.currentTarget.parentElement.parentElement.parentElement.getBoundingClientRect();
-                              setChartTooltip({
-                                show: true,
-                                text: `${pt.m}: ${pt.count} جلسات — اضغط للتفاصيل`,
-                                x: e.clientX - rect.left,
-                                y: e.clientY - rect.top
-                              });
-                            }}
-                            onMouseLeave={() => setChartTooltip(prev => ({ ...prev, show: false }))}
-                            onClick={() => handleOpenChartMonth(pt.m, pt.count)}
-                          />
-                        ))}
-                      </g>
-                    </svg>
-                  </div>
-                  <div className="profile-chart-labels">
-                    <span>مارس</span>
-                    <span>أبريل</span>
-                    <span>مايو</span>
-                    <span>يونيو</span>
-                    <span>يوليو</span>
-                    <span>أغسطس</span>
-                  </div>
-                  <div className="profile-click-hint">
-                    مرّر على النقاط واضغط لعرض تفاصيل الشهر
-                  </div>
-                </section>
-
-                {/* 4. Support & Interaction */}
+                {/* 3. Support & Interaction */}
                 <section className="profile-side-card">
                   <div className="profile-side-head">
                     <h3>الدعم والتفاعل</h3>
@@ -1960,34 +2172,40 @@ export default function AdminUsersPage({ navigate }) {
                   <div className="profile-split-metrics">
                     <div className="profile-metric-box clickable-card" onClick={() => handleOpenTickets(activeProfile)}>
                       <small>تذاكر الدعم</small>
-                      <b>{activeProfile.tickets}</b>
+                      <b>{activeProfile.ticketsList?.length ?? activeProfile.tickets ?? 0}</b>
                       <span className="profile-click-hint">عرض القائمة</span>
                     </div>
                     <div className="profile-metric-box clickable-card" onClick={handleOpenRatings}>
-                      <small>متوسط تقييمه للمنصة</small>
-                      <b>4.8 / 5</b>
-                      <span className="profile-click-hint">6 تقييمات</span>
+                      <small>متوسط التقييم</small>
+                      <b>{activeProfile.stats?.avg_rating ? `${activeProfile.stats.avg_rating} / 5` : '—'}</b>
+                      <span className="profile-click-hint">
+                        {activeProfile.stats?.ratings_count > 0 ? `${activeProfile.stats.ratings_count} تقييمات` : 'لا يوجد تقييم بعد'}
+                      </span>
                     </div>
                     <div className="profile-metric-box clickable-card" onClick={handleOpenMembersSummary}>
                       <small>أعضاء الحساب</small>
-                      <b>3</b>
-                      <span className="profile-click-hint">عرض الأعضاء</span>
+                      <b>1</b>
+                      <span className="profile-click-hint">المالك</span>
                     </div>
                     <div className="profile-metric-box clickable-card" onClick={() => handleOpenLastSeen(activeProfile)}>
                       <small>آخر ظهور</small>
-                      <b style={{ fontSize: '11px' }}>{activeProfile.last}</b>
+                      <b style={{ fontSize: '11px' }}>{activeProfile.last || 'الآن'}</b>
                       <span className="profile-click-hint">تفاصيل الدخول</span>
                     </div>
                   </div>
                   <div style={{ marginTop: '12px' }}>
-                    <div className="profile-ticket-item clickable-card" onClick={() => handleOpenTicketDetail('#SUP-1082', 'مشكلة فاتورة', 'قيد المتابعة')}>
-                      <b>#SUP-1082 · مشكلة فاتورة</b>
-                      <span>قيد المتابعة</span>
-                    </div>
-                    <div className="profile-ticket-item clickable-card" onClick={() => handleOpenTicketDetail('#SUP-1041', 'تحديث بيانات', 'مغلقة')}>
-                      <b>#SUP-1041 · تحديث بيانات</b>
-                      <span className="done">مغلقة</span>
-                    </div>
+                    {activeProfile.ticketsList && activeProfile.ticketsList.length > 0 ? (
+                      activeProfile.ticketsList.slice(0, 3).map((t, idx) => (
+                        <div key={idx} className="profile-ticket-item clickable-card" onClick={() => handleOpenTicketDetail(t.ticket_number, t.subject, t.status)}>
+                          <b>#{t.ticket_number} · {t.subject}</b>
+                          <span className={t.status === 'closed' ? 'done' : ''}>{t.status}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ fontSize: '12.5px', color: '#94A3B8', textAlign: 'center', padding: '8px 0' }}>
+                        لا توجد تذاكر دعم مسجلة
+                      </div>
+                    )}
                   </div>
                 </section>
 
@@ -2312,6 +2530,113 @@ export default function AdminUsersPage({ navigate }) {
             >
               تم، موافق
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Rejection Modal with Reason */}
+      {rejectingUser && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(6px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: '24px',
+            padding: '32px',
+            width: '100%',
+            maxWidth: '500px',
+            boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+            direction: 'rtl'
+          }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              background: '#FEF2F2',
+              color: '#DC2626',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '24px',
+              margin: '0 auto 16px auto'
+            }}>
+              ✕
+            </div>
+
+            <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#0e3b5e', textAlign: 'center', margin: '0 0 8px 0' }}>
+              رفض طلب تسجيل العميل
+            </h3>
+            <p style={{ fontSize: '13.5px', color: '#64748B', textAlign: 'center', margin: '0 0 20px 0' }}>
+              أنت على وشك رفض طلب تسجيل <b>{rejectingUser.full_name || rejectingUser.company_name || rejectingUser.email}</b>. يرجى تحديد سبب الرفض لإشعار العميل به:
+            </p>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#0e3b5e', marginBottom: '8px' }}>
+                سبب الرفض:
+              </label>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                rows={4}
+                style={{
+                  width: '100%',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  fontSize: '13px',
+                  fontFamily: 'inherit',
+                  outline: 'none',
+                  resize: 'vertical',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="اكتب سبب الرفض بالتفصيل..."
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <button
+                type="button"
+                disabled={actionLoadingId === rejectingUser.id}
+                onClick={handleConfirmReject}
+                style={{
+                  background: '#DC2626',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  fontWeight: '800',
+                  fontSize: '13.5px',
+                  cursor: 'pointer'
+                }}
+              >
+                {actionLoadingId === rejectingUser.id ? 'جاري الرفض...' : 'تأكيد الرفض'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRejectingUser(null)}
+                style={{
+                  background: '#F1F5F9',
+                  color: '#475569',
+                  border: '1px solid #CBD5E1',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  fontWeight: '800',
+                  fontSize: '13.5px',
+                  cursor: 'pointer'
+                }}
+              >
+                إلغاء
+              </button>
+            </div>
           </div>
         </div>
       )}

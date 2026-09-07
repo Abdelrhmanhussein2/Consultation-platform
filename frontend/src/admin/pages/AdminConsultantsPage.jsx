@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { IconSearch } from '../components/AdminIcons';
-import { getAdminUsers, createAdminUser } from '../services/adminApi';
+import { getAdminUsers, createAdminUser, toggleUserActive, updateUserProfile, handleConsultantAction, getAdminSessions } from '../services/adminApi';
 
 export default function AdminConsultantsPage({ navigate }) {
+  const [activeTab, setActiveTab] = useState('consultants'); // 'consultants' | 'sessions'
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [editModal, setEditModal] = useState(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [specializations, setSpecializations] = useState([]);
   const [loadingAdd, setLoadingAdd] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  // Sessions state (100% Real from PostgreSQL Database)
+  const [sessions, setSessions] = useState([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+  const [sessionSearch, setSessionSearch] = useState('');
+  const [sessionStatusFilter, setSessionStatusFilter] = useState('all');
 
   // New Consultant Form State
   const [newConsultant, setNewConsultant] = useState({
@@ -41,21 +49,38 @@ export default function AdminConsultantsPage({ navigate }) {
       const users = await getAdminUsers({ role: 'consultant', limit: 100 });
       if (Array.isArray(users)) {
         const mapped = users.map(u => {
-          const profStatus = u.profile?.verification_status || u.verification_status;
+          const profStatus = u.verification_status || u.profile?.verification_status;
           const isApproved = profStatus === 'approved';
           const isRejected = profStatus === 'rejected';
+          const isSuspended = u.is_active === false;
+
+          let statusLabel = 'بانتظار';
+          if (isSuspended) {
+            statusLabel = 'موقوف';
+          } else if (isApproved) {
+            statusLabel = 'معتمد';
+          } else if (isRejected) {
+            statusLabel = 'مرفوض';
+          }
+
+          const rawPrice = u.price_per_hour ?? u.hourly_rate ?? 40;
           return {
             id: u.id,
             name: u.full_name || u.name || 'مستشار بدون اسم',
-            status: isApproved ? 'معتمد' : isRejected ? 'مرفوض' : 'بانتظار',
-            hourlyRate: u.hourly_rate ? `${u.hourly_rate} د.أ/ساعة` : (u.price_per_hour ? `${u.price_per_hour} د.أ/ساعة` : '40 د.أ/ساعة'),
-            city: u.address || u.city || 'مدينة غير محددة',
-            email: u.email || '',
-            phone: u.phone || '',
-            sessionsCount: u.sessions_count || 0,
-            revenue: u.revenue || '0 د.أ',
-            license: u.title || u.license || 'رخصة معتمدة',
-            specialties: Array.isArray(u.specialties) ? u.specialties : (u.title ? [u.title] : ['استشارات ضريبية'])
+            status: statusLabel,
+            rawStatus: profStatus,
+            isActive: u.is_active !== false,
+            hourlyRate: `${rawPrice} د.أ/ساعة`,
+            rawRate: rawPrice,
+            city: u.address || u.city || 'عمّان',
+            email: u.email || '—',
+            phone: u.phone || '—',
+            sessionsCount: Number(u.sessions_count || 0),
+            revenue: u.revenue ? `${u.revenue} د.أ` : '0 د.أ',
+            license: u.title || 'مستشار ضريبي معتمد',
+            specialties: Array.isArray(u.specialties) && u.specialties.length > 0
+              ? u.specialties 
+              : (u.title ? [u.title] : ['استشارات ضريبية'])
           };
         });
         setConsultants(mapped);
@@ -65,9 +90,24 @@ export default function AdminConsultantsPage({ navigate }) {
     }
   };
 
-  // Fetch real registered consultants and specializations from backend API
+  const loadSessions = async () => {
+    try {
+      setLoadingSessions(true);
+      const data = await getAdminSessions();
+      if (Array.isArray(data)) {
+        setSessions(data);
+      }
+    } catch (err) {
+      console.warn('Could not fetch real sessions from backend:', err);
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
+
+  // Fetch real registered consultants, sessions, and specializations from backend API
   useEffect(() => {
     loadConsultants();
+    loadSessions();
     fetch('/api/specializations')
       .then(res => res.json())
       .then(data => {
@@ -82,51 +122,54 @@ export default function AdminConsultantsPage({ navigate }) {
   const handleAction = async (id, action) => {
     if (action === 'approve') {
       try {
-        const token = window.__ADMIN_TOKEN__ || document.cookie.match(/(^| )token=([^;]+)/)?.[2];
-        const headers = {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${decodeURIComponent(token)}` } : {})
-        };
-        await fetch(`/api/super-admin/users/${id}/approve`, { method: 'POST', headers });
-        await fetch(`/api/super-admin/consultants/${id}/action`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ action: 'approve' })
+        await handleConsultantAction(id, 'approve');
+        const target = consultants.find(c => c.id === id);
+        setSuccessModal({
+          title: 'تم اعتماد وتفعيل المستشار بنجاح!',
+          name: target?.name || 'المستشار',
+          email: target?.email || '',
+          role: 'مستشار معتمد'
         });
+        await loadConsultants();
       } catch (err) {
-        console.warn('Backend action fallback:', err);
+        alert(err.message || 'حدث خطأ أثناء اعتماد المستشار');
       }
-      setConsultants(prev => prev.map(c => c.id === id ? { ...c, status: 'معتمد' } : c));
-      const target = consultants.find(c => c.id === id);
-      setSuccessModal({
-        title: 'تم اعتماد وتفعيل المستشار بنجاح!',
-        name: target?.name || 'المستشار',
-        email: target?.email || '',
-        role: 'مستشار معتمد'
-      });
-    } else if (action === 'suspend') {
-      setConsultants(prev => prev.map(c => c.id === id ? { ...c, status: 'موقوف' } : c));
-      alert('تم إيقاف المستشار مؤقتاً.');
-    } else if (action === 'reject') {
+    } else if (action === 'suspend' || action === 'activate') {
       try {
-        const token = window.__ADMIN_TOKEN__ || document.cookie.match(/(^| )token=([^;]+)/)?.[2];
-        const headers = {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${decodeURIComponent(token)}` } : {})
-        };
-        await fetch(`/api/super-admin/users/${id}/reject`, { method: 'POST', headers });
-        await fetch(`/api/super-admin/consultants/${id}/action`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ action: 'reject', rejection_reason: 'تم الرفض من قبل الأدمن' })
-        });
+        await toggleUserActive(id);
+        await loadConsultants();
       } catch (err) {
-        console.warn('Backend rejection fallback:', err);
+        alert(err.message || 'حدث خطأ أثناء تعديل حالة الحساب');
       }
-      setConsultants(prev => prev.map(c => c.id === id ? { ...c, status: 'مرفوض' } : c));
-      alert('تم رفض المستشار وإرسال إشعار رسمي له.');
+    } else if (action === 'reject') {
+      const reason = window.prompt('يرجى كتابة سبب رفض المستشار:', 'عدم استيفاء متطلبات الاعتماد المهني');
+      if (reason === null) return;
+      try {
+        await handleConsultantAction(id, 'reject', reason);
+        alert('تم رفض المستشار بنجاح وتحديث حالته.');
+        await loadConsultants();
+      } catch (err) {
+        alert(err.message || 'حدث خطأ أثناء رفض المستشار');
+      }
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editModal) return;
+    setSavingEdit(true);
+    try {
+      const cleanNum = parseFloat(String(editModal.hourlyRate).replace(/[^\d.]/g, '')) || 40.0;
+      await updateUserProfile(editModal.id, {
+        full_name: editModal.name.trim(),
+        price_per_hour: cleanNum
+      });
+      alert('تم تحديث بيانات وتسعير المستشار بنجاح في قاعدة البيانات.');
+      setEditModal(null);
+      await loadConsultants();
+    } catch (err) {
+      alert(err.message || 'حدث خطأ أثناء حفظ التعديلات.');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -189,8 +232,34 @@ export default function AdminConsultantsPage({ navigate }) {
   };
 
   const filtered = consultants.filter(c => {
-    const matchSearch = c.name.includes(searchTerm) || c.city.includes(searchTerm) || c.email.includes(searchTerm);
-    const matchStatus = statusFilter === 'all' || (statusFilter === 'approved' && c.status === 'معتمد') || (statusFilter === 'pending' && c.status === 'بانتظار');
+    const q = searchTerm.trim().toLowerCase();
+    const matchSearch = !q || 
+      c.name.toLowerCase().includes(q) || 
+      c.city.toLowerCase().includes(q) || 
+      c.email.toLowerCase().includes(q) || 
+      (c.license && c.license.toLowerCase().includes(q)) || 
+      (Array.isArray(c.specialties) && c.specialties.some(s => s.toLowerCase().includes(q)));
+
+    const matchStatus = 
+      statusFilter === 'all' || 
+      (statusFilter === 'approved' && c.status === 'معتمد') || 
+      (statusFilter === 'pending' && c.status === 'بانتظار') ||
+      (statusFilter === 'suspended' && (c.status === 'موقوف' || c.status === 'مرفوض'));
+
+    return matchSearch && matchStatus;
+  });
+
+  const filteredSessions = sessions.filter(s => {
+    const q = sessionSearch.trim().toLowerCase();
+    const matchSearch = !q || 
+      (s.client_name && s.client_name.toLowerCase().includes(q)) || 
+      (s.consultant_name && s.consultant_name.toLowerCase().includes(q)) || 
+      (s.appointment_id && s.appointment_id.toString().toLowerCase().includes(q));
+
+    const matchStatus = 
+      sessionStatusFilter === 'all' || 
+      s.status === sessionStatusFilter;
+
     return matchSearch && matchStatus;
   });
 
@@ -202,7 +271,7 @@ export default function AdminConsultantsPage({ navigate }) {
           <div className="admin-banner-sub-tag">CONSULTANT GOVERNANCE</div>
           <h1 className="admin-banner-title">حوكمة المستشارين</h1>
           <p className="admin-banner-desc">
-            إضافة واعتماد وتعديل بيانات وتسعير المستشارين وربطهم في قاعدة البيانات مباشرة.
+            إضافة واعتماد وتعديل بيانات وتسعير المستشارين وتفاصيل جلساتهم المحجوزة من قاعدة البيانات مباشرة.
           </p>
         </div>
         <button 
@@ -214,69 +283,207 @@ export default function AdminConsultantsPage({ navigate }) {
         </button>
       </div>
 
-      {/* 2. Top 4 Metric KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '22px' }}>
-        <div className="admin-card">
-          <div className="admin-kpi-header">
-            <span className="admin-kpi-title">معتمدون</span>
-          </div>
-          <div className="admin-kpi-value-row">
-            <span className="admin-kpi-value">{consultants.filter(c => c.status === 'معتمد').length}</span>
-          </div>
-        </div>
-
-        <div className="admin-card">
-          <div className="admin-kpi-header">
-            <span className="admin-kpi-title">بانتظار</span>
-          </div>
-          <div className="admin-kpi-value-row">
-            <span className="admin-kpi-value">{consultants.filter(c => c.status === 'بانتظار').length}</span>
-          </div>
-        </div>
-
-        <div className="admin-card">
-          <div className="admin-kpi-header">
-            <span className="admin-kpi-title">مرفوض/موقوف</span>
-          </div>
-          <div className="admin-kpi-value-row">
-            <span className="admin-kpi-value">{consultants.filter(c => c.status === 'موقوف' || c.status === 'مرفوض').length}</span>
-          </div>
-        </div>
-
-        <div className="admin-card">
-          <div className="admin-kpi-header">
-            <span className="admin-kpi-title">جلسات</span>
-          </div>
-          <div className="admin-kpi-value-row">
-            <span className="admin-kpi-value">{consultants.reduce((sum, c) => sum + (c.sessionsCount || 0), 0)}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Search & Filter Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '18px' }}>
-        <div className="admin-search-wrapper" style={{ flex: 1 }}>
-          <IconSearch size={15} className="admin-search-icon" />
-          <input
-            type="text"
-            className="admin-search-input"
-            placeholder="بحث بالاسم، البريد، المدينة، التخصص..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        <select 
-          className="admin-select-input"
-          style={{ width: '160px', height: '38px' }}
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
+      {/* Navigation Tabs: Consultants vs Sessions Details */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '2px solid #E2E8F0', paddingBottom: '12px' }}>
+        <button
+          type="button"
+          onClick={() => setActiveTab('consultants')}
+          style={{
+            padding: '10px 22px',
+            borderRadius: '10px',
+            border: activeTab === 'consultants' ? '2px solid #0284C7' : '1px solid #CBD5E1',
+            fontWeight: '800',
+            fontSize: '14px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: activeTab === 'consultants' ? '#0284C7' : '#FFFFFF',
+            color: activeTab === 'consultants' ? '#FFFFFF' : '#334155',
+            boxShadow: activeTab === 'consultants' ? '0 2px 8px rgba(2, 132, 199, 0.25)' : 'none',
+            transition: 'all 0.15s ease'
+          }}
         >
-          <option value="all">كل الحالات</option>
-          <option value="approved">معتمد</option>
-          <option value="pending">بانتظار</option>
-        </select>
+          <span>المستشارون المعتمدون</span>
+          <span style={{ 
+            padding: '2px 8px', 
+            borderRadius: '999px', 
+            fontSize: '12px',
+            background: activeTab === 'consultants' ? 'rgba(255,255,255,0.25)' : '#F1F5F9',
+            color: activeTab === 'consultants' ? '#FFFFFF' : '#0F172A',
+            fontWeight: '800'
+          }}>
+            {consultants.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('sessions')}
+          style={{
+            padding: '10px 22px',
+            borderRadius: '10px',
+            border: activeTab === 'sessions' ? '2px solid #0284C7' : '1px solid #CBD5E1',
+            fontWeight: '800',
+            fontSize: '14px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: activeTab === 'sessions' ? '#0284C7' : '#FFFFFF',
+            color: activeTab === 'sessions' ? '#FFFFFF' : '#334155',
+            boxShadow: activeTab === 'sessions' ? '0 2px 8px rgba(2, 132, 199, 0.25)' : 'none',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <span>سجل وتفاصيل الجلسات</span>
+          <span style={{ 
+            padding: '2px 8px', 
+            borderRadius: '999px', 
+            fontSize: '12px',
+            background: activeTab === 'sessions' ? 'rgba(255,255,255,0.25)' : '#F1F5F9',
+            color: activeTab === 'sessions' ? '#FFFFFF' : '#0F172A',
+            fontWeight: '800'
+          }}>
+            {sessions.length || consultants.reduce((sum, c) => sum + (c.sessionsCount || 0), 0)}
+          </span>
+        </button>
       </div>
+
+      {/* ══════════════════════════════════════════════════════════════════
+          TAB 1: CONSULTANTS GOVERNANCE (DEFAULT)
+          ══════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'consultants' && (
+        <>
+          {/* Top 4 Metric KPI Cards - Clickable Interactive Filters */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '16px' }}>
+            <div 
+              className="admin-card clickable-card" 
+              onClick={() => setStatusFilter('all')}
+              style={{ 
+                cursor: 'pointer', 
+                border: statusFilter === 'all' ? '2px solid #0284C7' : '1px solid #E2E8F0',
+                background: statusFilter === 'all' ? '#F0F9FF' : '#FFFFFF',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <div className="admin-kpi-header">
+                <span className="admin-kpi-title">إجمالي المستشارين</span>
+                {statusFilter === 'all' && <span style={{ fontSize: '11px', color: '#0284C7', fontWeight: '800' }}>الكل ✓</span>}
+              </div>
+              <div className="admin-kpi-value-row">
+                <span className="admin-kpi-value">{consultants.length}</span>
+              </div>
+            </div>
+
+            <div 
+              className="admin-card clickable-card" 
+              onClick={() => setStatusFilter(statusFilter === 'approved' ? 'all' : 'approved')}
+              style={{ 
+                cursor: 'pointer', 
+                border: statusFilter === 'approved' ? '2px solid #059669' : '1px solid #E2E8F0',
+                background: statusFilter === 'approved' ? '#ECFDF5' : '#FFFFFF',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <div className="admin-kpi-header">
+                <span className="admin-kpi-title">معتمدون</span>
+                {statusFilter === 'approved' && <span style={{ fontSize: '11px', color: '#059669', fontWeight: '800' }}>محدد ✓</span>}
+              </div>
+              <div className="admin-kpi-value-row">
+                <span className="admin-kpi-value">{consultants.filter(c => c.status === 'معتمد').length}</span>
+              </div>
+            </div>
+
+            <div 
+              className="admin-card clickable-card" 
+              onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
+              style={{ 
+                cursor: 'pointer', 
+                border: statusFilter === 'pending' ? '2px solid #F59E0B' : '1px solid #E2E8F0',
+                background: statusFilter === 'pending' ? '#FFFBEB' : '#FFFFFF',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <div className="admin-kpi-header">
+                <span className="admin-kpi-title">بانتظار</span>
+                {statusFilter === 'pending' && <span style={{ fontSize: '11px', color: '#D97706', fontWeight: '800' }}>محدد ✓</span>}
+              </div>
+              <div className="admin-kpi-value-row">
+                <span className="admin-kpi-value">{consultants.filter(c => c.status === 'بانتظار').length}</span>
+              </div>
+            </div>
+
+            <div 
+              className="admin-card clickable-card" 
+              onClick={() => setStatusFilter(statusFilter === 'suspended' ? 'all' : 'suspended')}
+              style={{ 
+                cursor: 'pointer', 
+                border: statusFilter === 'suspended' ? '2px solid #EF4444' : '1px solid #E2E8F0',
+                background: statusFilter === 'suspended' ? '#FEF2F2' : '#FFFFFF',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <div className="admin-kpi-header">
+                <span className="admin-kpi-title">مرفوض/موقوف</span>
+                {statusFilter === 'suspended' && <span style={{ fontSize: '11px', color: '#DC2626', fontWeight: '800' }}>محدد ✓</span>}
+              </div>
+              <div className="admin-kpi-value-row">
+                <span className="admin-kpi-value">{consultants.filter(c => c.status === 'موقوف' || c.status === 'مرفوض').length}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick link banner to sessions details */}
+          <div 
+            onClick={() => setActiveTab('sessions')}
+            style={{
+              cursor: 'pointer',
+              background: '#F8FAFC',
+              border: '1px solid #E2E8F0',
+              borderRadius: '10px',
+              padding: '10px 18px',
+              marginBottom: '18px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              transition: 'background 0.15s ease'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '700', color: '#0369A1' }}>
+              <span style={{ fontSize: '16px' }}>📅</span>
+              <span>إجمالي الجلسات المحجوزة للمستشارين في قاعدة البيانات: <strong>{sessions.length || consultants.reduce((sum, c) => sum + (c.sessionsCount || 0), 0)} جلسة</strong></span>
+            </div>
+            <span style={{ fontSize: '12px', fontWeight: '800', color: '#0284C7', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              عرض تفاصيل وسجل الجلسات كاملة ←
+            </span>
+          </div>
+
+          {/* Search & Filter Bar for Consultants */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '18px' }}>
+            <div className="admin-search-wrapper" style={{ flex: 1 }}>
+              <IconSearch size={15} className="admin-search-icon" />
+              <input
+                type="text"
+                className="admin-search-input"
+                placeholder="بحث بالاسم، البريد، المدينة، التخصص، رقم الترخيص..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            <select 
+              className="admin-select-input"
+              style={{ width: '180px', height: '38px' }}
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+            >
+              <option value="all">كل الحالات ({consultants.length})</option>
+              <option value="approved">معتمد ({consultants.filter(c => c.status === 'معتمد').length})</option>
+              <option value="pending">بانتظار ({consultants.filter(c => c.status === 'بانتظار').length})</option>
+              <option value="suspended">مرفوض/موقوف ({consultants.filter(c => c.status === 'موقوف' || c.status === 'مرفوض').length})</option>
+            </select>
+          </div>
 
       {/* 4. Consultant Cards List */}
       <div className="admin-card" style={{ padding: '20px' }}>
@@ -308,7 +515,7 @@ export default function AdminConsultantsPage({ navigate }) {
                 >
                   تعديل
                 </button>
-                {c.status === 'معتمد' ? (
+                {c.isActive ? (
                   <button 
                     className="admin-btn-action-outline" 
                     style={{ fontSize: '12px', padding: '6px 14px', color: '#DC2626', borderColor: '#FCA5A5' }}
@@ -318,6 +525,15 @@ export default function AdminConsultantsPage({ navigate }) {
                   </button>
                 ) : (
                   <button 
+                    className="admin-btn-action-outline" 
+                    style={{ fontSize: '12px', padding: '6px 14px', color: '#059669', borderColor: '#A7F3D0' }}
+                    onClick={() => handleAction(c.id, 'activate')}
+                  >
+                    تفعيل
+                  </button>
+                )}
+                {c.status === 'بانتظار' && (
+                  <button 
                     className="admin-btn-action-primary" 
                     style={{ fontSize: '12px', padding: '6px 14px' }}
                     onClick={() => handleAction(c.id, 'approve')}
@@ -325,21 +541,23 @@ export default function AdminConsultantsPage({ navigate }) {
                     اعتماد
                   </button>
                 )}
-                <button 
-                  style={{ 
-                    fontSize: '12px', 
-                    padding: '6px 14px', 
-                    background: '#EF4444', 
-                    color: '#FFFFFF', 
-                    border: 'none', 
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: '700'
-                  }}
-                  onClick={() => handleAction(c.id, 'reject')}
-                >
-                  رفض
-                </button>
+                {c.status !== 'مرفوض' && (
+                  <button 
+                    style={{ 
+                      fontSize: '12px', 
+                      padding: '6px 14px', 
+                      background: '#EF4444', 
+                      color: '#FFFFFF', 
+                      border: 'none', 
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: '700'
+                    }}
+                    onClick={() => handleAction(c.id, 'reject')}
+                  >
+                    رفض
+                  </button>
+                )}
               </div>
 
               <div style={{ textAlign: 'left' }}>
@@ -363,9 +581,9 @@ export default function AdminConsultantsPage({ navigate }) {
                       fontSize: '11px', 
                       padding: '2px 10px', 
                       borderRadius: '12px',
-                      background: c.status === 'معتمد' ? '#ECFDF5' : '#FFFBEB',
-                      color: c.status === 'معتمد' ? '#059669' : '#D97706',
-                      border: c.status === 'معتمد' ? '1px solid #A7F3D0' : '1px solid #FDE68A',
+                      background: c.status === 'معتمد' ? '#ECFDF5' : (c.status === 'موقوف' || c.status === 'مرفوض' ? '#FEF2F2' : '#FFFBEB'),
+                      color: c.status === 'معتمد' ? '#059669' : (c.status === 'موقوف' || c.status === 'مرفوض' ? '#DC2626' : '#D97706'),
+                      border: c.status === 'معتمد' ? '1px solid #A7F3D0' : (c.status === 'موقوف' || c.status === 'مرفوض' ? '1px solid #FECACA' : '1px solid #FDE68A'),
                       fontWeight: '700'
                     }}
                   >
@@ -400,6 +618,203 @@ export default function AdminConsultantsPage({ navigate }) {
           ))}
         </div>
       </div>
+        </>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════
+          TAB 2: SESSIONS DETAILS (100% REAL FROM DATABASE)
+          ══════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'sessions' && (
+        <div>
+          {/* Sessions KPI Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '22px' }}>
+            <div 
+              className="admin-card clickable-card" 
+              onClick={() => setSessionStatusFilter('all')}
+              style={{ 
+                cursor: 'pointer', 
+                border: sessionStatusFilter === 'all' ? '2px solid #0284C7' : '1px solid #E2E8F0',
+                background: sessionStatusFilter === 'all' ? '#F0F9FF' : '#FFFFFF',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <div className="admin-kpi-header">
+                <span className="admin-kpi-title">إجمالي الجلسات</span>
+                {sessionStatusFilter === 'all' && <span style={{ fontSize: '11px', color: '#0284C7', fontWeight: '800' }}>الكل ✓</span>}
+              </div>
+              <div className="admin-kpi-value-row">
+                <span className="admin-kpi-value">{sessions.length}</span>
+              </div>
+            </div>
+
+            <div 
+              className="admin-card clickable-card" 
+              onClick={() => setSessionStatusFilter(sessionStatusFilter === 'completed' ? 'all' : 'completed')}
+              style={{ 
+                cursor: 'pointer', 
+                border: sessionStatusFilter === 'completed' ? '2px solid #059669' : '1px solid #E2E8F0',
+                background: sessionStatusFilter === 'completed' ? '#ECFDF5' : '#FFFFFF',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <div className="admin-kpi-header">
+                <span className="admin-kpi-title">جلسات مكتملة</span>
+                {sessionStatusFilter === 'completed' && <span style={{ fontSize: '11px', color: '#059669', fontWeight: '800' }}>محدد ✓</span>}
+              </div>
+              <div className="admin-kpi-value-row">
+                <span className="admin-kpi-value">{sessions.filter(s => s.status === 'completed').length}</span>
+              </div>
+            </div>
+
+            <div 
+              className="admin-card clickable-card" 
+              onClick={() => setSessionStatusFilter(sessionStatusFilter === 'confirmed' ? 'all' : 'confirmed')}
+              style={{ 
+                cursor: 'pointer', 
+                border: sessionStatusFilter === 'confirmed' ? '2px solid #0284C7' : '1px solid #E2E8F0',
+                background: sessionStatusFilter === 'confirmed' ? '#F0F9FF' : '#FFFFFF',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <div className="admin-kpi-header">
+                <span className="admin-kpi-title">مؤكدة / جارية</span>
+                {sessionStatusFilter === 'confirmed' && <span style={{ fontSize: '11px', color: '#0284C7', fontWeight: '800' }}>محدد ✓</span>}
+              </div>
+              <div className="admin-kpi-value-row">
+                <span className="admin-kpi-value">{sessions.filter(s => s.status === 'confirmed' || s.status === 'in_progress').length}</span>
+              </div>
+            </div>
+
+            <div 
+              className="admin-card clickable-card" 
+              onClick={() => setSessionStatusFilter(sessionStatusFilter === 'pending' ? 'all' : 'pending')}
+              style={{ 
+                cursor: 'pointer', 
+                border: sessionStatusFilter === 'pending' ? '2px solid #F59E0B' : '1px solid #E2E8F0',
+                background: sessionStatusFilter === 'pending' ? '#FFFBEB' : '#FFFFFF',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <div className="admin-kpi-header">
+                <span className="admin-kpi-title">معلقة / بانتظار</span>
+                {sessionStatusFilter === 'pending' && <span style={{ fontSize: '11px', color: '#D97706', fontWeight: '800' }}>محدد ✓</span>}
+              </div>
+              <div className="admin-kpi-value-row">
+                <span className="admin-kpi-value">{sessions.filter(s => s.status === 'pending' || s.status === 'cancelled').length}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Sessions Search & Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '18px' }}>
+            <div className="admin-search-wrapper" style={{ flex: 1 }}>
+              <IconSearch size={15} className="admin-search-icon" />
+              <input
+                type="text"
+                className="admin-search-input"
+                placeholder="بحث باسم العميل، اسم المستشار، رمز الجلسة..."
+                value={sessionSearch}
+                onChange={e => setSessionSearch(e.target.value)}
+              />
+            </div>
+
+            <select 
+              className="admin-select-input"
+              style={{ width: '180px', height: '38px' }}
+              value={sessionStatusFilter}
+              onChange={e => setSessionStatusFilter(e.target.value)}
+            >
+              <option value="all">كل الحالات ({sessions.length})</option>
+              <option value="completed">مكتملة ({sessions.filter(s => s.status === 'completed').length})</option>
+              <option value="confirmed">مؤكدة ({sessions.filter(s => s.status === 'confirmed').length})</option>
+              <option value="pending">معلقة ({sessions.filter(s => s.status === 'pending').length})</option>
+              <option value="cancelled">ملغاة ({sessions.filter(s => s.status === 'cancelled').length})</option>
+            </select>
+          </div>
+
+          {/* Sessions Table Card */}
+          <div className="admin-card" style={{ padding: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#0F172A' }}>
+                تفاصيل جلسات الاستشارات من قاعدة البيانات ({filteredSessions.length})
+              </h3>
+              {loadingSessions && <span style={{ fontSize: '12px', color: '#64748B' }}>جاري التحميل...</span>}
+            </div>
+
+            <div className="admin-table-container">
+              <table className="admin-table" style={{ width: '100%', fontSize: '13px' }}>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>رمز الجلسة</th>
+                    <th>العميل</th>
+                    <th>المستشار</th>
+                    <th>الموعد والتاريخ</th>
+                    <th>المدة</th>
+                    <th>الحالة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredSessions.length > 0 ? (
+                    filteredSessions.map((s, idx) => {
+                      let statusBadge = { text: 'مؤكدة', bg: '#EFF6FF', color: '#0284C7', border: '#BAE6FD' };
+                      if (s.status === 'completed') statusBadge = { text: 'مكتملة', bg: '#ECFDF5', color: '#059669', border: '#A7F3D0' };
+                      else if (s.status === 'pending') statusBadge = { text: 'معلقة', bg: '#FFFBEB', color: '#D97706', border: '#FDE68A' };
+                      else if (s.status === 'cancelled') statusBadge = { text: 'ملغاة', bg: '#FEF2F2', color: '#DC2626', border: '#FECACA' };
+                      else if (s.status === 'in_progress') statusBadge = { text: 'جارية الآن', bg: '#F0F9FF', color: '#0284C7', border: '#BAE6FD' };
+
+                      const rawId = s.appointment_id ? `SES-${String(s.appointment_id).substring(0, 8).toUpperCase()}` : `SES-${1000 + idx}`;
+                      const formattedDate = s.scheduled_at ? new Date(s.scheduled_at).toLocaleString('ar-JO', { dateStyle: 'short', timeStyle: 'short' }) : '—';
+
+                      return (
+                        <tr key={s.appointment_id || idx}>
+                          <td style={{ fontWeight: '700', color: '#64748B' }}>{idx + 1}</td>
+                          <td>
+                            <span style={{ fontFamily: 'monospace', fontWeight: '700', color: '#0F172A', background: '#F1F5F9', padding: '3px 8px', borderRadius: '6px' }}>
+                              {rawId}
+                            </span>
+                          </td>
+                          <td style={{ fontWeight: '700', color: '#0F172A' }}>
+                            {s.client_name || 'عميل المنصة'}
+                          </td>
+                          <td style={{ fontWeight: '700', color: '#0369A1' }}>
+                            {s.consultant_name || 'مستشار المنصة'}
+                          </td>
+                          <td style={{ color: '#475569' }}>
+                            {formattedDate}
+                          </td>
+                          <td style={{ color: '#475569' }}>
+                            {s.duration_minutes ? `${s.duration_minutes} دقيقة` : '45 دقيقة'}
+                          </td>
+                          <td>
+                            <span style={{
+                              padding: '3px 10px',
+                              borderRadius: '12px',
+                              fontSize: '11px',
+                              fontWeight: '700',
+                              background: statusBadge.bg,
+                              color: statusBadge.color,
+                              border: `1px solid ${statusBadge.border}`
+                            }}>
+                              {statusBadge.text}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: '#94A3B8' }}>
+                        لا توجد جلسات تطابق البحث في قاعدة البيانات
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════
           ADD CONSULTANT MODAL (DIRECT DB REGISTRATION)
@@ -584,13 +999,10 @@ export default function AdminConsultantsPage({ navigate }) {
               <button className="admin-btn-action-outline" onClick={() => setEditModal(null)}>إلغاء</button>
               <button 
                 className="admin-btn-action-primary" 
-                onClick={() => {
-                  setConsultants(consultants.map(c => c.id === editModal.id ? editModal : c));
-                  alert('تم تحديث بيانات المستشار بنجاح');
-                  setEditModal(null);
-                }}
+                disabled={savingEdit}
+                onClick={handleSaveEdit}
               >
-                حفظ التعديلات
+                {savingEdit ? 'جاري الحفظ في الداتابيز...' : 'حفظ التعديلات في قاعدة البيانات'}
               </button>
             </div>
           </div>

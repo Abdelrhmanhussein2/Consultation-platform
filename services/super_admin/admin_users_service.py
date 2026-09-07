@@ -551,3 +551,221 @@ class AdminUsersService:
             pass
 
         return {"status": "success", "message": "تم حذف المستخدم نهائياً بنجاح"}
+
+    @staticmethod
+    def get_user_full_profile(db: Session, user_id: uuid.UUID) -> dict:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise ValueError("المستخدم غير موجود")
+
+        # 1. User documents
+        from models.user_document import UserDocument
+        documents = db.query(UserDocument).filter(UserDocument.user_id == user_id).order_by(UserDocument.created_at.desc()).all()
+        doc_list = [{
+            "id": str(d.id),
+            "filename": d.filename,
+            "file_size": d.file_size,
+            "content_type": d.content_type,
+            "created_at": d.created_at.isoformat() if d.created_at else None
+        } for d in documents]
+
+        # 2. Appointments / Consultations
+        from models.appointment import Appointment
+        appts = db.query(Appointment).filter(
+            Appointment.user_id == user_id
+        ).order_by(Appointment.scheduled_at.desc()).limit(30).all()
+
+        appt_list = []
+        for a in appts:
+            c_name = "المستشار الضريبي"
+            if a.consultant and a.consultant.user:
+                c_name = a.consultant.user.full_name
+            
+            s_type = a.session_type.value if hasattr(a.session_type, 'value') else str(a.session_type or '')
+            s_status = a.status.value if hasattr(a.status, 'value') else str(a.status or '')
+            
+            appt_list.append({
+                "id": str(a.id),
+                "appointment_number": str(a.id)[:8].upper(),
+                "consultant_name": c_name,
+                "type": s_type,
+                "status": s_status,
+                "scheduled_start": a.scheduled_at.isoformat() if a.scheduled_at else None,
+                "price": float(a.price) if a.price is not None else 0.0,
+                "title": a.notes or "استشارة ضريبية متخصصة"
+            })
+
+        # 3. Active Subscription
+        from models.user_subscription import UserSubscription
+        sub = db.query(UserSubscription).filter(UserSubscription.user_id == user_id).order_by(UserSubscription.created_at.desc()).first()
+        sub_data = None
+        if sub:
+            sub_data = {
+                "id": str(sub.id),
+                "plan_name": sub.plan.name_ar if (sub.plan and hasattr(sub.plan, 'name_ar')) else (sub.plan.name if sub.plan else "الباقة الأساسية"),
+                "status": sub.status if isinstance(sub.status, str) else (sub.status.value if hasattr(sub.status, 'value') else str(sub.status)),
+                "points_balance": getattr(sub, 'points_total', 0) - getattr(sub, 'points_used', 0),
+                "start_date": sub.start_date.isoformat() if sub.start_date else None,
+                "end_date": sub.end_date.isoformat() if sub.end_date else None
+            }
+
+        # 4. Support Tickets
+        from models.support_ticket import SupportTicket
+        tickets = db.query(SupportTicket).filter(SupportTicket.submitted_by == user_id).order_by(SupportTicket.created_at.desc()).limit(15).all()
+        ticket_list = [{
+            "id": str(t.id),
+            "ticket_number": t.ticket_number or str(t.id)[:8].upper(),
+            "subject": t.subject,
+            "category": t.category.value if hasattr(t.category, 'value') else str(t.category or ''),
+            "priority": t.priority.value if hasattr(t.priority, 'value') else str(t.priority or ''),
+            "status": t.status.value if hasattr(t.status, 'value') else str(t.status or ''),
+            "created_at": t.created_at.isoformat() if t.created_at else None
+        } for t in tickets]
+
+        # 5. Admin Action Logs
+        from models.admin_action_log import AdminActionLog
+        logs = db.query(AdminActionLog).filter(
+            or_(AdminActionLog.target_entity_id == user_id, AdminActionLog.admin_id == user_id)
+        ).order_by(AdminActionLog.created_at.desc()).limit(15).all()
+        log_list = [{
+            "id": str(l.id),
+            "action_type": l.action_type,
+            "details": l.details,
+            "created_at": l.created_at.isoformat() if l.created_at else None
+        } for l in logs]
+
+        # 6. Real Ratings from Database
+        from models.rating import Rating
+        user_ratings = db.query(Rating).filter(Rating.user_id == user_id).all()
+        avg_rating = 0.0
+        if user_ratings:
+            avg_rating = round(sum(r.stars for r in user_ratings) / len(user_ratings), 1)
+
+        # 7. Real Topic Interests based on user's actual consultations and tickets
+        topic_counts = {
+            "ضريبة الدخل": 0,
+            "ضريبة المبيعات": 0,
+            "الفوترة الإلكترونية": 0,
+            "الاعتراضات والتسويات": 0
+        }
+        total_signals = 0
+
+        for a in appts:
+            notes_text = ((a.notes or "") + " " + (a.service.name if a.service else "")).lower()
+            matched = False
+            if "دخل" in notes_text or "income" in notes_text:
+                topic_counts["ضريبة الدخل"] += 1
+                matched = True
+            if "مبيعات" in notes_text or "sales" in notes_text:
+                topic_counts["ضريبة المبيعات"] += 1
+                matched = True
+            if "فوتر" in notes_text or "فاتور" in notes_text or "invoic" in notes_text:
+                topic_counts["الفوترة الإلكترونية"] += 1
+                matched = True
+            if "اعتراض" in notes_text or "تسو" in notes_text or "appeal" in notes_text:
+                topic_counts["الاعتراضات والتسويات"] += 1
+                matched = True
+            if matched:
+                total_signals += 1
+
+        for t in tickets:
+            t_text = ((t.subject or "") + " " + (t.description or "")).lower()
+            matched = False
+            if "دخل" in t_text or "income" in t_text:
+                topic_counts["ضريبة الدخل"] += 1
+                matched = True
+            if "مبيعات" in t_text or "sales" in t_text:
+                topic_counts["ضريبة المبيعات"] += 1
+                matched = True
+            if "فوتر" in t_text or "فاتور" in t_text or "invoic" in t_text:
+                topic_counts["الفوترة الإلكترونية"] += 1
+                matched = True
+            if "اعتراض" in t_text or "تسو" in t_text or "appeal" in t_text:
+                topic_counts["الاعتراضات والتسويات"] += 1
+                matched = True
+            if matched:
+                total_signals += 1
+
+        topic_list = []
+        for topic_name, count in topic_counts.items():
+            pct = round((count / total_signals) * 100) if total_signals > 0 else 0
+            topic_list.append({
+                "topic": topic_name,
+                "count": count,
+                "pct": pct
+            })
+
+        # 8. Real Online Status & Last Seen from refresh_tokens table
+        from models.refresh_token import RefreshToken
+        from datetime import datetime, timezone, timedelta
+
+        last_token = db.query(RefreshToken).filter(
+            RefreshToken.user_id == user_id
+        ).order_by(RefreshToken.created_at.desc()).first()
+
+        now_utc = datetime.now(timezone.utc)
+        is_online = False
+        last_seen_str = "لم يدخل بعد"
+
+        if last_token and last_token.created_at:
+            token_time = last_token.created_at if last_token.created_at.tzinfo else last_token.created_at.replace(tzinfo=timezone.utc)
+            time_diff = now_utc - token_time
+            if time_diff < timedelta(minutes=15) and not last_token.is_revoked:
+                is_online = True
+                last_seen_str = "متصل الآن"
+            else:
+                mins = int(time_diff.total_seconds() / 60)
+                hours = int(mins / 60)
+                days = int(hours / 24)
+                if mins < 60:
+                    last_seen_str = f"منذ {mins} دقيقة"
+                elif hours < 24:
+                    last_seen_str = f"منذ {hours} ساعة"
+                elif days < 7:
+                    last_seen_str = f"منذ {days} أيام"
+                else:
+                    last_seen_str = token_time.strftime("%Y-%m-%d")
+        elif user.created_at:
+            last_seen_str = f"انضم في {user.created_at.strftime('%Y-%m-%d')}"
+
+        completed_sessions = sum(1 for a in appts if str(a.status).lower() in ("completed", "confirmed"))
+        video_sessions = sum(1 for a in appts if "video" in str(getattr(a, 'session_type', '')).lower())
+        chat_sessions = sum(1 for a in appts if "chat" in str(getattr(a, 'session_type', '')).lower() or "messaging" in str(getattr(a, 'session_type', '')).lower())
+
+        return {
+            "id": str(user.id),
+            "account_id": f"CUS-{str(user.id).replace('-', '')[:6].upper()}",
+            "full_name": user.full_name,
+            "email": user.email,
+            "phone": user.phone or "—",
+            "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
+            "entity_type": user.entity_type.value if hasattr(user.entity_type, 'value') else str(user.entity_type),
+            "company_name": user.company_name or "—",
+            "tax_number": user.tax_number or "—",
+            "national_id": getattr(user, 'national_id', None) or "—",
+            "commercial_register": getattr(user, 'commercial_register', None) or "—",
+            "legal_form": getattr(user, 'legal_form', None),
+            "sector": user.sector.value if (user.sector and hasattr(user.sector, 'value')) else (str(user.sector) if user.sector else "خدمات"),
+            "address": user.address or "عمّان",
+            "is_active": user.is_active,
+            "is_online": is_online,
+            "verification_status": user.verification_status.value if (user.verification_status and hasattr(user.verification_status, 'value')) else "approved",
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+            "last_login": last_seen_str,
+            "documents": doc_list,
+            "appointments": appt_list,
+            "subscription": sub_data,
+            "tickets": ticket_list,
+            "logs": log_list,
+            "topics": topic_list,
+            "total_topic_signals": total_signals,
+            "stats": {
+                "total_consultations": len(appt_list),
+                "completed_consultations": completed_sessions,
+                "video_sessions": video_sessions,
+                "chat_sessions": chat_sessions,
+                "tickets_count": len(ticket_list),
+                "avg_rating": avg_rating,
+                "ratings_count": len(user_ratings)
+            }
+        }

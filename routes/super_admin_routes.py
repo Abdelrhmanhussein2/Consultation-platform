@@ -175,6 +175,19 @@ def list_users(
     )
 
 
+@router.get(
+    "/users/{user_id}/full-profile",
+    summary="Get complete real user profile with real documents, appointments, subscriptions, and logs",
+)
+def get_user_full_profile(
+    user_id: str,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_users),
+):
+    """Returns complete real database profile for a user."""
+    return SuperAdminController.get_user_full_profile(db, user_id)
+
+
 @router.post(
     "/users/add",
     response_model=UserOut,

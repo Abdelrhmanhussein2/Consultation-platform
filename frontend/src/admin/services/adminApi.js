@@ -104,6 +104,10 @@ export async function getAdminUsers(params = {}) {
   return adminRequest(`/super-admin/users${query ? `?${query}` : ''}`);
 }
 
+export async function getUserFullProfile(userId) {
+  return adminRequest(`/super-admin/users/${userId}/full-profile`);
+}
+
 export async function toggleUserActive(userId) {
   return adminRequest(`/super-admin/users/${userId}/toggle-active`, {
     method: 'POST'
@@ -134,6 +138,24 @@ export async function adminAddUserDirect(userData) {
   return adminRequest('/super-admin/users/add', {
     method: 'POST',
     body: JSON.stringify(userData)
+  });
+}
+
+export async function getPendingUsers() {
+  return adminRequest('/super-admin/users/pending');
+}
+
+export async function handleUserAction(userId, action, rejection_reason = '') {
+  return adminRequest(`/super-admin/users/${userId}/action`, {
+    method: 'POST',
+    body: JSON.stringify({ action, rejection_reason })
+  });
+}
+
+export async function handleConsultantAction(userId, action, rejection_reason = '') {
+  return adminRequest(`/super-admin/consultants/${userId}/action`, {
+    method: 'POST',
+    body: JSON.stringify({ action, rejection_reason })
   });
 }
 

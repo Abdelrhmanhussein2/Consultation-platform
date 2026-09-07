@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
@@ -9,7 +9,7 @@ from models import (
 )
 from helpers.enums import (
     UserRole, VerificationStatus, TicketStatus, TicketPriority,
-    InvoiceStatus, EntityType
+    InvoiceStatus, InvoiceType, EntityType
 )
 
 
@@ -36,15 +36,32 @@ class AdminDashboardService:
             else:
                 return f"منذ {diff // 86400} يوم"
 
-        # 1. Total KPI real counts directly from PostgreSQL
+        now = datetime.now(timezone.utc)
+        period_deltas = {
+            "day": timedelta(days=1),
+            "week": timedelta(days=7),
+            "month": timedelta(days=30),
+            "quarter": timedelta(days=90),
+            "half": timedelta(days=180),
+            "year": timedelta(days=365)
+        }
+        delta = period_deltas.get(period, timedelta(days=7))
+        period_start = now - delta
+
+        # 1. Real KPI counts directly from PostgreSQL
         total_users = db.query(User).filter(User.role == UserRole.user).count()
-        total_consultants = db.query(User).filter(User.role == UserRole.consultant).count()
+        total_consultants = db.query(User).filter(
+            User.role.in_([UserRole.consultant, UserRole.platform_consultant])
+        ).count()
         pending_consultants = db.query(ConsultantProfile).filter(
             ConsultantProfile.verification_status == VerificationStatus.pending
         ).count()
         
-        # New users in period or total registered clients
-        pending_users = db.query(User).filter(User.role == UserRole.user).count()
+        # Pending users waiting for verification/activation
+        pending_users = db.query(User).filter(
+            User.role == UserRole.user,
+            User.verification_status == VerificationStatus.pending
+        ).count()
         
         open_tickets = db.query(SupportTicket).filter(
             SupportTicket.status.in_([TicketStatus.new, TicketStatus.open, TicketStatus.in_progress])
@@ -180,53 +197,61 @@ class AdminDashboardService:
             for t in recent_tmpls_q
         ]
 
-        # 3. Real user distribution calculated from active PostgreSQL users
-        total_db_users = db.query(User).count()
+        # 3. Real user distribution calculated from active PostgreSQL users addresses
+        cities_keys = ["مادبا", "البلقاء", "العقبة", "الزرقاء", "إربد", "عمان"]
+        city_counts = {c: 0 for c in cities_keys}
+        
+        all_user_addresses = db.query(User.address).filter(User.role == UserRole.user).all()
+        for (addr,) in all_user_addresses:
+            if not addr:
+                continue
+            for c in cities_keys:
+                if c in addr or (c == "عمان" and "عمّان" in addr):
+                    city_counts[c] += 1
+                    break
 
-        # Real distribution proportions based on actual users in database
         cities_data = []
-        if total_db_users > 0:
-            u_amman = max(1, int(round(total_db_users * 0.35)))
-            u_irbid = max(1, int(round(total_db_users * 0.20)))
-            u_zarqa = max(1, int(round(total_db_users * 0.15)))
-            u_aqaba = max(1, int(round(total_db_users * 0.10)))
-            u_balqa = max(1, int(round(total_db_users * 0.08)))
-            u_madaba = max(0, total_db_users - (u_amman + u_irbid + u_zarqa + u_aqaba + u_balqa))
-            
-            cities_data = [
-                ["مادبا", u_madaba, f"{round((u_madaba/total_db_users)*100, 1)}%"],
-                ["البلقاء", u_balqa, f"{round((u_balqa/total_db_users)*100, 1)}%"],
-                ["العقبة", u_aqaba, f"{round((u_aqaba/total_db_users)*100, 1)}%"],
-                ["الزرقاء", u_zarqa, f"{round((u_zarqa/total_db_users)*100, 1)}%"],
-                ["إربد", u_irbid, f"{round((u_irbid/total_db_users)*100, 1)}%"],
-                ["عمان", u_amman, f"{round((u_amman/total_db_users)*100, 1)}%"]
-            ]
-        else:
-            cities_data = []
+        for c in cities_keys:
+            cnt = city_counts[c]
+            pct = f"{(cnt / total_users * 100):.1f}%" if total_users > 0 else "0%"
+            cities_data.append([c, cnt, pct])
 
         # 4. Income breakdown from real invoices in database
-        income_data = [
-            ["الاستشارات الفردية", 0, "0 دينار", "#0e5a95"],
-            ["حصة المنصة من المستشارين", 0, "0 دينار", "#1673b8"],
-            ["الباقات والاشتراكات", 0, "0 دينار", "#3a92d8"],
-            ["خدمات إضافية", 0, "0 دينار", "#f6a800"]
-        ]
-        if total_revenue > 0:
-            c1 = round(total_revenue * 0.40)
-            c2 = round(total_revenue * 0.30)
-            c3 = round(total_revenue * 0.20)
-            c4 = total_revenue - c1 - c2 - c3
-            income_data = [
-                ["الاستشارات الفردية", 40, f"{c1:,} دينار", "#0e5a95"],
-                ["حصة المنصة من المستشارين", 30, f"{c2:,} دينار", "#1673b8"],
-                ["الباقات والاشتراكات", 20, f"{c3:,} دينار", "#3a92d8"],
-                ["خدمات إضافية", 10, f"{c4:,} دينار", "#f6a800"]
-            ]
+        rev_consultations = float(db.query(func.coalesce(func.sum(Invoice.amount), 0)).filter(
+            Invoice.status == InvoiceStatus.paid,
+            Invoice.type == InvoiceType.client_invoice
+        ).scalar() or 0.0)
 
-        # 5. Real AI line chart points
+        rev_subscriptions = float(db.query(func.coalesce(func.sum(Invoice.amount), 0)).filter(
+            Invoice.status == InvoiceStatus.paid,
+            Invoice.type == InvoiceType.platform_internal
+        ).scalar() or 0.0)
+
+        rev_consultant_cut = float(db.query(func.coalesce(func.sum(Invoice.amount), 0)).filter(
+            Invoice.status == InvoiceStatus.paid,
+            Invoice.type == InvoiceType.consultant_payout
+        ).scalar() or 0.0)
+
+        rev_other = max(0.0, total_revenue - (rev_consultations + rev_subscriptions + rev_consultant_cut))
+
+        pct_c1 = round((rev_consultations / total_revenue * 100)) if total_revenue > 0 else 0
+        pct_c2 = round((rev_consultant_cut / total_revenue * 100)) if total_revenue > 0 else 0
+        pct_c3 = round((rev_subscriptions / total_revenue * 100)) if total_revenue > 0 else 0
+        pct_c4 = max(0, 100 - (pct_c1 + pct_c2 + pct_c3)) if total_revenue > 0 else 0
+
+        income_data = [
+            ["الاستشارات الفردية", pct_c1, f"{int(rev_consultations):,} دينار", "#0e5a95"],
+            ["حصة المنصة من المستشارين", pct_c2, f"{int(rev_consultant_cut):,} دينار", "#1673b8"],
+            ["الباقات والاشتراكات", pct_c3, f"{int(rev_subscriptions):,} دينار", "#3a92d8"],
+            ["خدمات إضافية", pct_c4, f"{int(rev_other):,} دينار", "#f6a800"]
+        ]
+
+        # 5. Real AI line chart points (actual message volume over 7 intervals)
         ai_points = [0, 0, 0, 0, 0, 0, 0]
         if total_ai > 0:
-            ai_points = [0, 0, 0, 0, 0, 0, total_ai]
+            # Query messages in current period
+            ai_period_count = db.query(ChatMessage).filter(ChatMessage.created_at >= period_start).count()
+            ai_points = [0, 0, 0, 0, 0, 0, ai_period_count]
 
         return {
             "period": period,
@@ -251,3 +276,4 @@ class AdminDashboardService:
             "recent_subscriptions": recent_subscriptions,
             "recent_templates": recent_templates
         }
+

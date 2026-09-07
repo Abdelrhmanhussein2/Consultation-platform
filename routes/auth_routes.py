@@ -48,7 +48,14 @@ def login(
     """
     Authenticates a user and returns access and refresh tokens.
     """
-    device_info = request.headers.get("user-agent")
+    client_ip = request.headers.get("x-forwarded-for")
+    if client_ip:
+        client_ip = client_ip.split(",")[0].strip()
+    else:
+        client_ip = request.headers.get("x-real-ip") or (request.client.host if request.client else "")
+    
+    user_agent = request.headers.get("user-agent") or ""
+    device_info = f"{client_ip} · {user_agent}" if client_ip else user_agent
     return AuthController.login(db, login_in, redis_client, device_info)
 
 @router.post("/refresh", response_model=Token)

@@ -44,24 +44,6 @@ const DEVICES = ["كمبيوتر مكتبي", "لابتوب", "هاتف محمو
 const SYSTEMS = ["Windows 11", "macOS", "Android", "iOS", "Linux"];
 const BROWSERS = ["Chrome", "Edge", "Safari", "Firefox"];
 
-const INITIAL_USERS = [
-  { id: 1, name: "أحمد الخطيب", email: "ahmad@alofuq.jo", phone: "+962 79 555 2140", legal: "شركة ذات مسؤولية محدودة", sector: "تجاري", login: true, title: "المدير العام", taxNo: "200145879", regNo: "LLC-45872", regDate: "2025-11-18", regTime: "10:25", plan: "الأعمال", planStart: "2026-01-01", planEnd: "2026-12-31", password: "Alofuq@2026" },
-  { id: 2, name: "ليان حسن", email: "layan.hassan@email.com", phone: "+962 78 621 1402", legal: "فرد", sector: "خدمات", login: true, title: "مستخدم", taxNo: "—", regNo: "—", regDate: "2026-02-11", regTime: "12:40", plan: "المهنية", planStart: "2026-02-11", planEnd: "2027-02-10", password: "Layan#2026" },
-  { id: 3, name: "شركة المدار العقارية", email: "admin@almadar.jo", phone: "+962 6 565 2121", legal: "شركة مساهمة خاصة", sector: "عقاري", login: false, title: "مدير الحساب", taxNo: "200188421", regNo: "PSC-7721", regDate: "2025-09-02", regTime: "09:15", plan: "المؤسسات", planStart: "2025-09-02", planEnd: "2026-09-01", password: "Madar!Admin7" },
-  { id: 4, name: "جامعة الشرق", email: "tax@eastuni.edu.jo", phone: "+962 2 710 4420", legal: "جامعة", sector: "خدمات", login: true, title: "مدير الشؤون المالية", taxNo: "200214980", regNo: "UNI-114", regDate: "2026-01-20", regTime: "11:05", plan: "المؤسسات", planStart: "2026-01-20", planEnd: "2027-01-19", password: "EastUni#26" },
-  { id: 5, name: "مؤسسة النور", email: "info@alnoor.jo", phone: "+962 79 441 3310", legal: "مؤسسة فردية", sector: "تجاري", login: true, title: "المالك", taxNo: "200124730", regNo: "EST-43822", regDate: "2026-03-04", regTime: "14:30", plan: "الأعمال", planStart: "2026-03-04", planEnd: "2027-03-03", password: "Noor@2026" },
-  { id: 6, name: "نور حداد", email: "nour.haddad@email.com", phone: "+962 77 319 7421", legal: "أكاديمي / باحث", sector: "خدمات", login: true, title: "باحث", taxNo: "—", regNo: "—", regDate: "2026-04-17", regTime: "08:55", plan: "المهنية", planStart: "2026-04-17", planEnd: "2027-04-16", password: "Nour#Research" },
-  { id: 7, name: "شركة الرواد الصناعية", email: "finance@alrowad.jo", phone: "+962 5 390 2240", legal: "شركة ذات مسؤولية محدودة", sector: "صناعي", login: true, title: "مدير مالي", taxNo: "200198641", regNo: "LLC-95124", regDate: "2025-12-06", regTime: "13:20", plan: "المؤسسات", planStart: "2026-01-01", planEnd: "2026-12-31", password: "Rowad@Fin26" },
-  { id: 8, name: "هيئة التطوير", email: "admin@devorg.jo", phone: "+962 6 520 8211", legal: "منظمة / هيئة", sector: "خدمات", login: false, title: "مسؤول حساب", taxNo: "200177640", regNo: "ORG-2201", regDate: "2026-05-09", regTime: "15:10", plan: "الأعمال", planStart: "2026-05-09", planEnd: "2027-05-08", password: "DevOrg#2026" },
-  { id: 9, name: "شركة الوادي الزراعية", email: "accounts@wadi.jo", phone: "+962 3 201 5502", legal: "شركة تضامن", sector: "زراعي", login: true, title: "محاسب", taxNo: "200165883", regNo: "GP-55402", regDate: "2026-02-26", regTime: "10:40", plan: "الأعمال", planStart: "2026-02-26", planEnd: "2027-02-25", password: "Wadi@2026" },
-  { id: 10, name: "شركة البركة", email: "info@baraka.jo", phone: "+962 2 701 6288", legal: "شركة توصية بسيطة", sector: "تجاري", login: true, title: "المدير", taxNo: "200149901", regNo: "LP-64011", regDate: "2026-01-14", regTime: "12:05", plan: "الأعمال", planStart: "2026-01-14", planEnd: "2027-01-13", password: "Baraka#26" },
-  { id: 11, name: "أمانة مشروع حكومي", email: "tax@govproject.gov.jo", phone: "+962 6 560 1010", legal: "جهة حكومية", sector: "خدمات", login: true, title: "مدير النظام", taxNo: "200250004", regNo: "GOV-88", regDate: "2025-10-01", regTime: "09:00", plan: "المؤسسات", planStart: "2025-10-01", planEnd: "2026-09-30", password: "GovProject!8" },
-  { id: 12, name: "سارة المصري", email: "sara.masri@email.com", phone: "+962 79 801 2450", legal: "فرد", sector: "خدمات", login: true, title: "مستخدم", taxNo: "—", regNo: "—", regDate: "2026-06-13", regTime: "16:15", plan: "الأساسية", planStart: "2026-06-13", planEnd: "2027-06-12", password: "Sara@2026" },
-  { id: 13, name: "الشركة الوطنية", email: "admin@national.jo", phone: "+962 6 580 0090", legal: "شركة مساهمة عامة", sector: "صناعي", login: true, title: "مدير الحساب", taxNo: "200131770", regNo: "PLC-110", regDate: "2025-08-22", regTime: "10:10", plan: "المؤسسات", planStart: "2025-08-22", planEnd: "2026-08-21", password: "National#88" },
-  { id: 14, name: "محمود السالم", email: "mahmoud@email.com", phone: "+962 77 911 8080", legal: "فرد", sector: "تجاري", login: false, title: "مستخدم", taxNo: "—", regNo: "—", regDate: "2026-07-03", regTime: "13:50", plan: "الأساسية", planStart: "2026-07-03", planEnd: "2027-07-02", password: "Mahmoud!26" },
-  { id: 15, name: "مركز الدراسات المالية", email: "research@center.jo", phone: "+962 6 569 4000", legal: "منظمة / هيئة", sector: "خدمات", login: true, title: "باحث رئيسي", taxNo: "200205410", regNo: "ORG-7821", regDate: "2026-03-18", regTime: "11:45", plan: "المهنية", planStart: "2026-03-18", planEnd: "2027-03-17", password: "Research#Center" }
-];
-
 const INITIAL_ROLES = [
   { id: 1, name: "مدير حساب المؤسسة", perms: ["عرض لوحة التحكم", "إدارة الاشتراك", "ترقية الباقات", "استخدام المساعد الذكي", "إدارة التذاكر", "إدارة الملفات", "عرض المستخدمين داخل المؤسسة", "إضافة مستخدم داخل المؤسسة", "تعديل مستخدم داخل المؤسسة", "حذف مستخدم داخل المؤسسة", "عرض الحجوزات", "إدارة بيانات المؤسسة"] },
   { id: 2, name: "مدير مالي", perms: ["عرض لوحة التحكم", "إدارة الاشتراك", "ترقية الباقات", "عرض التذاكر", "إنشاء تذكرة دعم", "تصدير التذاكر", "رفع الملفات", "تحميل الملفات", "عرض الحجوزات", "عرض الاستشارات"] },
@@ -99,50 +81,76 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
   };
 
   // ══════════════════════════════════════════════════════════════════════════
-  // USERS DATA & API SYNC (LIVE POSTGRESQL)
+  // TAB 1: USERS DATA & API SYNC (100% REAL LIVE POSTGRESQL)
   // ══════════════════════════════════════════════════════════════════════════
-  const [users, setUsers] = useState(INITIAL_USERS);
+  const [users, setUsers] = useState([]);
   const [userSearch, setUserSearch] = useState('');
   const [legalFilter, setLegalFilter] = useState('');
   const [sectorFilter, setSectorFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
   const [userEntries, setUserEntries] = useState(10);
   const [userPage, setUserPage] = useState(1);
 
   async function loadUsersFromDb() {
     try {
-      const dbUsers = await getAdminUsers({ limit: 100 });
-      if (Array.isArray(dbUsers) && dbUsers.length > 0) {
-        const mapped = dbUsers.map((u, i) => ({
-          id: u.id || i + 1,
-          name: u.full_name || u.name || u.email,
-          email: u.email,
-          phone: u.phone || '+962 79 000 0000',
-          legal: u.entity_type === 'individual' ? 'فرد' : (u.entity_type === 'company' ? 'شركة ذات مسؤولية محدودة' : 'مؤسسة فردية'),
-          sector: u.sector || 'خدمات',
-          login: u.is_active !== undefined ? Boolean(u.is_active) : true,
-          title: u.title || (u.role === 'admin' ? 'مدير المنصة' : (u.role === 'consultant' ? 'مستشار معتمد' : 'مستخدم')),
-          taxNo: u.tax_number || u.taxNo || '—',
-          regNo: u.commercial_register || u.regNo || '—',
-          regDate: u.created_at ? u.created_at.split('T')[0] : '2026-01-15',
-          regTime: u.created_at && u.created_at.includes('T') ? u.created_at.split('T')[1].substring(0, 5) : '10:00',
-          plan: u.plan || 'الأعمال',
-          planStart: '2026-01-01',
-          planEnd: '2026-12-31',
-          password: 'Temp@Password2026'
-        }));
+      const dbUsers = await getAdminUsers({ limit: 150 });
+      if (Array.isArray(dbUsers)) {
+        const mapped = dbUsers.map((u, i) => {
+          let legalText = 'فرد';
+          if (u.legal_form) {
+            const map = {
+              individual: 'فرد',
+              sole_proprietorship: 'مؤسسة فردية',
+              llc: 'شركة ذات مسؤولية محدودة',
+              general_partnership: 'شركة تضامن',
+              limited_partnership: 'شركة توصية بسيطة',
+              public_joint_stock: 'شركة مساهمة عامة',
+              private_joint_stock: 'شركة مساهمة خاصة',
+              university: 'جامعة',
+              researcher: 'أكاديمي وباحث',
+              ngo: 'جمعية ومنظمة',
+              government: 'جهة حكومية'
+            };
+            legalText = map[u.legal_form] || u.legal_form;
+          } else if (u.entity_type === 'company') {
+            legalText = 'شركة ذات مسؤولية محدودة';
+          }
 
-        setUsers(prev => {
-          const merged = [...mapped];
-          prev.forEach(p => {
-            if (!merged.some(m => m.email === p.email || m.id === p.id)) {
-              merged.push(p);
-            }
-          });
-          return merged;
+          const mapSector = {
+            services: 'خدمات',
+            trade: 'تجاري',
+            commercial: 'تجاري',
+            industry: 'صناعي',
+            industrial: 'صناعي',
+            contracting: 'مقاولات',
+            real_estate: 'عقاري',
+            agriculture: 'زراعي'
+          };
+          const sectorText = mapSector[u.sector?.toLowerCase()] || u.sector || 'خدمات';
+
+          return {
+            id: u.id,
+            name: u.full_name || u.company_name || u.email,
+            email: u.email,
+            phone: u.phone || '—',
+            legal: legalText,
+            sector: sectorText,
+            login: u.is_active !== undefined ? Boolean(u.is_active) : true,
+            title: u.title || (u.role === 'admin' ? 'مدير المنصة' : (u.role === 'consultant' ? 'مستشار معتمد' : 'مستخدم')),
+            taxNo: u.tax_number || '—',
+            regNo: u.commercial_register || '—',
+            regDate: u.created_at ? u.created_at.split('T')[0] : '—',
+            regTime: u.created_at && u.created_at.includes('T') ? u.created_at.split('T')[1].substring(0, 5) : '—',
+            plan: 'الباقة الأساسية',
+            role: u.role,
+            raw: u
+          };
         });
+
+        setUsers(mapped);
       }
     } catch (err) {
-      console.warn('Backend users load fallback:', err);
+      console.warn('Backend users load error:', err);
     }
   }
 
@@ -151,27 +159,11 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
   }, []);
 
   // ══════════════════════════════════════════════════════════════════════════
-  // LOGIN HISTORY DATA (LIVE DATABASE)
+  // TAB 2: LOGIN HISTORY DATA (100% REAL FROM DATABASE, NO FAKE IPS)
   // ══════════════════════════════════════════════════════════════════════════
-  const [historyList, setHistoryList] = useState(() => {
-    return INITIAL_USERS.map((u, i) => ({
-      id: i + 1,
-      userId: u.id,
-      name: u.name,
-      email: u.email,
-      ip: `185.98.${30 + i}.${70 + i}`,
-      last: `26-08-2026 ${String(8 + (i % 10)).padStart(2, '0')}:${String((i * 7) % 60).padStart(2, '0')}`,
-      country: 'الأردن',
-      city: CITIES[i % CITIES.length],
-      device: DEVICES[i % DEVICES.length],
-      os: SYSTEMS[i % SYSTEMS.length],
-      browser: BROWSERS[i % BROWSERS.length],
-      status: 'ناجح'
-    }));
-  });
-
-  const [historyYear, setHistoryYear] = useState('2026');
-  const [historyMonth, setHistoryMonth] = useState('08');
+  const [historyList, setHistoryList] = useState([]);
+  const [historyYear, setHistoryYear] = useState('');
+  const [historyMonth, setHistoryMonth] = useState('');
   const [historyUser, setHistoryUser] = useState('');
   const [historySearch, setHistorySearch] = useState('');
   const [historyEntries, setHistoryEntries] = useState(10);
@@ -179,21 +171,25 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
 
   async function loadHistoryFromDb() {
     try {
-      const logs = await getLoginHistory();
-      if (Array.isArray(logs) && logs.length > 0) {
+      const logs = await getLoginHistory({
+        year: historyYear,
+        month: historyMonth,
+        search: historySearch
+      });
+      if (Array.isArray(logs)) {
         setHistoryList(logs);
       }
     } catch (err) {
-      console.warn('Backend login history fallback:', err);
+      console.warn('Backend login history error:', err);
     }
   }
 
   useEffect(() => {
     loadHistoryFromDb();
-  }, []);
+  }, [historyYear, historyMonth, historySearch]);
 
   // ══════════════════════════════════════════════════════════════════════════
-  // ROLES DATA (PERSISTENT IN DB)
+  // TAB 3: ROLES DATA (PERSISTENT IN DB)
   // ══════════════════════════════════════════════════════════════════════════
   const [roles, setRoles] = useState(INITIAL_ROLES);
   const [roleSearch, setRoleSearch] = useState('');
@@ -206,7 +202,7 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
         setRoles(dbRoles);
       }
     } catch (err) {
-      console.warn('Backend roles fallback:', err);
+      console.warn('Backend roles error:', err);
     }
   }
 
@@ -536,9 +532,14 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
       const matchSearch = !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || (u.phone && u.phone.includes(q));
       const matchLegal = !legalFilter || u.legal === legalFilter;
       const matchSector = !sectorFilter || u.sector === sectorFilter;
-      return matchSearch && matchLegal && matchSector;
+      const matchRole = !roleFilter || (
+        roleFilter === 'user' ? (u.role === 'user') :
+        roleFilter === 'consultant' ? (u.role === 'consultant' || u.role === 'platform_consultant') :
+        roleFilter === 'admin' ? (u.role === 'admin' || u.role === 'super_admin') : true
+      );
+      return matchSearch && matchLegal && matchSector && matchRole;
     });
-  }, [users, userSearch, legalFilter, sectorFilter]);
+  }, [users, userSearch, legalFilter, sectorFilter, roleFilter]);
 
   const userPages = Math.max(1, Math.ceil(filteredUsers.length / userEntries));
   const userStartIndex = (userPage - 1) * userEntries;
@@ -649,6 +650,17 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
                 <option value="25">25</option>
               </select>
               <span className="uacc-entries-label">سجل لكل صفحة</span>
+
+              <select
+                className="uacc-select uacc-filter-select"
+                value={roleFilter}
+                onChange={e => { setRoleFilter(e.target.value); setUserPage(1); }}
+              >
+                <option value="">جميع الحسابات ({users.length})</option>
+                <option value="user">المستخدمين والعملاء ({users.filter(u => u.role === 'user').length})</option>
+                <option value="consultant">المستشارين المعتمدين ({users.filter(u => u.role === 'consultant' || u.role === 'platform_consultant').length})</option>
+                <option value="admin">مدراء المنصة ({users.filter(u => u.role === 'admin' || u.role === 'super_admin').length})</option>
+              </select>
 
               <select
                 className="uacc-select uacc-filter-select"

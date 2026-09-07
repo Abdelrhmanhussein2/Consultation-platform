@@ -150,188 +150,8 @@ export default function AdminTicketsPage({ navigate }) {
     assignee: ''
   });
 
-  // Canonical Reference Tickets Dataset (Exactly 7 Tickets matching the reference screenshot)
-  const [tickets, setTickets] = useState([
-    {
-      id: '#202600210',
-      subject: 'إجابة غير دقيقة من المساعد الذكي بخصوص ضريبة الدخل',
-      category: 'المساعد الذكي',
-      subcategory: 'إجابة غير صحيحة',
-      priority: 'عالية',
-      status: 'قيد المعالجة',
-      created: '2026-08-20',
-      updated: '2026-08-22',
-      assignee: 'سارة خالد',
-      user: 'أحمد محمد (شركة البتراء)',
-      sla: 'الرد الأول خلال ساعتين',
-      slaPercent: 35,
-      isDelayed: true,
-      slaBreached: false,
-      messages: [
-        { from: 'user', name: 'أحمد محمد', role: 'المستخدم', date: '20/08/2026', time: '10:24 ص', text: 'السلام عليكم. عند سؤالي المساعد الذكي عن كيفية حساب الضريبة على الدخل، أعطاني إجابة غير دقيقة تختلف عن النص النظامي.' },
-        { from: 'agent', name: 'سارة خالد', role: 'موظف الدعم', date: '20/08/2026', time: '10:40 ص', text: 'أهلاً أحمد. شكراً لتواصلك معنا. سنقوم بالتحقق من التفاصيل وإعادة الرد عليك في أقرب وقت.', internal: false },
-        { from: 'user', name: 'أحمد محمد', role: 'المستخدم', date: '20/08/2026', time: '11:02 ص', text: 'شكراً لك، في انتظار ردكم.' },
-        { from: 'agent', name: 'سارة خالد', role: 'موظف الدعم', date: '20/08/2026', time: '11:35 ص', text: 'تم التحقق من المشكلة وتبين أنها تتعلق بتحديث النظام. تم حل المشكلة بنجاح. يرجى المحاولة مرة أخرى وإعلامنا في حال استمرار المشكلة.', internal: false }
-      ],
-      attachments: [{ name: 'صورة_الخطأ.png', size: 'MB 1.2' }, { name: 'النتيجة_الخاطئة.pdf', size: 'KB 856' }],
-      timeline: [
-        { action: 'تم إنشاء الطلب', date: '10:24 - 20/08/2026 ص', by: 'بواسطة أحمد محمد' },
-        { action: 'تم تعيين موظف دعم', date: '10:38 - 20/08/2026 ص', by: 'إلى سارة خالد' },
-        { action: 'تم تغيير الحالة', date: '10:40 - 20/08/2026 ص', by: 'من جديد إلى قيد المعالجة' },
-        { action: 'تمت إضافة رسالة', date: '10:40 - 20/08/2026 ص', by: 'بواسطة سارة خالد' },
-        { action: 'تمت إضافة رد', date: '11:35 - 20/08/2026 ص', by: 'بواسطة سارة خالد' },
-        { action: 'تم تغيير الأولوية', date: '11:35 - 20/08/2026 ص', by: 'من متوسطة إلى عالية' },
-        { action: 'تم حل الطلب', date: '11:50 - 20/08/2026 ص', by: 'بواسطة سارة خالد' }
-      ],
-      rating: null
-    },
-    {
-      id: '#202600209',
-      subject: 'مشكلة في دفع الاشتراك عبر بطاقة الائتمان',
-      category: 'الفواتير والمدفوعات',
-      subcategory: 'عملية دفع فاشلة',
-      priority: 'عالية',
-      status: 'بانتظار رد المستخدم',
-      created: '2026-08-19',
-      updated: '2026-08-21',
-      assignee: 'محمد علي',
-      user: 'شركة الأفق للاستشارات',
-      sla: 'الرد خلال 4 ساعات',
-      slaPercent: 65,
-      isDelayed: false,
-      slaBreached: false,
-      messages: [
-        { from: 'user', name: 'شركة الأفق', role: 'المستخدم', date: '19/08/2026', time: '09:15 ص', text: 'حاولت تجديد الاشتراك عبر بطاقة الائتمان لكن العملية فشلت وتظهر رسالة خطأ.' },
-        { from: 'agent', name: 'محمد علي', role: 'موظف الدعم', date: '19/08/2026', time: '11:30 ص', text: 'نأسف لذلك. هل يمكنك إرفاق صورة من رسالة الخطأ؟', internal: false }
-      ],
-      attachments: [{ name: 'ايصال_البنك.png', size: 'KB 640' }],
-      timeline: [
-        { action: 'تم إنشاء الطلب', date: '09:15 - 19/08/2026 ص', by: 'بواسطة شركة الأفق' },
-        { action: 'تم الرد', date: '11:30 - 19/08/2026 ص', by: 'بواسطة محمد علي' }
-      ],
-      rating: null
-    },
-    {
-      id: '#202600208',
-      subject: 'طلب تعديل موعد استشارة وتغيير المستشار',
-      category: 'الاستشارات',
-      subcategory: 'تعديل موعد',
-      priority: 'متوسطة',
-      status: 'تم الحل',
-      created: '2026-08-18',
-      updated: '2026-08-19',
-      assignee: 'سارة خالد',
-      user: 'م. حسام التميمي',
-      sla: 'الرد خلال 24 ساعة',
-      slaPercent: 100,
-      isDelayed: false,
-      slaBreached: false,
-      messages: [
-        { from: 'user', name: 'م. حسام التميمي', role: 'المستخدم', date: '18/08/2026', time: '02:00 م', text: 'أريد تعديل موعد الاستشارة القانونية إلى يوم الأحد القادم.' },
-        { from: 'agent', name: 'سارة خالد', role: 'موظف الدعم', date: '18/08/2026', time: '03:15 م', text: 'تم تعديل الموعد بنجاح إلى الأحد 24/08 الساعة 10 صباحاً مع المستشار المعين.', internal: false }
-      ],
-      attachments: [],
-      timeline: [
-        { action: 'تم إنشاء الطلب', date: '02:00 - 18/08/2026 م', by: 'بواسطة م. حسام التميمي' },
-        { action: 'تم تعديل الموعد', date: '03:15 - 18/08/2026 م', by: 'بواسطة سارة خالد' },
-        { action: 'تم الحل', date: '09:00 - 19/08/2026 ص', by: 'بواسطة سارة خالد' }
-      ],
-      rating: { stars: 5, comment: 'خدمة ممتازة وسرعة في الرد، شكراً جزيلاً.' }
-    },
-    {
-      id: '#202600207',
-      subject: 'بطء في تحميل لوحة التشريعات الضريبية',
-      category: 'مشكلة تقنية',
-      subcategory: 'بطء في النظام',
-      priority: 'منخفضة',
-      status: 'قيد المراجعة',
-      created: '2026-08-17',
-      updated: '2026-08-18',
-      assignee: 'خالد عمر',
-      user: 'أكاديمية الرواد المالية',
-      sla: 'الرد خلال 24 ساعة',
-      slaPercent: 92,
-      isDelayed: true,
-      slaBreached: true,
-      messages: [{ from: 'user', name: 'أكاديمية الرواد', role: 'المستخدم', date: '17/08/2026', time: '04:00 م', text: 'النظام بطيء جداً في آخر يومين عند فتح قسم التشريعات.' }],
-      attachments: [],
-      timeline: [{ action: 'تم إنشاء الطلب', date: '04:00 - 17/08/2026 م', by: 'بواسطة أكاديمية الرواد' }],
-      rating: null
-    },
-    {
-      id: '#202600206',
-      subject: 'استرداد مبلغ مكرر لرسوم الخدمة',
-      category: 'الفواتير والمدفوعات',
-      subcategory: 'خصم مكرر',
-      priority: 'عالية',
-      status: 'جديد',
-      created: '2026-08-22',
-      updated: '2026-08-22',
-      assignee: 'غير معين',
-      user: 'شركة التميز الصناعي',
-      sla: 'الرد الأول خلال ساعتين',
-      slaPercent: 15,
-      isDelayed: false,
-      slaBreached: false,
-      messages: [{ from: 'user', name: 'التميز الصناعي', role: 'المستخدم', date: '22/08/2026', time: '08:30 ص', text: 'تم خصم الرسوم مرتين أثناء عملية الدفع الإلكتروني.' }],
-      attachments: [{ name: 'كشف_حساب.pdf', size: 'MB 1.4' }],
-      timeline: [{ action: 'تم إنشاء الطلب', date: '08:30 - 22/08/2026 ص', by: 'بواسطة التميز الصناعي' }],
-      rating: null
-    },
-    {
-      id: '#202600205',
-      subject: 'شكوى بخصوص أسلوب التعامل في الجلسة',
-      category: 'شكوى',
-      subcategory: 'مستشار',
-      priority: 'عالية',
-      status: 'تم التصعيد',
-      created: '2026-08-16',
-      updated: '2026-08-20',
-      assignee: 'مدير الدعم',
-      user: 'أ. طارق المجالي',
-      sla: 'الرد خلال ساعة',
-      slaPercent: 95,
-      isDelayed: true,
-      slaBreached: true,
-      messages: [
-        { from: 'user', name: 'أ. طارق المجالي', role: 'المستخدم', date: '16/08/2026', time: '01:00 م', text: 'لدي ملاحظة على أسلوب المستشار في الجلسة الأخيرة وتأخره عن الموعد.' },
-        { from: 'agent', name: 'مدير الدعم', role: 'موظف الدعم', date: '16/08/2026', time: '01:45 م', text: 'تم رفع الشكوى للإدارة وسيتم التواصل معك مباشرة لتعويض الجلسة.', internal: false }
-      ],
-      attachments: [],
-      timeline: [
-        { action: 'تم إنشاء الطلب', date: '01:00 - 16/08/2026 م', by: 'بواسطة أ. طارق المجالي' },
-        { action: 'تم التصعيد', date: '01:45 - 16/08/2026 م', by: 'بواسطة مدير الدعم' }
-      ],
-      rating: null
-    },
-    {
-      id: '#202600204',
-      subject: 'مشكلة تسجيل الدخول وتفعيل المصادقة 2FA',
-      category: 'الحساب والاشتراك',
-      subcategory: 'مشكلة تسجيل الدخول',
-      priority: 'عالية',
-      status: 'مغلق',
-      created: '2026-08-15',
-      updated: '2026-08-15',
-      assignee: 'محمد علي',
-      user: 'د. ليث الرواشدة',
-      sla: 'الرد خلال ساعتين',
-      slaPercent: 100,
-      isDelayed: false,
-      slaBreached: false,
-      messages: [
-        { from: 'user', name: 'د. ليث', role: 'المستخدم', date: '15/08/2026', time: '09:00 ص', text: 'لا أستطيع تسجيل الدخول ولا تصلني رسالة رمز التحقق OTP.' },
-        { from: 'agent', name: 'محمد علي', role: 'موظف الدعم', date: '15/08/2026', time: '09:30 ص', text: 'تم إعادة مزامنة بوابة الرسائل وإرسال الرمز بنجاح.', internal: false }
-      ],
-      attachments: [],
-      timeline: [
-        { action: 'تم إنشاء الطلب', date: '09:00 - 15/08/2026 ص', by: 'بواسطة د. ليث' },
-        { action: 'تم الحل', date: '09:45 - 15/08/2026 ص', by: 'بواسطة محمد علي' },
-        { action: 'تم الإغلاق', date: '10:00 - 15/08/2026 ص', by: 'بواسطة محمد علي' }
-      ],
-      rating: { stars: 4, comment: 'تم الحل سريعاً' }
-    }
-  ]);
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const showToast = (msg) => {
     setToastMsg(msg);
@@ -341,36 +161,74 @@ export default function AdminTicketsPage({ navigate }) {
   // ══════════════════════════════════════════════════════════════════════════
   // BACKEND API SYNC (FETCH TICKETS FROM POSTGRESQL API ON MOUNT)
   // ══════════════════════════════════════════════════════════════════════════
-  useEffect(() => {
-    async function loadBackendTickets() {
-      try {
-        const res = await getAdminTickets();
-        if (res && Array.isArray(res) && res.length > 0) {
-          // Normalize backend tickets format
-          const formatted = res.map(t => ({
+  const loadBackendTickets = async () => {
+    try {
+      setLoading(true);
+      const res = await getAdminTickets();
+      if (res && Array.isArray(res)) {
+        const catMap = {
+          ai_assistant: 'المساعد الذكي',
+          consultation: 'الاستشارات',
+          billing: 'الفواتير والمدفوعات',
+          account: 'الحساب والاشتراك',
+          technical: 'مشكلة تقنية',
+          complaint: 'شكوى',
+          feature_request: 'اقتراح ميزة',
+          search: 'البحث',
+          content: 'المحتوى',
+          documents: 'الوثائق',
+          notifications: 'الإشعارات',
+          other: 'أخرى'
+        };
+
+        const statusMap = {
+          new: 'جديد',
+          open: 'جديد',
+          in_progress: 'قيد المعالجة',
+          waiting_user: 'بانتظار رد المستخدم',
+          escalated: 'تم التصعيد',
+          resolved: 'تم الحل',
+          closed: 'مغلق',
+          reopened: 'أعيد فتحه'
+        };
+
+        const prioMap = {
+          high: 'عالية',
+          medium: 'متوسطة',
+          low: 'منخفضة'
+        };
+
+        const formatted = res.map(t => {
+          let rawNum = t.ticket_number || (t.id ? String(t.id).slice(0, 8) : '');
+          while (rawNum.startsWith('#')) {
+            rawNum = rawNum.slice(1);
+          }
+          const ticketIdFormatted = `#${rawNum}`;
+
+          return {
             realId: t.id,
-            id: `#${t.ticket_number || t.id.slice(0, 8)}`,
+            id: ticketIdFormatted,
             subject: t.subject,
-            category: t.category || 'عام',
-            subcategory: t.subcategory || 'طلب عام',
-            priority: t.priority === 'high' ? 'عالية' : t.priority === 'low' ? 'منخفضة' : 'متوسطة',
-            status: t.status === 'open' ? 'جديد' : t.status === 'in_progress' ? 'قيد المعالجة' : t.status === 'resolved' ? 'تم الحل' : t.status === 'closed' ? 'مغلق' : 'قيد المراجعة',
-            created: t.created_at ? new Date(t.created_at).toLocaleDateString('ar-EG') : '20/08/2026',
-            updated: t.updated_at ? new Date(t.updated_at).toLocaleDateString('ar-EG') : '22/08/2026',
-            assignee: t.assigned_admin_name || 'غير معين',
-            user: t.user_name || 'عميل مسجل',
+            category: catMap[t.category] || t.category || 'عام',
+            subcategory: t.sub_category || 'طلب عام',
+            priority: prioMap[t.priority] || t.priority || 'متوسطة',
+            status: statusMap[t.status] || t.status || 'جديد',
+            created: t.created_at ? new Date(t.created_at).toLocaleDateString('ar-EG') : '',
+            updated: t.updated_at ? new Date(t.updated_at).toLocaleDateString('ar-EG') : '',
+            assignee: t.assignee_name || 'غير معين',
+            user: t.submitter_name || t.user_name || 'عميل مسجل',
             sla: 'الرد خلال 24 ساعة',
             slaPercent: 50,
             isDelayed: false,
             slaBreached: false,
             messages: (t.replies || []).map(r => {
-              const isUser = r.author_role === 'user' || r.author_role === 'client' || r.author_role === 'company' || r.author_role === 'researcher' || (r.author_id && r.author_id === t.submitted_by) || (r.user_id && !r.is_internal);
+              const isUser = r.author_role === 'user' || (r.author_id && r.author_id === t.submitted_by);
               return {
                 from: isUser ? 'user' : 'agent',
-                name: r.author_name || r.user_name || (isUser ? (t.user_name || 'المستخدم') : 'مشرف الدعم'),
+                name: r.author_name || (isUser ? (t.submitter_name || 'المستخدم') : 'مشرف الدعم'),
                 role: r.is_internal ? 'ملاحظة داخلية' : (isUser ? 'المستفيد' : 'موظف الدعم'),
-                date: r.created_at ? new Date(r.created_at).toLocaleDateString('ar-EG') : '20/08/2026',
-                time: r.created_at ? new Date(r.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '10:00 ص',
+                date: r.created_at ? new Date(r.created_at).toLocaleDateString('ar-EG') : '',
+                time: r.created_at ? new Date(r.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '',
                 text: r.message || r.reply_text,
                 internal: r.is_internal
               };
@@ -378,13 +236,18 @@ export default function AdminTicketsPage({ navigate }) {
             attachments: (t.attachments || []).map(a => ({ name: a.file_name, size: '1.2 MB' })),
             timeline: [{ action: 'تم جلب الطلب من قاعدة البيانات', date: 'الآن', by: 'نظام ديوان' }],
             rating: null
-          }));
-          setTickets(prev => [...formatted, ...prev.filter(p => !formatted.some(f => f.id === p.id))]);
-        }
-      } catch (err) {
-        console.warn('Using standard comprehensive local dataset:', err);
+          };
+        });
+        setTickets(formatted);
       }
+    } catch (err) {
+      console.warn('Error fetching tickets from backend:', err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     loadBackendTickets();
   }, []);
 

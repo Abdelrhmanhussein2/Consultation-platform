@@ -39,17 +39,17 @@ export default function DashboardCharts({
   const ticks = [0, 0.25, 0.5, 0.75, 1];
 
   // 2. AI Usage Data
-  const aiData = data?.ai || [];
-  const aiLabels = data?.labels || [];
-  const aiTotal = data?.aiTotal || '3,560';
-  const aiGrowth = data?.aiGrowth || '+12.4%';
+  const aiData = data?.ai || [0, 0, 0, 0, 0, 0, 0];
+  const aiLabels = data?.labels || ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
+  const aiTotal = data?.aiTotal ?? '0';
+  const aiGrowth = data?.aiGrowth || '';
   const svgW = 520;
   const svgH = 165;
   const padLeft = 26;
   const padRight = 10;
   const padTop = 10;
   const padBottom = 26;
-  const maxAiVal = Math.ceil(Math.max(...aiData, 100) / 1000) * 1000 || 1000;
+  const maxAiVal = Math.ceil(Math.max(...aiData, 10) / 10) * 10 || 10;
 
   const pts = aiData.map((v, i) => [
     padLeft + (i * (svgW - padLeft - padRight)) / Math.max(1, aiData.length - 1),
@@ -62,7 +62,7 @@ export default function DashboardCharts({
 
   // 3. Income Donut Data
   const incomeList = data?.income || [];
-  const incomeTotal = data?.incomeTotal || '4,850';
+  const incomeTotal = data?.incomeTotal ?? '0';
   const donutR = 40;
   const circ = 2 * Math.PI * donutR;
   let runningOffset = 0;
@@ -143,7 +143,7 @@ export default function DashboardCharts({
           <div>
             <div className="db-card-title">استخدام الذكاء الاصطناعي</div>
             <div className="db-chart-summary">
-              إجمالي الطلبات <strong><span>{aiTotal}</span><span className="growth">{aiGrowth}</span></strong>
+              إجمالي الطلبات <strong><span>{aiTotal}</span>{aiGrowth ? <span className="growth">{aiGrowth}</span> : null}</strong>
             </div>
           </div>
           <div className="db-chart-filter-wrap">

@@ -76,7 +76,8 @@ export default function AdminApp({ currentPath = '/admin', navigate }) {
       case '/admin/analytics':
         return <AdminReportsPage navigate={navigate} />;
       case '/admin/users':
-        return <AdminUsersPage navigate={navigate} />;
+      case '/admin/users/pending':
+        return <AdminUsersPage navigate={navigate} currentPath={currentPath} />;
       case '/admin/user-accounts':
         return <AdminUserAccountsPage view="users" navigate={navigate} />;
       case '/admin/user-accounts/history':
