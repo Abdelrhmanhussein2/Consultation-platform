@@ -306,7 +306,7 @@ export default function AdminReportsPage({ navigate }) {
 
         {/* Top Action Buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button 
+          <button
             type="button"
             onClick={clearFilters}
             className="admin-btn-action-outline"
@@ -316,7 +316,7 @@ export default function AdminReportsPage({ navigate }) {
             <span>مسح الفلاتر</span>
           </button>
 
-          <button 
+          <button
             type="button"
             onClick={() => openDrilldown('التقرير الشامل للمنصة', `ملخص كامل للعمليات من ${fromDate} إلى ${toDate}`, null, ['رقم الفاتورة', 'العميل', 'نوع البند', 'المبلغ', 'التاريخ', 'وسيلة الدفع', 'الحالة'], getFinancialData())}
             className="admin-btn-action-primary"
@@ -371,8 +371,8 @@ export default function AdminReportsPage({ navigate }) {
             {/* من تاريخ */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <label style={{ fontSize: '10.5px', fontWeight: '800', color: '#64748B', letterSpacing: '0.3px' }}>من تاريخ</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 value={fromDate}
                 onChange={e => setFromDate(e.target.value)}
                 style={{
@@ -398,8 +398,8 @@ export default function AdminReportsPage({ navigate }) {
             {/* إلى تاريخ */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <label style={{ fontSize: '10.5px', fontWeight: '800', color: '#64748B', letterSpacing: '0.3px' }}>إلى تاريخ</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 value={toDate}
                 onChange={e => setToDate(e.target.value)}
                 style={{
@@ -480,8 +480,8 @@ export default function AdminReportsPage({ navigate }) {
             <div>
               {/* 6 Clickable Metric Cards */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '20px' }}>
-                <div 
-                  className="admin-card" 
+                <div
+                  className="admin-card"
                   style={{ padding: '16px 20px', cursor: 'pointer', transition: 'all 0.2s', border: '1px solid #E2E8F0' }}
                   onClick={() => openDrilldown('تفاصيل إجمالي المستخدمين في قاعدة البيانات', 'قائمة بجميع المستخدمين والشركات المسجلة في ديوان', null, ['الاسم', 'نوع الحساب', 'القطاع', 'المحافظة', 'الباقة', 'تاريخ التسجيل', 'تاريخ التجديد', 'الحالة'], getUsersData())}
                 >
@@ -490,8 +490,8 @@ export default function AdminReportsPage({ navigate }) {
                   <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>+12.4% عن الفترة السابقة (انقر للتفاصيل)</div>
                 </div>
 
-                <div 
-                  className="admin-card" 
+                <div
+                  className="admin-card"
                   style={{ padding: '16px 20px', cursor: 'pointer', transition: 'all 0.2s', border: '1px solid #E2E8F0' }}
                   onClick={() => openDrilldown('المشتركون النشطون حالياً', 'المستخدمون ذوو الحسابات النشطة في قاعدة البيانات', null, ['الاسم', 'نوع الحساب', 'القطاع', 'المحافظة', 'الباقة', 'تاريخ البدء', 'تاريخ الانتهاء', 'الحالة'], getSubscribersData().filter(s => s.status === 'نشط'))}
                 >
@@ -500,8 +500,8 @@ export default function AdminReportsPage({ navigate }) {
                   <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>+8.2% عن الفترة السابقة (انقر للتفاصيل)</div>
                 </div>
 
-                <div 
-                  className="admin-card" 
+                <div
+                  className="admin-card"
                   style={{ padding: '16px 20px', cursor: 'pointer', transition: 'all 0.2s', border: '1px solid #E2E8F0' }}
                   onClick={() => openDrilldown('الاستشارات المكتملة', 'سجل الجلسات الاستشارية الحقيقية المنفذة في النظام', null, ['كود الجلسة', 'العميل', 'المستشار', 'نوع الجلسة', 'موضوع الاستشارة', 'المبلغ', 'الموعد', 'الحالة'], getConsultationsData())}
                 >
@@ -510,8 +510,8 @@ export default function AdminReportsPage({ navigate }) {
                   <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>من إجمالي {metrics.total_consultations} جلسة مسجلة</div>
                 </div>
 
-                <div 
-                  className="admin-card" 
+                <div
+                  className="admin-card"
                   style={{ padding: '16px 20px', cursor: 'pointer', transition: 'all 0.2s', border: '1px solid #E2E8F0' }}
                   onClick={() => openDrilldown('تفاصيل الإيرادات والتحصيلات', 'سجل الفواتير والعمليات المالية المحصلة في قاعدة البيانات', null, ['رقم الفاتورة', 'العميل', 'نوع البند', 'المبلغ', 'التاريخ', 'وسيلة الدفع', 'الحالة'], getFinancialData())}
                 >
@@ -520,8 +520,8 @@ export default function AdminReportsPage({ navigate }) {
                   <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>+22.1% عن الفترة السابقة (انقر للتفاصيل)</div>
                 </div>
 
-                <div 
-                  className="admin-card" 
+                <div
+                  className="admin-card"
                   style={{ padding: '16px 20px', cursor: 'pointer', transition: 'all 0.2s', border: '1px solid #E2E8F0' }}
                   onClick={() => openDrilldown('سجل محادثات المساعد الذكي AI', 'الاستفسارات الضريبية المعالجة آلياً عبر الذكاء الاصطناعي', null, ['المعرف', 'المستخدم', 'الاستفسار الضريبي', 'الرموز المستهلكة', 'دقة الإجابة', 'التاريخ', 'الحالة'], getAiQueriesData())}
                 >
@@ -530,8 +530,8 @@ export default function AdminReportsPage({ navigate }) {
                   <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>+34.5% عن الفترة السابقة (انقر للتفاصيل)</div>
                 </div>
 
-                <div 
-                  className="admin-card" 
+                <div
+                  className="admin-card"
                   style={{ padding: '16px 20px', cursor: 'pointer', transition: 'all 0.2s', border: '1px solid #E2E8F0' }}
                   onClick={() => openDrilldown('عمليات البحث المالي والقانوني', 'أكثر المواد والتشريعات الضريبية التي تم البحث عنها', null, ['المعرف', 'المستخدم', 'الكلمة / المادة المبحوث عنها', 'الرموز المستهلكة', 'دقة المطابقة', 'الوقت', 'الحالة'], getAiQueriesData())}
                 >
@@ -550,8 +550,8 @@ export default function AdminReportsPage({ navigate }) {
                       <h3 style={{ fontSize: '14.5px', fontWeight: '800', color: '#0F172A', margin: 0 }}>الإيرادات الشهرية</h3>
                       <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>الفترة: {fromDate} - {toDate} | رسم بياني مخصص</div>
                     </div>
-                    <button 
-                      className="admin-btn-action-outline" 
+                    <button
+                      className="admin-btn-action-outline"
                       style={{ fontSize: '11.5px', padding: '4px 10px', cursor: 'pointer' }}
                       onClick={() => openDrilldown('سجل إيرادات الأشهر', 'تفاصيل التدفقات النقدية شهرياً', null, ['رقم الفاتورة', 'العميل', 'نوع البند', 'المبلغ', 'التاريخ', 'وسيلة الدفع', 'الحالة'], getFinancialData())}
                     >
@@ -564,7 +564,7 @@ export default function AdminReportsPage({ navigate }) {
                       const monthlyData = (backendData?.charts?.monthly_revenue && backendData.charts.monthly_revenue.length > 0)
                         ? backendData.charts.monthly_revenue
                         : [{ month: 'يناير', amount: metrics.total_revenue, tx: getFinancialData().length }];
-                      
+
                       const maxAmt = Math.max(...monthlyData.map(d => d.amount || 0), 1);
                       const points = monthlyData.map((d, idx) => {
                         const x = 40 + idx * Math.min(440 / Math.max(monthlyData.length - 1, 1), 40);
@@ -597,8 +597,8 @@ export default function AdminReportsPage({ navigate }) {
                           <path d={pathD} fill="none" stroke="#0A3C64" strokeWidth="3" strokeLinecap="round" />
 
                           {points.map((pt, i) => (
-                            <g 
-                              key={i} 
+                            <g
+                              key={i}
                               style={{ cursor: 'pointer' }}
                               onMouseMove={(e) => handleMouseMove(e, { title: `إيرادات شهر ${pt.month}`, text: `${Number(pt.amount).toLocaleString()} د.أ | ${pt.tx} معاملة` })}
                               onMouseLeave={handleMouseLeave}
@@ -621,8 +621,8 @@ export default function AdminReportsPage({ navigate }) {
                       <h3 style={{ fontSize: '14.5px', fontWeight: '800', color: '#0F172A', margin: 0 }}>مصادر الإيرادات</h3>
                       <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>الفترة: {fromDate} - {toDate}</div>
                     </div>
-                    <button 
-                      className="admin-btn-action-outline" 
+                    <button
+                      className="admin-btn-action-outline"
                       style={{ fontSize: '11.5px', padding: '4px 10px', cursor: 'pointer' }}
                       onClick={() => openDrilldown('تفاصيل مصادر الإيرادات', 'توزيع الإيرادات حسب مصادر الاشتراك والاستشارة', null, ['رقم الفاتورة', 'العميل', 'نوع البند', 'المبلغ', 'التاريخ', 'وسيلة الدفع', 'الحالة'], getFinancialData())}
                     >
@@ -634,9 +634,9 @@ export default function AdminReportsPage({ navigate }) {
                     const revSources = (backendData?.charts?.revenue_sources && backendData.charts.revenue_sources.length > 0)
                       ? backendData.charts.revenue_sources
                       : [
-                          { source: "إيرادات الاشتراكات والتحصيلات", percentage: metrics.total_revenue > 0 ? Math.round(((metrics.subscription_revenue || 0) / metrics.total_revenue) * 100) : 0, amount: metrics.subscription_revenue || 0 },
-                          { source: "إيرادات الاستشارات والجلسات", percentage: metrics.total_revenue > 0 ? Math.round(((metrics.consultation_revenue || 0) / metrics.total_revenue) * 100) : 0, amount: metrics.consultation_revenue || 0 }
-                        ];
+                        { source: "إيرادات الاشتراكات والتحصيلات", percentage: metrics.total_revenue > 0 ? Math.round(((metrics.subscription_revenue || 0) / metrics.total_revenue) * 100) : 0, amount: metrics.subscription_revenue || 0 },
+                        { source: "إيرادات الاستشارات والجلسات", percentage: metrics.total_revenue > 0 ? Math.round(((metrics.consultation_revenue || 0) / metrics.total_revenue) * 100) : 0, amount: metrics.consultation_revenue || 0 }
+                      ];
                     const colors = ['#E58A13', '#0A3C64', '#0D9488', '#F59E0B'];
                     let accumulatedOffset = 0;
 
@@ -652,11 +652,11 @@ export default function AdminReportsPage({ navigate }) {
                               accumulatedOffset += pct;
 
                               return (
-                                <circle 
+                                <circle
                                   key={idx}
-                                  cx="18" cy="18" r="15.915" fill="transparent" stroke={color} strokeWidth="4.5" 
-                                  strokeDasharray={dashArray} 
-                                  strokeDashoffset={dashOffset} 
+                                  cx="18" cy="18" r="15.915" fill="transparent" stroke={color} strokeWidth="4.5"
+                                  strokeDasharray={dashArray}
+                                  strokeDashoffset={dashOffset}
                                   style={{ cursor: 'pointer' }}
                                   onMouseMove={(e) => handleMouseMove(e, { title: item.source, text: `${pct}% (${Number(item.amount).toLocaleString()} د.أ)` })}
                                   onMouseLeave={handleMouseLeave}
@@ -694,8 +694,8 @@ export default function AdminReportsPage({ navigate }) {
             <div>
               {/* 6 Metric Cards */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '20px' }}>
-                <div 
-                  className="admin-card" 
+                <div
+                  className="admin-card"
                   style={{ padding: '16px 20px', cursor: 'pointer' }}
                   onClick={() => openDrilldown('إجمالي المستخدمين في قاعدة البيانات', 'كافة مستخدمي المنصة الموثقين والنشطين', null, ['الاسم', 'نوع الحساب', 'القطاع', 'المحافظة', 'الباقة', 'تاريخ البدء', 'تاريخ الانتهاء', 'الحالة'], getUsersData())}
                 >
@@ -704,8 +704,8 @@ export default function AdminReportsPage({ navigate }) {
                   <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>+12.4% عن العام السابق</div>
                 </div>
 
-                <div 
-                  className="admin-card" 
+                <div
+                  className="admin-card"
                   style={{ padding: '16px 20px', cursor: 'pointer' }}
                   onClick={() => openDrilldown('المستخدمون الأفراد', 'سجل الحسابات الفردية والأشخاص الطبيعيين', null, ['الاسم', 'نوع الحساب', 'القطاع', 'المحافظة', 'الباقة', 'تاريخ البدء', 'تاريخ الانتهاء', 'الحالة'], getUsersData().filter(s => s.userType.includes('فرد')))}
                 >
@@ -714,8 +714,8 @@ export default function AdminReportsPage({ navigate }) {
                   <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>48.4% من إجمالي المشتركين</div>
                 </div>
 
-                <div 
-                  className="admin-card" 
+                <div
+                  className="admin-card"
                   style={{ padding: '16px 20px', cursor: 'pointer' }}
                   onClick={() => openDrilldown('الشركات والمؤسسات', 'سجل الحسابات المؤسسية والتجارية المسجلة', null, ['الاسم', 'نوع الحساب', 'القطاع', 'المحافظة', 'الباقة', 'تاريخ البدء', 'تاريخ الانتهاء', 'الحالة'], getUsersData().filter(s => s.userType.includes('شركة') || s.userType.includes('مؤسسة')))}
                 >
@@ -724,8 +724,8 @@ export default function AdminReportsPage({ navigate }) {
                   <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>32.6% من إجمالي المشتركين</div>
                 </div>
 
-                <div 
-                  className="admin-card" 
+                <div
+                  className="admin-card"
                   style={{ padding: '16px 20px', cursor: 'pointer' }}
                   onClick={() => openDrilldown('المستخدمون النشطون', 'سجل المستخدمين النشطين في النظام', null, ['الاسم', 'نوع الحساب', 'القطاع', 'المحافظة', 'الباقة', 'تاريخ البدء', 'تاريخ الانتهاء', 'الحالة'], getUsersData().filter(s => s.status === 'نشط'))}
                 >
@@ -734,8 +734,8 @@ export default function AdminReportsPage({ navigate }) {
                   <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>100% نسبة تفعيل الحسابات</div>
                 </div>
 
-                <div 
-                  className="admin-card" 
+                <div
+                  className="admin-card"
                   style={{ padding: '16px 20px', cursor: 'pointer' }}
                   onClick={() => openDrilldown('الباحثون والمختصون والطلبة', 'سجل الباحثين والطلبة الحاصلين على الاشتراكات المعرفية', null, ['الاسم', 'نوع الحساب', 'القطاع', 'المحافظة', 'الباقة', 'تاريخ البدء', 'تاريخ الانتهاء', 'الحالة'], getUsersData().filter(s => s.userType.includes('باحث')))}
                 >
@@ -744,8 +744,8 @@ export default function AdminReportsPage({ navigate }) {
                   <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>7.9% من إجمالي المشتركين</div>
                 </div>
 
-                <div 
-                  className="admin-card" 
+                <div
+                  className="admin-card"
                   style={{ padding: '16px 20px', cursor: 'pointer' }}
                   onClick={() => openDrilldown('المسجلون خلال آخر 30 يوم', 'سجل الحسابات الجديدة التي انضمت مؤخراً', null, ['الاسم', 'نوع الحساب', 'القطاع', 'المحافظة', 'الباقة', 'تاريخ البدء', 'تاريخ الانتهاء', 'الحالة'], getUsersData())}
                 >
@@ -803,8 +803,8 @@ export default function AdminReportsPage({ navigate }) {
             <div>
               {/* 4 Metric Cards */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '20px' }}>
-                <div 
-                  className="admin-card" 
+                <div
+                  className="admin-card"
                   style={{ padding: '16px 20px', cursor: 'pointer' }}
                   onClick={() => openDrilldown('المستشارون المعتمدون', 'قائمة المستشارين المعتمدين والمفعلين في قاعدة البيانات', null, ['المعرف', 'الاسم', 'التخصص', 'المدينة', 'سعر الساعة', 'الجلسات', 'التقييم', 'الحالة'], getConsultantsData())}
                 >
@@ -813,8 +813,8 @@ export default function AdminReportsPage({ navigate }) {
                   <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>معتمدون ومفعلون في المنصة</div>
                 </div>
 
-                <div 
-                  className="admin-card" 
+                <div
+                  className="admin-card"
                   style={{ padding: '16px 20px', cursor: 'pointer' }}
                   onClick={() => openDrilldown('المستشارون بانتظار الاعتماد', '', null, ['المعرف', 'الاسم', 'التخصص', 'المدينة', 'سعر الساعة', 'الجلسات', 'التقييم', 'الحالة'], getConsultantsData().filter(c => c.status === 'بانتظار'))}
                 >
@@ -823,8 +823,8 @@ export default function AdminReportsPage({ navigate }) {
                   <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>طلبات جديدة</div>
                 </div>
 
-                <div 
-                  className="admin-card" 
+                <div
+                  className="admin-card"
                   style={{ padding: '16px 20px', cursor: 'pointer' }}
                   onClick={() => openDrilldown('الاستشارات المكتملة', '', null, ['كود الجلسة', 'العميل', 'المستشار', 'نوع الجلسة', 'موضوع الاستشارة', 'المبلغ', 'الموعد', 'الحالة'], getConsultationsData())}
                 >
@@ -1353,24 +1353,24 @@ export default function AdminReportsPage({ navigate }) {
         {/* ══════════════════════════════════════════════════════════════════
             COLUMN 2: CATEGORIES NAVIGATION MENU (RIGHT SIDE IN RTL)
             ══════════════════════════════════════════════════════════════════ */}
-        <div style={{ 
-          background: '#FFFFFF', 
-          border: '1px solid #E2E8F0', 
-          borderRadius: '14px', 
-          padding: '14px 0px', 
-          boxShadow: '0 2px 8px rgba(0,0,0,0.06)', 
-          width: '240px', 
+        <div style={{
+          background: '#FFFFFF',
+          border: '1px solid #E2E8F0',
+          borderRadius: '14px',
+          padding: '14px 0px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          width: '240px',
           flexShrink: 0,
           position: 'sticky',
           top: '20px',
           alignSelf: 'flex-start'
         }}>
-          <div style={{ 
-            fontSize: '12px', 
-            fontWeight: '900', 
-            color: '#94A3B8', 
-            padding: '0 16px 12px 16px', 
-            borderBottom: '1px solid #F1F5F9', 
+          <div style={{
+            fontSize: '12px',
+            fontWeight: '900',
+            color: '#94A3B8',
+            padding: '0 16px 12px 16px',
+            borderBottom: '1px solid #F1F5F9',
             letterSpacing: '0.8px',
             textTransform: 'uppercase'
           }}>
@@ -1392,7 +1392,7 @@ export default function AdminReportsPage({ navigate }) {
             ].map((cat) => {
               const isActive = activeCategory === cat.id;
               return (
-                <div 
+                <div
                   key={cat.id}
                   style={{
                     fontSize: '12.5px',
@@ -1424,14 +1424,14 @@ export default function AdminReportsPage({ navigate }) {
           UNIVERSAL DRILLDOWN MODAL (EXCEL EXPORT + REAL DB ROWS)
           ══════════════════════════════════════════════════════════════════ */}
       {drilldownModal && (
-        <div 
-          className="admin-modal-overlay" 
+        <div
+          className="admin-modal-overlay"
           onClick={() => setDrilldownModal(null)}
           style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
         >
-          <div 
-            className="admin-modal-card" 
-            onClick={e => e.stopPropagation()} 
+          <div
+            className="admin-modal-card"
+            onClick={e => e.stopPropagation()}
             style={{ maxWidth: '960px', width: '100%', maxHeight: '90vh', background: '#FFFFFF', borderRadius: '16px', padding: '24px', overflowY: 'auto', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
@@ -1443,8 +1443,8 @@ export default function AdminReportsPage({ navigate }) {
                   {drilldownModal.subtitle}
                 </p>
               </div>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setDrilldownModal(null)}
                 style={{ background: '#F1F5F9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', fontSize: '16px', fontWeight: '800', cursor: 'pointer', color: '#64748B' }}
               >
@@ -1478,7 +1478,7 @@ export default function AdminReportsPage({ navigate }) {
                 />
               </div>
 
-              <button 
+              <button
                 type="button"
                 onClick={handleExportCSV}
                 className="admin-btn-action-primary"
@@ -1521,8 +1521,8 @@ export default function AdminReportsPage({ navigate }) {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '18px' }}>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="admin-btn-action-outline"
                 onClick={() => setDrilldownModal(null)}
                 style={{ padding: '8px 20px', fontWeight: '800', cursor: 'pointer' }}
@@ -1536,7 +1536,7 @@ export default function AdminReportsPage({ navigate }) {
 
       {/* Floating Hover Tooltip */}
       {hoveredChartItem && (
-        <div 
+        <div
           style={{
             position: 'fixed',
             left: `${tooltipPos.x + 14}px`,

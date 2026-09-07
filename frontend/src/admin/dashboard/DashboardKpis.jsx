@@ -8,7 +8,8 @@ const iconsMap = {
         <path d="M6 8h12l2 12H4zM9 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" strokeWidth="1.65" />
       </svg>
     ),
-    target: '/admin/payments'
+    target: '/admin/payments',
+    tag: 'إجمالي المقبوضات المسددة'
   },
   ticket: {
     cls: 'ico-ticket',
@@ -17,7 +18,8 @@ const iconsMap = {
         <path d="M5 6h14v4a2 2 0 0 0 0 4v4H5v-4a2 2 0 0 0 0-4zM9 9v6M12 9v6M15 9v6" fill="none" stroke="currentColor" strokeWidth="1.65" />
       </svg>
     ),
-    target: '/admin/tickets'
+    target: '/admin/tickets',
+    tag: 'تذاكر قيد المعالجة'
   },
   cplus: {
     cls: 'ico-cplus',
@@ -27,7 +29,8 @@ const iconsMap = {
         <path d="M2.5 20c0-3.1 2.4-5 5.5-5s5.5 1.9 5.5 5M18 7v6M15 10h6" fill="none" stroke="currentColor" strokeWidth="1.65" />
       </svg>
     ),
-    target: '/admin/consultants'
+    target: '/admin/consultants',
+    tag: 'طلبات قيد التدقيق'
   },
   uplus: {
     cls: 'ico-uplus',
@@ -37,7 +40,8 @@ const iconsMap = {
         <path d="M2.5 20c0-3.1 2.4-5 5.5-5s5.5 1.9 5.5 5M18 7v6M15 10h6" fill="none" stroke="currentColor" strokeWidth="1.65" />
       </svg>
     ),
-    target: '/admin/users'
+    target: '/admin/users',
+    tag: 'عملاء مسجلين بالمنصة'
   },
   consult: {
     cls: 'ico-consult',
@@ -47,7 +51,8 @@ const iconsMap = {
         <path d="M5 20c0-4 3-6 7-6s7 2 7 6" fill="none" stroke="currentColor" strokeWidth="1.65" />
       </svg>
     ),
-    target: '/admin/consultants'
+    target: '/admin/consultants',
+    tag: 'مستشارين معتمدين'
   },
   users: {
     cls: 'ico-users',
@@ -57,7 +62,8 @@ const iconsMap = {
         <path d="M3 20c0-3.2 2.5-5 6-5s6 1.8 6 5M16 5.5a3 3 0 0 1 0 5.7M16 15c2.6.2 5 1.7 5 5" fill="none" stroke="currentColor" strokeWidth="1.65" />
       </svg>
     ),
-    target: '/admin/users'
+    target: '/admin/users',
+    tag: 'حسابات نشطة في النظام'
   }
 };
 
@@ -67,7 +73,7 @@ export default function DashboardKpis({ kpis = [], navigate, onShowToast }) {
       {kpis.map((k, index) => {
         const key = k[5] || 'users';
         const meta = iconsMap[key] || iconsMap.users;
-        const [label, value, unit, changePct, trend] = k;
+        const [label, value, unit] = k;
 
         const handleClick = () => {
           if (meta.target && navigate) {
@@ -92,10 +98,8 @@ export default function DashboardKpis({ kpis = [], navigate, onShowToast }) {
               </div>
             </div>
             <div className="db-kpi-foot">
-              <span className={trend === 'up' ? 'db-up' : 'db-down'}>
-                {trend === 'up' ? '↑' : '↓'} {changePct}
-              </span>
-              <span>من الأسبوع الماضي</span>
+              <span className="db-live-badge">●</span>
+              <span className="db-live-tag">{meta.tag}</span>
             </div>
           </div>
         );

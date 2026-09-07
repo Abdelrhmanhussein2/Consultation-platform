@@ -330,7 +330,7 @@ export default function ConsultantSettingsPage({ navigate }) {
             setAvailability(prev => ({ ...prev, workDays: newWorkDays }));
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     }
     loadData();
   }, [token]);
@@ -795,7 +795,7 @@ export default function ConsultantSettingsPage({ navigate }) {
 
   return (
     <div dir="rtl" style={{ maxWidth: '1080px', margin: '0 auto', width: '100%', paddingBottom: '50px', fontFamily: 'Cairo, Tajawal, sans-serif', textAlign: 'right' }}>
-      
+
       {/* Toast Notification */}
       {toastMsg && (
         <div style={{ position: 'fixed', bottom: '24px', left: '24px', background: '#0e3b5e', color: '#FFFFFF', padding: '12px 24px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', zIndex: 99999, display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700', fontSize: '13.5px', direction: 'rtl' }}>
@@ -932,7 +932,7 @@ export default function ConsultantSettingsPage({ navigate }) {
 
       {/* Layout Grid: Sidebar + Content */}
       <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '20px', alignItems: 'start' }}>
-        
+
         {/* Navigation Sidebar */}
         <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {tabs.map((t) => {
@@ -969,7 +969,7 @@ export default function ConsultantSettingsPage({ navigate }) {
 
         {/* Content Box */}
         <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '26px 30px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          
+
           {/* ══════════════════════════════════════════════════════════════════
               TAB 1: PROFILE & BIO & SLUG
               ══════════════════════════════════════════════════════════════════ */}

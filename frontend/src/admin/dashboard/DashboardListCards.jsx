@@ -12,45 +12,25 @@ export default function DashboardListCards({ navigate, onShowToast, liveLists = 
 
   const handleRowClick = (card, row) => {
     const itemTitle = row[0];
-    if (card.kind === 'tickets' && navigate) {
-      navigate('/admin/tickets');
-    } else if (card.kind === 'consults' && navigate) {
-      navigate('/admin/consultants');
-    } else if (card.kind === 'users' && navigate) {
-      navigate('/admin/users');
-    } else if (card.kind === 'laws' && navigate) {
-      navigate('/admin/knowledge');
-    } else if (card.kind === 'audit' && navigate) {
-      navigate('/admin/audit-logs');
-    } else if (card.kind === 'security' && navigate) {
-      navigate('/admin/security');
-    } else if (card.kind === 'aiwarn' && navigate) {
-      navigate('/admin/ai-monitoring');
+    if (card.path && navigate) {
+      navigate(card.path);
     } else if (onShowToast) {
       onShowToast(`تم فتح تفاصيل: ${itemTitle}`);
     }
   };
 
   const getRowsForCard = (c) => {
-    if (c.kind === 'laws' && liveLists?.recent_policies?.length) {
-      return liveLists.recent_policies;
-    }
-    if (c.kind === 'ratings' && liveLists?.recent_ratings?.length) {
-      return liveLists.recent_ratings;
-    }
-    if (c.kind === 'tickets' && liveLists?.recent_tickets?.length) {
-      return liveLists.recent_tickets;
-    }
-    if (c.kind === 'consults' && liveLists?.recent_consultants?.length) {
-      return liveLists.recent_consultants;
-    }
-    if (c.kind === 'users' && liveLists?.recent_users?.length) {
-      return liveLists.recent_users;
-    }
-    if (c.kind === 'audit' && liveLists?.recent_logs?.length) {
-      return liveLists.recent_logs;
-    }
-    return c.rows;
+    if (c.kind === 'laws') return liveLists?.recent_policies || [];
+    if (c.kind === 'ratings') return liveLists?.recent_ratings || [];
+    if (c.kind === 'tickets') return liveLists?.recent_tickets || [];
+    if (c.kind === 'consults') return liveLists?.recent_consultants || [];
+    if (c.kind === 'users') return liveLists?.recent_users || [];
+    if (c.kind === 'audit') return liveLists?.recent_logs || [];
+    if (c.kind === 'appointments') return liveLists?.recent_appointments || [];
+    if (c.kind === 'payouts') return liveLists?.recent_payouts || [];
+    if (c.kind === 'subscriptions') return liveLists?.recent_subscriptions || [];
+    if (c.kind === 'templates') return liveLists?.recent_templates || [];
+    return c.rows || [];
   };
 
   const renderCard = (c, isBottom = false) => {
@@ -70,82 +50,87 @@ export default function DashboardListCards({ navigate, onShowToast, liveLists = 
         </div>
 
         <div className="db-rows">
-          {rows.map((r, idx) => {
-            // Kind: laws
-            if (c.kind === 'laws') {
-              return (
-                <div key={idx} className="db-row" onClick={() => handleRowClick(c, r)}>
-                  <span className="db-row-icon" style={{ background: '#eef6ff', color: '#1d68d1' }}>
-                    <svg viewBox="0 0 24 24">
-                      <rect x="4" y="5" width="16" height="15" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
-                      <path d="M8 3v4M16 3v4M4 9h16" fill="none" stroke="currentColor" strokeWidth="1.8" />
-                    </svg>
-                  </span>
-                  <div className="db-row-main">
-                    <div className="db-row-title">{r[0]}</div>
+          {rows.length === 0 ? (
+            <div className="db-empty-state-card">
+              <span className="db-empty-dot">●</span>
+              <span className="db-empty-msg">لا توجد سجلات مسجلة حالياً</span>
+            </div>
+          ) : (
+            rows.map((r, idx) => {
+              // 1. Laws / Policies / Templates
+              if (c.kind === 'laws' || c.kind === 'templates') {
+                return (
+                  <div key={idx} className="db-row" onClick={() => handleRowClick(c, r)}>
+                    <span className="db-row-icon" style={{ background: '#eef6ff', color: '#1d68d1' }}>
+                      <svg viewBox="0 0 24 24">
+                        <rect x="4" y="5" width="16" height="15" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+                        <path d="M8 3v4M16 3v4M4 9h16" fill="none" stroke="currentColor" strokeWidth="1.8" />
+                      </svg>
+                    </span>
+                    <div className="db-row-main">
+                      <div className="db-row-title">{r[0]}</div>
+                    </div>
+                    {r[1] && <span className="db-badge green">{r[1]}</span>}
+                    <span className="db-row-time">{r[2]}</span>
                   </div>
-                  <span className="db-badge green">{r[1]}</span>
-                  <span className="db-row-time">{r[2]}</span>
-                </div>
-              );
-            }
+                );
+              }
 
-            // Kind: ratings
-            if (c.kind === 'ratings') {
-              return (
-                <div key={idx} className="db-row" onClick={() => handleRowClick(c, r)}>
-                  <div className="db-face">●</div>
-                  <div className="db-row-main">
-                    <div className="db-row-title">{r[0]}</div>
-                    <div className="db-stars">{r[1]}</div>
+              // 2. Ratings
+              if (c.kind === 'ratings') {
+                return (
+                  <div key={idx} className="db-row" onClick={() => handleRowClick(c, r)}>
+                    <div className="db-face">★</div>
+                    <div className="db-row-main">
+                      <div className="db-row-title">{r[0]}</div>
+                      <div className="db-stars">{r[1]}</div>
+                    </div>
+                    <span className="db-row-time">{r[2]}</span>
                   </div>
-                  <span className="db-row-time">{r[2]}</span>
-                </div>
-              );
-            }
+                );
+              }
 
-            // Kind: tickets
-            if (c.kind === 'tickets') {
-              const badgeClass = r[2] === 'عالية' ? 'red' : (r[2] === 'متوسطة' ? 'orange' : 'green');
-              return (
-                <div key={idx} className="db-row" onClick={() => handleRowClick(c, r)}>
-                  <div className="db-row-main">
-                    <div className="db-ticket-id">{r[0]}</div>
-                    <div className="db-row-sub">{r[1]}</div>
+              // 3. Support Tickets
+              if (c.kind === 'tickets') {
+                const badgeClass = r[2] === 'عالية' ? 'red' : (r[2] === 'متوسطة' ? 'orange' : 'green');
+                return (
+                  <div key={idx} className="db-row" onClick={() => handleRowClick(c, r)}>
+                    <div className="db-row-main">
+                      <div className="db-ticket-id">{r[0]}</div>
+                      <div className="db-row-sub">{r[1]}</div>
+                    </div>
+                    <span className={`db-badge ${badgeClass}`}>{r[2]}</span>
+                    <span className="db-row-time">{r[3]}</span>
                   </div>
-                  <span className={`db-badge ${badgeClass}`}>{r[2]}</span>
-                  <span className="db-row-time">{r[3]}</span>
-                </div>
-              );
-            }
+                );
+              }
 
-            // Kind: consults or users
-            if (c.kind === 'consults' || c.kind === 'users') {
-              const isConsult = c.kind === 'consults';
-              return (
-                <div key={idx} className="db-row" onClick={() => handleRowClick(c, r)}>
-                  <span 
-                    className="db-row-icon" 
-                    style={{ 
-                      background: isConsult ? '#f5f3ff' : '#eff6ff', 
-                      color: isConsult ? '#7c3aed' : '#2563eb' 
-                    }}
-                  >
-                    <svg viewBox="0 0 24 24">
-                      <circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
-                      <path d="M5 20c0-3.8 3.2-6 7-6s7 2.2 7 6" fill="none" stroke="currentColor" strokeWidth="1.8" />
-                    </svg>
-                  </span>
-                  <div className="db-row-main">
-                    <div className="db-row-title">{r[0]}</div>
+              // 4. Consultants or Users
+              if (c.kind === 'consults' || c.kind === 'users') {
+                const isConsult = c.kind === 'consults';
+                return (
+                  <div key={idx} className="db-row" onClick={() => handleRowClick(c, r)}>
+                    <span 
+                      className="db-row-icon" 
+                      style={{ 
+                        background: isConsult ? '#f5f3ff' : '#eff6ff', 
+                        color: isConsult ? '#7c3aed' : '#2563eb' 
+                      }}
+                    >
+                      <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+                        <path d="M5 20c0-3.8 3.2-6 7-6s7 2.2 7 6" fill="none" stroke="currentColor" strokeWidth="1.8" />
+                      </svg>
+                    </span>
+                    <div className="db-row-main">
+                      <div className="db-row-title">{r[0]}</div>
+                    </div>
+                    <span className="db-row-time">{r[1]}</span>
                   </div>
-                  <span className="db-row-time">{r[1]}</span>
-                </div>
-              );
-            }
+                );
+              }
 
-            // Kind: audit or activity
-            if (c.kind === 'audit' || c.kind === 'activity') {
+              // 5. Audit logs / Appointments / Payouts / Subscriptions
               return (
                 <div key={idx} className="db-row" onClick={() => handleRowClick(c, r)}>
                   <span className="db-row-icon" style={{ borderRadius: '7px', background: '#f0fdf4', color: '#059669' }}>
@@ -161,46 +146,8 @@ export default function DashboardListCards({ navigate, onShowToast, liveLists = 
                   <span className="db-row-time">{r[2]}</span>
                 </div>
               );
-            }
-
-            // Kind: security
-            if (c.kind === 'security') {
-              return (
-                <div key={idx} className="db-row" onClick={() => handleRowClick(c, r)}>
-                  <span className={`db-dot ${r[3] || 'red'}`} />
-                  <div className="db-row-main">
-                    <div className="db-row-title">{r[0]}</div>
-                    <div className="db-row-sub">{r[1]}</div>
-                  </div>
-                  <span className="db-row-time">{r[2]}</span>
-                </div>
-              );
-            }
-
-            // Kind: aiwarn or alerts
-            const iconColor = r[3] || 'orange';
-            return (
-              <div key={idx} className="db-row" onClick={() => handleRowClick(c, r)}>
-                <span className={`db-alert-ico ${iconColor}`}>
-                  {iconColor === 'blue' ? (
-                    <svg viewBox="0 0 24 24">
-                      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.8" />
-                      <path d="M12 10v6M12 7h.01" fill="none" stroke="currentColor" strokeWidth="1.8" />
-                    </svg>
-                  ) : (
-                    <svg viewBox="0 0 24 24">
-                      <path d="M12 3 2.5 20h19zM12 9v5M12 17h.01" fill="none" stroke="currentColor" strokeWidth="1.8" />
-                    </svg>
-                  )}
-                </span>
-                <div className="db-row-main">
-                  <div className="db-row-title">{r[0]}</div>
-                  <div className="db-row-sub">{r[1]}</div>
-                </div>
-                <span className="db-row-time">{r[2]}</span>
-              </div>
-            );
-          })}
+            })
+          )}
         </div>
       </div>
     );

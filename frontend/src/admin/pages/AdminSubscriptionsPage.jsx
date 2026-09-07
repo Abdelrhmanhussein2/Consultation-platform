@@ -428,7 +428,7 @@ export default function AdminSubscriptionsPage({ navigate }) {
           setPlans(data);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     // 2. Fetch Subscribers
     fetch('/api/subscriptions/subscribers')
@@ -438,7 +438,7 @@ export default function AdminSubscriptionsPage({ navigate }) {
           setSubscribers(data);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     // 3. Fetch Requests
     fetch('/api/subscriptions/requests')
@@ -448,7 +448,7 @@ export default function AdminSubscriptionsPage({ navigate }) {
           setRequests(data);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     // 4. Fetch Orders
     fetch('/api/subscriptions/orders')
@@ -458,7 +458,7 @@ export default function AdminSubscriptionsPage({ navigate }) {
           setOrders(data);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     // 5. Fetch Versions
     fetch('/api/subscriptions/versions')
@@ -468,7 +468,7 @@ export default function AdminSubscriptionsPage({ navigate }) {
           setVersions(data);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Export CSV Helper
@@ -592,7 +592,7 @@ export default function AdminSubscriptionsPage({ navigate }) {
 
   return (
     <div className="sub-page-root">
-      
+
       {/* 1. Page Header with Title and Navigation Tabs */}
       <div className="sub-page-head">
         <div className="sub-head-copy">
@@ -1080,7 +1080,7 @@ export default function AdminSubscriptionsPage({ navigate }) {
                           type="checkbox"
                           className="sub-cycle-check"
                           checked={c.enabled}
-                          onChange={() => {}}
+                          onChange={() => { }}
                         />
                         <div>
                           {isMonthly ? 'الاشتراك الشهري' : 'الاشتراك السنوي'}

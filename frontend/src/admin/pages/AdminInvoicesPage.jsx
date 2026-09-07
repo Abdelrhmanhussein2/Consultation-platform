@@ -6,23 +6,23 @@ const fmt = (n) => Number(n || 0).toLocaleString("ar-JO", { minimumFractionDigit
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("zh-Hans-CN") : "-";
 
 const STATUS_LABELS = {
-  paid:      { label: "مدفوعة",         bg: "#D1FAE5", color: "#065F46" },
-  issued:    { label: "صادرة",          bg: "#DBEAFE", color: "#1E40AF" },
-  draft:     { label: "مسودة",          bg: "#F1F5F9", color: "#475569" },
-  cancelled: { label: "ملغاة",          bg: "#FEE2E2", color: "#991B1B" },
-  partial:   { label: "مدفوعة جزئياً", bg: "#FEF9C3", color: "#854D0E" },
-  overdue:   { label: "متأخرة",         bg: "#FFE4E6", color: "#BE123C" },
-  pending:   { label: "بانتظار الموافقة", bg: "#FEF9C3", color: "#B45309" },
-  processing:{ label: "قيد المعالجة",  bg: "#E0F2FE", color: "#0369A1" },
-  completed: { label: "مكتمل",          bg: "#D1FAE5", color: "#065F46" },
-  rejected:  { label: "مرفوض",          bg: "#FEE2E2", color: "#991B1B" },
-  active:    { label: "نشطة",           bg: "#D1FAE5", color: "#065F46" },
-  suspended: { label: "معلقة",          bg: "#FEF9C3", color: "#B45309" },
+  paid: { label: "مدفوعة", bg: "#D1FAE5", color: "#065F46" },
+  issued: { label: "صادرة", bg: "#DBEAFE", color: "#1E40AF" },
+  draft: { label: "مسودة", bg: "#F1F5F9", color: "#475569" },
+  cancelled: { label: "ملغاة", bg: "#FEE2E2", color: "#991B1B" },
+  partial: { label: "مدفوعة جزئياً", bg: "#FEF9C3", color: "#854D0E" },
+  overdue: { label: "متأخرة", bg: "#FFE4E6", color: "#BE123C" },
+  pending: { label: "بانتظار الموافقة", bg: "#FEF9C3", color: "#B45309" },
+  processing: { label: "قيد المعالجة", bg: "#E0F2FE", color: "#0369A1" },
+  completed: { label: "مكتمل", bg: "#D1FAE5", color: "#065F46" },
+  rejected: { label: "مرفوض", bg: "#FEE2E2", color: "#991B1B" },
+  active: { label: "نشطة", bg: "#D1FAE5", color: "#065F46" },
+  suspended: { label: "معلقة", bg: "#FEF9C3", color: "#B45309" },
 };
 
 const si = (s) => STATUS_LABELS[s] || { label: s || "-", bg: "#F1F5F9", color: "#475569" };
 
-const CYCLES = { monthly:"كل شهر", quarterly:"كل 3 أشهر", semiannual:"كل 6 أشهر", annual:"سنوي", weekly:"أسبوعي" };
+const CYCLES = { monthly: "كل شهر", quarterly: "كل 3 أشهر", semiannual: "كل 6 أشهر", annual: "سنوي", weekly: "أسبوعي" };
 
 const CUSTOMERS = [
   { id: 1, name: "شركة الأفق للاستشارات ذ.م.م", type: "شركة ذات مسؤولية محدودة", tax: "200145879", address: "عمّان - الشميساني", email: "accounts@alofuq.jo", phone: "06 560 1100" },
@@ -51,10 +51,10 @@ const SIGNERS_BY_DEPT = {
 };
 
 const Avatar = ({ name, id }) => {
-  const colors = ["#0D3C5C","#0891B2","#7C3AED","#059669","#DC2626","#D97706","#0E7490","#4F46E5"];
+  const colors = ["#0D3C5C", "#0891B2", "#7C3AED", "#059669", "#DC2626", "#D97706", "#0E7490", "#4F46E5"];
   const bg = colors[(id || name || "").charCodeAt(0) % colors.length];
   return (
-    <div style={{ width:34, height:34, borderRadius:"50%", background:bg, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:800, flexShrink:0 }}>
+    <div style={{ width: 34, height: 34, borderRadius: "50%", background: bg, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>
       {(name || "؟").substring(0, 2)}
     </div>
   );
@@ -62,20 +62,20 @@ const Avatar = ({ name, id }) => {
 
 const Chip = ({ status }) => {
   const { label, bg, color } = si(status);
-  return <span style={{ background:bg, color, borderRadius:20, padding:"4px 12px", fontSize:11, fontWeight:800, whiteSpace:"nowrap" }}>{label}</span>;
+  return <span style={{ background: bg, color, borderRadius: 20, padding: "4px 12px", fontSize: 11, fontWeight: 800, whiteSpace: "nowrap" }}>{label}</span>;
 };
 
 const Card = ({ icon, label, value, sub, subColor, accent }) => (
-  <div style={{ background:"#fff", borderRadius:16, border:"1.5px solid #E2E8F0", padding:"20px 22px", position:"relative", overflow:"hidden", boxShadow:"0 1px 3px rgba(0,0,0,0.04)" }}>
-    <div style={{ position:"absolute", top:0, bottom:0, right:0, width:4, background:accent }} />
-    <div style={{ fontSize:22, marginBottom:10 }}>{icon}</div>
-    <div style={{ fontSize:12, color:"#64748B", fontWeight:700, marginBottom:6 }}>{label}</div>
-    <div style={{ fontSize:20, fontWeight:900, color:"#0D3C5C" }}>{value}</div>
-    {sub && <div style={{ fontSize:11, color:subColor||"#94A3B8", fontWeight:700, marginTop:6 }}>{sub}</div>}
+  <div style={{ background: "#fff", borderRadius: 16, border: "1.5px solid #E2E8F0", padding: "20px 22px", position: "relative", overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+    <div style={{ position: "absolute", top: 0, bottom: 0, right: 0, width: 4, background: accent }} />
+    <div style={{ fontSize: 22, marginBottom: 10 }}>{icon}</div>
+    <div style={{ fontSize: 12, color: "#64748B", fontWeight: 700, marginBottom: 6 }}>{label}</div>
+    <div style={{ fontSize: 20, fontWeight: 900, color: "#0D3C5C" }}>{value}</div>
+    {sub && <div style={{ fontSize: 11, color: subColor || "#94A3B8", fontWeight: 700, marginTop: 6 }}>{sub}</div>}
   </div>
 );
 
-const Th = ({ ch }) => <th style={{ padding:"12px 14px", color:"#64748B", fontWeight:800, fontSize:12, textAlign:"right", whiteSpace:"nowrap" }}>{ch}</th>;
+const Th = ({ ch }) => <th style={{ padding: "12px 14px", color: "#64748B", fontWeight: 800, fontSize: 12, textAlign: "right", whiteSpace: "nowrap" }}>{ch}</th>;
 
 function numberToArabicWords(num) {
   if (!num || isNaN(num) || num === 0) return "صفر دينار أردني";
@@ -93,7 +93,7 @@ export default function AdminInvoicesPage({ navigate }) {
   const [search, setSearch] = useState("");
   const [sel, setSel] = useState(null);
   const [activeMenuId, setActiveMenuId] = useState(null);
-  
+
   // Create Editor State
   const [showCreateEditor, setShowCreateEditor] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -137,7 +137,7 @@ export default function AdminInvoicesPage({ navigate }) {
   const [currency, setCurrency] = useState("JOD");
   const [invoiceClass, setInvoiceClass] = useState("فاتورة خدمات");
   const [status, setStatus] = useState("مدفوعة");
-  
+
   const [customerType, setCustomerType] = useState("شركة ذات مسؤولية محدودة");
   const [taxTreatment, setTaxTreatment] = useState("خاضعة للضريبة");
   const [taxEnabled, setTaxEnabled] = useState(true);
@@ -156,7 +156,7 @@ export default function AdminInvoicesPage({ navigate }) {
 
   // Operation type & line items
   const [opType, setOpType] = useState("consult"); // consult, package, filing, platform
-  
+
   // Dynamic fields for Consultations tab
   const [consultType, setConsultType] = useState("جلسة فيديو");
   const [consultantName, setConsultantName] = useState("د. سامح عبد الفتاح");
@@ -252,8 +252,8 @@ export default function AdminInvoicesPage({ navigate }) {
         const d = await r3.value.json();
         setRefInvoices(Array.isArray(d) ? d : []);
       } else { setRefInvoices([]); }
-    } catch { 
-      setInvoices([]); 
+    } catch {
+      setInvoices([]);
       setRecInvoices([]);
       setRefInvoices([]);
     } finally { setLoading(false); }
@@ -287,7 +287,7 @@ export default function AdminInvoicesPage({ navigate }) {
     const text = getGeneratedPresetText();
     const unit = opType === "consult" ? "جلسة" : opType === "package" ? "باقة" : opType === "filing" ? "خدمة" : "نسبة";
     const price = opType === "consult" ? 85 : opType === "package" ? 150 : opType === "filing" ? 120 : 50;
-    
+
     setLineItems(prev => [
       ...prev,
       { id: Date.now(), name: text, qty: 1, unit, price, discount: 0, taxRate: taxEnabled ? 16 : 0 }
@@ -400,7 +400,7 @@ export default function AdminInvoicesPage({ navigate }) {
       let endpoint = `/api/invoices/${item.id}`;
       if (tabType === "recurring") endpoint = `/api/recurring-invoices/${item.id}`;
       if (tabType === "refunds") endpoint = `/api/refunded-invoices/${item.id}`;
-      
+
       const res = await fetch(endpoint, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
@@ -439,9 +439,9 @@ export default function AdminInvoicesPage({ navigate }) {
     const isOpen = activeMenuId === `${tabType}-${item.id}`;
     return (
       <td style={{ padding: "13px 14px", position: "relative" }} onClick={e => e.stopPropagation()}>
-        <button 
+        <button
           type="button"
-          style={{ background: isOpen ? "#F1F5F9" : "none", border: "none", cursor: "pointer", color: isOpen ? "#0D3C5C" : "#94A3B8", fontSize: 18, fontWeight: 900, padding: "4px 8px", borderRadius: 6 }} 
+          style={{ background: isOpen ? "#F1F5F9" : "none", border: "none", cursor: "pointer", color: isOpen ? "#0D3C5C" : "#94A3B8", fontSize: 18, fontWeight: 900, padding: "4px 8px", borderRadius: 6 }}
           onClick={() => setActiveMenuId(isOpen ? null : `${tabType}-${item.id}`)}
         >
           ···
@@ -449,17 +449,17 @@ export default function AdminInvoicesPage({ navigate }) {
         {isOpen && (
           <>
             <div style={{ position: "fixed", inset: 0, zIndex: 9998 }} onClick={() => setActiveMenuId(null)} />
-            <div 
-              style={{ 
-                position: "absolute", 
-                left: 10, 
-                top: "calc(100% - 4px)", 
-                zIndex: 9999, 
-                background: "#ffffff", 
-                borderRadius: 12, 
-                boxShadow: "0 10px 30px rgba(15,23,42,0.18), 0 2px 6px rgba(0,0,0,0.06)", 
-                border: "1.5px solid #E2E8F0", 
-                minWidth: 180, 
+            <div
+              style={{
+                position: "absolute",
+                left: 10,
+                top: "calc(100% - 4px)",
+                zIndex: 9999,
+                background: "#ffffff",
+                borderRadius: 12,
+                boxShadow: "0 10px 30px rgba(15,23,42,0.18), 0 2px 6px rgba(0,0,0,0.06)",
+                border: "1.5px solid #E2E8F0",
+                minWidth: 180,
                 padding: "6px 0",
                 direction: "rtl",
                 fontSize: 12,
@@ -467,7 +467,7 @@ export default function AdminInvoicesPage({ navigate }) {
                 textAlign: "right"
               }}
             >
-              <div 
+              <div
                 onClick={() => handleViewInvoice(item)}
                 style={{ padding: "9px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, color: "#334155" }}
                 onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
@@ -476,7 +476,7 @@ export default function AdminInvoicesPage({ navigate }) {
                 <i className="fa-regular fa-eye" style={{ color: "#64748B", width: 16 }}></i>
                 <span>عرض</span>
               </div>
-              <div 
+              <div
                 onClick={() => handleEditInvoice(item, tabType)}
                 style={{ padding: "9px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, color: "#334155" }}
                 onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
@@ -485,7 +485,7 @@ export default function AdminInvoicesPage({ navigate }) {
                 <i className="fa-regular fa-pen-to-square" style={{ color: "#64748B", width: 16 }}></i>
                 <span>تعديل</span>
               </div>
-              <div 
+              <div
                 onClick={() => handleDeleteInvoice(item, tabType)}
                 style={{ padding: "9px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, color: "#DC2626" }}
                 onMouseEnter={e => e.currentTarget.style.background = "#FEF2F2"}
@@ -495,7 +495,7 @@ export default function AdminInvoicesPage({ navigate }) {
                 <span>حذف</span>
               </div>
               <div style={{ height: 1, background: "#F1F5F9", margin: "4px 0" }} />
-              <div 
+              <div
                 onClick={() => handleResendInvoice(item)}
                 style={{ padding: "9px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, color: "#334155" }}
                 onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
@@ -504,7 +504,7 @@ export default function AdminInvoicesPage({ navigate }) {
                 <i className="fa-regular fa-paper-plane" style={{ color: "#64748B", width: 16 }}></i>
                 <span>إعادة إرسال للعميل</span>
               </div>
-              <div 
+              <div
                 onClick={() => handleDownloadPDF(item)}
                 style={{ padding: "9px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, color: "#334155" }}
                 onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
@@ -564,7 +564,7 @@ export default function AdminInvoicesPage({ navigate }) {
           price: item.price,
           discount: item.discount,
           taxRate: item.taxRate,
-          total: (Number(item.qty || 0) * Number(item.price || 0) - Number(item.discount || 0)) * (1 + (taxEnabled ? Number(item.taxRate || 0)/100 : 0))
+          total: (Number(item.qty || 0) * Number(item.price || 0) - Number(item.discount || 0)) * (1 + (taxEnabled ? Number(item.taxRate || 0) / 100 : 0))
         })),
         amount: calcSubtotal,
         subtotal: calcSubtotal,
@@ -625,7 +625,7 @@ export default function AdminInvoicesPage({ navigate }) {
             status: payload.recurring_state || "active",
             notes: payload.notes
           })
-        }).catch(() => {});
+        }).catch(() => { });
       }
 
       setShowCreateEditor(false);
@@ -779,7 +779,7 @@ export default function AdminInvoicesPage({ navigate }) {
         </html>
       `);
       popup.document.close();
-    } catch(e) {
+    } catch (e) {
       console.error(e);
       alert('تعذر تجهيز الطباعة: ' + e.message);
     }
@@ -802,13 +802,13 @@ export default function AdminInvoicesPage({ navigate }) {
 
   const handlePrint = () => setShowPreviewModal(true);
 
-  const STATUS_TABS = ["الكل","مدفوعة","صادرة","مسودة","غير مدفوعة","مدفوعة جزئياً","ملغاة"];
-  const tabKey = { "مدفوعة":"paid","صادرة":"issued","مسودة":"draft","غير مدفوعة":"issued","مدفوعة جزئياً":"partial","ملغاة":"cancelled" };
+  const STATUS_TABS = ["الكل", "مدفوعة", "صادرة", "مسودة", "غير مدفوعة", "مدفوعة جزئياً", "ملغاة"];
+  const tabKey = { "مدفوعة": "paid", "صادرة": "issued", "مسودة": "draft", "غير مدفوعة": "issued", "مدفوعة جزئياً": "partial", "ملغاة": "cancelled" };
 
   const filtInv = invoices
     .filter(inv => {
-      const ms = !search || 
-        (inv.invoice_number || "").toLowerCase().includes(search.toLowerCase()) || 
+      const ms = !search ||
+        (inv.invoice_number || "").toLowerCase().includes(search.toLowerCase()) ||
         (inv.user_name || "").toLowerCase().includes(search.toLowerCase()) ||
         (inv.user_email || "").toLowerCase().includes(search.toLowerCase());
 
@@ -833,8 +833,8 @@ export default function AdminInvoicesPage({ navigate }) {
   const recList = recInvoices;
   const filtRec = recList
     .filter(r => {
-      const ms = !search || 
-        (r.recurring_number || r.id || "").toLowerCase().includes(search.toLowerCase()) || 
+      const ms = !search ||
+        (r.recurring_number || r.id || "").toLowerCase().includes(search.toLowerCase()) ||
         (r.user_name || "").toLowerCase().includes(search.toLowerCase());
 
       const dropStatusMatch = filterStatus === "الكل" ? true : r.status === filterStatus;
@@ -855,9 +855,9 @@ export default function AdminInvoicesPage({ navigate }) {
   const refList = refInvoices;
   const filtRef = refList
     .filter(r => {
-      const ms = !search || 
-        (r.refund_number || r.id || "").toLowerCase().includes(search.toLowerCase()) || 
-        (r.user_name || "").toLowerCase().includes(search.toLowerCase()) || 
+      const ms = !search ||
+        (r.refund_number || r.id || "").toLowerCase().includes(search.toLowerCase()) ||
+        (r.user_name || "").toLowerCase().includes(search.toLowerCase()) ||
         (r.invoice_number || r.invoice_id || "").toLowerCase().includes(search.toLowerCase());
 
       const dropStatusMatch = filterStatus === "الكل" ? true : r.status === filterStatus;
@@ -875,13 +875,13 @@ export default function AdminInvoicesPage({ navigate }) {
       return 0;
     });
 
-  const total = invoices.reduce((a,i) => a + parseFloat(i.total_amount||0), 0);
-  const paidAmt = invoices.filter(i=>i.status==="paid").reduce((a,i) => a + parseFloat(i.total_amount||0), 0);
-  const pendingAmt = invoices.filter(i=>i.status!=="paid"&&i.status!=="cancelled").reduce((a,i) => a + parseFloat(i.total_amount||0), 0);
-  const overdueAmt = invoices.filter(i=>i.status==="overdue").reduce((a,i) => a + parseFloat(i.total_amount||0), 0);
+  const total = invoices.reduce((a, i) => a + parseFloat(i.total_amount || 0), 0);
+  const paidAmt = invoices.filter(i => i.status === "paid").reduce((a, i) => a + parseFloat(i.total_amount || 0), 0);
+  const pendingAmt = invoices.filter(i => i.status !== "paid" && i.status !== "cancelled").reduce((a, i) => a + parseFloat(i.total_amount || 0), 0);
+  const overdueAmt = invoices.filter(i => i.status === "overdue").reduce((a, i) => a + parseFloat(i.total_amount || 0), 0);
 
-  const recRevenue = recList.reduce((a,r) => a + Number(r.paid_amount || r.paid || 0), 0);
-  const refTotal = refList.reduce((a,r) => a + Number(r.refund_amount || 0), 0);
+  const recRevenue = recList.reduce((a, r) => a + Number(r.paid_amount || r.paid || 0), 0);
+  const refTotal = refList.reduce((a, r) => a + Number(r.refund_amount || 0), 0);
 
   const handleExportCSV = () => {
     let headers = [];
@@ -955,19 +955,19 @@ export default function AdminInvoicesPage({ navigate }) {
   };
 
   const tabs = [
-    { id:"invoices", label:"الفواتير" },
-    { id:"recurring", label:"الفواتير الدورية" },
-    { id:"refunds",   label:"الفواتير المستردة" },
+    { id: "invoices", label: "الفواتير" },
+    { id: "recurring", label: "الفواتير الدورية" },
+    { id: "refunds", label: "الفواتير المستردة" },
   ];
 
-  const titles = { invoices:"الفواتير", recurring:"الفواتير الدورية", refunds:"الفواتير المستردة" };
-  const subs   = { invoices:"إدارة ومتابعة جميع فواتير ديوان", recurring:"إدارة الفواتير المتكررة ودوريتها", refunds:"إدارة عمليات استرداد قيمة الخدمات" };
-  const btnLabel = { invoices:"إنشاء فاتورة جديدة", recurring:"إنشاء فاتورة دورية", refunds:"إنشاء طلب استرداد" };
+  const titles = { invoices: "الفواتير", recurring: "الفواتير الدورية", refunds: "الفواتير المستردة" };
+  const subs = { invoices: "إدارة ومتابعة جميع فواتير ديوان", recurring: "إدارة الفواتير المتكررة ودوريتها", refunds: "إدارة عمليات استرداد قيمة الخدمات" };
+  const btnLabel = { invoices: "إنشاء فاتورة جديدة", recurring: "إنشاء فاتورة دورية", refunds: "إنشاء طلب استرداد" };
 
   const currentCust = CUSTOMERS[selectedCustIndex] || CUSTOMERS[0];
 
   return (
-    <div style={{ direction:"rtl", fontFamily:"'Cairo','Tajawal',sans-serif", color:"#1E293B", minHeight:"100vh", background:"#F8FAFC" }}>
+    <div style={{ direction: "rtl", fontFamily: "'Cairo','Tajawal',sans-serif", color: "#1E293B", minHeight: "100vh", background: "#F8FAFC" }}>
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
       <style>{`
         @keyframes sp{to{transform:rotate(360deg)}}
@@ -1119,15 +1119,15 @@ export default function AdminInvoicesPage({ navigate }) {
 
           {/* Preview Sheet Card */}
           <div style={{ padding: "32px 20px", width: "100%", boxSizing: "border-box" }}>
-            <div 
+            <div
               className="invoice-sheet"
-              style={{ 
-                maxWidth: 940, 
-                margin: "0 auto", 
-                background: "#fff", 
-                borderRadius: 16, 
-                border: "1.5px solid #E2E8F0", 
-                padding: "40px 48px", 
+              style={{
+                maxWidth: 940,
+                margin: "0 auto",
+                background: "#fff",
+                borderRadius: 16,
+                border: "1.5px solid #E2E8F0",
+                padding: "40px 48px",
                 boxShadow: "0 24px 60px rgba(0,0,0,0.08)",
                 fontFamily: "'Cairo','Tajawal',sans-serif",
                 direction: "rtl"
@@ -1253,7 +1253,7 @@ export default function AdminInvoicesPage({ navigate }) {
                 <div>
                   <div style={{ display: "flex", gap: 18, alignItems: "flex-start" }}>
                     <div style={{ width: 110, height: 110, padding: 4, background: "#fff", border: "1.5px solid #CBD5E1", borderRadius: 12, flexShrink: 0 }}>
-                      <img 
+                      <img
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
                           [
                             `المفوّتر: ${seller === "أخرى" ? (otherSellerName || "جهة أخرى") : seller}`,
@@ -1261,9 +1261,9 @@ export default function AdminInvoicesPage({ navigate }) {
                             `التاريخ: ${invDate}`,
                             `الإجمالي: ${calcGrandTotal.toFixed(3)} ${currency}`
                           ].join("\n")
-                        )}`} 
-                        alt="QR" 
-                        style={{ width: "100%", height: "100%", borderRadius: 8, objectFit: "contain" }} 
+                        )}`}
+                        alt="QR"
+                        style={{ width: "100%", height: "100%", borderRadius: 8, objectFit: "contain" }}
                       />
                     </div>
                     <div>
@@ -1377,21 +1377,21 @@ export default function AdminInvoicesPage({ navigate }) {
               <div className="grid four">
                 <div>
                   <label>رقم الفاتورة <span className="req">*</span></label>
-                  <input className="input" value={invNo} onChange={e=>setInvNo(e.target.value)} placeholder="INV-2026-000001" />
+                  <input className="input" value={invNo} onChange={e => setInvNo(e.target.value)} placeholder="INV-2026-000001" />
                 </div>
                 <div>
                   <label>الرقم المرجعي</label>
-                  <input className="input" value={refNo} onChange={e=>setRefNo(e.target.value)} placeholder="TX-2026-000001" />
+                  <input className="input" value={refNo} onChange={e => setRefNo(e.target.value)} placeholder="TX-2026-000001" />
                 </div>
                 <div>
                   <label>تاريخ الفاتورة <span className="req">*</span></label>
-                  <input className="input" type="date" value={invDate} onChange={e=>setInvDate(e.target.value)} />
+                  <input className="input" type="date" value={invDate} onChange={e => setInvDate(e.target.value)} />
                 </div>
                 <div>
                   <label>شروط الدفع</label>
-                  <select value={terms} onChange={e=>{
+                  <select value={terms} onChange={e => {
                     setTerms(e.target.value);
-                    const days = parseInt(e.target.value||"0");
+                    const days = parseInt(e.target.value || "0");
                     const d = new Date(invDate || Date.now());
                     d.setDate(d.getDate() + days);
                     setDueDate(d.toISOString().split('T')[0]);
@@ -1407,18 +1407,18 @@ export default function AdminInvoicesPage({ navigate }) {
               <div className="grid four" style={{ marginTop: 15 }}>
                 <div>
                   <label>تاريخ الاستحقاق</label>
-                  <input className="input" type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)} />
+                  <input className="input" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
                 </div>
                 <div>
                   <label>العملة</label>
-                  <select value={currency} onChange={e=>setCurrency(e.target.value)}>
+                  <select value={currency} onChange={e => setCurrency(e.target.value)}>
                     <option value="JOD">الدينار الأردني (JOD)</option>
                     <option value="USD">الدولار الأمريكي (USD)</option>
                   </select>
                 </div>
                 <div>
                   <label>نوع الفاتورة</label>
-                  <select value={invoiceClass} onChange={e=>setInvoiceClass(e.target.value)}>
+                  <select value={invoiceClass} onChange={e => setInvoiceClass(e.target.value)}>
                     <option>فاتورة خدمات</option>
                     <option>فاتورة مبيعات</option>
                     <option>فاتورة عمولة منصة</option>
@@ -1426,7 +1426,7 @@ export default function AdminInvoicesPage({ navigate }) {
                 </div>
                 <div>
                   <label>الحالة</label>
-                  <select value={status} onChange={e=>setStatus(e.target.value)}>
+                  <select value={status} onChange={e => setStatus(e.target.value)}>
                     <option value="مسودة">مسودة</option>
                     <option value="صادرة">صادرة</option>
                     <option value="مدفوعة">مدفوعة</option>
@@ -1438,36 +1438,36 @@ export default function AdminInvoicesPage({ navigate }) {
               <div className="grid two" style={{ marginTop: 15 }}>
                 <div>
                   <label>شعار الفاتورة</label>
-                  <div 
+                  <div
                     className="logo-uploader"
-                    style={{ 
-                      position: "relative", 
-                      cursor: "pointer", 
-                      minHeight: 100, 
-                      display: "flex", 
-                      flexDirection: "column", 
-                      alignItems: "center", 
-                      justifyContent: "center", 
-                      border: "2px dashed #CBD5E1", 
-                      borderRadius: 12, 
-                      padding: 14, 
+                    style={{
+                      position: "relative",
+                      cursor: "pointer",
+                      minHeight: 100,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "2px dashed #CBD5E1",
+                      borderRadius: 12,
+                      padding: 14,
                       background: "#F8FAFC",
                       transition: "all 0.2s"
                     }}
                     onClick={() => document.getElementById("logoFileInput").click()}
                   >
-                    <input 
-                      id="logoFileInput" 
-                      type="file" 
-                      accept="image/*" 
-                      style={{ display: "none" }} 
-                      onChange={handleLogoChange} 
+                    <input
+                      id="logoFileInput"
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={handleLogoChange}
                     />
                     {logoUrl ? (
                       <div style={{ position: "relative", width: "100%", textAlign: "center" }}>
                         <img src={logoUrl} alt="Uploaded Logo" style={{ maxHeight: 80, maxWidth: "100%", objectFit: "contain", margin: "0 auto" }} />
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           style={{ position: "absolute", top: -6, left: 0, background: "#EF4444", color: "#fff", border: "none", borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
                           onClick={(e) => { e.stopPropagation(); setLogoUrl(""); }}
                         >
@@ -1487,7 +1487,7 @@ export default function AdminInvoicesPage({ navigate }) {
                   <div className="grid two">
                     <div>
                       <label>نوع العميل</label>
-                      <select value={customerType} onChange={e=>setCustomerType(e.target.value)}>
+                      <select value={customerType} onChange={e => setCustomerType(e.target.value)}>
                         <option>أفراد</option>
                         <option>مؤسسة فردية</option>
                         <option>شركة ذات مسؤولية محدودة</option>
@@ -1504,7 +1504,7 @@ export default function AdminInvoicesPage({ navigate }) {
                     </div>
                     <div>
                       <label>المعالجة الضريبية</label>
-                      <select value={taxTreatment} onChange={e=>setTaxTreatment(e.target.value)}>
+                      <select value={taxTreatment} onChange={e => setTaxTreatment(e.target.value)}>
                         <option>خاضعة للضريبة</option>
                         <option>معفاة</option>
                         <option>صفرية</option>
@@ -1532,7 +1532,7 @@ export default function AdminInvoicesPage({ navigate }) {
                 <div className="grid four">
                   <div>
                     <label>دورية الإصدار <span className="req">*</span></label>
-                    <select value={recurringCycle} onChange={e=>setRecurringCycle(e.target.value)}>
+                    <select value={recurringCycle} onChange={e => setRecurringCycle(e.target.value)}>
                       <option value="monthly">شهريًا / كل 30 يوم</option>
                       <option value="quarterly">كل 3 أشهر</option>
                       <option value="semiannual">كل 6 أشهر</option>
@@ -1541,7 +1541,7 @@ export default function AdminInvoicesPage({ navigate }) {
                   </div>
                   <div>
                     <label>تاريخ أول إصدار <span className="req">*</span></label>
-                    <input className="input" type="date" value={recurringStartDate} onChange={e=>setRecurringStartDate(e.target.value)} />
+                    <input className="input" type="date" value={recurringStartDate} onChange={e => setRecurringStartDate(e.target.value)} />
                   </div>
                   <div>
                     <label>تاريخ الإصدار القادم</label>
@@ -1549,7 +1549,7 @@ export default function AdminInvoicesPage({ navigate }) {
                   </div>
                   <div>
                     <label>حالة التكرار</label>
-                    <select value={recurringState} onChange={e=>setRecurringState(e.target.value)}>
+                    <select value={recurringState} onChange={e => setRecurringState(e.target.value)}>
                       <option value="active">نشطة</option>
                       <option value="paused">متوقفة مؤقتًا</option>
                     </select>
@@ -1577,14 +1577,14 @@ export default function AdminInvoicesPage({ navigate }) {
                     <button className="link" type="button">تعديل البيانات</button>
                   </div>
                   <label>الجهة المفوترة <span className="req">*</span></label>
-                  <select value={seller} onChange={e=>setSeller(e.target.value)}>
+                  <select value={seller} onChange={e => setSeller(e.target.value)}>
                     <option>منصة ديوان للاستشارات الضريبية</option>
                     <option>أخرى</option>
                   </select>
                   {seller === "أخرى" && (
                     <div style={{ marginTop: 9 }}>
                       <label>اسم الجهة الأخرى</label>
-                      <input className="input" value={otherSellerName} onChange={e=>setOtherSellerName(e.target.value)} placeholder="أدخل اسم الجهة المفوترة" />
+                      <input className="input" value={otherSellerName} onChange={e => setOtherSellerName(e.target.value)} placeholder="أدخل اسم الجهة المفوترة" />
                     </div>
                   )}
                   <div className="customer-summary">
@@ -1602,7 +1602,7 @@ export default function AdminInvoicesPage({ navigate }) {
                     <button className="link" type="button">+ إضافة عميل جديد</button>
                   </div>
                   <label>اسم العميل <span className="req">*</span></label>
-                  <select value={selectedCustIndex} onChange={e=>setSelectedCustIndex(Number(e.target.value))}>
+                  <select value={selectedCustIndex} onChange={e => setSelectedCustIndex(Number(e.target.value))}>
                     {CUSTOMERS.map((c, i) => (
                       <option key={c.id} value={i}>{c.name}</option>
                     ))}
@@ -1667,7 +1667,7 @@ export default function AdminInvoicesPage({ navigate }) {
                   <div className="grid three">
                     <div>
                       <label>نوع الاستشارة</label>
-                      <select value={consultType} onChange={e=>setConsultType(e.target.value)}>
+                      <select value={consultType} onChange={e => setConsultType(e.target.value)}>
                         <option>جلسة فيديو</option>
                         <option>مكالمة صوتبة</option>
                         <option>محادثة نصية</option>
@@ -1675,7 +1675,7 @@ export default function AdminInvoicesPage({ navigate }) {
                     </div>
                     <div>
                       <label>اسم المستشار</label>
-                      <select value={consultantName} onChange={e=>setConsultantName(e.target.value)}>
+                      <select value={consultantName} onChange={e => setConsultantName(e.target.value)}>
                         <option value="">اختر المستشار</option>
                         <option value="د. سامح عبد الفتاح">د. سامح عبد الفتاح</option>
                         <option value="م. طارق يونس">م. طارق يونس</option>
@@ -1684,7 +1684,7 @@ export default function AdminInvoicesPage({ navigate }) {
                     </div>
                     <div>
                       <label>رقم الجلسة</label>
-                      <select value={sessionNo} onChange={e=>setSessionNo(e.target.value)}>
+                      <select value={sessionNo} onChange={e => setSessionNo(e.target.value)}>
                         <option value="SES-2026-104">SES-2026-104</option>
                         <option value="SES-2026-105">SES-2026-105</option>
                         <option value="SES-2026-106">SES-2026-106</option>
@@ -1698,7 +1698,7 @@ export default function AdminInvoicesPage({ navigate }) {
                   <div className="grid three">
                     <div>
                       <label>نوع العملية</label>
-                      <select value={packageOpType} onChange={e=>setPackageOpType(e.target.value)}>
+                      <select value={packageOpType} onChange={e => setPackageOpType(e.target.value)}>
                         <option>شراء بطاقة</option>
                         <option>شراء باقة جديدة</option>
                         <option>ترقية باقة</option>
@@ -1707,7 +1707,7 @@ export default function AdminInvoicesPage({ navigate }) {
                     </div>
                     <div>
                       <label>الباقة الحالية</label>
-                      <select value={currentPackage} onChange={e=>setCurrentPackage(e.target.value)}>
+                      <select value={currentPackage} onChange={e => setCurrentPackage(e.target.value)}>
                         <option>الأساسية</option>
                         <option>المتقدمة</option>
                         <option>الاحترافية</option>
@@ -1715,7 +1715,7 @@ export default function AdminInvoicesPage({ navigate }) {
                     </div>
                     <div>
                       <label>مدة الصلاحية</label>
-                      <select value={packageDuration} onChange={e=>setPackageDuration(e.target.value)}>
+                      <select value={packageDuration} onChange={e => setPackageDuration(e.target.value)}>
                         <option>شهر (30 يوم)</option>
                         <option>3 أشهر (90 يوم)</option>
                         <option>6 أشهر (180 يوم)</option>
@@ -1730,7 +1730,7 @@ export default function AdminInvoicesPage({ navigate }) {
                   <div className="grid three">
                     <div>
                       <label>نوع الخدمة</label>
-                      <select value={taxServiceType} onChange={e=>setTaxServiceType(e.target.value)}>
+                      <select value={taxServiceType} onChange={e => setTaxServiceType(e.target.value)}>
                         <option>إقرار ضريبة دخل</option>
                         <option>إقرار ضريبة مبيعات</option>
                         <option>خدمة اقتطاع ضريبي</option>
@@ -1739,7 +1739,7 @@ export default function AdminInvoicesPage({ navigate }) {
                     </div>
                     <div>
                       <label>الفترة الضريبية</label>
-                      <select value={taxPeriod} onChange={e=>setTaxPeriod(e.target.value)}>
+                      <select value={taxPeriod} onChange={e => setTaxPeriod(e.target.value)}>
                         <option>08/2026</option>
                         <option>07/2026</option>
                         <option>06/2026</option>
@@ -1749,7 +1749,7 @@ export default function AdminInvoicesPage({ navigate }) {
                     </div>
                     <div>
                       <label>رقم الملف الضريبي</label>
-                      <input className="input" value={taxFileNo} onChange={e=>setTaxFileNo(e.target.value)} placeholder="TAX-100245" />
+                      <input className="input" value={taxFileNo} onChange={e => setTaxFileNo(e.target.value)} placeholder="TAX-100245" />
                     </div>
                   </div>
                 )}
@@ -1759,7 +1759,7 @@ export default function AdminInvoicesPage({ navigate }) {
                   <div className="grid three">
                     <div>
                       <label>المستشار</label>
-                      <select value={platformConsultant} onChange={e=>setPlatformConsultant(e.target.value)}>
+                      <select value={platformConsultant} onChange={e => setPlatformConsultant(e.target.value)}>
                         <option value="">اختر المستشار</option>
                         <option value="د. سامح عبد الفتاح">د. سامح عبد الفتاح</option>
                         <option value="م. طارق يونس">م. طارق يونس</option>
@@ -1767,7 +1767,7 @@ export default function AdminInvoicesPage({ navigate }) {
                     </div>
                     <div>
                       <label>رقم الاستشارة</label>
-                      <select value={consultationNo} onChange={e=>setConsultationNo(e.target.value)}>
+                      <select value={consultationNo} onChange={e => setConsultationNo(e.target.value)}>
                         <option value="ADV-2026-7781">ADV-2026-7781</option>
                         <option value="ADV-2026-7782">ADV-2026-7782</option>
                         <option value="ADV-2026-7783">ADV-2026-7783</option>
@@ -1775,7 +1775,7 @@ export default function AdminInvoicesPage({ navigate }) {
                     </div>
                     <div>
                       <label>نسبة المنصة</label>
-                      <input className="input" value={platformRate} onChange={e=>setPlatformRate(e.target.value)} style={{ textAlign: "center", fontWeight: "bold" }} />
+                      <input className="input" value={platformRate} onChange={e => setPlatformRate(e.target.value)} style={{ textAlign: "center", fontWeight: "bold" }} />
                     </div>
                   </div>
                 )}
@@ -1887,11 +1887,11 @@ export default function AdminInvoicesPage({ navigate }) {
                 <div className="grid two" style={{ marginTop: 14 }}>
                   <div>
                     <label>مرجع عملية الدفع</label>
-                    <input className="input" value={payRef} onChange={e=>setPayRef(e.target.value)} placeholder="رقم الحركة / المرجع" />
+                    <input className="input" value={payRef} onChange={e => setPayRef(e.target.value)} placeholder="رقم الحركة / المرجع" />
                   </div>
                   <div>
                     <label>حالة الدفع</label>
-                    <select value={paymentStatus} onChange={e=>setPaymentStatus(e.target.value)}>
+                    <select value={paymentStatus} onChange={e => setPaymentStatus(e.target.value)}>
                       <option>بانتظار الدفع</option>
                       <option>مدفوع</option>
                       <option>مدفوع جزئياً</option>
@@ -1920,17 +1920,17 @@ export default function AdminInvoicesPage({ navigate }) {
                 <div className="grid two">
                   <div>
                     <label>ملاحظات إضافية</label>
-                    <textarea rows="3" value={notes} onChange={e=>setNotes(e.target.value)} placeholder="أدخل أي ملاحظات تظهر على الفاتورة" />
+                    <textarea rows="3" value={notes} onChange={e => setNotes(e.target.value)} placeholder="أدخل أي ملاحظات تظهر على الفاتورة" />
                   </div>
                   <div>
                     <label>الشروط والأحكام</label>
-                    <textarea rows="3" value={tc} onChange={e=>setTc(e.target.value)} />
+                    <textarea rows="3" value={tc} onChange={e => setTc(e.target.value)} />
                   </div>
                 </div>
                 <div className="grid two" style={{ marginTop: 14 }}>
                   <div>
                     <label>الحساب البنكي الظاهر على الفاتورة</label>
-                    <select value={collectionAccount} onChange={e=>setCollectionAccount(e.target.value)}>
+                    <select value={collectionAccount} onChange={e => setCollectionAccount(e.target.value)}>
                       <option>البنك العربي الإسلامي — JO94AIBJ00100000123456789012</option>
                       <option>بنك الاتحاد — JO71UBJO00200000223456789021</option>
                       <option>بنك الإسكان — JO58HBHO00300000323456789034</option>
@@ -1939,7 +1939,7 @@ export default function AdminInvoicesPage({ navigate }) {
                   </div>
                   <div>
                     <label>القسم المسؤول</label>
-                    <select value={responsibleDept} onChange={e=>{
+                    <select value={responsibleDept} onChange={e => {
                       setResponsibleDept(e.target.value);
                       const list = SIGNERS_BY_DEPT[e.target.value] || [];
                       if (list.length > 0) setSignName(list[0]);
@@ -1972,9 +1972,9 @@ export default function AdminInvoicesPage({ navigate }) {
                 <span>الفوترة الإلكترونية والـ QR</span>
                 <small>جاهز للربط مع نظام الفوترة الأردني والتكامل الإلكتروني</small>
               </div>
-              <button 
-                type="button" 
-                className="ab" 
+              <button
+                type="button"
+                className="ab"
                 onClick={() => {
                   const genId = "JO-TAX-" + new Date().getFullYear() + "-" + Math.floor(100000 + Math.random() * 900000);
                   setEInvId(genId);
@@ -1987,7 +1987,7 @@ export default function AdminInvoicesPage({ navigate }) {
             </div>
             <div className="card-b qr-grid">
               <div className="qr" style={{ width: 110, height: 110, padding: 4, background: "#fff", border: "1.5px solid #CBD5E1", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <img 
+                <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
                     [
                       `الجهة المصدرة: ${seller === "أخرى" ? (otherSellerName || "جهة أخرى") : seller}`,
@@ -1998,9 +1998,9 @@ export default function AdminInvoicesPage({ navigate }) {
                       `الضريبة: ${calcTaxTotal.toFixed(3)} ${currency}`,
                       eInvId ? `معرف الفوترة الإلكترونية: ${eInvId}` : ""
                     ].filter(Boolean).join("\n")
-                  )}`} 
-                  alt="رمز QR الفاتورة" 
-                  style={{ width: "100%", height: "100%", borderRadius: 8, objectFit: "contain" }} 
+                  )}`}
+                  alt="رمز QR الفاتورة"
+                  style={{ width: "100%", height: "100%", borderRadius: 8, objectFit: "contain" }}
                 />
               </div>
               <div style={{ flex: 1 }}>
@@ -2014,11 +2014,11 @@ export default function AdminInvoicesPage({ navigate }) {
                 <div className="grid two" style={{ marginTop: 12 }}>
                   <div>
                     <label>معرّف الفاتورة الإلكتروني</label>
-                    <input className="input" value={eInvId} onChange={e=>setEInvId(e.target.value)} placeholder="يولد بعد الإرسال أو اضغط إنشاء أعلاه" />
+                    <input className="input" value={eInvId} onChange={e => setEInvId(e.target.value)} placeholder="يولد بعد الإرسال أو اضغط إنشاء أعلاه" />
                   </div>
                   <div>
                     <label>حالة الربط</label>
-                    <select value={eStatus} onChange={e=>setEStatus(e.target.value)}>
+                    <select value={eStatus} onChange={e => setEStatus(e.target.value)}>
                       <option>غير مرسلة</option>
                       <option>تم الإرسال</option>
                       <option>مقبولة</option>
@@ -2039,7 +2039,7 @@ export default function AdminInvoicesPage({ navigate }) {
             <div className="card-b grid two">
               <div>
                 <label>اسم الموقّع</label>
-                <select value={signName} onChange={e=>setSignName(e.target.value)}>
+                <select value={signName} onChange={e => setSignName(e.target.value)}>
                   {(SIGNERS_BY_DEPT[responsibleDept] || ["سارة علي - النائب التنفيذي", "أحمد عبد الله - المدير العام"]).map((s, idx) => (
                     <option key={idx} value={s}>{s}</option>
                   ))}
@@ -2051,9 +2051,9 @@ export default function AdminInvoicesPage({ navigate }) {
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <input type="file" accept="image/*" className="input" onChange={handleSignatureChange} style={{ padding: "6px 12px" }} />
                   {signatureUrl && (
-                    <button 
-                      type="button" 
-                      className="ghost-btn" 
+                    <button
+                      type="button"
+                      className="ghost-btn"
                       onClick={() => setSignatureUrl("")}
                       style={{ color: "#EF4444", fontSize: 12, padding: "6px 12px", whiteSpace: "nowrap" }}
                     >
@@ -2083,13 +2083,13 @@ export default function AdminInvoicesPage({ navigate }) {
       ) : (
         <>
           {/* Header */}
-          <div style={{ padding:"24px 28px 0", borderBottom:"1px solid #E2E8F0", background:"#fff" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 }}>
+          <div style={{ padding: "24px 28px 0", borderBottom: "1px solid #E2E8F0", background: "#fff" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
               <div>
-                <h1 style={{ margin:0, fontSize:26, fontWeight:900, color:"#0D3C5C" }}>{titles[tab]}</h1>
-                <p style={{ margin:"4px 0 0", fontSize:13, color:"#64748B" }}>{subs[tab]}</p>
+                <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: "#0D3C5C" }}>{titles[tab]}</h1>
+                <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748B" }}>{subs[tab]}</p>
               </div>
-              <div style={{ display:"flex", gap:10 }}>
+              <div style={{ display: "flex", gap: 10 }}>
                 <button className="ab" onClick={handleExportCSV} type="button">📤 تصدير</button>
                 <button className="pb" onClick={() => {
                   if (tab === "refunds") {
@@ -2098,50 +2098,50 @@ export default function AdminInvoicesPage({ navigate }) {
                     handleOpenCreate(tab === "recurring");
                   }
                 }}>
-                  <span style={{ fontSize:16 }}>+</span> {btnLabel[tab]}
+                  <span style={{ fontSize: 16 }}>+</span> {btnLabel[tab]}
                 </button>
               </div>
             </div>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <div style={{ display:"flex" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex" }}>
                 {tabs.map(t => (
-                  <button key={t.id} className={`m-tab${tab===t.id?" a":""}`} onClick={() => { setTab(t.id); setSearch(""); setStFilter("الكل"); }}>
+                  <button key={t.id} className={`m-tab${tab === t.id ? " a" : ""}`} onClick={() => { setTab(t.id); setSearch(""); setStFilter("الكل"); }}>
                     {t.label}
                   </button>
                 ))}
               </div>
               <div style={{ position: "relative", marginBottom: 6 }}>
-                <input 
-                  type="text" 
-                  placeholder="بحث برقم الفاتورة أو العميل..." 
-                  value={search} 
-                  onChange={e => setSearch(e.target.value)} 
-                  style={{ border: "1.5px solid #CBD5E1", borderRadius: 9, padding: "7px 14px 7px 36px", fontFamily: "inherit", fontSize: 13, outline: "none", color: "#0D3C5C", width: 250, background: "#fff" }} 
+                <input
+                  type="text"
+                  placeholder="بحث برقم الفاتورة أو العميل..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  style={{ border: "1.5px solid #CBD5E1", borderRadius: 9, padding: "7px 14px 7px 36px", fontFamily: "inherit", fontSize: 13, outline: "none", color: "#0D3C5C", width: 250, background: "#fff" }}
                 />
-                <svg style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <svg style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
               </div>
             </div>
           </div>
 
-          <div style={{ padding:"24px 28px" }}>
+          <div style={{ padding: "24px 28px" }}>
 
             {/* ── ALL INVOICES ── */}
-            {tab==="invoices" && (<>
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:24 }}>
-                <Card icon="📄" label="إجمالي الفواتير"   value={`${fmt(total)} د.أ`}      sub="↑ ٪5.67 من الشهر الماضي" subColor="#16A34A" accent="#0D3C5C"/>
-                <Card icon="✅" label="الفواتير المدفوعة" value={`${fmt(paidAmt)} د.أ`}   sub="↑ ٪14.5 من الشهر الماضي" subColor="#16A34A" accent="#16A34A"/>
-                <Card icon="⏳" label="قيد الانتظار"      value={`${fmt(pendingAmt)} د.أ`} sub="↑ ٪8.5 من الشهر الماضي"  subColor="#D97706" accent="#D97706"/>
-                <Card icon="⚠️" label="الفواتير المتأخرة" value={`${fmt(overdueAmt)} د.أ`} sub="↑ ٪7.45 من الشهر الماضي" subColor="#DC2626" accent="#DC2626"/>
+            {tab === "invoices" && (<>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 24 }}>
+                <Card icon="📄" label="إجمالي الفواتير" value={`${fmt(total)} د.أ`} sub="↑ ٪5.67 من الشهر الماضي" subColor="#16A34A" accent="#0D3C5C" />
+                <Card icon="✅" label="الفواتير المدفوعة" value={`${fmt(paidAmt)} د.أ`} sub="↑ ٪14.5 من الشهر الماضي" subColor="#16A34A" accent="#16A34A" />
+                <Card icon="⏳" label="قيد الانتظار" value={`${fmt(pendingAmt)} د.أ`} sub="↑ ٪8.5 من الشهر الماضي" subColor="#D97706" accent="#D97706" />
+                <Card icon="⚠️" label="الفواتير المتأخرة" value={`${fmt(overdueAmt)} د.أ`} sub="↑ ٪7.45 من الشهر الماضي" subColor="#DC2626" accent="#DC2626" />
               </div>
-              <div style={{ background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0", padding:"12px 18px", marginBottom:20, display:"flex", gap:8, flexWrap:"wrap", justifyContent:"space-between", alignItems:"center" }}>
-                <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-                  {STATUS_TABS.map(t=><button key={t} className="chip" style={{ background:stFilter===t?"#0D3C5C":"#F1F5F9", color:stFilter===t?"#fff":"#475569" }} onClick={()=>setStFilter(t)}>{t}</button>)}
+              <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #E2E8F0", padding: "12px 18px", marginBottom: 20, display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {STATUS_TABS.map(t => <button key={t} className="chip" style={{ background: stFilter === t ? "#0D3C5C" : "#F1F5F9", color: stFilter === t ? "#fff" : "#475569" }} onClick={() => setStFilter(t)}>{t}</button>)}
                 </div>
-                <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                  <button className="ab" type="button" onClick={() => setShowFilterBar(!showFilterBar)} style={{ fontSize:12, padding:"6px 14px", background: showFilterBar ? "#0D3C5C" : "#fff", color: showFilterBar ? "#fff" : "#0D3C5C" }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <button className="ab" type="button" onClick={() => setShowFilterBar(!showFilterBar)} style={{ fontSize: 12, padding: "6px 14px", background: showFilterBar ? "#0D3C5C" : "#fff", color: showFilterBar ? "#fff" : "#0D3C5C" }}>
                     <i className="fa-solid fa-filter"></i> فلترة
                   </button>
-                  <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{ padding: "6px 12px", fontSize: 12, border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff" }}>
+                  <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ padding: "6px 12px", fontSize: 12, border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff" }}>
                     <option value="date_desc">الترتيب: الأحدث</option>
                     <option value="date_asc">الترتيب: الأقدم</option>
                     <option value="amount_desc">الأعلى قيمة</option>
@@ -2187,9 +2187,9 @@ export default function AdminInvoicesPage({ navigate }) {
                       <input className="input" type="number" step="0.001" placeholder="إلى" value={filterMaxAmount} onChange={e => setFilterMaxAmount(e.target.value)} style={{ padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9 }} />
                     </div>
                     <div>
-                      <button 
-                        type="button" 
-                        onClick={handleResetFilters} 
+                      <button
+                        type="button"
+                        onClick={handleResetFilters}
                         style={{ width: "100%", background: "#fff", border: "1.5px solid #CBD5E1", borderRadius: 9, padding: "8px 14px", fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: "#0D3C5C", cursor: "pointer", transition: "all 0.2s" }}
                       >
                         إعادة تعيين
@@ -2199,40 +2199,40 @@ export default function AdminInvoicesPage({ navigate }) {
                 </div>
               )}
               {loading ? (
-                <div style={{ padding:60, textAlign:"center", background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0" }}>
-                  <div style={{ width:28, height:28, border:"3px solid #E2E8F0", borderTopColor:"#0D3C5C", borderRadius:"50%", animation:"sp .8s linear infinite", margin:"0 auto 14px" }}/>
-                  <div style={{ color:"#64748B", fontSize:13 }}>جاري التحميل...</div>
+                <div style={{ padding: 60, textAlign: "center", background: "#fff", borderRadius: 14, border: "1.5px solid #E2E8F0" }}>
+                  <div style={{ width: 28, height: 28, border: "3px solid #E2E8F0", borderTopColor: "#0D3C5C", borderRadius: "50%", animation: "sp .8s linear infinite", margin: "0 auto 14px" }} />
+                  <div style={{ color: "#64748B", fontSize: 13 }}>جاري التحميل...</div>
                 </div>
-              ) : filtInv.length===0 ? (
-                <div style={{ padding:60, textAlign:"center", background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0", color:"#64748B" }}>
-                  <div style={{ fontSize:48, marginBottom:12 }}>🧾</div><h3 style={{ color:"#0D3C5C" }}>لا توجد فواتير مطابقة</h3>
+              ) : filtInv.length === 0 ? (
+                <div style={{ padding: 60, textAlign: "center", background: "#fff", borderRadius: 14, border: "1.5px solid #E2E8F0", color: "#64748B" }}>
+                  <div style={{ fontSize: 48, marginBottom: 12 }}>🧾</div><h3 style={{ color: "#0D3C5C" }}>لا توجد فواتير مطابقة</h3>
                 </div>
               ) : (
-                <div style={{ background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0", overflow:"hidden" }}>
-                  <table style={{ width:"100%", borderCollapse:"collapse", textAlign:"right", fontSize:13 }}>
+                <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #E2E8F0", overflow: "hidden" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "right", fontSize: 13 }}>
                     <thead>
-                      <tr style={{ background:"#F8FAFC", borderBottom:"1.5px solid #E2E8F0" }}>
-                        <th style={{ padding:"12px 16px", width:40 }}><input type="checkbox" style={{ accentColor:"#0D3C5C" }}/></th>
-                        {["رقم الفاتورة","العميل","تاريخ الإنشاء ↕","المبلغ ↕","المدفوع ↕","الحالة","طريقة الدفع","تاريخ الاستحقاق",""].map((h,i)=><Th key={i} ch={h}/>)}
+                      <tr style={{ background: "#F8FAFC", borderBottom: "1.5px solid #E2E8F0" }}>
+                        <th style={{ padding: "12px 16px", width: 40 }}><input type="checkbox" style={{ accentColor: "#0D3C5C" }} /></th>
+                        {["رقم الفاتورة", "العميل", "تاريخ الإنشاء ↕", "المبلغ ↕", "المدفوع ↕", "الحالة", "طريقة الدفع", "تاريخ الاستحقاق", ""].map((h, i) => <Th key={i} ch={h} />)}
                       </tr>
                     </thead>
                     <tbody>
-                      {filtInv.map(inv=>(
-                        <tr key={inv.id} className="inv-row" style={{ borderBottom:"1px solid #F1F5F9" }} onClick={()=>setSel(inv)}>
-                          <td style={{ padding:"13px 16px" }} onClick={e=>e.stopPropagation()}><input type="checkbox" style={{ accentColor:"#0D3C5C" }}/></td>
-                          <td style={{ padding:"13px 14px", fontWeight:800, color:"#0D3C5C" }}>{inv.invoice_number||"-"}</td>
-                          <td style={{ padding:"13px 14px" }}>
-                            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                              <Avatar name={inv.user_name} id={inv.id}/>
-                              <div><div style={{ fontWeight:700, color:"#0D3C5C", fontSize:13 }}>{inv.user_name||"-"}</div><div style={{ fontSize:11, color:"#94A3B8" }}>{inv.user_email||""}</div></div>
+                      {filtInv.map(inv => (
+                        <tr key={inv.id} className="inv-row" style={{ borderBottom: "1px solid #F1F5F9" }} onClick={() => setSel(inv)}>
+                          <td style={{ padding: "13px 16px" }} onClick={e => e.stopPropagation()}><input type="checkbox" style={{ accentColor: "#0D3C5C" }} /></td>
+                          <td style={{ padding: "13px 14px", fontWeight: 800, color: "#0D3C5C" }}>{inv.invoice_number || "-"}</td>
+                          <td style={{ padding: "13px 14px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <Avatar name={inv.user_name} id={inv.id} />
+                              <div><div style={{ fontWeight: 700, color: "#0D3C5C", fontSize: 13 }}>{inv.user_name || "-"}</div><div style={{ fontSize: 11, color: "#94A3B8" }}>{inv.user_email || ""}</div></div>
                             </div>
                           </td>
-                          <td style={{ padding:"13px 14px", color:"#64748B" }}>{fmtDate(inv.created_at)}</td>
-                          <td style={{ padding:"13px 14px", fontWeight:700, color:"#0D3C5C" }}>{inv.currency||"JOD"} {fmt(inv.total_amount)}</td>
-                          <td style={{ padding:"13px 14px", fontWeight:700, color:inv.status==="paid"?"#16A34A":"#64748B" }}>{inv.currency||"JOD"} {inv.status==="paid"?fmt(inv.total_amount):"0.000"}</td>
-                          <td style={{ padding:"13px 14px" }}><Chip status={inv.status}/></td>
-                          <td style={{ padding:"13px 14px", color:"#64748B" }}>{inv.payment_method||"-"}</td>
-                          <td style={{ padding:"13px 14px", color:"#64748B" }}>{fmtDate(inv.due_date)}</td>
+                          <td style={{ padding: "13px 14px", color: "#64748B" }}>{fmtDate(inv.created_at)}</td>
+                          <td style={{ padding: "13px 14px", fontWeight: 700, color: "#0D3C5C" }}>{inv.currency || "JOD"} {fmt(inv.total_amount)}</td>
+                          <td style={{ padding: "13px 14px", fontWeight: 700, color: inv.status === "paid" ? "#16A34A" : "#64748B" }}>{inv.currency || "JOD"} {inv.status === "paid" ? fmt(inv.total_amount) : "0.000"}</td>
+                          <td style={{ padding: "13px 14px" }}><Chip status={inv.status} /></td>
+                          <td style={{ padding: "13px 14px", color: "#64748B" }}>{inv.payment_method || "-"}</td>
+                          <td style={{ padding: "13px 14px", color: "#64748B" }}>{fmtDate(inv.due_date)}</td>
                           {renderRowActions(inv, "invoices")}
                         </tr>
                       ))}
@@ -2240,24 +2240,24 @@ export default function AdminInvoicesPage({ navigate }) {
                   </table>
                 </div>
               )}
-              <div style={{ marginTop:14, fontSize:12, color:"#94A3B8" }}>عرض {filtInv.length} من أصل {invoices.length} فاتورة</div>
+              <div style={{ marginTop: 14, fontSize: 12, color: "#94A3B8" }}>عرض {filtInv.length} من أصل {invoices.length} فاتورة</div>
             </>)}
 
             {/* ── RECURRING ── */}
-            {tab==="recurring" && (<>
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:24 }}>
-                <Card icon="🔄" label="إجمالي الفواتير الدورية" value={`${recList.length}`}         sub="إجمالي الفواتير المسجلة" subColor="#64748B" accent="#0D3C5C"/>
-                <Card icon="✅" label="فواتير مدفوعة"           value={`${recList.filter(r=>r.status==="paid"||r.status==="active").length}`} sub="فواتير نشطة ومدفوعة" subColor="#16A34A" accent="#16A34A"/>
-                <Card icon="⏳" label="فواتير متبقية"           value={`${recList.filter(r=>r.status!=="paid"&&r.status!=="cancelled"&&r.status!=="suspended").length}`} sub="تحت التحصيل" subColor="#D97706" accent="#D97706"/>
-                <Card icon="💰" label="إجمالي الإيراد"          value={`${fmt(recRevenue)} د.أ`}  sub="إجمالي التحصيل الدوري" subColor="#16A34A" accent="#4F46E5"/>
+            {tab === "recurring" && (<>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 24 }}>
+                <Card icon="🔄" label="إجمالي الفواتير الدورية" value={`${recList.length}`} sub="إجمالي الفواتير المسجلة" subColor="#64748B" accent="#0D3C5C" />
+                <Card icon="✅" label="فواتير مدفوعة" value={`${recList.filter(r => r.status === "paid" || r.status === "active").length}`} sub="فواتير نشطة ومدفوعة" subColor="#16A34A" accent="#16A34A" />
+                <Card icon="⏳" label="فواتير متبقية" value={`${recList.filter(r => r.status !== "paid" && r.status !== "cancelled" && r.status !== "suspended").length}`} sub="تحت التحصيل" subColor="#D97706" accent="#D97706" />
+                <Card icon="💰" label="إجمالي الإيراد" value={`${fmt(recRevenue)} د.أ`} sub="إجمالي التحصيل الدوري" subColor="#16A34A" accent="#4F46E5" />
               </div>
-              <div style={{ background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0", padding:"12px 18px", marginBottom:20, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                <span style={{ fontSize:12, color:"#64748B" }}>إجمالي {filtRec.length} فاتورة دورية</span>
-                <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                  <button className="ab" type="button" onClick={() => setShowFilterBar(!showFilterBar)} style={{ fontSize:12, padding:"6px 14px", background: showFilterBar ? "#0D3C5C" : "#fff", color: showFilterBar ? "#fff" : "#0D3C5C" }}>
+              <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #E2E8F0", padding: "12px 18px", marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 12, color: "#64748B" }}>إجمالي {filtRec.length} فاتورة دورية</span>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <button className="ab" type="button" onClick={() => setShowFilterBar(!showFilterBar)} style={{ fontSize: 12, padding: "6px 14px", background: showFilterBar ? "#0D3C5C" : "#fff", color: showFilterBar ? "#fff" : "#0D3C5C" }}>
                     <i className="fa-solid fa-filter"></i> فلترة
                   </button>
-                  <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{ padding: "6px 12px", fontSize: 12, border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff" }}>
+                  <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ padding: "6px 12px", fontSize: 12, border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff" }}>
                     <option value="date_desc">الترتيب: الأحدث</option>
                     <option value="date_asc">الترتيب: الأقدم</option>
                     <option value="amount_desc">الأعلى قيمة</option>
@@ -2303,9 +2303,9 @@ export default function AdminInvoicesPage({ navigate }) {
                       <input className="input" type="number" step="0.001" placeholder="إلى" value={filterMaxAmount} onChange={e => setFilterMaxAmount(e.target.value)} style={{ padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9 }} />
                     </div>
                     <div>
-                      <button 
-                        type="button" 
-                        onClick={handleResetFilters} 
+                      <button
+                        type="button"
+                        onClick={handleResetFilters}
                         style={{ width: "100%", background: "#fff", border: "1.5px solid #CBD5E1", borderRadius: 9, padding: "8px 14px", fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: "#0D3C5C", cursor: "pointer", transition: "all 0.2s" }}
                       >
                         إعادة تعيين
@@ -2315,43 +2315,43 @@ export default function AdminInvoicesPage({ navigate }) {
                 </div>
               )}
               {loading ? (
-                <div style={{ padding:60, textAlign:"center", background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0" }}>
-                  <div style={{ width:28, height:28, border:"3px solid #E2E8F0", borderTopColor:"#0D3C5C", borderRadius:"50%", animation:"sp .8s linear infinite", margin:"0 auto 14px" }}/>
-                  <div style={{ color:"#64748B", fontSize:13 }}>جاري التحميل...</div>
+                <div style={{ padding: 60, textAlign: "center", background: "#fff", borderRadius: 14, border: "1.5px solid #E2E8F0" }}>
+                  <div style={{ width: 28, height: 28, border: "3px solid #E2E8F0", borderTopColor: "#0D3C5C", borderRadius: "50%", animation: "sp .8s linear infinite", margin: "0 auto 14px" }} />
+                  <div style={{ color: "#64748B", fontSize: 13 }}>جاري التحميل...</div>
                 </div>
               ) : filtRec.length === 0 ? (
-                <div style={{ padding:60, textAlign:"center", background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0", color:"#64748B" }}>
-                  <div style={{ fontSize:48, marginBottom:12 }}>🔄</div>
-                  <h3 style={{ color:"#0D3C5C", margin:"0 0 6px" }}>لا توجد فواتير دورية</h3>
-                  <p style={{ margin:0, fontSize:13 }}>قم بإنشاء فاتورة دورية جديدة من خلال زر «+ إنشاء فاتورة دورية»</p>
+                <div style={{ padding: 60, textAlign: "center", background: "#fff", borderRadius: 14, border: "1.5px solid #E2E8F0", color: "#64748B" }}>
+                  <div style={{ fontSize: 48, marginBottom: 12 }}>🔄</div>
+                  <h3 style={{ color: "#0D3C5C", margin: "0 0 6px" }}>لا توجد فواتير دورية</h3>
+                  <p style={{ margin: 0, fontSize: 13 }}>قم بإنشاء فاتورة دورية جديدة من خلال زر «+ إنشاء فاتورة دورية»</p>
                 </div>
               ) : (
-                <div style={{ background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0", overflow:"hidden" }}>
-                  <table style={{ width:"100%", borderCollapse:"collapse", textAlign:"right", fontSize:13 }}>
+                <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #E2E8F0", overflow: "hidden" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "right", fontSize: 13 }}>
                     <thead>
-                      <tr style={{ background:"#F8FAFC", borderBottom:"1.5px solid #E2E8F0" }}>
-                        <th style={{ padding:"12px 16px", width:40 }}><input type="checkbox" style={{ accentColor:"#0D3C5C" }}/></th>
-                        {["الرقم","العميل","تاريخ الإنشاء","دورة التكرار","تاريخ الإصدار","تاريخ الاستحقاق","المدفوع","المستحق","الحالة",""].map((h,i)=><Th key={i} ch={h}/>)}
+                      <tr style={{ background: "#F8FAFC", borderBottom: "1.5px solid #E2E8F0" }}>
+                        <th style={{ padding: "12px 16px", width: 40 }}><input type="checkbox" style={{ accentColor: "#0D3C5C" }} /></th>
+                        {["الرقم", "العميل", "تاريخ الإنشاء", "دورة التكرار", "تاريخ الإصدار", "تاريخ الاستحقاق", "المدفوع", "المستحق", "الحالة", ""].map((h, i) => <Th key={i} ch={h} />)}
                       </tr>
                     </thead>
                     <tbody>
-                      {filtRec.map(r=>(
-                        <tr key={r.id} className="inv-row" style={{ borderBottom:"1px solid #F1F5F9" }}>
-                          <td style={{ padding:"13px 16px" }}><input type="checkbox" style={{ accentColor:"#0D3C5C" }}/></td>
-                          <td style={{ padding:"13px 14px", fontWeight:800, color:"#0D3C5C" }}>{r.recurring_number || r.id}</td>
-                          <td style={{ padding:"13px 14px" }}>
-                            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                              <Avatar name={r.user_name} id={r.id}/>
-                              <div><div style={{ fontWeight:700, color:"#0D3C5C", fontSize:13 }}>{r.user_name || "-"}</div><div style={{ fontSize:11, color:"#94A3B8" }}>{r.user_email || ""}</div></div>
+                      {filtRec.map(r => (
+                        <tr key={r.id} className="inv-row" style={{ borderBottom: "1px solid #F1F5F9" }}>
+                          <td style={{ padding: "13px 16px" }}><input type="checkbox" style={{ accentColor: "#0D3C5C" }} /></td>
+                          <td style={{ padding: "13px 14px", fontWeight: 800, color: "#0D3C5C" }}>{r.recurring_number || r.id}</td>
+                          <td style={{ padding: "13px 14px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <Avatar name={r.user_name} id={r.id} />
+                              <div><div style={{ fontWeight: 700, color: "#0D3C5C", fontSize: 13 }}>{r.user_name || "-"}</div><div style={{ fontSize: 11, color: "#94A3B8" }}>{r.user_email || ""}</div></div>
                             </div>
                           </td>
-                          <td style={{ padding:"13px 14px", color:"#64748B" }}>{fmtDate(r.created_at)}</td>
-                          <td style={{ padding:"13px 14px", fontWeight:700, color:"#475569" }}>{CYCLES[r.cycle]||r.cycle}</td>
-                          <td style={{ padding:"13px 14px", color:"#64748B" }}>{fmtDate(r.issued_date)}</td>
-                          <td style={{ padding:"13px 14px", color:"#64748B" }}>{fmtDate(r.due_date)}</td>
-                          <td style={{ padding:"13px 14px", fontWeight:700, color:"#16A34A" }}>د.أ {fmt(r.paid_amount || r.paid)}</td>
-                          <td style={{ padding:"13px 14px", fontWeight:700, color:"#0D3C5C" }}>د.أ {fmt(r.amount)}</td>
-                          <td style={{ padding:"13px 14px" }}><Chip status={r.status}/></td>
+                          <td style={{ padding: "13px 14px", color: "#64748B" }}>{fmtDate(r.created_at)}</td>
+                          <td style={{ padding: "13px 14px", fontWeight: 700, color: "#475569" }}>{CYCLES[r.cycle] || r.cycle}</td>
+                          <td style={{ padding: "13px 14px", color: "#64748B" }}>{fmtDate(r.issued_date)}</td>
+                          <td style={{ padding: "13px 14px", color: "#64748B" }}>{fmtDate(r.due_date)}</td>
+                          <td style={{ padding: "13px 14px", fontWeight: 700, color: "#16A34A" }}>د.أ {fmt(r.paid_amount || r.paid)}</td>
+                          <td style={{ padding: "13px 14px", fontWeight: 700, color: "#0D3C5C" }}>د.أ {fmt(r.amount)}</td>
+                          <td style={{ padding: "13px 14px" }}><Chip status={r.status} /></td>
                           {renderRowActions(r, "recurring")}
                         </tr>
                       ))}
@@ -2359,24 +2359,24 @@ export default function AdminInvoicesPage({ navigate }) {
                   </table>
                 </div>
               )}
-              <div style={{ marginTop:14, fontSize:12, color:"#94A3B8" }}>عرض {filtRec.length} فاتورة دورية</div>
+              <div style={{ marginTop: 14, fontSize: 12, color: "#94A3B8" }}>عرض {filtRec.length} فاتورة دورية</div>
             </>)}
 
             {/* ── REFUNDS ── */}
-            {tab==="refunds" && (<>
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:24 }}>
-                <Card icon="↩️" label="إجمالي الاستردادات"  value={`${fmt(refTotal)} د.أ`}                                       sub="إجمالي قيمة المبالغ المستردة" subColor="#94A3B8" accent="#0D3C5C"/>
-                <Card icon="✅" label="استردادات مكتملة"    value={`${refList.filter(r=>r.status==="completed").length}`}        sub="تم تنفيذها بنجاح"            subColor="#16A34A" accent="#16A34A"/>
-                <Card icon="⏳" label="قيد المعالجة"         value={`${refList.filter(r=>r.status==="processing"||r.status==="pending").length}`} sub="طلبات تحت المراجعة"  subColor="#D97706" accent="#D97706"/>
-                <Card icon="❌" label="طلبات مرفوضة"         value={`${refList.filter(r=>r.status==="rejected").length}`}        sub="لم تستوفِ شروط الاسترداد"   subColor="#DC2626" accent="#DC2626"/>
+            {tab === "refunds" && (<>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 24 }}>
+                <Card icon="↩️" label="إجمالي الاستردادات" value={`${fmt(refTotal)} د.أ`} sub="إجمالي قيمة المبالغ المستردة" subColor="#94A3B8" accent="#0D3C5C" />
+                <Card icon="✅" label="استردادات مكتملة" value={`${refList.filter(r => r.status === "completed").length}`} sub="تم تنفيذها بنجاح" subColor="#16A34A" accent="#16A34A" />
+                <Card icon="⏳" label="قيد المعالجة" value={`${refList.filter(r => r.status === "processing" || r.status === "pending").length}`} sub="طلبات تحت المراجعة" subColor="#D97706" accent="#D97706" />
+                <Card icon="❌" label="طلبات مرفوضة" value={`${refList.filter(r => r.status === "rejected").length}`} sub="لم تستوفِ شروط الاسترداد" subColor="#DC2626" accent="#DC2626" />
               </div>
-              <div style={{ background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0", padding:"12px 18px", marginBottom:20, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                <span style={{ fontSize:12, color:"#64748B" }}>إجمالي {filtRef.length} طلب استرداد</span>
-                <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                  <button className="ab" type="button" onClick={() => setShowFilterBar(!showFilterBar)} style={{ fontSize:12, padding:"6px 14px", background: showFilterBar ? "#0D3C5C" : "#fff", color: showFilterBar ? "#fff" : "#0D3C5C" }}>
+              <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #E2E8F0", padding: "12px 18px", marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 12, color: "#64748B" }}>إجمالي {filtRef.length} طلب استرداد</span>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <button className="ab" type="button" onClick={() => setShowFilterBar(!showFilterBar)} style={{ fontSize: 12, padding: "6px 14px", background: showFilterBar ? "#0D3C5C" : "#fff", color: showFilterBar ? "#fff" : "#0D3C5C" }}>
                     <i className="fa-solid fa-filter"></i> فلترة
                   </button>
-                  <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{ padding: "6px 12px", fontSize: 12, border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff" }}>
+                  <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ padding: "6px 12px", fontSize: 12, border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff" }}>
                     <option value="date_desc">الترتيب: الأحدث</option>
                     <option value="date_asc">الترتيب: الأقدم</option>
                     <option value="amount_desc">الأعلى قيمة</option>
@@ -2422,9 +2422,9 @@ export default function AdminInvoicesPage({ navigate }) {
                       <input className="input" type="number" step="0.001" placeholder="إلى" value={filterMaxAmount} onChange={e => setFilterMaxAmount(e.target.value)} style={{ padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9 }} />
                     </div>
                     <div>
-                      <button 
-                        type="button" 
-                        onClick={handleResetFilters} 
+                      <button
+                        type="button"
+                        onClick={handleResetFilters}
                         style={{ width: "100%", background: "#fff", border: "1.5px solid #CBD5E1", borderRadius: 9, padding: "8px 14px", fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: "#0D3C5C", cursor: "pointer", transition: "all 0.2s" }}
                       >
                         إعادة تعيين
@@ -2434,45 +2434,45 @@ export default function AdminInvoicesPage({ navigate }) {
                 </div>
               )}
               {loading ? (
-                <div style={{ padding:60, textAlign:"center", background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0" }}>
-                  <div style={{ width:28, height:28, border:"3px solid #E2E8F0", borderTopColor:"#0D3C5C", borderRadius:"50%", animation:"sp .8s linear infinite", margin:"0 auto 14px" }}/>
-                  <div style={{ color:"#64748B", fontSize:13 }}>جاري التحميل...</div>
+                <div style={{ padding: 60, textAlign: "center", background: "#fff", borderRadius: 14, border: "1.5px solid #E2E8F0" }}>
+                  <div style={{ width: 28, height: 28, border: "3px solid #E2E8F0", borderTopColor: "#0D3C5C", borderRadius: "50%", animation: "sp .8s linear infinite", margin: "0 auto 14px" }} />
+                  <div style={{ color: "#64748B", fontSize: 13 }}>جاري التحميل...</div>
                 </div>
               ) : filtRef.length === 0 ? (
-                <div style={{ padding:60, textAlign:"center", background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0", color:"#64748B" }}>
-                  <div style={{ fontSize:48, marginBottom:12 }}>↩️</div>
-                  <h3 style={{ color:"#0D3C5C", margin:"0 0 6px" }}>لا توجد طلبات استرداد</h3>
-                  <p style={{ margin:0, fontSize:13 }}>قم بإنشاء طلب استرداد جديد من خلال زر «+ إنشاء طلب استرداد»</p>
+                <div style={{ padding: 60, textAlign: "center", background: "#fff", borderRadius: 14, border: "1.5px solid #E2E8F0", color: "#64748B" }}>
+                  <div style={{ fontSize: 48, marginBottom: 12 }}>↩️</div>
+                  <h3 style={{ color: "#0D3C5C", margin: "0 0 6px" }}>لا توجد طلبات استرداد</h3>
+                  <p style={{ margin: 0, fontSize: 13 }}>قم بإنشاء طلب استرداد جديد من خلال زر «+ إنشاء طلب استرداد»</p>
                 </div>
               ) : (
-                <div style={{ background:"#fff", borderRadius:14, border:"1.5px solid #E2E8F0", overflow:"hidden" }}>
-                  <table style={{ width:"100%", borderCollapse:"collapse", textAlign:"right", fontSize:13 }}>
+                <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #E2E8F0", overflow: "hidden" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "right", fontSize: 13 }}>
                     <thead>
-                      <tr style={{ background:"#F8FAFC", borderBottom:"1.5px solid #E2E8F0" }}>
-                        <th style={{ padding:"12px 16px", width:40 }}><input type="checkbox" style={{ accentColor:"#0D3C5C" }}/></th>
-                        {["رقم الاسترداد","الفاتورة الأصلية","العميل","الخدمة / العملية","المبلغ الأصلي","المبلغ المسترد","الجهة المتحملة","الحالة","تاريخ الطلب",""].map((h,i)=><Th key={i} ch={h}/>)}
+                      <tr style={{ background: "#F8FAFC", borderBottom: "1.5px solid #E2E8F0" }}>
+                        <th style={{ padding: "12px 16px", width: 40 }}><input type="checkbox" style={{ accentColor: "#0D3C5C" }} /></th>
+                        {["رقم الاسترداد", "الفاتورة الأصلية", "العميل", "الخدمة / العملية", "المبلغ الأصلي", "المبلغ المسترد", "الجهة المتحملة", "الحالة", "تاريخ الطلب", ""].map((h, i) => <Th key={i} ch={h} />)}
                       </tr>
                     </thead>
                     <tbody>
-                      {filtRef.map(r=>(
-                        <tr key={r.id} className="inv-row" style={{ borderBottom:"1px solid #F1F5F9" }}>
-                          <td style={{ padding:"13px 16px" }}><input type="checkbox" style={{ accentColor:"#0D3C5C" }}/></td>
-                          <td style={{ padding:"13px 14px", fontWeight:800, color:"#0D3C5C" }}>{r.refund_number || r.id}</td>
-                          <td style={{ padding:"13px 14px", fontWeight:700, color:"#4F46E5" }}>{r.invoice_number || r.invoice_id || "-"}</td>
-                          <td style={{ padding:"13px 14px" }}>
-                            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                              <Avatar name={r.user_name} id={r.id}/>
-                              <span style={{ fontWeight:700, color:"#0D3C5C", fontSize:13 }}>{r.user_name || "-"}</span>
+                      {filtRef.map(r => (
+                        <tr key={r.id} className="inv-row" style={{ borderBottom: "1px solid #F1F5F9" }}>
+                          <td style={{ padding: "13px 16px" }}><input type="checkbox" style={{ accentColor: "#0D3C5C" }} /></td>
+                          <td style={{ padding: "13px 14px", fontWeight: 800, color: "#0D3C5C" }}>{r.refund_number || r.id}</td>
+                          <td style={{ padding: "13px 14px", fontWeight: 700, color: "#4F46E5" }}>{r.invoice_number || r.invoice_id || "-"}</td>
+                          <td style={{ padding: "13px 14px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <Avatar name={r.user_name} id={r.id} />
+                              <span style={{ fontWeight: 700, color: "#0D3C5C", fontSize: 13 }}>{r.user_name || "-"}</span>
                             </div>
                           </td>
-                          <td style={{ padding:"13px 14px", color:"#475569", maxWidth:200 }}>
-                            <div style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:200 }} title={r.service_name || r.service}>{r.service_name || r.service || "-"}</div>
+                          <td style={{ padding: "13px 14px", color: "#475569", maxWidth: 200 }}>
+                            <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200 }} title={r.service_name || r.service}>{r.service_name || r.service || "-"}</div>
                           </td>
-                          <td style={{ padding:"13px 14px", fontWeight:700, color:"#0D3C5C" }}>د.أ {fmt(r.original_amount)}</td>
-                          <td style={{ padding:"13px 14px", fontWeight:700, color:r.refund_amount>0?"#16A34A":"#94A3B8" }}>د.أ {fmt(r.refund_amount)}</td>
-                          <td style={{ padding:"13px 14px", color:"#64748B" }}>{r.bearer || "المنصة"}</td>
-                          <td style={{ padding:"13px 14px" }}><Chip status={r.status}/></td>
-                          <td style={{ padding:"13px 14px", color:"#64748B" }}>{fmtDate(r.created_at)}</td>
+                          <td style={{ padding: "13px 14px", fontWeight: 700, color: "#0D3C5C" }}>د.أ {fmt(r.original_amount)}</td>
+                          <td style={{ padding: "13px 14px", fontWeight: 700, color: r.refund_amount > 0 ? "#16A34A" : "#94A3B8" }}>د.أ {fmt(r.refund_amount)}</td>
+                          <td style={{ padding: "13px 14px", color: "#64748B" }}>{r.bearer || "المنصة"}</td>
+                          <td style={{ padding: "13px 14px" }}><Chip status={r.status} /></td>
+                          <td style={{ padding: "13px 14px", color: "#64748B" }}>{fmtDate(r.created_at)}</td>
                           {renderRowActions(r, "refunds")}
                         </tr>
                       ))}
@@ -2480,7 +2480,7 @@ export default function AdminInvoicesPage({ navigate }) {
                   </table>
                 </div>
               )}
-              <div style={{ marginTop:14, fontSize:12, color:"#94A3B8" }}>عرض {filtRef.length} طلب استرداد</div>
+              <div style={{ marginTop: 14, fontSize: 12, color: "#94A3B8" }}>عرض {filtRef.length} طلب استرداد</div>
             </>)}
           </div>
         </>
@@ -2532,15 +2532,15 @@ export default function AdminInvoicesPage({ navigate }) {
 
             {/* Preview Sheet Card */}
             <div style={{ padding: "32px 20px", width: "100%", boxSizing: "border-box" }}>
-              <div 
+              <div
                 className="invoice-sheet"
-                style={{ 
-                  maxWidth: 940, 
-                  margin: "0 auto", 
-                  background: "#fff", 
-                  borderRadius: 16, 
-                  border: "1.5px solid #E2E8F0", 
-                  padding: "40px 48px", 
+                style={{
+                  maxWidth: 940,
+                  margin: "0 auto",
+                  background: "#fff",
+                  borderRadius: 16,
+                  border: "1.5px solid #E2E8F0",
+                  padding: "40px 48px",
                   boxShadow: "0 24px 60px rgba(0,0,0,0.08)",
                   fontFamily: "'Cairo','Tajawal',sans-serif",
                   direction: "rtl"
@@ -2664,7 +2664,7 @@ export default function AdminInvoicesPage({ navigate }) {
                   <div>
                     <div style={{ display: "flex", gap: 18, alignItems: "flex-start" }}>
                       <div style={{ width: 110, height: 110, padding: 4, background: "#fff", border: "1.5px solid #CBD5E1", borderRadius: 12, flexShrink: 0 }}>
-                        <img 
+                        <img
                           src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
                             [
                               `المفوّتر: ${sel.seller_name || seller || "منصة ديوان للاستشارات الضريبية"}`,
@@ -2672,9 +2672,9 @@ export default function AdminInvoicesPage({ navigate }) {
                               `التاريخ: ${itemDate}`,
                               `الإجمالي: ${itemTotal.toFixed(3)} ${sel.currency || "JOD"}`
                             ].join("\n")
-                          )}`} 
-                          alt="QR" 
-                          style={{ width: "100%", height: "100%", borderRadius: 8, objectFit: "contain" }} 
+                          )}`}
+                          alt="QR"
+                          style={{ width: "100%", height: "100%", borderRadius: 8, objectFit: "contain" }}
                         />
                       </div>
                       <div>
@@ -2751,23 +2751,23 @@ export default function AdminInvoicesPage({ navigate }) {
         );
       })()}
       {/* HIDDEN INVOICE SHEET CONTAINER FOR A5 LANDSCAPE PRINTING */}
-      <div 
-        id="invoice-sheet-container" 
-        className="invoice-sheet" 
-        style={{ 
-          width: '780px', 
-          minHeight: '510px', 
-          background: '#fff', 
-          padding: '24px 30px', 
-          boxSizing: 'border-box', 
-          fontFamily: "'Cairo', 'Tajawal', sans-serif", 
-          direction: 'rtl', 
-          color: '#0F172A', 
-          border: '1px solid #E2E8F0', 
-          borderRadius: '8px', 
-          position: 'absolute', 
-          left: '-9999px', 
-          top: '-9999px' 
+      <div
+        id="invoice-sheet-container"
+        className="invoice-sheet"
+        style={{
+          width: '780px',
+          minHeight: '510px',
+          background: '#fff',
+          padding: '24px 30px',
+          boxSizing: 'border-box',
+          fontFamily: "'Cairo', 'Tajawal', sans-serif",
+          direction: 'rtl',
+          color: '#0F172A',
+          border: '1px solid #E2E8F0',
+          borderRadius: '8px',
+          position: 'absolute',
+          left: '-9999px',
+          top: '-9999px'
         }}
       >
         {/* Header */}
@@ -2836,7 +2836,7 @@ export default function AdminInvoicesPage({ navigate }) {
         {/* Summary & QR Footer */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderTop: '1.5px solid #E2E8F0', paddingTop: 12 }}>
           <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-            <img 
+            <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(
                 [
                   `المفوّتر: ${seller === "أخرى" ? (otherSellerName || "جهة أخرى") : seller}`,
@@ -2844,9 +2844,9 @@ export default function AdminInvoicesPage({ navigate }) {
                   `التاريخ: ${invDate}`,
                   `الإجمالي: ${calcGrandTotal.toFixed(3)} ${currency}`
                 ].join("\n")
-              )}`} 
-              alt="QR" 
-              style={{ width: 75, height: 75, borderRadius: 6, border: '1px solid #CBD5E1' }} 
+              )}`}
+              alt="QR"
+              style={{ width: 75, height: 75, borderRadius: 6, border: '1px solid #CBD5E1' }}
             />
             <div style={{ fontSize: 10, color: '#64748B', maxWidth: 280 }}>
               <div><b>التوقيع والاعتماد:</b> {signName || 'الإدارة العامة'}</div>

@@ -436,10 +436,10 @@ export default function AdminSessionsPage({ navigate }) {
       {/* 2. Top Metric Cards (6 Cards Matching Columns + Total) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px', marginBottom: '22px' }}>
         {/* Card 1: إجمالي الجلسات */}
-        <div 
-          className="admin-card" 
-          style={{ 
-            textAlign: 'center', 
+        <div
+          className="admin-card"
+          style={{
+            textAlign: 'center',
             padding: '14px 10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
@@ -454,10 +454,10 @@ export default function AdminSessionsPage({ navigate }) {
         </div>
 
         {/* Card 2: مكتملة */}
-        <div 
-          className="admin-card" 
-          style={{ 
-            textAlign: 'center', 
+        <div
+          className="admin-card"
+          style={{
+            textAlign: 'center',
             padding: '14px 10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
@@ -472,10 +472,10 @@ export default function AdminSessionsPage({ navigate }) {
         </div>
 
         {/* Card 3: قيد التنفيذ */}
-        <div 
-          className="admin-card" 
-          style={{ 
-            textAlign: 'center', 
+        <div
+          className="admin-card"
+          style={{
+            textAlign: 'center',
             padding: '14px 10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
@@ -490,10 +490,10 @@ export default function AdminSessionsPage({ navigate }) {
         </div>
 
         {/* Card 4: مؤكدة */}
-        <div 
-          className="admin-card" 
-          style={{ 
-            textAlign: 'center', 
+        <div
+          className="admin-card"
+          style={{
+            textAlign: 'center',
             padding: '14px 10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
@@ -508,10 +508,10 @@ export default function AdminSessionsPage({ navigate }) {
         </div>
 
         {/* Card 5: معلقة */}
-        <div 
-          className="admin-card" 
-          style={{ 
-            textAlign: 'center', 
+        <div
+          className="admin-card"
+          style={{
+            textAlign: 'center',
             padding: '14px 10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
@@ -526,10 +526,10 @@ export default function AdminSessionsPage({ navigate }) {
         </div>
 
         {/* Card 6: ملغاة */}
-        <div 
-          className="admin-card" 
-          style={{ 
-            textAlign: 'center', 
+        <div
+          className="admin-card"
+          style={{
+            textAlign: 'center',
             padding: '14px 10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
@@ -590,7 +590,7 @@ export default function AdminSessionsPage({ navigate }) {
           </button>
         </div>
 
-        <button 
+        <button
           type="button"
           onClick={clearFilters}
           style={{ background: 'none', border: 'none', color: '#EF4444', fontSize: '12.5px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
@@ -599,8 +599,8 @@ export default function AdminSessionsPage({ navigate }) {
           <span>مسح الفلاتر</span>
         </button>
 
-        <select 
-          className="admin-select-input" 
+        <select
+          className="admin-select-input"
           style={{ width: '130px', height: '36px' }}
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
@@ -613,8 +613,8 @@ export default function AdminSessionsPage({ navigate }) {
           <option value="ملغاة">ملغاة</option>
         </select>
 
-        <select 
-          className="admin-select-input" 
+        <select
+          className="admin-select-input"
           style={{ width: '140px', height: '36px' }}
           value={consultantFilter}
           onChange={e => setConsultantFilter(e.target.value)}
@@ -624,8 +624,8 @@ export default function AdminSessionsPage({ navigate }) {
           <option value="عبدالرحمن">عبدالرحمن حسين</option>
         </select>
 
-        <select 
-          className="admin-select-input" 
+        <select
+          className="admin-select-input"
           style={{ width: '120px', height: '36px' }}
           value={typeFilter}
           onChange={e => setTypeFilter(e.target.value)}
@@ -636,9 +636,9 @@ export default function AdminSessionsPage({ navigate }) {
           <option value="مكتوبة">مكتوبة 💬</option>
         </select>
 
-        <input 
-          type="text" 
-          className="admin-search-input" 
+        <input
+          type="text"
+          className="admin-search-input"
           placeholder="من تاريخ - إلى تاريخ"
           style={{ width: '150px', height: '36px' }}
           value={dateFilter}
@@ -647,18 +647,18 @@ export default function AdminSessionsPage({ navigate }) {
 
         <div className="admin-search-wrapper" style={{ flex: 1, minWidth: '180px' }}>
           <IconSearch size={14} className="admin-search-icon" />
-          <input 
-            type="text" 
-            className="admin-search-input" 
-            placeholder="البحث في الجلسات..." 
+          <input
+            type="text"
+            className="admin-search-input"
+            placeholder="البحث في الجلسات..."
             style={{ height: '36px' }}
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <button 
-          className="admin-btn-action-primary" 
+        <button
+          className="admin-btn-action-primary"
           style={{ padding: '7px 16px', fontSize: '12.5px', background: '#0A3C64', borderColor: '#0A3C64' }}
         >
           بحث
@@ -675,16 +675,16 @@ export default function AdminSessionsPage({ navigate }) {
             const isOver = dragOverColumnId === col.id;
 
             return (
-              <div 
-                key={col.id} 
+              <div
+                key={col.id}
                 onDragOver={(e) => handleDragOver(e, col.id)}
                 onDragEnter={(e) => handleDragOver(e, col.id)}
                 onDragLeave={(e) => handleDragLeave(e, col.id)}
                 onDrop={(e) => handleDrop(e, col.id)}
-                style={{ 
-                  background: isOver ? '#F8FAFC' : '#FFFFFF', 
-                  borderRadius: '12px', 
-                  border: isOver ? `2px dashed ${col.color}` : `1px solid ${col.border}`, 
+                style={{
+                  background: isOver ? '#F8FAFC' : '#FFFFFF',
+                  borderRadius: '12px',
+                  border: isOver ? `2px dashed ${col.color}` : `1px solid ${col.border}`,
                   padding: '14px',
                   minHeight: '580px',
                   transition: 'background 0.15s ease, border 0.15s ease',
@@ -710,14 +710,14 @@ export default function AdminSessionsPage({ navigate }) {
                       const isBeingDragged = draggedSessionId === session.id;
 
                       return (
-                        <div 
-                          key={session.id} 
+                        <div
+                          key={session.id}
                           draggable
                           onDragStart={(e) => handleDragStart(e, session.id)}
                           className="admin-card"
-                          style={{ 
-                            padding: '14px', 
-                            borderRadius: '10px', 
+                          style={{
+                            padding: '14px',
+                            borderRadius: '10px',
                             border: '1px solid #E2E8F0',
                             cursor: 'grab',
                             opacity: isBeingDragged ? 0.35 : 1,
@@ -749,16 +749,16 @@ export default function AdminSessionsPage({ navigate }) {
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F1F5F9', paddingTop: '10px' }}>
                             {/* Actions (Pencil & Eye) */}
                             <div style={{ display: 'flex', gap: '6px' }}>
-                              <button 
-                                className="admin-icon-btn-minimal" 
+                              <button
+                                className="admin-icon-btn-minimal"
                                 style={{ width: '28px', height: '28px', fontSize: '12px', border: '1px solid #E2E8F0', borderRadius: '6px', background: '#FFFFFF', color: '#E58A13' }}
                                 title="تعديل الحجز"
                                 onClick={(e) => { e.stopPropagation(); setEditBookingModal(session); }}
                               >
                                 ✏️
                               </button>
-                              <button 
-                                className="admin-icon-btn-minimal" 
+                              <button
+                                className="admin-icon-btn-minimal"
                                 style={{ width: '28px', height: '28px', fontSize: '12px', border: '1px solid #E2E8F0', borderRadius: '6px', background: '#FFFFFF', color: '#64748B' }}
                                 title="معاينة التفاصيل"
                                 onClick={(e) => { e.stopPropagation(); setViewDetailsModal(session); }}
@@ -852,7 +852,7 @@ export default function AdminSessionsPage({ navigate }) {
                     </td>
 
                     <td>
-                      <span 
+                      <span
                         style={{
                           fontSize: '11.5px',
                           fontWeight: '700',
@@ -871,8 +871,8 @@ export default function AdminSessionsPage({ navigate }) {
                     <td style={{ minWidth: '170px', width: '170px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                         {/* View details */}
-                        <button 
-                          className="admin-icon-btn-minimal" 
+                        <button
+                          className="admin-icon-btn-minimal"
                           style={{ border: '1px solid #E2E8F0', borderRadius: '6px', background: '#FFFFFF', width: '28px', height: '28px', cursor: 'pointer' }}
                           title="تفاصيل الجلسة"
                           onClick={() => setViewDetailsModal(session)}
@@ -881,8 +881,8 @@ export default function AdminSessionsPage({ navigate }) {
                         </button>
 
                         {/* Edit Booking */}
-                        <button 
-                          className="admin-icon-btn-minimal" 
+                        <button
+                          className="admin-icon-btn-minimal"
                           style={{ border: '1px solid #E2E8F0', borderRadius: '6px', background: '#FFFFFF', width: '28px', height: '28px', color: '#475569', cursor: 'pointer' }}
                           title="تعديل الحجز"
                           onClick={() => setEditBookingModal(session)}
@@ -891,8 +891,8 @@ export default function AdminSessionsPage({ navigate }) {
                         </button>
 
                         {/* Live Observer Video */}
-                        <button 
-                          className="admin-icon-btn-minimal" 
+                        <button
+                          className="admin-icon-btn-minimal"
                           style={{ border: '1px solid #BAE6FD', background: '#F0F9FF', borderRadius: '6px', width: '28px', height: '28px', color: '#0284C7', cursor: 'pointer' }}
                           title="دخول غرفة المراقب اللحظي"
                           onClick={() => handleJoinObserver(session)}
@@ -901,8 +901,8 @@ export default function AdminSessionsPage({ navigate }) {
                         </button>
 
                         {/* Accept */}
-                        <button 
-                          className="admin-icon-btn-minimal" 
+                        <button
+                          className="admin-icon-btn-minimal"
                           style={{ border: '1px solid #A7F3D0', background: '#ECFDF5', borderRadius: '6px', width: '28px', height: '28px', color: '#059669', cursor: 'pointer' }}
                           title="تأكيد الحجز"
                           onClick={() => updateSessionStatus(session.id, 'مؤكدة')}
@@ -911,8 +911,8 @@ export default function AdminSessionsPage({ navigate }) {
                         </button>
 
                         {/* Cancel */}
-                        <button 
-                          className="admin-icon-btn-minimal" 
+                        <button
+                          className="admin-icon-btn-minimal"
                           style={{ border: '1px solid #FECACA', background: '#FEF2F2', borderRadius: '6px', width: '28px', height: '28px', color: '#DC2626', cursor: 'pointer' }}
                           title="إلغاء الجلسة"
                           onClick={() => updateSessionStatus(session.id, 'ملغاة')}
@@ -946,8 +946,8 @@ export default function AdminSessionsPage({ navigate }) {
               <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '700', marginBottom: '6px', color: '#0F172A' }}>
                 نوع التعديل
               </label>
-              <select 
-                className="admin-select-input" 
+              <select
+                className="admin-select-input"
                 style={{ width: '100%', height: '40px', background: '#FFFFFF' }}
                 value={editActionType}
                 onChange={e => setEditActionType(e.target.value)}
@@ -965,7 +965,7 @@ export default function AdminSessionsPage({ navigate }) {
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '4px', color: '#475569' }}>
                   تفاصيل وملاحظات التعديل
                 </label>
-                <textarea 
+                <textarea
                   className="admin-search-input"
                   placeholder="اكتب توضيحاً للإجراء المطلوب..."
                   value={editNotes}
@@ -976,15 +976,15 @@ export default function AdminSessionsPage({ navigate }) {
             )}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button 
-                className="admin-btn-action-outline" 
+              <button
+                className="admin-btn-action-outline"
                 style={{ border: 'none', color: '#64748B', fontSize: '13px', cursor: 'pointer' }}
                 onClick={() => setEditBookingModal(null)}
               >
                 إلغاء
               </button>
-              <button 
-                className="admin-btn-action-primary" 
+              <button
+                className="admin-btn-action-primary"
                 style={{ padding: '8px 24px', fontSize: '13px', background: '#0A3C64', borderColor: '#0A3C64' }}
                 onClick={handleSaveEditBooking}
               >
@@ -1063,8 +1063,8 @@ export default function AdminSessionsPage({ navigate }) {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', borderTop: '1px solid #F1F5F9', paddingTop: '14px' }}>
-              <button 
-                className="admin-btn-action-outline" 
+              <button
+                className="admin-btn-action-outline"
                 style={{ padding: '8px 24px', fontSize: '13px' }}
                 onClick={() => setViewDetailsModal(null)}
               >

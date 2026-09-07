@@ -488,7 +488,7 @@ export default function ConsultantDashboard({ navigate }) {
           margin: '0 auto 20px'
         }}></div>
         <p style={{ fontWeight: '700', fontSize: '16px' }}>جاري تحميل لوحة المستشار والبيانات...</p>
-        <style dangerouslySetInnerHTML={{__html: `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}} />
+        <style dangerouslySetInnerHTML={{ __html: `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }` }} />
       </div>
     );
   }
@@ -546,7 +546,7 @@ export default function ConsultantDashboard({ navigate }) {
         {showAdvanced && (
           <div className="advancedDropdown" id="modal">
             <div className="advancedFilterModal advancedFilterInline">
-              
+
               <div className="advancedFilterHead">
                 <div>
                   <h2>البحث المتقدم</h2>
@@ -555,7 +555,7 @@ export default function ConsultantDashboard({ navigate }) {
               </div>
 
               <div className="advancedFilterBody">
-                
+
                 {/* 1. حالة التشريع */}
                 <section className="filterGroup">
                   <h3>حالة التشريع</h3>
@@ -762,7 +762,7 @@ export default function ConsultantDashboard({ navigate }) {
               const timeDisplay = isApptObj
                 ? new Date(item.scheduled_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
                 : item.time;
-              
+
               const fullDateStr = isApptObj
                 ? new Date(item.scheduled_at).toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
                 : (timelineView === 'week' ? 'الأحد 6 سبتمبر 2026' : '(اليوم)');

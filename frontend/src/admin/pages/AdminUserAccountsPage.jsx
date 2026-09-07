@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import './AdminUserAccountsPage.css';
-import { 
-  getAdminUsers, 
-  toggleUserActive, 
-  updateUserProfile, 
-  resetUserPassword, 
-  deleteAdminUser, 
-  adminAddUserDirect, 
-  getLoginHistory, 
-  deleteLoginLog, 
-  getAccountRoles, 
-  saveAccountRoles 
+import {
+  getAdminUsers,
+  toggleUserActive,
+  updateUserProfile,
+  resetUserPassword,
+  deleteAdminUser,
+  adminAddUserDirect,
+  getLoginHistory,
+  deleteLoginLog,
+  getAccountRoles,
+  saveAccountRoles
 } from '../services/adminApi';
 
 const LEGALS = [
@@ -586,18 +586,18 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
           {currentSection === 'users' && (
             <>
               <button className="uacc-top-action-btn" type="button" onClick={handleOpenAddUser}>
-                <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
                 <span>إضافة مستخدم</span>
               </button>
-              <button 
-                className="uacc-top-action-btn secondary" 
-                type="button" 
+              <button
+                className="uacc-top-action-btn secondary"
+                type="button"
                 onClick={() => {
                   if (navigate) navigate('/admin/user-accounts/history');
                   else setCurrentSection('history');
                 }}
               >
-                <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /><path d="M12 7v5l3 2" /></svg>
                 <span>سجل الدخول</span>
               </button>
             </>
@@ -605,19 +605,19 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
 
           {currentSection === 'history' && (
             <>
-              <button 
-                className="uacc-top-action-btn" 
-                type="button" 
+              <button
+                className="uacc-top-action-btn"
+                type="button"
                 onClick={() => {
                   if (navigate) navigate('/admin/user-accounts');
                   else setCurrentSection('users');
                 }}
               >
-                <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
                 <span>إدارة الحسابات</span>
               </button>
               <button className="uacc-top-action-btn secondary" type="button" onClick={() => { setHistoryPage(1); showToast('تم تحديث السجل'); }}>
-                <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0 2 5"/><path d="M20 4v7h-7"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0 2 5" /><path d="M20 4v7h-7" /></svg>
                 <span>تحديث السجل</span>
               </button>
             </>
@@ -625,7 +625,7 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
 
           {currentSection === 'roles' && (
             <button className="uacc-top-action-btn" type="button" onClick={handleOpenAddRole}>
-              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
               <span>إضافة دور جديد</span>
             </button>
           )}
@@ -639,9 +639,9 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
         <div className="uacc-card">
           <div className="uacc-toolbar">
             <div className="uacc-toolbar-group">
-              <select 
+              <select
                 className="uacc-select"
-                value={userEntries} 
+                value={userEntries}
                 onChange={e => { setUserEntries(Number(e.target.value)); setUserPage(1); }}
               >
                 <option value="10">10</option>
@@ -650,9 +650,9 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
               </select>
               <span className="uacc-entries-label">سجل لكل صفحة</span>
 
-              <select 
+              <select
                 className="uacc-select uacc-filter-select"
-                value={legalFilter} 
+                value={legalFilter}
                 onChange={e => { setLegalFilter(e.target.value); setUserPage(1); }}
               >
                 <option value="">كل الصفات القانونية</option>
@@ -661,9 +661,9 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
                 ))}
               </select>
 
-              <select 
+              <select
                 className="uacc-select uacc-filter-select"
-                value={sectorFilter} 
+                value={sectorFilter}
                 onChange={e => { setSectorFilter(e.target.value); setUserPage(1); }}
               >
                 <option value="">كل القطاعات</option>
@@ -674,9 +674,9 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
             </div>
 
             <div className="uacc-toolbar-group">
-              <input 
-                className="uacc-input uacc-search" 
-                placeholder="بحث بالاسم أو البريد..." 
+              <input
+                className="uacc-input uacc-search"
+                placeholder="بحث بالاسم أو البريد..."
                 value={userSearch}
                 onChange={e => { setUserSearch(e.target.value); setUserPage(1); }}
               />
@@ -719,39 +719,39 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
                       </td>
                       <td>
                         <div className="uacc-action-set">
-                          <button 
-                            className={`uacc-icon-btn ${u.login ? 'green' : 'pink'}`} 
+                          <button
+                            className={`uacc-icon-btn ${u.login ? 'green' : 'pink'}`}
                             onClick={() => toggleLogin(u.id)}
                             title={u.login ? 'تعطيل الدخول' : 'تفعيل الدخول'}
                           >
-                            <svg viewBox="0 0 24 24"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M14 3h7v18h-7"/></svg>
+                            <svg viewBox="0 0 24 24"><path d="M10 17l5-5-5-5" /><path d="M15 12H3" /><path d="M14 3h7v18h-7" /></svg>
                             <span className="uacc-tooltip">{u.login ? 'تعطيل الدخول' : 'تفعيل الدخول'}</span>
                           </button>
 
-                          <button 
-                            className="uacc-icon-btn orange" 
+                          <button
+                            className="uacc-icon-btn orange"
                             onClick={() => handleOpenPasswordModal(u.id)}
                             title="إدارة كلمة المرور"
                           >
-                            <svg viewBox="0 0 24 24"><path d="M12 15v3"/><path d="M7 10V8a5 5 0 0 1 10 0v2"/><rect x="5" y="10" width="14" height="11" rx="2"/></svg>
+                            <svg viewBox="0 0 24 24"><path d="M12 15v3" /><path d="M7 10V8a5 5 0 0 1 10 0v2" /><rect x="5" y="10" width="14" height="11" rx="2" /></svg>
                             <span className="uacc-tooltip">إدارة كلمة المرور</span>
                           </button>
 
-                          <button 
-                            className="uacc-icon-btn cyan" 
+                          <button
+                            className="uacc-icon-btn cyan"
                             onClick={() => handleOpenEditUser(u.id)}
                             title="تعديل الملف"
                           >
-                            <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
+                            <svg viewBox="0 0 24 24"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" /></svg>
                             <span className="uacc-tooltip">تعديل الملف</span>
                           </button>
 
-                          <button 
-                            className="uacc-icon-btn pink" 
+                          <button
+                            className="uacc-icon-btn pink"
                             onClick={() => handleDeleteUser(u.id)}
                             title="حذف المستخدم"
                           >
-                            <svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/></svg>
+                            <svg viewBox="0 0 24 24"><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="m19 6-1 14H6L5 6" /></svg>
                             <span className="uacc-tooltip">حذف</span>
                           </button>
                         </div>
@@ -778,8 +778,8 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
 
             <div className="uacc-pagination">
               {Array.from({ length: userPages }, (_, i) => i + 1).map(p => (
-                <button 
-                  key={p} 
+                <button
+                  key={p}
                   className={`uacc-page-btn ${p === userPage ? 'active' : ''}`}
                   onClick={() => setUserPage(p)}
                 >
@@ -799,9 +799,9 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
           <div className="uacc-history-filter-bar">
             <div className="uacc-compact-filter">
               <label>السنة</label>
-              <select 
+              <select
                 className="uacc-select"
-                value={historyYear} 
+                value={historyYear}
                 onChange={e => { setHistoryYear(e.target.value); setHistoryPage(1); }}
               >
                 <option value="">كل السنوات</option>
@@ -813,9 +813,9 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
 
             <div className="uacc-compact-filter">
               <label>الشهر</label>
-              <select 
+              <select
                 className="uacc-select"
-                value={historyMonth} 
+                value={historyMonth}
                 onChange={e => { setHistoryMonth(e.target.value); setHistoryPage(1); }}
               >
                 <option value="">كل الأشهر</option>
@@ -836,9 +836,9 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
 
             <div className="uacc-compact-filter user-filter">
               <label>المستخدم</label>
-              <select 
+              <select
                 className="uacc-select"
-                value={historyUser} 
+                value={historyUser}
                 onChange={e => { setHistoryUser(e.target.value); setHistoryPage(1); }}
               >
                 <option value="">كل المستخدمين</option>
@@ -849,17 +849,17 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
             </div>
 
             <div className="uacc-history-filter-actions">
-              <button 
-                className="uacc-icon-btn green" 
+              <button
+                className="uacc-icon-btn green"
                 title="تطبيق الفلتر"
                 onClick={() => setHistoryPage(1)}
               >
-                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
                 <span className="uacc-tooltip">تطبيق الفلتر</span>
               </button>
 
-              <button 
-                className="uacc-icon-btn light" 
+              <button
+                className="uacc-icon-btn light"
                 title="مسح الفلتر"
                 onClick={() => {
                   setHistoryYear('');
@@ -870,18 +870,18 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
                   showToast('تم مسح التصفية');
                 }}
               >
-                <svg viewBox="0 0 24 24"><path d="M4 4l16 16"/><path d="M20 4 4 20"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M4 4l16 16" /><path d="M20 4 4 20" /></svg>
                 <span className="uacc-tooltip">مسح الفلتر</span>
               </button>
 
               <span className="uacc-history-filter-separator"></span>
 
-              <button 
-                className="uacc-icon-btn pink" 
+              <button
+                className="uacc-icon-btn pink"
                 title="تحديث السجل"
                 onClick={() => { setHistoryPage(1); showToast('تم تحديث السجل'); }}
               >
-                <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0 2 5"/><path d="M20 4v7h-7"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0 2 5" /><path d="M20 4v7h-7" /></svg>
                 <span className="uacc-tooltip">تحديث السجل</span>
               </button>
             </div>
@@ -889,9 +889,9 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
 
           <div className="uacc-toolbar">
             <div className="uacc-toolbar-group">
-              <select 
+              <select
                 className="uacc-select"
-                value={historyEntries} 
+                value={historyEntries}
                 onChange={e => { setHistoryEntries(Number(e.target.value)); setHistoryPage(1); }}
               >
                 <option value="10">10</option>
@@ -902,9 +902,9 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
             </div>
 
             <div className="uacc-toolbar-group">
-              <input 
-                className="uacc-input uacc-search" 
-                placeholder="بحث بالاسم أو البريد أو IP..." 
+              <input
+                className="uacc-input uacc-search"
+                placeholder="بحث بالاسم أو البريد أو IP..."
                 value={historySearch}
                 onChange={e => { setHistorySearch(e.target.value); setHistoryPage(1); }}
               />
@@ -945,21 +945,21 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
                       <td>{h.os}</td>
                       <td>
                         <div className="uacc-action-set">
-                          <button 
-                            className="uacc-icon-btn orange" 
+                          <button
+                            className="uacc-icon-btn orange"
                             onClick={() => handleViewLog(h.id)}
                             title="عرض تفاصيل الجلسة"
                           >
-                            <svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></svg>
                             <span className="uacc-tooltip">عرض التفاصيل</span>
                           </button>
 
-                          <button 
-                            className="uacc-icon-btn pink" 
+                          <button
+                            className="uacc-icon-btn pink"
                             onClick={() => handleDeleteLog(h.id)}
                             title="حذف السجل"
                           >
-                            <svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/></svg>
+                            <svg viewBox="0 0 24 24"><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="m19 6-1 14H6L5 6" /></svg>
                             <span className="uacc-tooltip">حذف</span>
                           </button>
                         </div>
@@ -986,8 +986,8 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
 
             <div className="uacc-pagination">
               {Array.from({ length: historyPages }, (_, i) => i + 1).map(p => (
-                <button 
-                  key={p} 
+                <button
+                  key={p}
                   className={`uacc-page-btn ${p === historyPage ? 'active' : ''}`}
                   onClick={() => setHistoryPage(p)}
                 >
@@ -1006,9 +1006,9 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
         <div className="uacc-card">
           <div className="uacc-toolbar">
             <div className="uacc-toolbar-group">
-              <select 
+              <select
                 className="uacc-select"
-                value={roleEntries} 
+                value={roleEntries}
                 onChange={e => setRoleEntries(Number(e.target.value))}
               >
                 <option value="10">10</option>
@@ -1018,14 +1018,14 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
             </div>
 
             <div className="uacc-toolbar-group">
-              <input 
-                className="uacc-input uacc-search" 
-                placeholder="بحث في الأدوار والصلاحيات..." 
+              <input
+                className="uacc-input uacc-search"
+                placeholder="بحث في الأدوار والصلاحيات..."
                 value={roleSearch}
                 onChange={e => setRoleSearch(e.target.value)}
               />
               <button className="uacc-icon-btn green" onClick={handleOpenAddRole} title="إضافة دور">
-                <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
                 <span className="uacc-tooltip">إضافة دور</span>
               </button>
             </div>
@@ -1059,11 +1059,11 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
                     <td>
                       <div className="uacc-action-set">
                         <button className="uacc-icon-btn cyan" onClick={() => handleOpenEditRole(r.id)} title="تعديل">
-                          <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
+                          <svg viewBox="0 0 24 24"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" /></svg>
                           <span className="uacc-tooltip">تعديل</span>
                         </button>
                         <button className="uacc-icon-btn pink" onClick={() => handleDeleteRole(r.id)} title="حذف">
-                          <svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/></svg>
+                          <svg viewBox="0 0 24 24"><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="m19 6-1 14H6L5 6" /></svg>
                           <span className="uacc-tooltip">حذف</span>
                         </button>
                       </div>
@@ -1098,7 +1098,7 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
               </div>
             </div>
             <button className="uacc-close-btn" onClick={() => setUserModalOpen(false)}>
-              <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>
             </button>
           </div>
 
@@ -1113,10 +1113,10 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
                 <div className="uacc-form-grid">
                   <div className="uacc-field">
                     <label>الاسم / اسم الجهة <span style={{ color: '#ef4444' }}>*</span></label>
-                    <input 
+                    <input
                       className={`uacc-input ${formErrors.name ? 'uacc-input-error' : ''}`}
                       placeholder="مثال: أحمد الخطيب أو شركة الأفق"
-                      value={userFormData.name} 
+                      value={userFormData.name}
                       onChange={e => {
                         const val = e.target.value;
                         setUserFormData({ ...userFormData, name: val });
@@ -1130,12 +1130,12 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
 
                   <div className="uacc-field">
                     <label>البريد الإلكتروني <span style={{ color: '#ef4444' }}>*</span></label>
-                    <input 
+                    <input
                       className={`uacc-input ${formErrors.email ? 'uacc-input-error' : ''}`}
                       type="email"
                       dir="ltr"
                       placeholder="name@company.jo"
-                      value={userFormData.email} 
+                      value={userFormData.email}
                       onChange={e => {
                         const val = e.target.value;
                         setUserFormData({ ...userFormData, email: val });
@@ -1153,12 +1153,12 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
 
                   <div className="uacc-field">
                     <label>رقم الهاتف <span style={{ color: '#ef4444' }}>*</span></label>
-                    <input 
+                    <input
                       className={`uacc-input ${formErrors.phone ? 'uacc-input-error' : ''}`}
                       type="tel"
                       dir="ltr"
                       placeholder="+962 79 555 2140"
-                      value={userFormData.phone} 
+                      value={userFormData.phone}
                       onChange={e => {
                         const val = e.target.value;
                         setUserFormData({ ...userFormData, phone: val });
@@ -1176,10 +1176,10 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
 
                   <div className="uacc-field">
                     <label>المسمى داخل المؤسسة</label>
-                    <input 
-                      className="uacc-input" 
+                    <input
+                      className="uacc-input"
                       placeholder="مثال: المدير العام / مدير الحساب"
-                      value={userFormData.title} 
+                      value={userFormData.title}
                       onChange={e => setUserFormData({ ...userFormData, title: e.target.value })}
                     />
                   </div>
@@ -1197,9 +1197,9 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
                 <div className="uacc-form-grid">
                   <div className="uacc-field">
                     <label>الصفة القانونية</label>
-                    <select 
+                    <select
                       className="uacc-select"
-                      value={userFormData.legal} 
+                      value={userFormData.legal}
                       onChange={e => setUserFormData({ ...userFormData, legal: e.target.value })}
                     >
                       {LEGALS.map(l => (
@@ -1210,9 +1210,9 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
 
                   <div className="uacc-field">
                     <label>القطاع</label>
-                    <select 
+                    <select
                       className="uacc-select"
-                      value={userFormData.sector} 
+                      value={userFormData.sector}
                       onChange={e => setUserFormData({ ...userFormData, sector: e.target.value })}
                     >
                       {SECTORS.map(s => (
@@ -1223,42 +1223,42 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
 
                   <div className="uacc-field">
                     <label>الرقم الضريبي</label>
-                    <input 
-                      className="uacc-input" 
+                    <input
+                      className="uacc-input"
                       dir="ltr"
                       placeholder="مثال: 200145879"
-                      value={userFormData.taxNo} 
+                      value={userFormData.taxNo}
                       onChange={e => setUserFormData({ ...userFormData, taxNo: e.target.value })}
                     />
                   </div>
 
                   <div className="uacc-field">
                     <label>رقم التسجيل / السجل</label>
-                    <input 
-                      className="uacc-input" 
+                    <input
+                      className="uacc-input"
                       dir="ltr"
                       placeholder="مثال: LLC-45872"
-                      value={userFormData.regNo} 
+                      value={userFormData.regNo}
                       onChange={e => setUserFormData({ ...userFormData, regNo: e.target.value })}
                     />
                   </div>
 
                   <div className="uacc-field">
                     <label>تاريخ التسجيل في المنصة</label>
-                    <input 
-                      className="uacc-input" 
+                    <input
+                      className="uacc-input"
                       type="date"
-                      value={userFormData.regDate} 
+                      value={userFormData.regDate}
                       onChange={e => setUserFormData({ ...userFormData, regDate: e.target.value })}
                     />
                   </div>
 
                   <div className="uacc-field">
                     <label>وقت التسجيل</label>
-                    <input 
-                      className="uacc-input" 
+                    <input
+                      className="uacc-input"
                       type="time"
-                      value={userFormData.regTime} 
+                      value={userFormData.regTime}
                       onChange={e => setUserFormData({ ...userFormData, regTime: e.target.value })}
                     />
                   </div>
@@ -1276,9 +1276,9 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
                 <div className="uacc-form-grid">
                   <div className="uacc-field">
                     <label>الباقة الحالية</label>
-                    <select 
+                    <select
                       className="uacc-select"
-                      value={userFormData.plan} 
+                      value={userFormData.plan}
                       onChange={e => setUserFormData({ ...userFormData, plan: e.target.value })}
                     >
                       {PLANS.map(p => (
@@ -1289,9 +1289,9 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
 
                   <div className="uacc-field">
                     <label>حالة الدخول</label>
-                    <select 
+                    <select
                       className="uacc-select"
-                      value={userFormData.login ? 'مفعل' : 'معطل'} 
+                      value={userFormData.login ? 'مفعل' : 'معطل'}
                       onChange={e => setUserFormData({ ...userFormData, login: e.target.value === 'مفعل' })}
                     >
                       <option value="مفعل">مفعل</option>
@@ -1301,20 +1301,20 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
 
                   <div className="uacc-field">
                     <label>تاريخ بدء الاشتراك</label>
-                    <input 
-                      className="uacc-input" 
+                    <input
+                      className="uacc-input"
                       type="date"
-                      value={userFormData.planStart} 
+                      value={userFormData.planStart}
                       onChange={e => setUserFormData({ ...userFormData, planStart: e.target.value })}
                     />
                   </div>
 
                   <div className="uacc-field">
                     <label>تاريخ انتهاء الاشتراك</label>
-                    <input 
-                      className="uacc-input" 
+                    <input
+                      className="uacc-input"
                       type="date"
-                      value={userFormData.planEnd} 
+                      value={userFormData.planEnd}
                       onChange={e => setUserFormData({ ...userFormData, planEnd: e.target.value })}
                     />
                   </div>
@@ -1347,7 +1347,7 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
               </div>
             </div>
             <button className="uacc-close-btn" onClick={() => setPasswordModalOpen(false)}>
-              <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>
             </button>
           </div>
 
@@ -1358,8 +1358,8 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
                 <code>
                   {passwordVisible ? (passwordTargetUser?.password || 'Alofuq@2026') : '••••••••••'}
                 </code>
-                <button 
-                  className="uacc-btn gray" 
+                <button
+                  className="uacc-btn gray"
                   style={{ minHeight: '32px', padding: '6px 12px' }}
                   onClick={() => setPasswordVisible(!passwordVisible)}
                 >
@@ -1372,13 +1372,13 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
             </div>
 
             <div className="uacc-password-mode-tabs">
-              <button 
+              <button
                 className={`uacc-password-mode-tab ${passwordMode === 'admin' ? 'active' : ''}`}
                 onClick={() => setPasswordMode('admin')}
               >
                 تعيين كلمة مرور جديدة
               </button>
-              <button 
+              <button
                 className={`uacc-password-mode-tab ${passwordMode === 'link' ? 'active' : ''}`}
                 onClick={() => setPasswordMode('link')}
               >
@@ -1391,21 +1391,21 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
                 <div className="uacc-form-grid">
                   <div className="uacc-field full">
                     <label>كلمة المرور الجديدة</label>
-                    <input 
-                      className="uacc-input" 
+                    <input
+                      className="uacc-input"
                       type="password"
                       placeholder="••••••••"
-                      value={newPassword} 
+                      value={newPassword}
                       onChange={e => setNewPassword(e.target.value)}
                     />
                   </div>
                   <div className="uacc-field full">
                     <label>تأكيد كلمة المرور الجديدة</label>
-                    <input 
-                      className="uacc-input" 
+                    <input
+                      className="uacc-input"
                       type="password"
                       placeholder="••••••••"
-                      value={confirmPassword} 
+                      value={confirmPassword}
                       onChange={e => setConfirmPassword(e.target.value)}
                     />
                   </div>
@@ -1447,7 +1447,7 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
               </div>
             </div>
             <button className="uacc-close-btn" onClick={() => setLogModalOpen(false)}>
-              <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>
             </button>
           </div>
 
@@ -1592,7 +1592,7 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
               {editingRoleId ? 'تعديل الدور' : 'إضافة دور جديد'}
             </div>
             <button className="uacc-close-btn" onClick={() => setRoleModalOpen(false)}>
-              <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>
             </button>
           </div>
 
@@ -1600,9 +1600,9 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
             <div className="uacc-form-grid">
               <div className="uacc-field full">
                 <label>اسم الدور</label>
-                <input 
-                  className="uacc-input" 
-                  placeholder="مثال: مدير مالي" 
+                <input
+                  className="uacc-input"
+                  placeholder="مثال: مدير مالي"
                   value={roleNameInput}
                   onChange={e => setRoleNameInput(e.target.value)}
                 />
@@ -1614,8 +1614,8 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
                   {PERMISSIONS.map(p => (
                     <div key={p} className="uacc-perm-card">
                       <label>
-                        <input 
-                          type="checkbox" 
+                        <input
+                          type="checkbox"
                           checked={selectedPerms.includes(p)}
                           onChange={e => {
                             if (e.target.checked) setSelectedPerms([...selectedPerms, p]);
@@ -1650,7 +1650,7 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
           <div className="uacc-modal-head">
             <div className="uacc-modal-title">{deleteModalContent?.title}</div>
             <button className="uacc-close-btn" onClick={() => setDeleteModalContent(null)}>
-              <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>
             </button>
           </div>
           <div className="uacc-modal-body">

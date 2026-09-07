@@ -191,8 +191,8 @@ export default function ChatPage({ navigate }) {
             const clientName = (a.client_name || a.user?.full_name || '').toLowerCase();
             const consultantName = (a.consultant_name || a.consultant?.user?.full_name || '').toLowerCase();
             return pName.includes(uSearch) || uSearch.includes(pName) ||
-                   clientName.includes(uSearch) || uSearch.includes(clientName) ||
-                   consultantName.includes(uSearch) || uSearch.includes(consultantName);
+              clientName.includes(uSearch) || uSearch.includes(clientName) ||
+              consultantName.includes(uSearch) || uSearch.includes(consultantName);
           });
 
           if (!targetChat) {
@@ -1381,8 +1381,8 @@ export default function ChatPage({ navigate }) {
                     {activeAppt.session_type === 'video_call'
                       ? 'استشارة فيديو'
                       : activeAppt.session_type === 'audio_call'
-                      ? 'استشارة صوتية'
-                      : 'محادثة كتابية'}
+                        ? 'استشارة صوتية'
+                        : 'محادثة كتابية'}
                   </div>
                 </div>
               )}

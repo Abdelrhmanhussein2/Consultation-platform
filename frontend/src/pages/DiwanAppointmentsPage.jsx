@@ -212,7 +212,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
       } else if (role === 'user') {
         res = await appointmentService.getMyAppointments(token);
       }
-      
+
       if (res && Array.isArray(res) && res.length > 0) {
         const formatted = res.map((item, idx) => {
           const dt = new Date(item.scheduled_at);
@@ -228,7 +228,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
           else if (item.status === 'confirmed') mappedStatus = 'confirmed';
           else if (item.status === 'completed') mappedStatus = 'completed';
           else if (item.status?.includes('cancel')) mappedStatus = 'cancelled';
-          
+
           let mappedPayment = 'paid';
           if (item.status === 'pending_payment' || item.status === 'pending_approval') mappedPayment = 'waiting';
           else if (item.status === 'confirmed' || item.status === 'completed') mappedPayment = 'paid';
@@ -1013,8 +1013,8 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
       const consultantId = isUuid(selectedConsultantObj?.id)
         ? selectedConsultantObj.id
         : isUuid(selectedConsultantObj?.profile_id)
-        ? selectedConsultantObj.profile_id
-        : 'c2264e0d-7229-481a-9718-8657077c42fe';
+          ? selectedConsultantObj.profile_id
+          : 'c2264e0d-7229-481a-9718-8657077c42fe';
 
       const serviceId = isUuid(selectedServiceObj?.id) ? selectedServiceObj.id : null;
 
@@ -2915,7 +2915,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                         >
                           {crossConsultants.map(c => (
                             <option key={c.id} value={c.id}>
-                              {c.display_name || c.full_name || c.user?.full_name || `مستشار #${c.id?.slice(0,8)}`}
+                              {c.display_name || c.full_name || c.user?.full_name || `مستشار #${c.id?.slice(0, 8)}`}
                               {c.specialization_name ? ` — ${c.specialization_name}` : ''}
                             </option>
                           ))}

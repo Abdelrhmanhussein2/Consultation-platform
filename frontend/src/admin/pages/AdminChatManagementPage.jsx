@@ -430,23 +430,23 @@ export default function AdminChatManagementPage({ navigate }) {
         {/* Top Action Tools */}
         <div className="chat-top-actions">
           <button className="chat-icon-btn green" onClick={() => setActiveOverlay('stats')} title="إحصاءات">
-            <svg viewBox="0 0 24 24"><path d="M4 19V9"/><path d="M10 19V5"/><path d="M16 19v-7"/><path d="M22 19H2"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M4 19V9" /><path d="M10 19V5" /><path d="M16 19v-7" /><path d="M22 19H2" /></svg>
           </button>
           <button className="chat-icon-btn green" onClick={() => setActiveOverlay('filter')} title="تصفية متقدمة">
-            <svg viewBox="0 0 24 24"><path d="M4 5h16l-6 7v5l-4 2v-7Z"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M4 5h16l-6 7v5l-4 2v-7Z" /></svg>
           </button>
           <button className="chat-icon-btn green" onClick={handleExport} title="تصدير">
-            <svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></svg>
           </button>
           <button className="chat-icon-btn green" onClick={() => setActiveOverlay('new')} title="محادثة جديدة">
-            <svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M12 5v14" /><path d="M5 12h14" /></svg>
           </button>
         </div>
       </header>
 
       {/* 3-Column Workspace */}
       <div className="chat-app-workspace">
-        
+
         {/* Column 1: Conversations List Panel (Right in RTL) */}
         <aside className="chat-list-panel">
           <div className="chat-list-head">
@@ -457,7 +457,7 @@ export default function AdminChatManagementPage({ navigate }) {
               <option value="المغلقة">المغلقة</option>
             </select>
             <div className="chat-search-wrap">
-              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
               <input
                 type="text"
                 placeholder="بحث بالاسم أو الموضوع..."
@@ -529,7 +529,7 @@ export default function AdminChatManagementPage({ navigate }) {
                 </button>
                 {statusMenuOpen && (
                   <div className="chat-status-menu-popup">
-                    {(mode === 'ticket' 
+                    {(mode === 'ticket'
                       ? ['جديد', 'قيد المعالجة', 'بانتظار رد المستخدم', 'تم التصعيد', 'تم الحل', 'مغلقة']
                       : ['نشطة', 'بانتظار العميل', 'بانتظار المستشار', 'مكتملة', 'مغلقة']
                     ).map(st => (
@@ -542,10 +542,10 @@ export default function AdminChatManagementPage({ navigate }) {
               </div>
 
               <button className="chat-icon-btn green" onClick={handleExport} title="تصدير المحادثة">
-                <svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></svg>
               </button>
               <button className="chat-icon-btn green" onClick={handleCopyLink} title="نسخ الرابط">
-                <svg viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+                <svg viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></svg>
               </button>
             </div>
           </div>
@@ -630,7 +630,7 @@ export default function AdminChatManagementPage({ navigate }) {
 
           {/* Cards Based on Mode */}
           <div className="chat-details-scroll">
-            
+
             {/* Card 1: Core Ident */}
             <div className="chat-info-card">
               <div className="chat-info-row">
@@ -668,7 +668,7 @@ export default function AdminChatManagementPage({ navigate }) {
 
               <div className="chat-field">
                 <label>الأولوية الإدارية:</label>
-                <select value={activePerson.priority || 'عالية'} onChange={() => {}}>
+                <select value={activePerson.priority || 'عالية'} onChange={() => { }}>
                   <option>عالية</option>
                   <option>متوسطة</option>
                   <option>منخفضة</option>
@@ -677,7 +677,7 @@ export default function AdminChatManagementPage({ navigate }) {
               </div>
               <div className="chat-field">
                 <label>الموظف المسؤول (فريق الإدارة):</label>
-                <select value={activePerson.assignee || 'سارة خالد'} onChange={() => {}}>
+                <select value={activePerson.assignee || 'سارة خالد'} onChange={() => { }}>
                   <option>سارة خالد — العمليات والدعم</option>
                   <option>أحمد منصور — الدعم الفني</option>
                   <option>ليان حداد — الإدارة المالية والتحويلات</option>
