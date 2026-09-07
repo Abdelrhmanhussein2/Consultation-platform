@@ -757,6 +757,11 @@ class InvoiceController:
         return InvoiceService.get_next_number(db)
 
     @staticmethod
+    def search_customers(db: Session, q: str = ""):
+        """Search customers in DB for invoicing."""
+        return InvoiceService.search_customers(db, q=q)
+
+    @staticmethod
     def get_invoice_detail(db: Session, current_user: User, invoice_id: str):
         """Retrieves detailed information for a specific invoice."""
         try:

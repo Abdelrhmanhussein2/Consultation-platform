@@ -61,6 +61,17 @@ def get_next_invoice_number(db: Session = Depends(get_db)):
     return InvoiceController.get_next_number(db)
 
 
+@router.get(
+    "/customers/search",
+    summary="Search customers from database for invoicing",
+)
+def search_customers(
+    q: Optional[str] = Query("", description="Search by name, email, phone, or tax number"),
+    db: Session = Depends(get_db),
+):
+    return InvoiceController.search_customers(db, q=q)
+
+
 @router.post(
     "/",
     response_model=InvoiceOut,

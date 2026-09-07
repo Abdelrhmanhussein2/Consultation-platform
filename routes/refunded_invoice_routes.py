@@ -24,6 +24,13 @@ def get_all_refunded_invoices(
     return RefundedInvoiceController.get_all_refunded_invoices(db, page=page, limit=limit)
 
 @router.get(
+    "/next-number",
+    summary="Get next sequential refund number",
+)
+def get_next_refund_number(db: Session = Depends(get_db)):
+    return RefundedInvoiceController.get_next_number(db)
+
+@router.get(
     "/{refund_id}",
     response_model=RefundedInvoiceOut,
     summary="Get refunded invoice details"

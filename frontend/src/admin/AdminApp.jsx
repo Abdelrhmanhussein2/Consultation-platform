@@ -23,6 +23,7 @@ import AdminAuditLogsPage from './pages/AdminAuditLogsPage';
 import AdminSecurityPage from './pages/AdminSecurityPage';
 import AdminGenericPage from './pages/AdminGenericPage';
 import AdminInvoicesPage from './pages/AdminInvoicesPage';
+import AdminRefundedInvoicesPage from './pages/AdminRefundedInvoicesPage';
 import DiwanAppointmentsPage from '../pages/DiwanAppointmentsPage';
 
 export default function AdminApp({ currentPath = '/admin', navigate }) {
@@ -111,6 +112,9 @@ export default function AdminApp({ currentPath = '/admin', navigate }) {
         return <AdminSubscriptionsPage navigate={navigate} />;
       case '/admin/invoices':
         return <AdminInvoicesPage navigate={navigate} />;
+      case '/admin/invoices/refunds':
+      case '/admin/refunded-invoices':
+        return <AdminRefundedInvoicesPage navigate={navigate} />;
       case '/admin/payments':
         return <AdminPaymentsPage navigate={navigate} />;
       case '/admin/tax-forms':

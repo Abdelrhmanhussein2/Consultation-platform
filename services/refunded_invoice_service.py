@@ -12,6 +12,21 @@ class RefundedInvoiceService:
         return db.query(RefundedInvoice).order_by(RefundedInvoice.created_at.desc()).offset(skip).limit(limit).all()
 
     @staticmethod
+    def get_next_number(db: Session) -> dict:
+        import datetime
+        from sqlalchemy import text
+        year = datetime.datetime.now().year
+        try:
+            max_num = db.execute(text("SELECT MAX(CAST(SUBSTRING(refund_number FROM '(\\d+)$') AS INTEGER)) FROM refunded_invoices WHERE refund_number LIKE 'REF-%'")).scalar()
+            count = db.query(RefundedInvoice).count()
+            next_seq = max(int(count or 0) + 1, int(max_num or 0) + 1)
+        except Exception:
+            next_seq = db.query(RefundedInvoice).count() + 1
+        return {
+            "next_refund_number": f"REF-{year}-{next_seq:06d}"
+        }
+
+    @staticmethod
     def get_by_id(db: Session, refund_id: str) -> Optional[RefundedInvoice]:
         return db.query(RefundedInvoice).filter(RefundedInvoice.id == refund_id).first()
 

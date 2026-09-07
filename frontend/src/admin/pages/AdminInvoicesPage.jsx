@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
+import CreateRefundInvoiceModal from "../components/CreateRefundInvoiceModal";
 
 const fmt = (n) => Number(n || 0).toLocaleString("ar-JO", { minimumFractionDigits: 3 });
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("zh-Hans-CN") : "-";
@@ -2486,69 +2487,12 @@ export default function AdminInvoicesPage({ navigate }) {
       )}
 
       {/* CREATE REFUND MODAL */}
-      {showRefundModal && (
-        <div onClick={() => setShowRefundModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.65)", zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)" }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 540, margin: "0 16px", padding: 24, boxShadow: "0 24px 60px rgba(0,0,0,0.15)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, borderBottom: "1.5px solid #F1F5F9", paddingBottom: 14 }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: "#0D3C5C" }}>إنشاء طلب استرداد جديد</h3>
-              <button onClick={() => setShowRefundModal(false)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#64748B", fontWeight: "bold" }}>×</button>
-            </div>
-            <form onSubmit={handleCreateRefund} style={{ display: "grid", gap: 14 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label>رقم الفاتورة الأصلية <span style={{ color: "#DC2626" }}>*</span></label>
-                  <input className="input" required value={refundForm.invoice_number} onChange={e => setRefundForm({ ...refundForm, invoice_number: e.target.value })} placeholder="INV-2026-000842" />
-                </div>
-                <div>
-                  <label>اسم العميل <span style={{ color: "#DC2626" }}>*</span></label>
-                  <input className="input" required value={refundForm.user_name} onChange={e => setRefundForm({ ...refundForm, user_name: e.target.value })} placeholder="جامعة الريادة الخاصة" />
-                </div>
-              </div>
-              <div>
-                <label>الخدمة / العملية <span style={{ color: "#DC2626" }}>*</span></label>
-                <input className="input" required value={refundForm.service_name} onChange={e => setRefundForm({ ...refundForm, service_name: e.target.value })} placeholder="شراء باقة الاستشارات المتقدمة" />
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label>المبلغ الأصلي (د.أ) <span style={{ color: "#DC2626" }}>*</span></label>
-                  <input className="input" type="number" step="0.001" required value={refundForm.original_amount} onChange={e => setRefundForm({ ...refundForm, original_amount: Number(e.target.value) })} />
-                </div>
-                <div>
-                  <label>المبلغ المسترد (د.أ) <span style={{ color: "#DC2626" }}>*</span></label>
-                  <input className="input" type="number" step="0.001" required value={refundForm.refund_amount} onChange={e => setRefundForm({ ...refundForm, refund_amount: Number(e.target.value) })} />
-                </div>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label>الجهة المتحملة</label>
-                  <select value={refundForm.bearer} onChange={e => setRefundForm({ ...refundForm, bearer: e.target.value })}>
-                    <option value="المنصة">المنصة</option>
-                    <option value="المستشار">المستشار</option>
-                    <option value="المنصة والمستشار">المنصة والمستشار</option>
-                  </select>
-                </div>
-                <div>
-                  <label>حالة الطلب</label>
-                  <select value={refundForm.status} onChange={e => setRefundForm({ ...refundForm, status: e.target.value })}>
-                    <option value="pending">بانتظار الموافقة</option>
-                    <option value="processing">قيد المعالجة</option>
-                    <option value="completed">مكتمل</option>
-                    <option value="rejected">مرفوض</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label>سبب الاسترداد</label>
-                <textarea rows="2" value={refundForm.reason} onChange={e => setRefundForm({ ...refundForm, reason: e.target.value })} placeholder="أدخل سبب الاسترداد أو التفاصيل الإضافية..." />
-              </div>
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 10 }}>
-                <button type="button" className="btn" onClick={() => setShowRefundModal(false)}>إلغاء</button>
-                <button type="submit" className="btn primary">حفظ وتأكيد الطلب</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CreateRefundInvoiceModal
+        isOpen={showRefundModal}
+        onClose={() => setShowRefundModal(false)}
+        onSuccess={fetchInvoices}
+        invoices={invoices}
+      />
 
       {/* FULL RICH PREVIEW MODAL FOR SELECTED INVOICE */}
       {sel && (() => {

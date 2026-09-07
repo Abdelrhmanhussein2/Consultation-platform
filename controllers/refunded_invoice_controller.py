@@ -9,6 +9,10 @@ class RefundedInvoiceController:
         return RefundedInvoiceService.get_all(db, page=page, limit=limit)
 
     @staticmethod
+    def get_next_number(db: Session):
+        return RefundedInvoiceService.get_next_number(db)
+
+    @staticmethod
     def get_refunded_invoice_detail(db: Session, refund_id: str):
         ref_inv = RefundedInvoiceService.get_by_id(db, refund_id)
         if not ref_inv:

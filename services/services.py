@@ -1812,6 +1812,38 @@ class InvoiceService:
             "next_reference_number": f"TX-{year}-{next_ref:06d}"
         }
 
+    @staticmethod
+    def search_customers(db: Session, q: str = "") -> list[dict]:
+        from models import User
+        query = db.query(User)
+        if q and q.strip():
+            term = f"%{q.strip()}%"
+            query = query.filter(
+                (User.full_name.ilike(term)) |
+                (User.company_name.ilike(term)) |
+                (User.email.ilike(term)) |
+                (User.phone.ilike(term)) |
+                (User.tax_number.ilike(term))
+            )
+        users = query.limit(30).all()
+        results = []
+        for u in users:
+            name = u.company_name or u.full_name or u.email
+            tax = u.tax_number or ""
+            address = u.address or "عمّان - الأردن"
+            entity = u.entity_type.value if hasattr(u.entity_type, 'value') else (str(u.entity_type) if u.entity_type else "أفراد")
+            results.append({
+                "id": str(u.id),
+                "name": name,
+                "type": entity,
+                "tax": tax,
+                "address": address,
+                "email": u.email or "",
+                "phone": u.phone or "",
+            })
+        return results
+
+
 
 
 # =====================================================================

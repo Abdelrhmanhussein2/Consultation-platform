@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Union, Any
 from datetime import datetime
 from uuid import UUID
 
@@ -30,7 +30,7 @@ class RefundedInvoiceUpdate(BaseModel):
     reason: Optional[str] = None
 
 class RefundedInvoiceOut(BaseModel):
-    id: str
+    id: Any
     refund_number: Optional[str] = None
     reference_number: Optional[str] = None
     invoice_number: Optional[str] = None
