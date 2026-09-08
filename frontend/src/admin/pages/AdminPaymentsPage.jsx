@@ -14,19 +14,8 @@ const getLiveDateStr = (daysAgo, hours, minutes) => {
   return `${dd}-${mm}-${yyyy} ${hh}:${min}`;
 };
 
-// Initial verified dataset fallback
-const INITIAL_DATA = [
-  { id: "1", order: "ORD-2026-004828", date: getLiveDateStr(0, 15, 45), name: "شركة الأفق للتجارة", type: "مستخدم", method: "تحويل بنكي", amount: "52.000 د.أ", status: "معتمدة", service: "استشارة ضريبية", ref: "REF-26-7001", file: "proof-01.png", fileName: "proof-01.png" },
-  { id: "2", order: "ORD-2026-004827", date: getLiveDateStr(0, 14, 20), name: "خالد منصور", type: "مستخدم", method: "محفظة إلكترونية", amount: "69.000 د.أ", status: "مرفوضة", service: "إعداد إقرار ضريبي", ref: "REF-26-7002", file: "proof-02.png", fileName: "proof-02.png" },
-  { id: "3", order: "ORD-2026-004826", date: getLiveDateStr(0, 13, 15), name: "ليان الحسن", type: "مستخدم", method: "Visa", amount: "86.000 د.أ", status: "معلّقة", service: "تقرير ضريبي", ref: "REF-26-7003", file: "proof-03.png", fileName: "proof-03.png" },
-  { id: "4", order: "ORD-2026-004825", date: getLiveDateStr(0, 12, 10), name: "أ. لينا مراد", type: "مستشار", method: "Mastercard", amount: "103.000 د.أ", status: "معتمدة", service: "رسوم خدمات المنصة", ref: "REF-26-7004", file: "proof-04.png", fileName: "proof-04.png" },
-  { id: "5", order: "ORD-2026-004824", date: getLiveDateStr(0, 11, 5), name: "نور حداد", type: "مستخدم", method: "CliQ", amount: "120.000 د.أ", status: "مرفوضة", service: "حجز جلسة استشارية", ref: "REF-26-7005", file: "proof-05.png", fileName: "proof-05.png" },
-  { id: "6", order: "ORD-2026-004823", date: getLiveDateStr(0, 10, 30), name: "رائد العجارمة", type: "مستخدم", method: "تحويل بنكي", amount: "137.000 د.أ", status: "معلّقة", service: "ترقية الباقة", ref: "REF-26-7006", file: "proof-06.png", fileName: "proof-06.png" },
-  { id: "7", order: "ORD-2026-004822", date: getLiveDateStr(0, 9, 15), name: "أ. لينا مراد", type: "مستشار", method: "محفظة إلكترونية", amount: "154.000 د.أ", status: "معتمدة", service: "استشارة ضريبية", ref: "REF-26-7007", file: "proof-07.png", fileName: "proof-07.png" }
-];
-
 export default function AdminPaymentsPage({ navigate }) {
-  const [data, setData] = useState(INITIAL_DATA);
+  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeMethod, setActiveMethod] = useState('الكل');
   const [statusFilter, setStatusFilter] = useState('الكل');
@@ -49,11 +38,11 @@ export default function AdminPaymentsPage({ navigate }) {
     setLoading(true);
     try {
       const res = await getAdminPayments();
-      if (Array.isArray(res) && res.length > 0) {
+      if (Array.isArray(res)) {
         setData(res);
       }
     } catch (err) {
-      console.warn('Backend payments fetch fallback:', err);
+      console.warn('Backend payments fetch:', err);
     } finally {
       setLoading(false);
     }
@@ -96,7 +85,7 @@ export default function AdminPaymentsPage({ navigate }) {
   // Status Action (Approve / Reject) with DB persistence and user notification
   const handleUpdateStatus = async (item, newStatus) => {
     const actionKey = newStatus === 'معتمدة' ? 'approve' : newStatus === 'مرفوضة' ? 'reject' : 'pending';
-    
+
     // Optimistic UI update
     setData((prev) =>
       prev.map((it) => (it.id === item.id ? { ...it, status: newStatus } : it))
@@ -217,7 +206,7 @@ export default function AdminPaymentsPage({ navigate }) {
 
   return (
     <div className="payments-page-root">
-      
+
       {/* Title & Breadcrumb */}
       <h1 className="payments-title">طلبات الدفع والتحويلات</h1>
       <div className="payments-breadcrumb">
@@ -228,10 +217,10 @@ export default function AdminPaymentsPage({ navigate }) {
 
       {/* Main Card */}
       <div className="payments-card">
-        
+
         {/* Top Toolbar */}
         <div className="payments-toolbar">
-          
+
           <div className="payments-toolbar-right">
             <select
               value={perPage}
@@ -364,13 +353,12 @@ export default function AdminPaymentsPage({ navigate }) {
                     <td><span className="payments-ltr" style={{ fontWeight: '700' }}>{r.amount}</span></td>
                     <td>
                       <span
-                        className={`payments-status-tag ${
-                          r.status === 'معلّقة'
+                        className={`payments-status-tag ${r.status === 'معلّقة'
                             ? 'pending'
                             : r.status === 'معتمدة'
-                            ? 'approved'
-                            : 'rejected'
-                        }`}
+                              ? 'approved'
+                              : 'rejected'
+                          }`}
                       >
                         {r.status}
                       </span>
@@ -495,13 +483,12 @@ export default function AdminPaymentsPage({ navigate }) {
                   <tr>
                     <td>
                       <span
-                        className={`payments-status-tag ${
-                          processItem.status === 'معلّقة'
+                        className={`payments-status-tag ${processItem.status === 'معلّقة'
                             ? 'pending'
                             : processItem.status === 'معتمدة'
-                            ? 'approved'
-                            : 'rejected'
-                        }`}
+                              ? 'approved'
+                              : 'rejected'
+                          }`}
                       >
                         {processItem.status}
                       </span>
@@ -628,13 +615,12 @@ export default function AdminPaymentsPage({ navigate }) {
                   <tr>
                     <td>
                       <span
-                        className={`payments-status-tag ${
-                          previewItem.status === 'معلّقة'
+                        className={`payments-status-tag ${previewItem.status === 'معلّقة'
                             ? 'pending'
                             : previewItem.status === 'معتمدة'
-                            ? 'approved'
-                            : 'rejected'
-                        }`}
+                              ? 'approved'
+                              : 'rejected'
+                          }`}
                       >
                         {previewItem.status}
                       </span>
@@ -709,10 +695,10 @@ export default function AdminPaymentsPage({ navigate }) {
         const channel = attachmentItem.method === 'تحويل بنكي'
           ? 'الخدمات البنكية الإلكترونية'
           : attachmentItem.method === 'CliQ'
-          ? 'CliQ Instant Transfer'
-          : attachmentItem.method === 'محفظة إلكترونية'
-          ? 'المحفظة الإلكترونية المعتمدة'
-          : attachmentItem.method;
+            ? 'CliQ Instant Transfer'
+            : attachmentItem.method === 'محفظة إلكترونية'
+              ? 'المحفظة الإلكترونية المعتمدة'
+              : attachmentItem.method;
 
         return (
           <div className="payments-modal-backdrop show" onClick={() => setAttachmentItem(null)}>
@@ -724,7 +710,7 @@ export default function AdminPaymentsPage({ navigate }) {
 
               <div className="payments-attachment-preview-area">
                 <div className="payments-receipt-canvas">
-                  
+
                   {/* Dynamic Header */}
                   <div className={`payments-receipt-head ${theme.cls}`}>
                     <div>
@@ -743,15 +729,15 @@ export default function AdminPaymentsPage({ navigate }) {
                           color: attachmentItem.status === 'معتمدة'
                             ? 'var(--green)'
                             : attachmentItem.status === 'معلّقة'
-                            ? 'var(--orange)'
-                            : 'var(--pink)'
+                              ? 'var(--orange)'
+                              : 'var(--pink)'
                         }}
                       >
                         {attachmentItem.status === 'معتمدة'
                           ? '✓ تم اعتماد وقبول الدفعة'
                           : attachmentItem.status === 'معلّقة'
-                          ? '⏱ الدفعة قيد التدقيق والمراجعة'
-                          : '✕ تم رفض طلب الدفعة / التحويل'}
+                            ? '⏱ الدفعة قيد التدقيق والمراجعة'
+                            : '✕ تم رفض طلب الدفعة / التحويل'}
                       </div>
                       <div className="payments-receipt-amount payments-ltr">{attachmentItem.amount}</div>
                     </div>
@@ -799,16 +785,16 @@ export default function AdminPaymentsPage({ navigate }) {
                           color: attachmentItem.status === 'معتمدة'
                             ? 'var(--green)'
                             : attachmentItem.status === 'معلّقة'
-                            ? 'var(--orange)'
-                            : 'var(--pink)',
+                              ? 'var(--orange)'
+                              : 'var(--pink)',
                           fontWeight: '700'
                         }}
                       >
                         {attachmentItem.status === 'معتمدة'
                           ? 'Approved & Confirmed (معتمدة)'
                           : attachmentItem.status === 'معلّقة'
-                          ? 'Pending Review (معلّقة)'
-                          : 'Rejected (مرفوضة)'}
+                            ? 'Pending Review (معلّقة)'
+                            : 'Rejected (مرفوضة)'}
                       </span>
                     </div>
 

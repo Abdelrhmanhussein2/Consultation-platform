@@ -24,9 +24,34 @@ class SubscriptionController:
         grace_count = db.query(UserSubscription).filter(UserSubscription.status.in_(["grace", "payment"])).count()
         
         now = datetime.utcnow()
+        month_start = datetime(now.year, now.month, 1)
+        seven_days_later = now + timedelta(days=7)
         thirty_days_later = now + timedelta(days=30)
+
         expiring_count = db.query(UserSubscription).filter(
             UserSubscription.end_date.between(now, thirty_days_later)
+        ).count()
+        expiring_7_days = db.query(UserSubscription).filter(
+            UserSubscription.end_date.between(now, seven_days_later)
+        ).count()
+
+        active_new_this_month = db.query(UserSubscription).filter(
+            UserSubscription.status == "active",
+            UserSubscription.created_at >= month_start
+        ).count()
+
+        upgrades_count = db.query(SubscriptionRequest).filter(
+            SubscriptionRequest.status == "approved",
+            SubscriptionRequest.created_at >= month_start
+        ).count()
+
+        renewals_count = db.query(SubscriptionOrder).filter(
+            SubscriptionOrder.status == "approved",
+            SubscriptionOrder.created_at >= month_start
+        ).count()
+
+        cancellations_count = db.query(UserSubscription).filter(
+            UserSubscription.status == "cancelled"
         ).count()
 
         # Plan Distribution
@@ -65,8 +90,13 @@ class SubscriptionController:
 
         return {
             "active_subscriptions": active_count,
+            "active_new_this_month": active_new_this_month,
             "expiring_30_days": expiring_count,
-            "upgrades_this_month": 11,
+            "expiring_7_days": expiring_7_days,
+            "upgrades_this_month": upgrades_count,
+            "renewals_this_month": renewals_count,
+            "cancellations_this_month": cancellations_count,
+            "downgrades_this_month": 0,
             "grace_period_count": grace_count,
             "plan_distribution": plan_distribution,
             "monthly_count": monthly_count,

@@ -24,6 +24,13 @@ export const appointmentService = {
     }, token);
   },
 
+  // Get all platform appointments (admin / calendar overview)
+  async getAllAppointments(token, limit = 200) {
+    return await apiFetch(`/api/appointments/all?limit=${limit}`, {
+      method: 'GET'
+    }, token);
+  },
+
   // Cancel appointment
   async cancelAppointment(id, reason, token) {
     return await apiFetch(`/api/appointments/${id}/cancel`, {

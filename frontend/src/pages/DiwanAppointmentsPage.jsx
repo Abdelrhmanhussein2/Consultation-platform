@@ -207,7 +207,9 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
     try {
       setLoadingBackend(true);
       let res = null;
-      if (role === 'consultant') {
+      if (role === 'admin') {
+        res = await appointmentService.getAllAppointments(token);
+      } else if (role === 'consultant') {
         res = await consultantService.getIncomingAppointments(token);
       } else if (role === 'user') {
         res = await appointmentService.getMyAppointments(token);
@@ -313,6 +315,19 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
 
   useEffect(() => {
     fetchBackendAppointments();
+
+    const interval = setInterval(fetchBackendAppointments, 10000);
+    const onFocus = () => fetchBackendAppointments();
+    const onDataUpdated = () => fetchBackendAppointments();
+
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('admin_data_updated', onDataUpdated);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('admin_data_updated', onDataUpdated);
+    };
   }, [fetchBackendAppointments]);
 
   // Helper getters

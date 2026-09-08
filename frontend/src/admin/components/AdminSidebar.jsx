@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import {
   IconDashboard,
   IconUsers,
@@ -22,6 +23,7 @@ import {
 } from './AdminIcons';
 
 export default function AdminSidebar({ currentPath, navigate, userRole = 'super_admin', permissions = [] }) {
+  const { logout } = useAuth();
   // ══════════════════════════════════════════════════════════════════════════
   // STREAMLINED & REORGANIZED MENU HIERARCHY
   // ══════════════════════════════════════════════════════════════════════════
@@ -180,16 +182,16 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
   };
 
   // Logout handler
-  const handleLogout = (e) => {
+  const handleLogout = async (e) => {
     e.preventDefault();
     if (window.confirm('هل تريد تسجيل الخروج من لوحة التحكم؟')) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('role');
-      localStorage.removeItem('admin');
-      if (navigate) {
-        navigate('/login');
+      if (logout) {
+        await logout();
       } else {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('role');
+        localStorage.removeItem('admin');
         window.location.href = '/login';
       }
     }

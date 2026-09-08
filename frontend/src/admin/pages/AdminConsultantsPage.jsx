@@ -117,6 +117,25 @@ export default function AdminConsultantsPage({ navigate }) {
         }
       })
       .catch(() => {});
+
+    const interval = setInterval(() => {
+      loadConsultants();
+      loadSessions();
+    }, 10000);
+
+    const onDataUpdated = () => {
+      loadConsultants();
+      loadSessions();
+    };
+
+    window.addEventListener('focus', onDataUpdated);
+    window.addEventListener('admin_data_updated', onDataUpdated);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onDataUpdated);
+      window.removeEventListener('admin_data_updated', onDataUpdated);
+    };
   }, []);
 
   const handleAction = async (id, action) => {
@@ -131,6 +150,7 @@ export default function AdminConsultantsPage({ navigate }) {
           role: 'مستشار معتمد'
         });
         await loadConsultants();
+        window.dispatchEvent(new Event('admin_data_updated'));
       } catch (err) {
         alert(err.message || 'حدث خطأ أثناء اعتماد المستشار');
       }
@@ -138,6 +158,7 @@ export default function AdminConsultantsPage({ navigate }) {
       try {
         await toggleUserActive(id);
         await loadConsultants();
+        window.dispatchEvent(new Event('admin_data_updated'));
       } catch (err) {
         alert(err.message || 'حدث خطأ أثناء تعديل حالة الحساب');
       }
@@ -148,6 +169,7 @@ export default function AdminConsultantsPage({ navigate }) {
         await handleConsultantAction(id, 'reject', reason);
         alert('تم رفض المستشار بنجاح وتحديث حالته.');
         await loadConsultants();
+        window.dispatchEvent(new Event('admin_data_updated'));
       } catch (err) {
         alert(err.message || 'حدث خطأ أثناء رفض المستشار');
       }

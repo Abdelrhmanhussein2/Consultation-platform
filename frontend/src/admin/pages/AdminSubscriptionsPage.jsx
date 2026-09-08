@@ -83,138 +83,6 @@ const INITIAL_PLANS = [
   }
 ];
 
-const subscriberNames = [
-  "شركة الأفق للتجارة", "أحمد الخطيب", "شركة المدار", "ليان الحسن", "مؤسسة الرواد", "شركة النور", "سارة المصري", "خالد منصور",
-  "شركة القمة", "شركة المستقبل", "نور حداد", "شركة الشروق", "مؤسسة الصفوة", "شركة الأعمال الحديثة", "محمد العلي", "هبة الزعبي",
-  "شركة بيت الخبرة", "سامر الخطيب", "لينا مراد", "شركة النخبة", "مؤسسة الريادة", "رائد العجارمة", "دانا شحادة", "شركة النورس"
-];
-
-const INITIAL_SUBSCRIBERS = Array.from({ length: 32 }, (_, i) => {
-  const name = subscriberNames[i % subscriberNames.length];
-  const free = i % 8 === 0;
-  const plan = free ? "مجانية" : i % 3 === 0 ? "احترافية" : "أساسية";
-  const cycle = free ? "شهري" : i % 4 === 0 ? "سنوي" : "شهري";
-  const lifeCycle = ["active", "active", "active", "renewal", "expiring", "payment", "grace", "scheduled"];
-  const life = lifeCycle[i % lifeCycle.length];
-  const start = `2026-08-${String(1 + (i % 25)).padStart(2, "0")}`;
-  const end = cycle === "سنوي" ? `2027-08-${String(1 + (i % 25)).padStart(2, "0")}` : `2026-09-${String(1 + (i % 25)).padStart(2, "0")}`;
-  const pointsTotal = free ? 20 : plan === "احترافية" ? 3000 : 800;
-  const downloadsTotal = free ? 5 : plan === "احترافية" ? 100 : 25;
-  const consultTotal = free ? 0 : plan === "احترافية" ? 3 : 1;
-  const teamTotal = free ? 1 : plan === "احترافية" ? 10 : 5;
-  const pointsUsed = free ? 0 : Math.round(pointsTotal * ((i % 5 + 1) / 10));
-  const downloadsUsed = free ? 1 : Math.min(downloadsTotal, Math.max(1, (i * 3) % downloadsTotal));
-  const consultUsed = Math.min(consultTotal, i % (consultTotal + 1));
-  const teamUsed = free ? 1 : Math.min(teamTotal, 1 + (i % teamTotal));
-
-  return {
-    id: i + 1,
-    name,
-    email: `subscriber${i + 1}@example.com`,
-    plan,
-    cycle,
-    life,
-    start,
-    end,
-    renew: end,
-    trialInfo: free ? "تجربة مجانية لمدة 3 أيام • 20 نقطة • 5 تحميـلات" : "",
-    pointsUsed,
-    pointsTotal,
-    downloadsUsed,
-    downloadsTotal,
-    consultUsed,
-    consultTotal,
-    teamUsed,
-    teamTotal,
-    scheduled: life === "scheduled" ? "تغيير مجدول عند التجديد" : "لا يوجد",
-    planVersion: plan === "احترافية" ? "v2.0" : "v1.0",
-    history: [
-      { t: "تم إنشاء الاشتراك", d: `${start} 09:58 ص`, p: "النظام" },
-      { t: "تم اعتماد عملية الدفع", d: `${start} 10:07 ص`, p: "الإدارة المالية — ليان حداد" },
-      { t: "تم تفعيل الاشتراك", d: `${start} 10:15 ص`, p: "مدير الباقات — أحمد منصور" }
-    ],
-    usageLogs: {
-      points: [
-        { title: "المساعد الذكي — تحليل سؤال ضريبي", desc: "تم تحليل استفسار ضريبي واستخراج المواد القانونية المرتبطة به.", date: `${start} 11:20 ص`, badge: "المساعد الذكي" },
-        { title: "تلخيص تشريع ضريبي", desc: "استخراج الملخص القانوني لنظام الفوترة الوطني والتعليمات المرفقة.", date: `${start} 02:15 م`, badge: "التلخيص" },
-        { title: "مقارنة تشريعات ضريبية", desc: "مقارنة بين قانون ضريبة الدخل والتعليمات التنفيذية الصادرة بموجبه.", date: `${start} 04:40 م`, badge: "المقارنة" }
-      ],
-      downloads: [
-        { title: "قانون ضريبة الدخل رقم 34 لسنة 2014", desc: "تحميل بصيغة PDF من مكتبة التشريعات.", date: `${start} 12:00 م`, badge: "تحميل PDF" },
-        { title: "نموذج إقرار ضريبة المبيعات", desc: "طباعة النموذج الرسمي المعتمد.", date: `${start} 01:10 م`, badge: "طباعة" }
-      ],
-      consultations: [
-        { title: "استشارة ضريبة الدخل والأرباح التجارية", desc: "جلسة استشارية معتمدة مع مستشار مرخص عبر المنصة.", date: `${start} 03:00 م`, badge: "استشارة مجانية" }
-      ],
-      team: [
-        { title: name, desc: "مدير الحساب الرئيسي والمفوض المالي للإدارة.", date: `${start} 09:30 ص`, badge: "مدير الحساب" },
-        { title: "أحمد نصار", desc: "محاسب ضريبي ومراجع للحساب.", date: `${start} 10:15 ص`, badge: "محاسب" }
-      ]
-    }
-  };
-});
-
-const INITIAL_REQUESTS = Array.from({ length: 24 }, (_, i) => {
-  const freeCase = i % 7 === 0;
-  const plan = freeCase ? "مجانية" : i % 2 === 0 ? "أساسية" : "احترافية";
-  const subscription = freeCase ? "شهري" : i % 3 === 0 ? "سنوي" : "شهري";
-  const statusCycle = ["approved", "pending", "approved", "rejected", "approved", "pending"];
-  const status = statusCycle[i % statusCycle.length];
-  const amount = freeCase ? 0 : plan === "أساسية" ? (subscription === "سنوي" ? 284.30 : 29.99) : (subscription === "سنوي" ? 758.30 : 79.99);
-  const paidMethods = ["تحويل بنكي", "CliQ", "محفظة إلكترونية", "Visa", "Mastercard"];
-  const payment = freeCase ? "باقة مجانية" : paidMethods[i % paidMethods.length];
-
-  return {
-    id: i + 1,
-    requestNo: `PR-${2026000 + i + 1}`,
-    name: subscriberNames[i % subscriberNames.length],
-    email: `req${i + 1}@diwan.jo`,
-    plan,
-    subscription,
-    payment,
-    amount,
-    status,
-    date: `2026-08-${String(26 - (i % 12)).padStart(2, "0")}`,
-    time: `${String(9 + (i % 9)).padStart(2, "0")}:${String((i * 7) % 60).padStart(2, "0")}`,
-    isFreeGrant: freeCase,
-    grantDuration: freeCase ? "30 يوماً" : "",
-    grantedBy: freeCase ? "مدير الباقات — أحمد منصور" : "",
-    grantReason: freeCase ? "منحة تعريفية للعميل" : "",
-    rejectReason: status === "rejected" ? "قيمة التحويل غير مطابقة للطلب" : ""
-  };
-});
-
-const INITIAL_ORDERS = Array.from({ length: 24 }, (_, i) => {
-  const plan = i % 3 === 0 ? "احترافية" : i % 2 === 0 ? "أساسية" : "مجانية";
-  const subscription = i % 3 === 0 ? "سنوي" : "شهري";
-  const amount = plan === "مجانية" ? 0 : plan === "أساسية" ? (subscription === "سنوي" ? 284.30 : 29.99) : (subscription === "سنوي" ? 758.30 : 79.99);
-  const statuses = ["approved", "pending", "rejected"];
-  const paymentMethods = ["تحويل بنكي", "CliQ", "محفظة إلكترونية", "Visa", "Mastercard"];
-
-  return {
-    id: i + 1,
-    orderNo: `PO-${String.fromCharCode(65 + (i % 26))}${2026100 + i}`,
-    name: subscriberNames[(i + 3) % subscriberNames.length],
-    email: `order${i + 1}@diwan.jo`,
-    plan,
-    subscription,
-    amount,
-    yearlyDiscount: subscription === "سنوي" && amount > 0 ? 21 : 0,
-    payment: paymentMethods[(i + 1) % paymentMethods.length],
-    status: statuses[(i + 1) % 3],
-    date: `2026-08-${String(26 - (i % 15)).padStart(2, "0")}`,
-    time: `${String(8 + (i % 10)).padStart(2, "0")}:${String((i * 11) % 60).padStart(2, "0")}`,
-    receipt: true
-  };
-});
-
-const INITIAL_VERSIONS = [
-  { plan: "أساسية", version: "v1.0", date: "2026-01-01", scope: "الإصدار الحالي للمشتركين القدامى", changes: "800 نقطة، 25 تحميلاً، استشارة مجانية واحدة", active: true },
-  { plan: "أساسية", version: "v2.0", date: "2026-08-01", scope: "للاشتراكات الجديدة فقط", changes: "تعديل السعر السنوي وتحسين أولوية الدعم", active: true },
-  { plan: "احترافية", version: "v1.0", date: "2026-01-01", scope: "الإصدار السابق", changes: "3000 نقطة، 100 تحميل، 3 استشارات مجانية", active: true },
-  { plan: "احترافية", version: "v2.0", date: "2026-08-15", scope: "للاشتراكات الجديدة فقط", changes: "3500 نقطة، 120 تحميلاً، 4 استشارات مجانية", active: true }
-];
-
 const VERSION_RULES = {
   "أساسية": {
     "v1.0": { priceMonthly: 24.99, priceYearly: 236.90, points: 600, downloads: 20, consultations: 1, team: 3, support: "خلال 48 ساعة" },
@@ -241,10 +109,26 @@ export default function AdminSubscriptionsPage({ navigate }) {
 
   // Datasets
   const [plans, setPlans] = useState(INITIAL_PLANS);
-  const [subscribers, setSubscribers] = useState(INITIAL_SUBSCRIBERS);
-  const [requests, setRequests] = useState(INITIAL_REQUESTS);
-  const [orders, setOrders] = useState(INITIAL_ORDERS);
-  const [versions, setVersions] = useState(INITIAL_VERSIONS);
+  const [subscribers, setSubscribers] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [versions, setVersions] = useState([]);
+  const [dashboardData, setDashboardData] = useState({
+    active_subscriptions: 0,
+    active_new_this_month: 0,
+    expiring_30_days: 0,
+    expiring_7_days: 0,
+    upgrades_this_month: 0,
+    renewals_this_month: 0,
+    cancellations_this_month: 0,
+    downgrades_this_month: 0,
+    grace_period_count: 0,
+    plan_distribution: [],
+    monthly_count: 0,
+    yearly_count: 0,
+    expiring_list: [],
+    total_subscribers: 0
+  });
 
   // Version compare modal interactive controls
   const [comparePlan, setComparePlan] = useState('أساسية');
@@ -311,16 +195,20 @@ export default function AdminSubscriptionsPage({ navigate }) {
 
   const loadAdminSubscriptionsData = async () => {
     try {
-      const [reqRes, plansRes, subsRes, ordersRes] = await Promise.all([
+      const [dashRes, reqRes, plansRes, subsRes, ordersRes, versRes] = await Promise.all([
+        fetch('/api/subscriptions/dashboard').then(r => r.ok ? r.json() : null).catch(() => null),
         fetch('/api/subscriptions/requests').then(r => r.ok ? r.json() : null).catch(() => null),
         fetch('/api/subscriptions/plans').then(r => r.ok ? r.json() : null).catch(() => null),
         fetch('/api/subscriptions/subscribers').then(r => r.ok ? r.json() : null).catch(() => null),
-        fetch('/api/subscriptions/orders').then(r => r.ok ? r.json() : null).catch(() => null)
+        fetch('/api/subscriptions/orders').then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch('/api/subscriptions/versions').then(r => r.ok ? r.json() : null).catch(() => null)
       ]);
+      if (dashRes && typeof dashRes === 'object') setDashboardData(dashRes);
       if (reqRes && Array.isArray(reqRes)) setRequests(reqRes);
       if (plansRes && Array.isArray(plansRes) && plansRes.length > 0) setPlans(plansRes);
       if (subsRes && Array.isArray(subsRes)) setSubscribers(subsRes);
       if (ordersRes && Array.isArray(ordersRes)) setOrders(ordersRes);
+      if (versRes && Array.isArray(versRes)) setVersions(versRes);
     } catch (e) {
       console.warn('Live admin data load error:', e);
     }
@@ -623,248 +511,286 @@ export default function AdminSubscriptionsPage({ navigate }) {
       {/* ══════════════════════════════════════════════════════════════════
           TAB 1: DASHBOARD (لوحة الاشتراكات)
           ══════════════════════════════════════════════════════════════════ */}
-      {activeTab === 'dashboard' && (
-        <div>
-          {/* 4 Metric KPI Cards */}
-          <div className="sub-dashboard-grid">
-            <div
-              className="sub-metric-card"
-              onClick={() => {
-                setDrillSearch('');
-                setDrillPlanFilter('all');
-                setDrillCycleFilter('all');
-                setDrilldownModal({
-                  title: 'الاشتراكات النشطة',
-                  rows: subscribers.filter((s) => s.life === 'active')
-                });
-              }}
-            >
-              <div className="sub-metric-top">
-                <div>
-                  <div className="sub-metric-label">الاشتراكات النشطة</div>
-                  <div className="sub-metric-value">{subscribers.filter((s) => s.life === 'active').length}</div>
+      {activeTab === 'dashboard' && (() => {
+        const totalSubCount = subscribers.length;
+        const activeSubCount = subscribers.filter((s) => s.life === 'active').length;
+        const monthlySubCount = subscribers.filter((s) => s.cycle === 'شهري').length;
+        const yearlySubCount = subscribers.filter((s) => s.cycle === 'سنوي').length;
+        const monthlyPct = totalSubCount > 0 ? Math.round((monthlySubCount / totalSubCount) * 100) : 0;
+        const yearlyPct = totalSubCount > 0 ? (100 - monthlyPct) : 0;
+
+        const maxMovement = Math.max(
+          dashboardData.upgrades_this_month || 0,
+          dashboardData.renewals_this_month || 0,
+          dashboardData.cancellations_this_month || 0,
+          dashboardData.downgrades_this_month || 0,
+          1
+        );
+
+        const expiringList = dashboardData.expiring_list && dashboardData.expiring_list.length > 0
+          ? dashboardData.expiring_list
+          : subscribers.slice(0, 5);
+
+        return (
+          <div>
+            {/* 4 Metric KPI Cards */}
+            <div className="sub-dashboard-grid">
+              <div
+                className="sub-metric-card"
+                onClick={() => {
+                  setDrillSearch('');
+                  setDrillPlanFilter('all');
+                  setDrillCycleFilter('all');
+                  setDrilldownModal({
+                    title: 'الاشتراكات النشطة',
+                    rows: subscribers.filter((s) => s.life === 'active')
+                  });
+                }}
+              >
+                <div className="sub-metric-top">
+                  <div>
+                    <div className="sub-metric-label">الاشتراكات النشطة</div>
+                    <div className="sub-metric-value">{dashboardData.active_subscriptions || activeSubCount}</div>
+                  </div>
+                  <div className="sub-metric-icon">◎</div>
                 </div>
-                <div className="sub-metric-icon">◎</div>
+                <div className="sub-metric-foot">+{dashboardData.active_new_this_month || 0} هذا الشهر</div>
               </div>
-              <div className="sub-metric-foot">+12 هذا الشهر</div>
+
+              <div
+                className="sub-metric-card"
+                onClick={() => {
+                  setDrillSearch('');
+                  setDrillPlanFilter('all');
+                  setDrillCycleFilter('all');
+                  setDrilldownModal({
+                    title: 'اشتراكات تنتهي قريباً (أولوية التجديد)',
+                    rows: subscribers.filter((s) => ['expiring', 'renewal', 'grace'].includes(s.life))
+                  });
+                }}
+              >
+                <div className="sub-metric-top">
+                  <div>
+                    <div className="sub-metric-label">تنتهي خلال 30 يومًا</div>
+                    <div className="sub-metric-value">{dashboardData.expiring_30_days || 0}</div>
+                  </div>
+                  <div className="sub-metric-icon orange">⌛</div>
+                </div>
+                <div className="sub-metric-foot">{dashboardData.expiring_7_days || 0} منها خلال هذا الأسبوع</div>
+              </div>
+
+              <div
+                className="sub-metric-card"
+                onClick={() => {
+                  setDrillSearch('');
+                  setDrillPlanFilter('all');
+                  setDrillCycleFilter('all');
+                  setDrilldownModal({
+                    title: 'ترقيات هذا الشهر',
+                    rows: requests.filter((r) => r.status === 'approved')
+                  });
+                }}
+              >
+                <div className="sub-metric-top">
+                  <div>
+                    <div className="sub-metric-label">ترقيات هذا الشهر</div>
+                    <div className="sub-metric-value">{dashboardData.upgrades_this_month || 0}</div>
+                  </div>
+                  <div className="sub-metric-icon blue">↗</div>
+                </div>
+                <div className="sub-metric-foot">{dashboardData.upgrades_this_month || 0} ترقية فورية معتمدة</div>
+              </div>
+
+              <div
+                className="sub-metric-card"
+                onClick={() => {
+                  setDrillSearch('');
+                  setDrillPlanFilter('all');
+                  setDrillCycleFilter('all');
+                  setDrilldownModal({
+                    title: 'اشتراكات في فترة سماح',
+                    rows: subscribers.filter((s) => ['grace', 'payment'].includes(s.life))
+                  });
+                }}
+              >
+                <div className="sub-metric-top">
+                  <div>
+                    <div className="sub-metric-label">اشتراكات في فترة سماح</div>
+                    <div className="sub-metric-value">{dashboardData.grace_period_count || 0}</div>
+                  </div>
+                  <div className="sub-metric-icon red">!</div>
+                </div>
+                <div className="sub-metric-foot">تحتاج لمتابعة الدفع</div>
+              </div>
             </div>
 
-            <div
-              className="sub-metric-card"
-              onClick={() => {
-                setDrillSearch('');
-                setDrillPlanFilter('all');
-                setDrillCycleFilter('all');
-                setDrilldownModal({
-                  title: 'اشتراكات تنتهي قريباً (أولوية التجديد)',
-                  rows: subscribers.filter((s) => ['expiring', 'renewal', 'grace'].includes(s.life))
-                });
-              }}
-            >
-              <div className="sub-metric-top">
-                <div>
-                  <div className="sub-metric-label">تنتهي خلال 30 يومًا</div>
-                  <div className="sub-metric-value">{subscribers.filter((s) => ['expiring', 'renewal'].includes(s.life)).length}</div>
+            {/* Charts Row */}
+            <div className="sub-dash-row">
+              <div
+                className="sub-chart-card clickable"
+                onClick={() => {
+                  setDrillSearch('');
+                  setDrillPlanFilter('all');
+                  setDrillCycleFilter('all');
+                  setDrilldownModal({
+                    title: 'المشتركون حسب الباقة',
+                    rows: subscribers
+                  });
+                }}
+              >
+                <div className="sub-chart-head">
+                  <div>
+                    <div className="sub-chart-title">توزيع المشتركين حسب الباقة</div>
+                    <div className="sub-chart-sub">إجمالي المشتركين الفعليين على المنصة</div>
+                  </div>
                 </div>
-                <div className="sub-metric-icon orange">⌛</div>
-              </div>
-              <div className="sub-metric-foot">7 منها خلال هذا الأسبوع</div>
-            </div>
-
-            <div
-              className="sub-metric-card"
-              onClick={() => {
-                setDrillSearch('');
-                setDrillPlanFilter('all');
-                setDrillCycleFilter('all');
-                setDrilldownModal({
-                  title: 'ترقيات هذا الشهر',
-                  rows: subscribers.filter((s) => s.plan === 'احترافية')
-                });
-              }}
-            >
-              <div className="sub-metric-top">
-                <div>
-                  <div className="sub-metric-label">ترقيات هذا الشهر</div>
-                  <div className="sub-metric-value">11</div>
-                </div>
-                <div className="sub-metric-icon blue">↗</div>
-              </div>
-              <div className="sub-metric-foot">11 ترقية فورية معتمدة</div>
-            </div>
-
-            <div
-              className="sub-metric-card"
-              onClick={() => {
-                setDrillSearch('');
-                setDrillPlanFilter('all');
-                setDrillCycleFilter('all');
-                setDrilldownModal({
-                  title: 'اشتراكات في فترة سماح',
-                  rows: subscribers.filter((s) => ['grace', 'payment'].includes(s.life))
-                });
-              }}
-            >
-              <div className="sub-metric-top">
-                <div>
-                  <div className="sub-metric-label">اشتراكات في فترة سماح</div>
-                  <div className="sub-metric-value">{subscribers.filter((s) => ['grace', 'payment'].includes(s.life)).length}</div>
-                </div>
-                <div className="sub-metric-icon red">!</div>
-              </div>
-              <div className="sub-metric-foot">تحتاج لمتابعة الدفع</div>
-            </div>
-          </div>
-
-          {/* Charts Row */}
-          <div className="sub-dash-row">
-            <div
-              className="sub-chart-card clickable"
-              onClick={() => {
-                setDrillSearch('');
-                setDrillPlanFilter('all');
-                setDrillCycleFilter('all');
-                setDrilldownModal({
-                  title: 'المشتركون حسب الباقة',
-                  rows: subscribers
-                });
-              }}
-            >
-              <div className="sub-chart-head">
-                <div>
-                  <div className="sub-chart-title">توزيع المشتركين حسب الباقة</div>
-                  <div className="sub-chart-sub">إجمالي المشتركين النشطين على المنصة</div>
-                </div>
-              </div>
-              <div className="sub-bar-chart">
-                {['مجانية', 'أساسية', 'احترافية'].map((pName, idx) => {
-                  const count = subscribers.filter((s) => s.plan === pName).length;
-                  const pctWidth = Math.round((count / subscribers.length) * 100);
-                  return (
-                    <div key={pName} className="sub-bar-line">
-                      <span>{pName}</span>
-                      <div className="sub-bar-track">
-                        <div
-                          className={`sub-bar-fill ${idx === 1 ? 'blue' : idx === 2 ? 'orange' : ''}`}
-                          style={{ width: `${pctWidth}%` }}
-                        />
+                <div className="sub-bar-chart">
+                  {(plans && plans.length > 0 ? plans : [{ name: 'مجانية' }, { name: 'أساسية' }, { name: 'احترافية' }]).map((p, idx) => {
+                    const pName = p.name;
+                    const count = subscribers.filter((s) => s.plan === pName).length;
+                    const pctWidth = totalSubCount > 0 ? Math.round((count / totalSubCount) * 100) : 0;
+                    return (
+                      <div key={pName || idx} className="sub-bar-line">
+                        <span>{pName}</span>
+                        <div className="sub-bar-track">
+                          <div
+                            className={`sub-bar-fill ${idx === 1 ? 'blue' : idx === 2 ? 'orange' : ''}`}
+                            style={{ width: `${pctWidth}%` }}
+                          />
+                        </div>
+                        <strong>{count}</strong>
                       </div>
-                      <strong>{count}</strong>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div
+                className="sub-chart-card clickable"
+                onClick={() => {
+                  setDrillSearch('');
+                  setDrillPlanFilter('all');
+                  setDrillCycleFilter('all');
+                  setDrilldownModal({
+                    title: 'الاشتراكات الشهرية والسنوية',
+                    rows: subscribers
+                  });
+                }}
+              >
+                <div className="sub-chart-head">
+                  <div>
+                    <div className="sub-chart-title">شهري مقابل سنوي</div>
+                    <div className="sub-chart-sub">نمط الاشتراكات الحالية</div>
+                  </div>
+                </div>
+                <div className="sub-donut-wrap">
+                  <div
+                    className="sub-donut"
+                    style={{
+                      background: totalSubCount > 0
+                        ? `conic-gradient(#11b981 0 ${monthlyPct}%, #2e7cf6 ${monthlyPct}% 100%)`
+                        : '#e2e8f0'
+                    }}
+                  >
+                    <div className="sub-donut-center">
+                      <div>
+                        <strong style={{ fontSize: '18px', color: 'var(--ink)' }}>{totalSubCount}</strong>
+                        <br />
+                        مشترك
+                      </div>
                     </div>
-                  );
-                })}
+                  </div>
+                  <div className="sub-legend">
+                    <div className="sub-legend-item">
+                      <span className="sub-legend-dot" style={{ background: '#11b981' }} />
+                      <span>شهري — {monthlyPct}%</span>
+                    </div>
+                    <div className="sub-legend-item">
+                      <span className="sub-legend-dot" style={{ background: '#2e7cf6' }} />
+                      <span>سنوي — {yearlyPct}%</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div
-              className="sub-chart-card clickable"
-              onClick={() => {
-                setDrillSearch('');
-                setDrillPlanFilter('all');
-                setDrillCycleFilter('all');
-                setDrilldownModal({
-                  title: 'الاشتراكات الشهرية والسنوية',
-                  rows: subscribers
-                });
-              }}
-            >
-              <div className="sub-chart-head">
-                <div>
-                  <div className="sub-chart-title">شهري مقابل سنوي</div>
-                  <div className="sub-chart-sub">نمط الاشتراكات الحالية</div>
+            {/* Movement & Expiring Row */}
+            <div className="sub-dash-row">
+              <div className="sub-chart-card">
+                <div className="sub-chart-head">
+                  <div>
+                    <div className="sub-chart-title">الاشتراكات القريبة من الانتهاء</div>
+                    <div className="sub-chart-sub">أولوية المتابعة والتجديد</div>
+                  </div>
+                  <button className="sub-secondary-btn" onClick={() => setActiveTab('subscribers')}>
+                    عرض الكل
+                  </button>
+                </div>
+                <div className="sub-alert-list">
+                  {expiringList.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '24px 0', color: '#64748b' }}>
+                      لا توجد اشتراكات قريبة من الانتهاء حالياً
+                    </div>
+                  ) : (
+                    expiringList.map((s, idx) => (
+                      <div key={s.id || idx} className="sub-alert-row" onClick={() => setSelectedSubscriber(s)}>
+                        <div className="sub-alert-main">
+                          <span className="sub-alert-name">{s.name}</span>
+                          <span className="sub-alert-sub">{s.plan} • {s.cycle} • {s.end || s.end_date}</span>
+                        </div>
+                        <span className="sub-alert-days">{s.end || s.end_date}</span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
-              <div className="sub-donut-wrap">
-                <div
-                  className="sub-donut"
-                  style={{
-                    background: `conic-gradient(var(--green) 0 65%, #2e7cf6 65% 100%)`
-                  }}
-                >
-                  <div className="sub-donut-center">
-                    <div>
-                      <strong style={{ fontSize: '18px', color: 'var(--ink)' }}>{subscribers.length}</strong>
-                      <br />
-                      مشترك
-                    </div>
+
+              <div className="sub-chart-card">
+                <div className="sub-chart-head">
+                  <div>
+                    <div className="sub-chart-title">حركة الاشتراكات هذا الشهر</div>
+                    <div className="sub-chart-sub">ترقيات وتجديدات وتخفيضات فعلية</div>
                   </div>
                 </div>
-                <div className="sub-legend">
-                  <div className="sub-legend-item">
-                    <span className="sub-legend-dot" style={{ background: '#11b981' }} />
-                    <span>شهري — 65%</span>
+                <div className="sub-bar-chart">
+                  <div className="sub-bar-line" onClick={() => {
+                    setDrilldownModal({ title: 'ترقيات هذا الشهر', rows: requests.filter((r) => r.status === 'approved') });
+                  }}>
+                    <span>ترقيات</span>
+                    <div className="sub-bar-track">
+                      <div className="sub-bar-fill" style={{ width: `${Math.round(((dashboardData.upgrades_this_month || 0) / maxMovement) * 100)}%` }} />
+                    </div>
+                    <strong>{dashboardData.upgrades_this_month || 0}</strong>
                   </div>
-                  <div className="sub-legend-item">
-                    <span className="sub-legend-dot" style={{ background: '#2e7cf6' }} />
-                    <span>سنوي — 35%</span>
+                  <div className="sub-bar-line" onClick={() => {
+                    setDrilldownModal({ title: 'تجديدات الاشتراكات', rows: orders.filter((o) => o.status === 'approved') });
+                  }}>
+                    <span>تجديدات</span>
+                    <div className="sub-bar-track">
+                      <div className="sub-bar-fill blue" style={{ width: `${Math.round(((dashboardData.renewals_this_month || 0) / maxMovement) * 100)}%` }} />
+                    </div>
+                    <strong>{dashboardData.renewals_this_month || 0}</strong>
+                  </div>
+                  <div className="sub-bar-line">
+                    <span>إلغاءات</span>
+                    <div className="sub-bar-track">
+                      <div className="sub-bar-fill red" style={{ width: `${Math.round(((dashboardData.cancellations_this_month || 0) / maxMovement) * 100)}%` }} />
+                    </div>
+                    <strong>{dashboardData.cancellations_this_month || 0}</strong>
+                  </div>
+                  <div className="sub-bar-line">
+                    <span>تخفيضات</span>
+                    <div className="sub-bar-track">
+                      <div className="sub-bar-fill orange" style={{ width: `${Math.round(((dashboardData.downgrades_this_month || 0) / maxMovement) * 100)}%` }} />
+                    </div>
+                    <strong>{dashboardData.downgrades_this_month || 0}</strong>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Movement & Expiring Row */}
-          <div className="sub-dash-row">
-            <div className="sub-chart-card">
-              <div className="sub-chart-head">
-                <div>
-                  <div className="sub-chart-title">الاشتراكات القريبة من الانتهاء</div>
-                  <div className="sub-chart-sub">أولوية المتابعة والتجديد</div>
-                </div>
-                <button className="sub-secondary-btn" onClick={() => setActiveTab('subscribers')}>
-                  عرض الكل
-                </button>
-              </div>
-              <div className="sub-alert-list">
-                {subscribers.slice(0, 5).map((s) => (
-                  <div key={s.id} className="sub-alert-row" onClick={() => setSelectedSubscriber(s)}>
-                    <div className="sub-alert-main">
-                      <span className="sub-alert-name">{s.name}</span>
-                      <span className="sub-alert-sub">{s.plan} • {s.cycle} • {s.end}</span>
-                    </div>
-                    <span className="sub-alert-days">{s.end}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="sub-chart-card">
-              <div className="sub-chart-head">
-                <div>
-                  <div className="sub-chart-title">حركة الاشتراكات هذا الشهر</div>
-                  <div className="sub-chart-sub">ترقيات وتجديدات وتخفيضات دورية</div>
-                </div>
-              </div>
-              <div className="sub-bar-chart">
-                <div className="sub-bar-line" onClick={() => {
-                  setDrilldownModal({ title: 'ترقيات هذا الشهر', rows: subscribers.filter((s) => s.plan === 'احترافية') });
-                }}>
-                  <span>ترقيات</span>
-                  <div className="sub-bar-track"><div className="sub-bar-fill" style={{ width: '78%' }} /></div>
-                  <strong>11</strong>
-                </div>
-                <div className="sub-bar-line" onClick={() => {
-                  setDrilldownModal({ title: 'تجديدات الاشتراكات', rows: subscribers.filter((s) => s.cycle === 'سنوي') });
-                }}>
-                  <span>تجديدات</span>
-                  <div className="sub-bar-track"><div className="sub-bar-fill blue" style={{ width: '92%' }} /></div>
-                  <strong>28</strong>
-                </div>
-                <div className="sub-bar-line">
-                  <span>إلغاءات</span>
-                  <div className="sub-bar-track"><div className="sub-bar-fill red" style={{ width: '18%' }} /></div>
-                  <strong>3</strong>
-                </div>
-                <div className="sub-bar-line">
-                  <span>تخفيضات</span>
-                  <div className="sub-bar-track"><div className="sub-bar-fill orange" style={{ width: '25%' }} /></div>
-                  <strong>4</strong>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ══════════════════════════════════════════════════════════════════
           TAB 2: PLANS (عرض وإدارة الباقات)

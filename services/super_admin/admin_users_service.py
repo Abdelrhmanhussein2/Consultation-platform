@@ -529,13 +529,74 @@ class AdminUsersService:
 
         user_email = user.email
         try:
+            # Full cascade cleanup of all child records
+            from models import (
+                RefreshToken, Notification, ConsultantProfile, UserDocument,
+                Favorite, UserPolicyAgreement, UserSubscription, SubscriptionOrder,
+                SubscriptionRequest, Rating, ChatMessage, SupportTicket, TicketReply,
+                Appointment, Invoice, RecurringInvoice, RefundedInvoice, AdminActionLog,
+                ConsultantService, ConsultantAvailability, ConsultantCredential,
+                ConsultantBankAccount, PayoutRequest, ServiceExpansionRequest,
+                AppointmentCancellation
+            )
+            from sqlalchemy import or_
+
+            # 1. If user is a consultant, clean up all consultant-specific data
+            prof = db.query(ConsultantProfile).filter(ConsultantProfile.user_id == user_id).first()
+            if prof:
+                prof_id = prof.id
+                # Clean appointments where user is consultant
+                appt_ids = [a.id for a in db.query(Appointment.id).filter(Appointment.consultant_id == prof_id).all()]
+                if appt_ids:
+                    db.query(ChatMessage).filter(ChatMessage.appointment_id.in_(appt_ids)).delete(synchronize_session=False)
+                    db.query(Rating).filter(Rating.appointment_id.in_(appt_ids)).delete(synchronize_session=False)
+                    db.query(AppointmentCancellation).filter(AppointmentCancellation.appointment_id.in_(appt_ids)).delete(synchronize_session=False)
+                    db.query(Invoice).filter(Invoice.appointment_id.in_(appt_ids)).delete(synchronize_session=False)
+                    db.query(Appointment).filter(Appointment.id.in_(appt_ids)).delete(synchronize_session=False)
+
+                db.query(ConsultantService).filter(ConsultantService.consultant_id == prof_id).delete(synchronize_session=False)
+                db.query(ConsultantAvailability).filter(ConsultantAvailability.consultant_id == prof_id).delete(synchronize_session=False)
+                db.query(ConsultantCredential).filter(ConsultantCredential.consultant_id == prof_id).delete(synchronize_session=False)
+                db.query(ConsultantBankAccount).filter(ConsultantBankAccount.consultant_id == prof_id).delete(synchronize_session=False)
+                db.query(PayoutRequest).filter(PayoutRequest.consultant_id == prof_id).delete(synchronize_session=False)
+                db.query(ServiceExpansionRequest).filter(ServiceExpansionRequest.consultant_id == prof_id).delete(synchronize_session=False)
+                db.query(Rating).filter(Rating.consultant_id == prof_id).delete(synchronize_session=False)
+                db.delete(prof)
+                db.flush()
+
+            # 2. Clean appointments where user is client
+            user_appt_ids = [a.id for a in db.query(Appointment.id).filter(Appointment.user_id == user_id).all()]
+            if user_appt_ids:
+                db.query(ChatMessage).filter(ChatMessage.appointment_id.in_(user_appt_ids)).delete(synchronize_session=False)
+                db.query(Rating).filter(Rating.appointment_id.in_(user_appt_ids)).delete(synchronize_session=False)
+                db.query(AppointmentCancellation).filter(AppointmentCancellation.appointment_id.in_(user_appt_ids)).delete(synchronize_session=False)
+                db.query(Invoice).filter(Invoice.appointment_id.in_(user_appt_ids)).delete(synchronize_session=False)
+                db.query(Appointment).filter(Appointment.id.in_(user_appt_ids)).delete(synchronize_session=False)
+
+            # 3. Clean user direct dependencies
+            db.query(RefreshToken).filter(RefreshToken.user_id == user_id).delete(synchronize_session=False)
+            db.query(Notification).filter(Notification.user_id == user_id).delete(synchronize_session=False)
+            db.query(Favorite).filter(Favorite.user_id == user_id).delete(synchronize_session=False)
+            db.query(UserDocument).filter(UserDocument.user_id == user_id).delete(synchronize_session=False)
+            db.query(UserPolicyAgreement).filter(UserPolicyAgreement.user_id == user_id).delete(synchronize_session=False)
+            db.query(UserSubscription).filter(UserSubscription.user_id == user_id).delete(synchronize_session=False)
+            db.query(SubscriptionOrder).filter(SubscriptionOrder.user_id == user_id).delete(synchronize_session=False)
+            db.query(SubscriptionRequest).filter(SubscriptionRequest.user_id == user_id).delete(synchronize_session=False)
+            db.query(Rating).filter(or_(Rating.user_id == user_id, Rating.reviewed_by == user_id)).delete(synchronize_session=False)
+            db.query(ChatMessage).filter(or_(ChatMessage.sender_id == user_id, ChatMessage.receiver_id == user_id)).delete(synchronize_session=False)
+            db.query(TicketReply).filter(TicketReply.author_id == user_id).delete(synchronize_session=False)
+            db.query(SupportTicket).filter(or_(SupportTicket.submitted_by == user_id, SupportTicket.assigned_to == user_id)).delete(synchronize_session=False)
+            db.query(Invoice).filter(Invoice.issued_to_user_id == user_id).delete(synchronize_session=False)
+            db.query(RecurringInvoice).filter(RecurringInvoice.user_id == user_id).delete(synchronize_session=False)
+            db.query(RefundedInvoice).filter(RefundedInvoice.user_id == user_id).delete(synchronize_session=False)
+            db.query(AdminActionLog).filter(AdminActionLog.admin_id == user_id).delete(synchronize_session=False)
+
+            # 4. Delete user record
             db.delete(user)
             db.commit()
-        except Exception:
+        except Exception as e:
             db.rollback()
-            user.is_active = False
-            user.email = f"deleted_{user.id}_{user.email}"
-            db.commit()
+            raise ValueError(f"فشل حذف المستخدم من قاعدة البيانات: {str(e)}")
 
         try:
             log_entry = AdminActionLog(

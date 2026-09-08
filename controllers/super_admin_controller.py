@@ -543,6 +543,66 @@ class SuperAdminController:
         except Exception as e:
             raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get dashboard stats: {str(e)}")
 
+    @staticmethod
+    def admin_get_sessions(db: Session):
+        """
+        Retrieves all sessions/appointments for the admin panel.
+        """
+        try:
+            from services.super_admin.admin_sessions_service import AdminSessionsService
+            return AdminSessionsService.admin_get_all_sessions(db)
+        except Exception as e:
+            raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get admin sessions: {str(e)}")
+
+    @staticmethod
+    def admin_update_session_status(db: Session, appointment_id: str, status_in: dict, current_admin: User):
+        """
+        Updates session status (e.g. from Kanban drag & drop).
+        """
+        try:
+            import uuid
+            from helpers.enums import AppointmentStatus
+            from services.super_admin.admin_sessions_service import AdminSessionsService
+            appt_uuid = uuid.UUID(appointment_id)
+            raw_status = status_in.get("status", "confirmed")
+            status_map = {
+                "مكتملة": AppointmentStatus.completed,
+                "completed": AppointmentStatus.completed,
+                "قيد التنفيذ": AppointmentStatus.in_progress if hasattr(AppointmentStatus, "in_progress") else AppointmentStatus.confirmed,
+                "in_progress": AppointmentStatus.in_progress if hasattr(AppointmentStatus, "in_progress") else AppointmentStatus.confirmed,
+                "مؤكدة": AppointmentStatus.confirmed,
+                "confirmed": AppointmentStatus.confirmed,
+                "معلقة": AppointmentStatus.pending_approval,
+                "pending": AppointmentStatus.pending_approval,
+                "ملغاة": AppointmentStatus.cancelled_by_admin if hasattr(AppointmentStatus, "cancelled_by_admin") else AppointmentStatus.rejected,
+                "cancelled": AppointmentStatus.cancelled_by_admin if hasattr(AppointmentStatus, "cancelled_by_admin") else AppointmentStatus.rejected
+            }
+            new_enum = status_map.get(raw_status, AppointmentStatus.confirmed)
+            return AdminSessionsService.admin_update_session_status(db, appt_uuid, new_enum)
+        except Exception as e:
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Failed to update session status: {str(e)}")
+
+    @staticmethod
+    def admin_join_session(db: Session, appointment_id: str, current_admin: User):
+        """
+        Generates moderator/observer token for admin to join video room.
+        """
+        try:
+            import uuid
+            from services.super_admin.admin_sessions_service import AdminSessionsService
+            appt_uuid = uuid.UUID(appointment_id)
+            return AdminSessionsService.admin_join_session(db, appt_uuid, current_admin)
+        except Exception as e:
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Failed to join session: {str(e)}")
+
+    @staticmethod
+    def get_dashboard_stats(db: Session, period: str = "week"):
+        """
+        Retrieves live dynamic dashboard aggregates from PostgreSQL database.
+        """
+        return SuperAdminService.get_dashboard_stats(db, period)
+
+
 
 
 

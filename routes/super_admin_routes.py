@@ -40,6 +40,23 @@ router = APIRouter(prefix="/super-admin", tags=["Super Administration"])
 
 
 # ─────────────────────────────────────────────────────────────────────
+# DASHBOARD
+# ─────────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/dashboard/stats",
+    summary="Get live command center dashboard statistics",
+)
+def get_dashboard_stats(
+    period: str = Query("week", description="Dashboard aggregation period (day, week, month, quarter, half, year)"),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_users),
+):
+    """Retrieves real-time dashboard KPIs, city distribution, AI consumption, and income trends from DB."""
+    return SuperAdminController.get_dashboard_stats(db, period)
+
+
+# ─────────────────────────────────────────────────────────────────────
 # CONSULTANT CREDENTIAL MANAGEMENT (require_perm_manage_consultants)
 # ─────────────────────────────────────────────────────────────────────
 
@@ -330,6 +347,46 @@ def save_account_roles(
 ):
     """Saves customized corporate account roles into platform settings."""
     return SuperAdminController.admin_save_account_roles(db, roles_in, current_admin)
+
+
+@router.get(
+    "/sessions",
+    summary="Get all platform consultation sessions / appointments",
+)
+def get_admin_sessions(
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_users),
+):
+    """Returns all appointments / sessions across all consultants and clients."""
+    return SuperAdminController.admin_get_sessions(db)
+
+
+@router.patch(
+    "/sessions/{appointment_id}/status",
+    summary="Update session status (e.g. Kanban drag & drop)",
+)
+def update_admin_session_status(
+    appointment_id: str,
+    status_in: Dict[str, Any] = Body(...),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_users),
+):
+    """Updates status of a session."""
+    return SuperAdminController.admin_update_session_status(db, appointment_id, status_in, current_admin)
+
+
+@router.post(
+    "/sessions/{appointment_id}/join",
+    summary="Join session as admin observer/moderator",
+)
+def admin_join_session_room(
+    appointment_id: str,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_users),
+):
+    """Generates observer token for admin to join video call."""
+    return SuperAdminController.admin_join_session(db, appointment_id, current_admin)
+
 
 
 
@@ -1151,6 +1208,20 @@ def update_policies_settings(
 ):
     """Updates platform legal terms, privacy guidelines, and refund policy."""
     return PlatformSettingsController.update_section(db, "policies", policies_in.model_dump(), current_admin)
+
+
+@router.post(
+    "/settings/email/test",
+    summary="Interactive test email dispatcher",
+)
+def test_smtp_settings(
+    test_req: dict,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_settings),
+):
+    """Sends an interactive test email using configured SMTP credentials."""
+    target_email = test_req.get("recipient_email") or test_req.get("target_email") or current_admin.email
+    return PlatformSettingsController.test_smtp_email(db, target_email, current_admin)
 
 
 @router.get(

@@ -376,6 +376,24 @@ class AppointmentService:
         )
 
     @staticmethod
+    def get_all_appointments(
+        db: Session, page: int = 1, limit: int = 200
+    ) -> list[Appointment]:
+        """Returns all platform appointments across all consultants and users for Admin / Calendar overview."""
+        return (
+            db.query(Appointment)
+            .options(
+                joinedload(Appointment.user),
+                joinedload(Appointment.consultant).joinedload(ConsultantProfile.user),
+                joinedload(Appointment.service),
+            )
+            .order_by(Appointment.scheduled_at.desc())
+            .offset((page - 1) * limit)
+            .limit(limit)
+            .all()
+        )
+
+    @staticmethod
     def cancel_appointment(
         db: Session,
         user_id: uuid.UUID,

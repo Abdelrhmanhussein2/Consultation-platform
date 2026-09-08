@@ -81,6 +81,28 @@ def get_my_appointments(
     )
 
 
+@router.get(
+    "/all",
+    response_model=List[AppointmentOut],
+    summary="Get all platform appointments (admin / calendar view)",
+)
+def get_all_appointments(
+    page: int = Query(1, ge=1),
+    limit: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Returns all appointments across the platform for Admin and Super Admin calendar overview.
+    """
+    from services.appointment_service import AppointmentService
+    from helpers.enums import UserRole
+    if current_user.role in (UserRole.admin, UserRole.super_admin):
+        return AppointmentService.get_all_appointments(db, page=page, limit=limit)
+    return AppointmentController.get_my_appointments(db, current_user, page=page, limit=limit)
+
+
+
 @router.post(
     "/{appointment_id}/cancel",
     status_code=status.HTTP_200_OK,

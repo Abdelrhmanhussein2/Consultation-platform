@@ -136,7 +136,7 @@ export default function RbacUsersView({
                 <tr key={u.id}>
                   <td>
                     <div className="userNameCell">
-                      <div className="avatar">{u.name[0]}</div>
+                      <div className="avatar">{(u.name || 'م')[0]}</div>
                       <div><b>{u.name}</b></div>
                     </div>
                   </td>

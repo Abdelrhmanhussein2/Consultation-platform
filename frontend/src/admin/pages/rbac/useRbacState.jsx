@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useAuth } from '../../../context/AuthContext';
 import { 
   getAdminsList, 
   createAdmin, 
@@ -10,7 +11,10 @@ import {
   deleteAdminRole,
   assignUserRole,
   getAdminUsersList,
-  toggleUserActive
+  toggleUserActive,
+  deleteAdminUser,
+  updateUserProfile,
+  adminAddUserDirect
 } from '../../services/adminApi';
 import {
   MODULES,
@@ -24,6 +28,9 @@ import {
 } from '../RbacConstants';
 
 export function useRbacState(initialView = 'roles') {
+  const { user: currentAuthUser } = useAuth();
+  const currentAdminName = currentAuthUser?.full_name || currentAuthUser?.name || currentAuthUser?.email || 'مدير المنصة';
+
   // Main Navigation View: 'roles' (Default) | 'users'
   const [mainView, setMainView] = useState(initialView || 'roles');
   const [loading, setLoading] = useState(false);
@@ -40,18 +47,8 @@ export function useRbacState(initialView = 'roles') {
   const [rolesTypeFilter, setRolesTypeFilter] = useState('all'); // 'all' | 'system' | 'custom'
   const [dashboardRoleFilter, setDashboardRoleFilter] = useState('all'); // 'all' | 'custom' | 'withUsers' | 'sensitive'
 
-  const [roles, setRoles] = useState([
-    { id: 1, name: 'مدير المنصة', description: 'تحكم كامل في جميع أجزاء النظام والإعدادات', type: 'system', users: 3, permissions: 67, lastModified: '2026-08-18', modifiedBy: 'سعيد هارون', active: true },
-    { id: 2, name: 'مدير المحتوى', description: 'إدارة المحتوى والمقالات والمواد التعليمية', type: 'system', users: 5, permissions: 24, lastModified: '2026-08-15', modifiedBy: 'رأفت حداد', active: true },
-    { id: 3, name: 'مراجع المحتوى', description: 'مراجعة واعتماد المحتوى قبل النشر', type: 'system', users: 4, permissions: 18, lastModified: '2026-08-10', modifiedBy: 'فراس عودة', active: true },
-    { id: 4, name: 'مستشار', description: 'تقديم الاستشارات القانونية والضريبية للعملاء', type: 'custom', users: 12, permissions: 16, lastModified: '2026-08-19', modifiedBy: 'محمد الخطيب', active: true },
-    { id: 5, name: 'موظف دعم فني', description: 'الرد على التذاكر ومساعدة المستخدمين', type: 'custom', users: 8, permissions: 14, lastModified: '2026-08-12', modifiedBy: 'رولا مدانات', active: true },
-    { id: 6, name: 'مسؤول مالي', description: 'إدارة الفواتير والمدفوعات والتقارير المالية', type: 'custom', users: 2, permissions: 20, lastModified: '2026-08-05', modifiedBy: 'باسم الجوهري', active: true },
-    { id: 7, name: 'مسؤول خدمة العملاء', description: 'إدارة شكاوى واستفسارات العملاء', type: 'custom', users: 6, permissions: 15, lastModified: '2026-08-01', modifiedBy: 'ديانا رشيدات', active: false },
-    { id: 8, name: 'مدقق للقراءة فقط', description: 'اطلاع على التقارير والمحتوى دون تعديل', type: 'custom', users: 4, permissions: 8, lastModified: '2026-07-28', modifiedBy: 'منذر زيادات', active: true },
-    { id: 9, name: 'محرر مساعد', description: 'إضافة وتحرير المسودات فقط', type: 'custom', users: 3, permissions: 10, lastModified: '2026-07-20', modifiedBy: 'ميرنا الحلو', active: true },
-    { id: 10, name: 'مسؤول التسويق', description: 'إدارة الحملات والبريد الإلكتروني', type: 'custom', users: 2, permissions: 12, lastModified: '2026-07-15', modifiedBy: 'محمد الترك', active: true }
-  ]);
+  // LIVE DATABASE ROLES
+  const [roles, setRoles] = useState([]);
 
   const sensitivePermCodes = useMemo(() => {
     const s = new Set();
@@ -63,7 +60,7 @@ export function useRbacState(initialView = 'roles') {
     return s;
   }, []);
 
-  const sensitiveRoleIds = useMemo(() => new Set([1, 2, 4, 6, 7, 'r1', 'r2', 'r4', 'r6', 'r7', '1', '2', '4', '6', '7']), []);
+  const sensitiveRoleIds = useMemo(() => new Set(['r_super_admin', 'r_admin', 1, 2, 'r1', 'r2', '1', '2']), []);
 
   // ══════════════════════════════════════════════════════════════════════════
   // PERMISSIONS & MODULES DEFINITION
@@ -84,7 +81,7 @@ export function useRbacState(initialView = 'roles') {
   // ══════════════════════════════════════════════════════════════════════════
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState('role_detail');
-  const [currentRole, setCurrentRole] = useState(1);
+  const [currentRole, setCurrentRole] = useState('r_super_admin');
   const [currentTab, setCurrentTab] = useState('permissions');
 
   // Role permissions database by role ID
@@ -106,14 +103,17 @@ export function useRbacState(initialView = 'roles') {
     if (r && Array.isArray(r.rawPermissions) && r.rawPermissions.length > 0) {
       const permObj = {};
       r.rawPermissions.forEach(pCode => {
-        permObj[pCode] = { enabled: true, scope: (scopeMap[pCode] || []).includes('all') ? 'all' : 'own' };
+        const code = typeof pCode === 'string' ? pCode : pCode?.code;
+        if (code) {
+          permObj[code] = { enabled: true, scope: (scopeMap[code] || []).includes('all') ? 'all' : 'own' };
+        }
       });
       return permObj;
     }
     if (r && r.rawPermissions && typeof r.rawPermissions === 'object' && !Array.isArray(r.rawPermissions)) {
       return JSON.parse(JSON.stringify(r.rawPermissions));
     }
-    if (id === 1 || String(id) === '1' || String(id) === 'r1' || r?.name === 'مدير المنصة') {
+    if (id === 'r_super_admin' || String(id) === '1' || r?.name === 'مدير المنصة') {
       const allPerms = {};
       modules.forEach(m => m.permissions.forEach(p => {
         allPerms[p[0]] = { enabled: true, scope: 'all' };
@@ -142,65 +142,29 @@ export function useRbacState(initialView = 'roles') {
   const [permSearch, setPermSearch] = useState('');
   const [permFilter, setPermFilter] = useState('all');
 
-  // Role Assigned Users state
-  const [roleUsers, setRoleUsers] = useState({
-    1: [
-      ['سعيد هارون', 's.haroun@diwanjo.com', 'نشط', '2026-01-15', 'النظام'],
-      ['رأفت حداد', 'r.hadad@diwanjo.com', 'نشط', '2026-02-01', 'سعيد هارون'],
-      ['فراس عودة', 'f.odeh@diwanjo.com', 'موقوف', '2026-03-10', 'سعيد هارون']
-    ],
-    4: [
-      ['محمد الخطيب', 'm.khateb@diwanjo.com', 'نشط', '2026-04-05', 'رأفت حداد'],
-      ['ديانا رشيدات', 'd.rshidat@diwanjo.com', 'نشط', '2026-05-12', 'سعيد هارون'],
-      ['منذر زيادات', 'm.ziadat@diwanjo.com', 'نشط', '2026-06-01', 'رأفت حداد']
-    ]
-  });
+  // Role Assigned Users state (100% Live from Database)
+  const [roleUsers, setRoleUsers] = useState({});
 
   // Individual Per-User Permission Overrides
-  const [userPermissionOverrides, setUserPermissionOverrides] = useState({
-    's.haroun@diwanjo.com': {
-      c_approve: { mode: 'grant', scope: 'all' },
-      pay_refund: { mode: 'grant', scope: 'all' }
-    },
-    'r.hadad@diwanjo.com': {
-      pay_refund: { mode: 'deny' },
-      settings_manage: { mode: 'deny' }
-    }
-  });
+  const [userPermissionOverrides, setUserPermissionOverrides] = useState({});
 
   const [currentRoleUserEmail, setCurrentRoleUserEmail] = useState(null);
   const [userPermExpanded, setUserPermExpanded] = useState(new Set(['users']));
   const [customizationReturnContext, setCustomizationReturnContext] = useState(null);
 
-  // Detailed Audit Logs
-  const [auditTrailDetailed, setAuditTrailDetailed] = useState([
-    { type: 'scope', action: 'تغيير نطاق', target: 'عرض الاستشارات', oldValue: 'الفريق', newValue: 'الخاصة به', user: 'أحمد محمد', date: '20/08/2026', time: '11:42 ص', ip: '192.168.1.42', device: 'Chrome / Windows' },
-    { type: 'grant', action: 'منح صلاحية', target: 'تعديل الملخص', oldValue: 'غير مسموح', newValue: 'مسموح', user: 'سارة خالد', date: '17/08/2026', time: '09:15 ص', ip: '192.168.1.55', device: 'Edge / Windows' },
-    { type: 'assign', action: 'إضافة مستخدم', target: 'محمد أحمد', oldValue: '—', newValue: 'دور مستشار', user: 'أحمد محمد', date: '12/06/2026', time: '02:30 م', ip: '192.168.1.42', device: 'Chrome / Windows' },
-    { type: 'create', action: 'إنشاء دور', target: 'مسؤول مالي', oldValue: '—', newValue: 'دور مخصص', user: 'سعيد هارون', date: '19/08/2026', time: '09:15 ص', ip: '192.168.1.45', device: 'Chrome / Windows' }
-  ]);
+  // Detailed Audit Logs (100% Live from Database)
+  const [auditTrailDetailed, setAuditTrailDetailed] = useState([]);
   const [filterAuditType, setFilterAuditType] = useState('all');
 
   // ══════════════════════════════════════════════════════════════════════════
-  // USERS MANAGEMENT STATE & FILTERS
+  // USERS MANAGEMENT STATE & FILTERS (100% Live from Database)
   // ══════════════════════════════════════════════════════════════════════════
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState('all');
   const [userStatusFilter, setUserStatusFilter] = useState('all');
   const [usersDashboardFilter, setUsersDashboardFilter] = useState('all');
 
-  const [systemUsers, setSystemUsers] = useState([
-    { id: 1, name: 'سعيد هارون', email: 's.haroun@diwanjo.com', phone: '00962791679444', status: 'active', roles: [1], assigned: '2026-01-15' },
-    { id: 2, name: 'رأفت حداد', email: 'r.haddad@diwanjo.com', phone: '00962799558255', status: 'active', roles: [1, 2], assigned: '2026-02-01' },
-    { id: 3, name: 'فراس عودة', email: 'f.odeh@diwanjo.com', phone: '00962799984800', status: 'active', roles: [4], assigned: '2026-03-10' },
-    { id: 4, name: 'محمد الخطيب', email: 'm.khateb@diwanjo.com', phone: '00962799984800', status: 'active', roles: [4, 3], assigned: '2026-04-05' },
-    { id: 5, name: 'رولا مدانات', email: 'r.mdanat@diwanjo.com', phone: '00962799984800', status: 'active', roles: [5], assigned: '2026-04-20' },
-    { id: 6, name: 'باسم الجوهري', email: 'b.johari@diwanjo.com', phone: '00962799984800', status: 'active', roles: [6], assigned: '2026-05-03' },
-    { id: 7, name: 'ديانا رشيدات', email: 'd.rshidat@diwanjo.com', phone: '00962799984800', status: 'active', roles: [7], assigned: '2026-05-12' },
-    { id: 8, name: 'محمد الترك', email: 'm.turk@diwanjo.com', phone: '00962799984800', status: 'active', roles: [4], assigned: '2026-06-01' },
-    { id: 9, name: 'منذر زيادات', email: 'm.ziadat@diwanjo.com', phone: '00962799984800', status: 'inactive', roles: [6], assigned: '2026-06-10' },
-    { id: 10, name: 'ميرنا الحلو', email: 'm.hilo@diwanjo.com', phone: '00962799984800', status: 'active', roles: [2, 9], assigned: '2026-06-20' }
-  ]);
+  const [systemUsers, setSystemUsers] = useState([]);
 
   const [selectedUserIdForDrawer, setSelectedUserIdForDrawer] = useState(null);
   const [selectedPermIdForWhy, setSelectedPermIdForWhy] = useState(null);
@@ -223,87 +187,105 @@ export function useRbacState(initialView = 'roles') {
   };
 
   // ══════════════════════════════════════════════════════════════════════════
-  // BACKEND SYNC (LOAD ROLES, PLATFORM USERS, AUDIT LOGS)
+  // BACKEND SYNC (LOAD REAL ROLES, PLATFORM USERS, AUDIT LOGS DIRECTLY FROM DB)
   // ══════════════════════════════════════════════════════════════════════════
-  useEffect(() => {
-    async function loadBackendData() {
-      try {
-        setLoading(true);
-        const [rolesRes, usersRes, logsRes] = await Promise.allSettled([
-          getAdminRoles(),
-          getAdminUsersList({ limit: 100 }),
-          getAuditLogs(30)
-        ]);
+  const loadBackendData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [rolesRes, usersRes, logsRes] = await Promise.allSettled([
+        getAdminRoles(),
+        getAdminUsersList({ limit: 200 }),
+        getAuditLogs(50)
+      ]);
 
-        if (rolesRes.status === 'fulfilled' && Array.isArray(rolesRes.value) && rolesRes.value.length > 0) {
-          const mappedBackendRoles = rolesRes.value.map(r => ({
-            id: r.id,
-            name: r.name,
-            description: r.description || 'دور مخصص في النظام',
-            type: (r.type === 'system' || r.type === 'دور أساسي') ? 'system' : 'custom',
-            users: r.users ?? r.usersCount ?? (r.assignedUsers ? r.assignedUsers.length : 0),
-            permissions: Array.isArray(r.permissions) ? r.permissions.length : (r.permsCount ?? r.permissions ?? 0),
-            lastModified: r.lastModified || r.createdAt || '2026-08-18',
-            modifiedBy: r.modifiedBy || r.createdBy || 'سعيد هارون',
-            active: r.active !== undefined ? Boolean(r.active) : (r.status !== 'معطل'),
-            rawPermissions: r.permissions
-          }));
+      let backendRoles = [];
+      if (rolesRes.status === 'fulfilled' && Array.isArray(rolesRes.value)) {
+        backendRoles = rolesRes.value.map(r => ({
+          id: r.id,
+          name: r.name,
+          description: r.description || 'دور معتمد في المنصة',
+          type: (r.type === 'system' || r.type === 'دور أساسي') ? 'system' : 'custom',
+          users: r.usersCount ?? (r.assignedUsers ? r.assignedUsers.length : 0),
+          activeUsers: r.activeUsersCount ?? 0,
+          permissions: r.permsCount ?? (Array.isArray(r.permissions) ? r.permissions.length : 0),
+          lastModified: r.createdAt || '2026-01-01',
+          modifiedBy: r.createdBy || 'النظام',
+          active: r.status !== 'معطل',
+          rawPermissions: r.permissions,
+          assignedUsers: r.assignedUsers || []
+        }));
+        setRoles(backendRoles);
 
-          setRoles(prev => {
-            const merged = [...mappedBackendRoles];
-            prev.forEach(r => {
-              if (!merged.some(m => String(m.id) === String(r.id) || m.name === r.name)) {
-                merged.push(r);
-              }
-            });
-            return merged;
-          });
+        const newRoleUsers = {};
+        backendRoles.forEach(r => {
+          if (Array.isArray(r.assignedUsers)) {
+            newRoleUsers[r.id] = r.assignedUsers.map(u => [
+              u.name || u.full_name || u.email,
+              u.email,
+              u.status === 'مفعل' ? 'نشط' : 'موقوف',
+              u.assignedAt || '2026-01-01',
+              u.assignType || 'مباشر'
+            ]);
+          }
+        });
+        setRoleUsers(newRoleUsers);
+        
+        if (backendRoles.length > 0 && (!currentRole || currentRole === 1)) {
+          setCurrentRole(backendRoles[0].id);
         }
-
-        if (usersRes.status === 'fulfilled' && Array.isArray(usersRes.value) && usersRes.value.length > 0) {
-          const mappedUsers = usersRes.value.map(u => ({
-            id: u.id,
-            name: u.full_name || u.name || u.email,
-            email: u.email,
-            phone: u.phone || '00962799984800',
-            status: u.is_active ? 'active' : 'inactive',
-            roles: u.role === 'consultant' ? [4] : (u.role === 'admin' ? [1] : [8]),
-            assigned: u.created_at ? u.created_at.split('T')[0] : '2026-08-20'
-          }));
-          setSystemUsers(prev => {
-            const merged = [...mappedUsers];
-            prev.forEach(p => {
-              if (!merged.some(m => m.email === p.email)) {
-                merged.push(p);
-              }
-            });
-            return merged;
-          });
-        }
-
-        if (logsRes.status === 'fulfilled' && Array.isArray(logsRes.value) && logsRes.value.length > 0) {
-          const mappedLogs = logsRes.value.map(l => ({
-            type: 'role',
-            action: l.action || 'تحديث أمني',
-            target: l.resource || 'الصلاحيات',
-            oldValue: '—',
-            newValue: 'محدث',
-            user: l.admin_name || 'مدير النظام',
-            date: l.created_at ? new Date(l.created_at).toLocaleDateString('ar-JO') : '2026-08-20',
-            time: l.created_at ? new Date(l.created_at).toLocaleTimeString('ar-JO') : '11:00 ص',
-            ip: l.ip_address || '192.168.1.45',
-            device: 'Chrome / Windows'
-          }));
-          setAuditTrailDetailed(prev => [...mappedLogs, ...prev.slice(0, 20)]);
-        }
-      } catch (err) {
-        console.warn('Backend RBAC init error:', err);
-      } finally {
-        setLoading(false);
       }
+
+      if (usersRes.status === 'fulfilled' && Array.isArray(usersRes.value)) {
+        const mappedUsers = usersRes.value.map(u => {
+          let roleId = 'r_user';
+          if (u.role === 'super_admin') roleId = 'r_super_admin';
+          else if (u.role === 'admin') roleId = 'r_admin';
+          else if (u.role === 'consultant') roleId = 'r_consultant';
+
+          return {
+            id: u.id,
+            name: u.full_name || u.name || u.email?.split('@')[0] || 'مستخدم',
+            email: u.email,
+            phone: u.phone || '—',
+            status: u.is_active ? 'active' : 'inactive',
+            roles: [roleId],
+            roleName: u.role === 'super_admin' ? 'مدير المنصة' : (u.role === 'admin' ? 'مدير إداري' : (u.role === 'consultant' ? 'مستشار' : 'مستخدم وعميل')),
+            assigned: u.created_at ? u.created_at.split('T')[0] : '2026-01-01'
+          };
+        });
+        setSystemUsers(mappedUsers);
+      }
+
+      if (logsRes.status === 'fulfilled' && Array.isArray(logsRes.value)) {
+        const mappedLogs = logsRes.value.map(l => ({
+          type: 'role',
+          action: l.action || 'تسجيل دخول وتحديث أمني',
+          target: l.email || l.ip_address || 'النظام',
+          oldValue: '—',
+          newValue: l.status || 'نجاح',
+          user: l.full_name || l.email || 'مستخدم',
+          date: l.login_time ? new Date(l.login_time).toLocaleDateString('ar-JO') : '2026-09-08',
+          time: l.login_time ? new Date(l.login_time).toLocaleTimeString('ar-JO') : '12:00 م',
+          ip: l.ip_address || '127.0.0.1',
+          device: `${l.browser || 'Chrome'} / ${l.os || 'Windows'}`
+        }));
+        setAuditTrailDetailed(mappedLogs);
+      }
+    } catch (err) {
+      console.warn('Backend RBAC init error:', err);
+    } finally {
+      setLoading(false);
     }
+  }, [currentRole]);
+
+  useEffect(() => {
     loadBackendData();
-  }, []);
+
+    // Listen to global reactive sync across platform
+    const handleSync = () => loadBackendData();
+    window.addEventListener('admin_data_updated', handleSync);
+    return () => window.removeEventListener('admin_data_updated', handleSync);
+  }, [loadBackendData]);
 
   // Set baseline permissions whenever a role is selected
   useEffect(() => {
@@ -623,21 +605,6 @@ export function useRbacState(initialView = 'roles') {
       confirmClass: 'primary',
       cancelText: 'العودة للتعديل',
       onConfirm: async () => {
-        const pendList = enterprisePending();
-        const newLogs = pendList.map(x => ({
-          type: x.old.enabled !== x.new.enabled ? (x.new.enabled ? 'grant' : 'remove') : 'scope',
-          action: x.old.enabled !== x.new.enabled ? (x.new.enabled ? 'منح صلاحية' : 'إزالة صلاحية') : 'تغيير نطاق',
-          target: x.name,
-          oldValue: x.old.enabled !== x.new.enabled ? (x.old.enabled ? 'مسموح' : 'غير مسموح') : (scopeLabels[x.old.scope] || x.old.scope),
-          newValue: x.old.enabled !== x.new.enabled ? (x.new.enabled ? 'مسموح' : 'غير مسموح') : (scopeLabels[x.new.scope] || x.new.scope),
-          user: 'سعيد هارون',
-          date: new Date().toLocaleDateString('ar-JO'),
-          time: new Date().toLocaleTimeString('ar-JO'),
-          ip: '192.168.1.45',
-          device: 'Chrome / Windows'
-        }));
-
-        setAuditTrailDetailed(prev => [...newLogs, ...prev]);
         setBaseline(JSON.parse(JSON.stringify(perms)));
         setRolesPermissionsMap(prev => ({
           ...prev,
@@ -648,17 +615,18 @@ export function useRbacState(initialView = 'roles') {
           ...r,
           permissions: enabledCount(),
           lastModified: new Date().toISOString().split('T')[0],
-          modifiedBy: 'سعيد هارون'
+          modifiedBy: currentAdminName
         } : r));
 
         setModalContent(null);
-        showToast('تم حفظ التغييرات وتسجيلها في قاعدة البيانات وسجل التدقيق');
+        showToast('تم حفظ التغييرات وتسجيلها في قاعدة البيانات');
 
         try {
           await updateAdminRole(currentRole, {
             permissions: perms,
             enabled_count: enabledCount()
           });
+          loadBackendData();
         } catch (err) {
           console.warn('Backend update role fallback:', err);
         }
@@ -668,7 +636,7 @@ export function useRbacState(initialView = 'roles') {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // ROLE ACTIONS
+  // ROLE ACTIONS (100% PERSISTED IN DATABASE)
   // ══════════════════════════════════════════════════════════════════════════
   function viewRole(id) {
     if (hasUnsavedChanges()) {
@@ -714,45 +682,29 @@ export function useRbacState(initialView = 'roles') {
       return;
     }
     const src = roles.find(r => String(r.id) === String(createRoleForm.sourceRoleId));
-    const newId = Math.max(0, ...roles.map(r => Number(r.id) || 0)) + 1;
-    const newRole = {
-      id: newId,
+    const newRolePayload = {
       name,
       description: createRoleForm.description.trim() || 'دور مخصص جديد',
       type: 'custom',
-      users: 0,
-      permissions: src ? src.permissions : 0,
-      lastModified: new Date().toISOString().split('T')[0],
-      modifiedBy: 'سعيد هارون',
-      active: true
+      permissions: src ? (src.rawPermissions || []) : [],
+      status: 'مفعل'
     };
 
-    setRoles(prev => [newRole, ...prev]);
-    setAuditTrailDetailed(prev => [{
-      type: 'create',
-      action: 'إنشاء دور',
-      target: name,
-      oldValue: '—',
-      newValue: 'دور مخصص',
-      user: 'سعيد هارون',
-      date: new Date().toLocaleDateString('ar-JO'),
-      time: new Date().toLocaleTimeString('ar-JO'),
-      ip: '192.168.1.45',
-      device: 'Chrome / Windows'
-    }, ...prev]);
-
     setDrawerOpen(false);
-    showToast('تم إنشاء الدور بنجاح');
+    showToast('جاري إنشاء الدور...');
 
     try {
-      await createAdminRole(newRole);
+      await createAdminRole(newRolePayload);
+      showToast('تم إنشاء الدور بنجاح وحفظه في قاعدة البيانات');
+      await loadBackendData();
     } catch (err) {
-      console.warn('Backend create role fallback:', err);
+      showToast('حدث خطأ أثناء إنشاء الدور');
+      console.error(err);
     }
   }
 
   function handleOpenCopyRole(id) {
-    const r = roles.find(x => x.id === id);
+    const r = roles.find(x => x.id === id || String(x.id) === String(id));
     if (!r) return;
     setCloneRoleForm({ sourceRoleId: id, newName: `${r.name} — نسخة`, clonePerms: true, cloneScopes: true });
     setDrawerMode('copy_role');
@@ -760,48 +712,32 @@ export function useRbacState(initialView = 'roles') {
   }
 
   async function handleConfirmCloneRole() {
-    const r = roles.find(x => x.id === cloneRoleForm.sourceRoleId);
+    const r = roles.find(x => x.id === cloneRoleForm.sourceRoleId || String(x.id) === String(cloneRoleForm.sourceRoleId));
     if (!r) return;
     const newName = cloneRoleForm.newName.trim() || `${r.name} — نسخة`;
-    const newId = Math.max(0, ...roles.map(x => Number(x.id) || 0)) + 1;
-    const newRole = {
-      ...r,
-      id: newId,
+    const newRolePayload = {
       name: newName,
+      description: `نسخة من ${r.name}`,
       type: 'custom',
-      users: 0,
-      permissions: cloneRoleForm.clonePerms ? r.permissions : 0,
-      lastModified: new Date().toISOString().split('T')[0],
-      modifiedBy: 'سعيد هارون',
-      active: true
+      permissions: cloneRoleForm.clonePerms ? (r.rawPermissions || []) : [],
+      status: 'مفعل'
     };
 
-    setRoles(prev => [newRole, ...prev]);
-    setAuditTrailDetailed(prev => [{
-      type: 'copy',
-      action: 'نسخ دور',
-      target: newName,
-      oldValue: r.name,
-      newValue: `صلاحيات: ${cloneRoleForm.clonePerms ? 'نعم' : 'لا'} · نطاقات: ${cloneRoleForm.cloneScopes ? 'نعم' : 'لا'}`,
-      user: 'سعيد هارون',
-      date: new Date().toLocaleDateString('ar-JO'),
-      time: new Date().toLocaleTimeString('ar-JO'),
-      ip: '192.168.1.45',
-      device: 'Chrome / Windows'
-    }, ...prev]);
-
     setDrawerOpen(false);
-    showToast('تم نسخ الدور بنجاح');
+    showToast('جاري نسخ الدور...');
 
     try {
-      await createAdminRole(newRole);
+      await createAdminRole(newRolePayload);
+      showToast('تم نسخ الدور بنجاح وحفظه في قاعدة البيانات');
+      await loadBackendData();
     } catch (err) {
-      console.warn('Backend clone role fallback:', err);
+      showToast('حدث خطأ أثناء نسخ الدور');
+      console.error(err);
     }
   }
 
   function handleToggleRoleStatus(id) {
-    const r = roles.find(x => x.id === id);
+    const r = roles.find(x => x.id === id || String(x.id) === String(id));
     if (!r) return;
 
     if (r.type === 'system' && r.active) {
@@ -816,86 +752,54 @@ export function useRbacState(initialView = 'roles') {
       return;
     }
 
-    if (r.active) {
-      setModalContent({
-        title: 'تعطيل الدور',
-        body: (
-          <div>
-            <div className="warning">هذا الدور مرتبط بـ <b>{r.users} مستخدماً</b>. قد يؤدي تعطيله إلى فقدان بعض المستخدمين لصلاحيات وصولهم.</div>
-            <div style={{ marginTop: '10px', display: 'grid', gap: '6px' }}>
-              <div style={{ fontSize: '11px', color: '#0D3C5C' }}>✓ سيتم إعادة احتساب الصلاحيات الفعلية لجميع المستخدمين المرتبطين.</div>
-              <div style={{ fontSize: '11px', color: '#0D3C5C' }}>✓ لن يتم حذف الدور أو سجل التغييرات الخاص به.</div>
-            </div>
-          </div>
-        ),
-        confirmText: 'تأكيد تعطيل الدور',
-        confirmClass: 'danger',
-        cancelText: 'إلغاء',
-        onConfirm: async () => {
-          setRoles(prev => prev.map(x => x.id === id ? { ...x, active: false } : x));
-          setAuditTrailDetailed(prev => [{
-            type: 'disable',
-            action: 'تعطيل دور',
-            target: r.name,
-            oldValue: 'مفعل',
-            newValue: 'معطل',
-            user: 'سعيد هارون',
-            date: new Date().toLocaleDateString('ar-JO'),
-            time: new Date().toLocaleTimeString('ar-JO'),
-            ip: '192.168.1.45',
-            device: 'Chrome / Windows'
-          }, ...prev]);
-          setModalContent(null);
-          showToast('تم تعطيل الدور بنجاح');
-          try {
-            await updateAdminRole(id, { status: 'معطل' });
-          } catch (err) {
-            console.warn('Backend toggle status fallback:', err);
-          }
-        },
-        onCancel: () => setModalContent(null)
-      });
-      return;
-    }
+    const nextStatus = r.active ? 'معطل' : 'مفعل';
+    const actionLabel = r.active ? 'تعطيل' : 'تفعيل';
 
-    setRoles(prev => prev.map(x => x.id === id ? { ...x, active: true } : x));
-    setAuditTrailDetailed(prev => [{
-      type: 'enable',
-      action: 'تفعيل دور',
-      target: r.name,
-      oldValue: 'معطل',
-      newValue: 'مفعل',
-      user: 'سعيد هارون',
-      date: new Date().toLocaleDateString('ar-JO'),
-      time: new Date().toLocaleTimeString('ar-JO'),
-      ip: '192.168.1.45',
-      device: 'Chrome / Windows'
-    }, ...prev]);
-    showToast('تم تفعيل الدور');
-    try {
-      updateAdminRole(id, { status: 'مفعل' });
-    } catch (err) {}
+    setModalContent({
+      title: `${actionLabel} الدور`,
+      body: (
+        <div>
+          <div className="warning">هل أنت متأكد من {actionLabel} الدور "{r.name}"؟</div>
+        </div>
+      ),
+      confirmText: `تأكيد ${actionLabel}`,
+      confirmClass: r.active ? 'danger' : 'primary',
+      cancelText: 'إلغاء',
+      onConfirm: async () => {
+        setModalContent(null);
+        showToast(`جاري ${actionLabel} الدور...`);
+        try {
+          await updateAdminRole(id, { status: nextStatus });
+          showToast(`تم ${actionLabel} الدور بنجاح`);
+          await loadBackendData();
+        } catch (err) {
+          showToast(`فشل ${actionLabel} الدور`);
+        }
+      },
+      onCancel: () => setModalContent(null)
+    });
   }
 
   function handleDeleteRole(id) {
-    const r = roles.find(x => x.id === id);
+    const r = roles.find(x => x.id === id || String(x.id) === String(id));
     if (!r || r.type === 'system') return;
 
     setModalContent({
       title: 'حذف الدور',
-      body: <div className="dangerBox">هل أنت متأكد من حذف الدور "{r.name}" نهائياً من النظام؟</div>,
+      body: <div className="dangerBox">هل أنت متأكد من حذف الدور "{r.name}" نهائياً من قاعدة البيانات؟</div>,
       confirmText: 'حذف',
       confirmClass: 'danger',
       cancelText: 'إلغاء',
       onConfirm: async () => {
-        setRoles(prev => prev.filter(x => x.id !== id));
-        if (drawerOpen && currentRole === id) setDrawerOpen(false);
         setModalContent(null);
-        showToast('تم حذف الدور');
+        if (drawerOpen && currentRole === id) setDrawerOpen(false);
+        showToast('جاري حذف الدور...');
         try {
           await deleteAdminRole(id);
+          showToast('تم حذف الدور بنجاح من قاعدة البيانات');
+          await loadBackendData();
         } catch (err) {
-          console.warn('Backend delete role fallback:', err);
+          showToast('فشل حذف الدور');
         }
       },
       onCancel: () => setModalContent(null)
@@ -906,7 +810,7 @@ export function useRbacState(initialView = 'roles') {
   // ROLE USERS & INDIVIDUAL PERMISSION CUSTOMIZATION
   // ══════════════════════════════════════════════════════════════════════════
   function roleBasePermissionIds(roleId) {
-    const r = roles.find(x => x.id === roleId);
+    const r = roles.find(x => x.id === roleId || String(x.id) === String(roleId));
     if (!r) return new Set();
     const source = userRolePermissionSources[r.name] || [];
     return new Set(source);
@@ -977,17 +881,17 @@ export function useRbacState(initialView = 'roles') {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // SYSTEM USERS MANAGEMENT (VIEW 2) ACTIONS
+  // SYSTEM USERS MANAGEMENT (VIEW 2) ACTIONS - LIVE POSTGRESQL MUTATIONS
   // ══════════════════════════════════════════════════════════════════════════
   function handleOpenNewUser() {
-    setUserForm({ id: null, name: '', email: '', phone: '', status: 'active', roles: [] });
+    setUserForm({ id: null, name: '', email: '', phone: '', status: 'active', roles: ['r_user'] });
     setDraftNewUserOverrides({});
     setDrawerMode('new_user');
     setDrawerOpen(true);
   }
 
   function handleOpenEditUser(id) {
-    const u = systemUsers.find(x => x.id === id);
+    const u = systemUsers.find(x => x.id === id || String(x.id) === String(id));
     if (!u) return;
     setUserForm({ id: u.id, name: u.name, email: u.email, phone: u.phone, status: u.status, roles: [...u.roles] });
     setDrawerMode('edit_user');
@@ -1001,86 +905,63 @@ export function useRbacState(initialView = 'roles') {
     }
 
     if (userForm.id) {
-      setSystemUsers(prev => prev.map(u => u.id === userForm.id ? {
-        ...u,
-        name: userForm.name.trim(),
-        email: userForm.email.trim(),
-        phone: userForm.phone.trim() || '—',
-        status: userForm.status,
-        roles: [...userForm.roles]
-      } : u));
-
-      setAuditTrailDetailed(prev => [{
-        type: 'user',
-        action: 'تعديل مستخدم',
-        target: userForm.name,
-        oldValue: '—',
-        newValue: `الأدوار: ${userForm.roles.length}`,
-        user: 'سعيد هارون',
-        date: new Date().toLocaleDateString('ar-JO'),
-        time: new Date().toLocaleTimeString('ar-JO'),
-        ip: '192.168.1.45',
-        device: 'Chrome / Windows'
-      }, ...prev]);
-
       setDrawerOpen(false);
-      showToast('تم حفظ تعديلات المستخدم بنجاح');
+      showToast('جاري تحديث بيانات المستخدم...');
 
       try {
-        const assignedRoleName = userForm.roles.map(rid => roles.find(r => r.id === rid)?.name).filter(Boolean).join(', ');
+        const selectedRoleId = userForm.roles[0];
+        const assignedRoleObj = roles.find(r => r.id === selectedRoleId || String(r.id) === String(selectedRoleId));
+        const assignedRoleName = assignedRoleObj?.name || 'مستخدم وعميل';
+        
+        let targetRoleType = 'user';
+        if (selectedRoleId === 'r_consultant' || assignedRoleName.includes('مستشار')) {
+          targetRoleType = 'consultant';
+        } else if (selectedRoleId === 'r_admin' || selectedRoleId === 'r_super_admin' || assignedRoleName.includes('مدير')) {
+          targetRoleType = selectedRoleId === 'r_super_admin' ? 'super_admin' : 'admin';
+        }
+
+        await updateUserProfile(userForm.id, {
+          full_name: userForm.name.trim(),
+          phone: userForm.phone.trim() || null,
+          is_active: userForm.status === 'active'
+        });
+
         await assignUserRole(userForm.id, {
-          role_name: assignedRoleName || 'مستخدم',
-          role_type: assignedRoleName.includes('مستشار') ? 'consultant' : (assignedRoleName.includes('مدير') ? 'admin' : 'user'),
+          role_name: assignedRoleName,
+          role_type: targetRoleType,
           permissions: []
         });
+
+        showToast('تم حفظ تعديلات المستخدم في قاعدة البيانات بنجاح');
+        await loadBackendData();
       } catch (err) {
-        console.warn('Backend assign user role fallback:', err);
+        showToast('فشل تحديث المستخدم: ' + (err.message || ''));
+        console.error(err);
       }
     } else {
-      const newId = Math.max(0, ...systemUsers.map(u => Number(u.id) || 0)) + 1;
-      const newUser = {
-        id: newId,
-        name: userForm.name.trim(),
-        email: userForm.email.trim(),
-        phone: userForm.phone.trim() || '—',
-        status: userForm.status,
-        roles: [...userForm.roles],
-        assigned: new Date().toISOString().split('T')[0]
-      };
-
-      setSystemUsers(prev => [newUser, ...prev]);
-
-      if (Object.keys(draftNewUserOverrides).length > 0) {
-        setUserPermissionOverrides(prev => ({
-          ...prev,
-          [newUser.email]: { ...draftNewUserOverrides }
-        }));
-      }
-
-      setAuditTrailDetailed(prev => [{
-        type: 'assign',
-        action: 'إضافة مستخدم جديد',
-        target: newUser.name,
-        oldValue: '—',
-        newValue: `الأدوار: ${newUser.roles.length}`,
-        user: 'سعيد هارون',
-        date: new Date().toLocaleDateString('ar-JO'),
-        time: new Date().toLocaleTimeString('ar-JO'),
-        ip: '192.168.1.45',
-        device: 'Chrome / Windows'
-      }, ...prev]);
-
       setDrawerOpen(false);
-      showToast('تمت إضافة المستخدم بنجاح');
+      showToast('جاري إضافة المستخدم الجديد...');
 
       try {
-        await assignUserRole(newUser.id, {
-          role_name: newUser.roles.map(rid => roles.find(r => r.id === rid)?.name).filter(Boolean).join(', ') || 'مستخدم',
-          role_type: 'user',
-          permissions: []
+        const selectedRoleId = userForm.roles[0] || 'r_user';
+        let targetRoleType = 'user';
+        if (selectedRoleId === 'r_consultant') targetRoleType = 'consultant';
+        else if (selectedRoleId === 'r_admin') targetRoleType = 'admin';
+        else if (selectedRoleId === 'r_super_admin') targetRoleType = 'super_admin';
+
+        await adminAddUserDirect({
+          full_name: userForm.name.trim(),
+          email: userForm.email.trim(),
+          phone: userForm.phone.trim() || '00962790000000',
+          password: 'Password@123',
+          role: targetRoleType
         });
+
+        showToast('تمت إضافة المستخدم بنجاح في قاعدة البيانات');
+        await loadBackendData();
       } catch (err) {
-        console.warn('Backend assign user fallback:', err);
+        showToast('فشل إنشاء المستخدم: ' + (err.message || ''));
+        console.error(err);
       }
     }
   }
@@ -1089,43 +970,50 @@ export function useRbacState(initialView = 'roles') {
     const u = systemUsers.find(x => x.id === id || String(x.id) === String(id));
     if (!u) return;
     const nextStatus = u.status === 'active' ? 'inactive' : 'active';
+    const actionLabel = u.status === 'active' ? 'تعطيل' : 'تفعيل';
+    showToast(`جاري ${actionLabel} المستخدم...`);
+
+    // Instant optimistic state update
     setSystemUsers(prev => prev.map(x => (x.id === id || String(x.id) === String(id)) ? { ...x, status: nextStatus } : x));
-    setAuditTrailDetailed(prev => [{
-      type: 'user',
-      action: nextStatus === 'active' ? 'تفعيل مستخدم' : 'تعطيل مستخدم',
-      target: u.name,
-      oldValue: u.status === 'active' ? 'مفعل' : 'غير مفعل',
-      newValue: nextStatus === 'active' ? 'مفعل' : 'غير مفعل',
-      user: 'سعيد هارون',
-      date: new Date().toLocaleDateString('ar-JO'),
-      time: new Date().toLocaleTimeString('ar-JO'),
-      ip: '192.168.1.45',
-      device: 'Chrome / Windows'
-    }, ...prev]);
-    showToast(nextStatus === 'active' ? 'تم تفعيل المستخدم' : 'تم تعطيل المستخدم');
 
     try {
       await toggleUserActive(u.id);
+      showToast(`تم ${actionLabel} المستخدم بنجاح في قاعدة البيانات`);
+      await loadBackendData();
     } catch (err) {
-      console.warn('Backend toggle user status fallback:', err);
+      showToast('فشل تعديل حالة المستخدم: ' + (err.message || ''));
+      console.error(err);
+      await loadBackendData();
     }
   }
 
   function handleDeleteUser(id) {
-    const u = systemUsers.find(x => x.id === id);
+    const u = systemUsers.find(x => x.id === id || String(x.id) === String(id));
     if (!u) return;
 
     setModalContent({
       title: 'حذف المستخدم',
-      body: <div className="dangerBox">هل أنت متأكد من حذف المستخدم <b>{u.name}</b> نهائياً؟</div>,
-      confirmText: 'حذف',
+      body: <div className="dangerBox">هل أنت متأكد من حذف حساب <b>{u.name}</b> ({u.email}) نهائياً من قاعدة البيانات؟</div>,
+      confirmText: 'تأكيد الحذف',
       confirmClass: 'danger',
       cancelText: 'إلغاء',
-      onConfirm: () => {
-        setSystemUsers(prev => prev.filter(x => x.id !== id));
-        if (drawerOpen && selectedUserIdForDrawer === id) setDrawerOpen(false);
+      onConfirm: async () => {
         setModalContent(null);
-        showToast('تم حذف المستخدم بنجاح');
+        if (drawerOpen && selectedUserIdForDrawer === id) setDrawerOpen(false);
+        showToast('جاري حذف المستخدم...');
+
+        // Instant optimistic removal from UI list
+        setSystemUsers(prev => prev.filter(x => x.id !== u.id && String(x.id) !== String(u.id)));
+
+        try {
+          await deleteAdminUser(u.id);
+          showToast('تم حذف المستخدم بنجاح من قاعدة البيانات');
+          await loadBackendData();
+        } catch (err) {
+          showToast('فشل حذف المستخدم: ' + (err.message || ''));
+          console.error(err);
+          await loadBackendData();
+        }
       },
       onCancel: () => setModalContent(null)
     });
@@ -1193,8 +1081,8 @@ export function useRbacState(initialView = 'roles') {
       ...found,
       users: found.users ?? found.usersCount ?? (roleUsers[found.id]?.length || 0),
       permissions: found.permissions ?? found.permsCount ?? 0,
-      lastModified: found.lastModified || found.createdAt || '2026-08-18',
-      modifiedBy: found.modifiedBy || found.createdBy || 'سعيد هارون',
+      lastModified: found.lastModified || found.createdAt || '2026-01-01',
+      modifiedBy: found.modifiedBy || found.createdBy || 'النظام',
       active: found.active !== undefined ? Boolean(found.active) : (found.status !== 'معطل')
     };
   }, [roles, currentRole, roleUsers]);

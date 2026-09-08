@@ -280,9 +280,9 @@ export async function updateAdminTicketStatus(ticketId, updateData) {
 }
 
 export async function closeAdminTicket(ticketId, resolutionNotes = '') {
-  return adminRequest(`/super-admin/tickets/${ticketId}/close`, {
+  return adminRequest(`/super-admin/tickets/${ticketId}`, {
     method: 'PATCH',
-    body: JSON.stringify({ resolution_notes: resolutionNotes })
+    body: JSON.stringify({ status: 'closed', internal_note: resolutionNotes })
   });
 }
 

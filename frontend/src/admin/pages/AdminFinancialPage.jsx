@@ -130,7 +130,7 @@ export default function AdminFinancialPage({ navigate }) {
           </div>
 
           <div style={{ marginTop: '10px' }}>
-            <div 
+            <div
               style={{
                 display: 'flex',
                 alignItems: 'center',

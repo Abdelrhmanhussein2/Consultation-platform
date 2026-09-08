@@ -29,189 +29,8 @@ export default function AdminSessionsPage({ navigate }) {
   const [editActionType, setEditActionType] = useState('أخرى (يرجى التوضيح)');
   const [editNotes, setEditNotes] = useState('');
 
-  // Sessions dataset (12 sessions total)
-  const [sessions, setSessions] = useState([
-    {
-      id: 'SES-1024',
-      clientName: 'محمد الخطيب',
-      clientType: 'فرد',
-      consultantName: 'سعد هارون',
-      topic: 'دراسة جدوى وتخطيط ضريبي لشركة ناشئة',
-      description: 'هيكلة الحسابات الضريبية للشركة قبل بدء النشاط التجاري.',
-      type: 'جلسة مرئية',
-      typeIcon: '🎥',
-      datetime: '15:45 - 2026-08-30',
-      amount: '120 دينار أردني',
-      status: 'مكتملة',
-      statusColor: '#059669',
-      statusBg: '#ECFDF5'
-    },
-    {
-      id: 'SES-1022',
-      clientName: 'باسم الشوابكة',
-      clientType: 'فرد',
-      consultantName: 'أ. سارة المجالي',
-      topic: 'استشارة الإعفاءات الضريبية للقطاع الزراعي',
-      description: 'تحديد النسب والأنشطة الزراعية المعفاة بموجب التعديلات الأخيرة.',
-      type: 'جلسة مرئية',
-      typeIcon: '🎥',
-      datetime: '17:00 - 2026-08-31',
-      amount: '75 دينار أردني',
-      status: 'مكتملة',
-      statusColor: '#059669',
-      statusBg: '#ECFDF5'
-    },
-    {
-      id: 'SES-1021',
-      clientName: 'خالد النجار',
-      clientType: 'شركة استيراد وتصدير',
-      consultantName: 'أحمد نصار',
-      topic: 'تدقيق ضريبة الأرباح الرأسمالية',
-      description: 'حساب الضريبة المستحقة على بيع أصول تجارية وعقارية.',
-      type: 'جلسة مرئية',
-      typeIcon: '🎥',
-      datetime: '10:30 - 2026-09-01',
-      amount: '90 دينار أردني',
-      status: 'مكتملة',
-      statusColor: '#059669',
-      statusBg: '#ECFDF5'
-    },
-    {
-      id: 'SES-1029',
-      clientName: 'محمد سالم',
-      clientType: 'شركة ذات مسؤولية محدودة',
-      consultantName: 'أ. سارة المجالي',
-      topic: 'استشارة عن الإعفاءات الضريبية',
-      description: 'طلب استشارة متخصصة لتحديد الإعفاءات الضريبية على الآلات وخطوط الإنتاج للعام 2026 حسب القوانين الأردنية.',
-      type: 'جلسة مرئية',
-      typeIcon: '🎥',
-      datetime: '09:00 - 2026-08-30',
-      amount: '75 دينار أردني',
-      status: 'قيد التنفيذ',
-      statusColor: '#0284C7',
-      statusBg: '#F0F9FF'
-    },
-    {
-      id: 'SES-1027',
-      clientName: 'فراس عودة',
-      clientType: 'فرد',
-      consultantName: 'م. ديما المجالي',
-      topic: 'الاعتراض على تقدير دخل 2025',
-      description: 'صياغة لائحة اعتراض رسمية على تقديرات دائرة ضريبة الدخل.',
-      type: 'جلسة صوتية',
-      typeIcon: '📞',
-      datetime: '11:00 - 2026-08-29',
-      amount: '40 دينار أردني',
-      status: 'قيد التنفيذ',
-      statusColor: '#0284C7',
-      statusBg: '#F0F9FF'
-    },
-    {
-      id: 'SES-1028',
-      clientName: 'رنا حداد',
-      clientType: 'شركة المقاولات الحديثة',
-      consultantName: 'أحمد نصار',
-      topic: 'مراجعة إقرار ضريبة المبيعات',
-      description: 'تدقيق المستندات المالية والفواتير الضريبية قبل تقديم الإقرار للضريبة العامة.',
-      type: 'جلسة مرئية',
-      typeIcon: '🎥',
-      datetime: '16:30 - 2026-08-28',
-      amount: '50 دينار أردني',
-      status: 'مؤكدة',
-      statusColor: '#0284C7',
-      statusBg: '#EFF6FF'
-    },
-    {
-      id: 'SES-1026',
-      clientName: 'دينا العبداللات',
-      clientType: 'مؤسسة القدس للمجوهرات',
-      consultantName: 'سعد هارون',
-      topic: 'استشارة قضايا جمركية وتخليص',
-      description: 'دراسة بنود التعريفة الجمركية والإعفاءات المتاحة للمدخلات الصناعية.',
-      type: 'استشارة مكتوبة',
-      typeIcon: '💬',
-      datetime: '13:15 - 2026-08-29',
-      amount: '60 دينار أردني',
-      status: 'مؤكدة',
-      statusColor: '#0284C7',
-      statusBg: '#EFF6FF'
-    },
-    {
-      id: 'SES-1020',
-      clientName: 'سامي عبدالهادي',
-      clientType: 'فرد',
-      consultantName: 'سعد هارون',
-      topic: 'تصفية وتسوية ملف ضريبي قديم',
-      description: 'التفاوض مع مديرية التحصيل لتقسيط المبالغ الضريبية المتراكمة.',
-      type: 'جلسة مرئية',
-      typeIcon: '🎥',
-      datetime: '14:15 - 2026-09-01',
-      amount: '110 دينار أردني',
-      status: 'مؤكدة',
-      statusColor: '#0284C7',
-      statusBg: '#EFF6FF'
-    },
-    {
-      id: 'SES-1025',
-      clientName: 'علا الخصاونة',
-      clientType: 'شركة الأفق الرقمي',
-      consultantName: 'أحمد نصار',
-      topic: 'حساب الضريبة المقتطعة من الرواتب',
-      description: 'مراجعة كشوف الرواتب الشهرية وتطبيق شرائح ضريبة الدخل الجديدة.',
-      type: 'جلسة مرئية',
-      typeIcon: '🎥',
-      datetime: '09:00 - 2026-08-30',
-      amount: '85 دينار أردني',
-      status: 'معلقة',
-      statusColor: '#D97706',
-      statusBg: '#FFFBEB'
-    },
-    {
-      id: 'SES-1019',
-      clientName: 'نور التميمي',
-      clientType: 'مؤسسة تجارية',
-      consultantName: 'م. ديما المجالي',
-      topic: 'احتساب ضريبة المسقفات والأبنية',
-      description: 'حساب الرسوم والضرائب البلدية على المقرات الجديدة.',
-      type: 'جلسة صوتية',
-      typeIcon: '📞',
-      datetime: '16:00 - 2026-09-02',
-      amount: '45 دينار أردني',
-      status: 'معلقة',
-      statusColor: '#D97706',
-      statusBg: '#FFFBEB'
-    },
-    {
-      id: 'SES-1023',
-      clientName: 'سعيد القاسم',
-      clientType: 'شركة صناعية كبرى',
-      consultantName: 'م. ديما المجالي',
-      topic: 'رديات ضريبية وخصم المدخلات',
-      description: 'متابعة ملف الرديات الضريبية المتراكمة لدى دائرة الضريبة.',
-      type: 'جلسة صوتية',
-      typeIcon: '📞',
-      datetime: '12:00 - 2026-08-31',
-      amount: '50 دينار أردني',
-      status: 'ملغاة',
-      statusColor: '#DC2626',
-      statusBg: '#FEF2F2'
-    },
-    {
-      id: 'SES-1018',
-      clientName: 'طارق الزعبي',
-      clientType: 'شركة خدمات لوجستية',
-      consultantName: 'أ. سارة المجالي',
-      topic: 'نزاع تقدير الضريبة العامة على المبيعات',
-      description: 'إعداد ملف الدفاع أمام لجنة الاعتراض الضريبية.',
-      type: 'جلسة مرئية',
-      typeIcon: '🎥',
-      datetime: '11:45 - 2026-09-02',
-      amount: '80 دينار أردني',
-      status: 'ملغاة',
-      statusColor: '#DC2626',
-      statusBg: '#FEF2F2'
-    }
-  ]);
+  // Sessions dataset (100% Live from Database)
+  const [sessions, setSessions] = useState([]);
 
   // Kanban Columns configuration
   const kanbanColumns = [
@@ -228,7 +47,7 @@ export default function AdminSessionsPage({ navigate }) {
       try {
         setLoading(true);
         const data = await getAdminSessions();
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           const mapped = data.map((item, idx) => {
             const rawId = item.appointment_id || item.id;
             const shortId = rawId ? `SES-${rawId.toString().substring(0, 4).toUpperCase()}` : `SES-${1020 + idx}`;
@@ -240,11 +59,11 @@ export default function AdminSessionsPage({ navigate }) {
               displayStatus = 'مكتملة';
               statusColor = '#059669';
               statusBg = '#ECFDF5';
-            } else if (item.status === 'pending') {
+            } else if (item.status === 'pending' || item.status === 'pending_approval' || item.status === 'pending_payment') {
               displayStatus = 'معلقة';
               statusColor = '#D97706';
               statusBg = '#FFFBEB';
-            } else if (item.status === 'cancelled') {
+            } else if (item.status?.includes('cancel') || item.status === 'rejected') {
               displayStatus = 'ملغاة';
               statusColor = '#DC2626';
               statusBg = '#FEF2F2';
@@ -282,6 +101,19 @@ export default function AdminSessionsPage({ navigate }) {
       }
     }
     loadSessions();
+
+    const interval = setInterval(loadSessions, 10000);
+    const onFocus = () => loadSessions();
+    const onDataUpdated = () => loadSessions();
+
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('admin_data_updated', onDataUpdated);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('admin_data_updated', onDataUpdated);
+    };
   }, []);
 
   // Change Session Status (Optimistic UI + API Sync)
@@ -322,6 +154,7 @@ export default function AdminSessionsPage({ navigate }) {
       try {
         const backendStatus = targetStatus === 'مكتملة' ? 'completed' : targetStatus === 'ملغاة' ? 'cancelled' : targetStatus === 'معلقة' ? 'pending' : targetStatus === 'قيد التنفيذ' ? 'confirmed' : 'confirmed';
         await updateAdminSessionStatus(currentItem.rawId, backendStatus);
+        window.dispatchEvent(new Event('admin_data_updated'));
       } catch (err) {
         console.warn('Failed to sync session status with backend:', err.message);
       }

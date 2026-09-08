@@ -77,50 +77,7 @@ export default function AdminNotificationsPage({ navigate }) {
   const [loadingNotifs, setLoadingNotifs] = useState(true);
 
   // Broadcasts state
-  const [broadcasts, setBroadcasts] = useState([
-    {
-      id: 'bc_1',
-      title: 'تحديث جداول الإقرارات الضريبية لشهر أغسطس',
-      message: 'نحيطكم علماً بأنه تم تحديث نماذج إقرارات ضريبة الدخل والمبيعات ورفع القوانين الإرشادية الجديدة في لوحة التشريعات.',
-      audience: 'all',
-      audienceLabel: 'كافة المستخدمين',
-      type: 'update',
-      typeLabel: 'تحديث نظام',
-      priority: 'medium',
-      channels: ['in_app', 'push'],
-      sentAt: '2026-08-22 10:00 ص',
-      deliveredCount: 420,
-      openRate: '88%'
-    },
-    {
-      id: 'bc_2',
-      title: 'إيداع أرباح الاستشارات الأسبوعية في الحسابات',
-      message: 'تم تحويل كافة مستحقات وأرباح الجلسات الاستشارية المكتملة عبر الحوالات البنكية المعتمدة للمستشارين بنجاح.',
-      audience: 'consultants',
-      audienceLabel: 'المستشارون فقط',
-      type: 'financial',
-      typeLabel: 'إشعار مالي',
-      priority: 'high',
-      channels: ['in_app', 'email'],
-      sentAt: '2026-08-21 04:30 م',
-      deliveredCount: 48,
-      openRate: '94%'
-    },
-    {
-      id: 'bc_3',
-      title: 'صيانة دورية وتحسين سرعة الاستجابة للخوادم',
-      message: 'ستخضع المنصة لأعمال صيانة وتحسين للبنية التحتية فجر يوم الجمعة من 02:00 إلى 03:00 ص لتعزيز سرعة المساعد الذكي.',
-      audience: 'all',
-      audienceLabel: 'كافة المستخدمين',
-      type: 'maintenance',
-      typeLabel: 'صيانة وتحديث',
-      priority: 'urgent',
-      channels: ['in_app', 'push', 'email'],
-      sentAt: '2026-08-19 11:15 ص',
-      deliveredCount: 395,
-      openRate: '91%'
-    }
-  ]);
+  const [broadcasts, setBroadcasts] = useState([]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [previewModalOpen, setPreviewModalOpen] = useState(null);
@@ -345,7 +302,9 @@ export default function AdminNotificationsPage({ navigate }) {
   const totalIncoming = liveNotifications.length;
   const unreadIncoming = liveNotifications.filter(n => !n.is_read).length;
   const totalBroadcasts = broadcasts.length;
-  const urgentCount = broadcasts.filter(b => b.priority === 'urgent' || b.priority === 'high').length;
+  const urgentIncoming = liveNotifications.filter(n => !n.is_read && (n.notification_type === 'urgent' || (n.title || '').includes('عاجل') || (n.title || '').includes('مباشر'))).length;
+  const urgentCount = urgentIncoming + broadcasts.filter(b => b.priority === 'urgent' || b.priority === 'high').length;
+  const readRate = totalIncoming > 0 ? Math.round(((totalIncoming - unreadIncoming) / totalIncoming) * 100) : 100;
 
   // Filtered Incoming Notifications
   const filteredIncoming = useMemo(() => {
@@ -454,7 +413,7 @@ export default function AdminNotificationsPage({ navigate }) {
             <IconChart size={22} color="#059669" />
           </div>
           <div>
-            <div style={{ fontSize: '22px', fontWeight: '900', color: '#059669', lineHeight: '1.2' }}>87.5%</div>
+            <div style={{ fontSize: '22px', fontWeight: '900', color: '#059669', lineHeight: '1.2' }}>{readRate}%</div>
             <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '700', marginTop: '2px' }}>متوسط معدل القراءة</div>
           </div>
         </div>

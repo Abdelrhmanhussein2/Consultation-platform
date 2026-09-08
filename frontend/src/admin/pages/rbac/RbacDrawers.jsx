@@ -463,7 +463,7 @@ export default function RbacDrawers({
         <>
           <div className="drawerHead">
             <div className="drawerTitleWrap">
-              <div className="drawerAvatar">{drawerMode === 'new_user' ? '+' : userForm.name[0]}</div>
+              <div className="drawerAvatar">{drawerMode === 'new_user' ? '+' : (userForm.name || 'م')[0]}</div>
               <div>
                 <h3>{drawerMode === 'new_user' ? 'إضافة مستخدم جديد' : 'تعديل المستخدم'}</h3>
                 <p>{drawerMode === 'new_user' ? 'إضافة مستخدم وإسناد دور واحد أو عدة أدوار' : `${userForm.name} • ${userForm.email}`}</p>

@@ -9,117 +9,54 @@ from helpers.enums import UserRole, AdminPermission, NotificationType
 from services.auth_utils import hash_password
 from services.notification_service import NotificationService
 
-DEFAULT_ROLES = [
+CANONICAL_ROLES = [
     {
-        "id": "r1",
+        "id": "r_super_admin",
         "name": "مدير المنصة",
-        "description": "تحكم كامل في كافة ميزات النظام والإعدادات والمستخدمين.",
-        "type": "دور إضافي",
-        "usersCount": 3,
-        "activeUsersCount": 1,
+        "description": "تحكم كامل في كافة ميزات النظام والإعدادات والمستخدمين وإدارة الصلاحيات.",
+        "type": "دور أساسي",
         "permsCount": 48,
         "status": "مفعل",
-        "createdAt": "2026-08-18",
-        "createdBy": "سعد هارون",
-        "assignedUsers": [
-            {"id": "u1", "name": "سعد هارون", "phone": "00962791679444", "status": "مفعل", "assignedAt": "2026-08-18", "assignType": "مباشر"},
-            {"id": "u2", "name": "رأفت حداد", "phone": "00962788541223", "status": "مفعل", "assignedAt": "2026-08-19", "assignType": "مباشر"},
-            {"id": "u3", "name": "فراس عودة", "phone": "00962771239874", "status": "معطل", "assignedAt": "2026-08-20", "assignType": "مباشر"}
-        ]
+        "createdAt": "2026-01-01",
+        "createdBy": "النظام",
+        "role_key": "super_admin",
+        "permissions": []
     },
     {
-        "id": "r2",
-        "name": "مدير المحتوى",
-        "description": "إدارة ونشر وتعديل المقالات وقواعد المعرفة بالكامل.",
-        "type": "دور إضافي",
-        "usersCount": 3,
-        "activeUsersCount": 3,
-        "permsCount": 19,
-        "status": "مفعل",
-        "createdAt": "2026-08-10",
-        "createdBy": "مدير النظام",
-        "assignedUsers": [
-            {"id": "u2", "name": "رأفت حداد", "phone": "00962788541223", "status": "مفعل", "assignedAt": "2026-08-15", "assignType": "مباشر"},
-            {"id": "u4", "name": "محمد الخطيب", "phone": "00962799887766", "status": "مفعل", "assignedAt": "2026-08-16", "assignType": "مباشر"}
-        ]
-    },
-    {
-        "id": "r3",
-        "name": "مراجع المحتوى",
-        "description": "مراجعة وتدقيق المستندات والمحتوى قبل النشر النهائي.",
-        "type": "دور إضافي",
-        "usersCount": 4,
-        "activeUsersCount": 4,
-        "permsCount": 15,
-        "status": "مفعل",
-        "createdAt": "2026-07-28",
-        "createdBy": "مدير النظام",
-        "assignedUsers": []
-    },
-    {
-        "id": "r4",
-        "name": "مستشار",
-        "description": "تقديم الاستشارات الضريبية والمالية وعقد الجلسات المباشرة.",
+        "id": "r_admin",
+        "name": "مدير إداري",
+        "description": "إدارة العمليات التشغيلية، تذاكر الدعم، المستخدمين والمحتوى.",
         "type": "دور أساسي",
-        "usersCount": 12,
-        "activeUsersCount": 12,
+        "permsCount": 35,
+        "status": "مفعل",
+        "createdAt": "2026-01-01",
+        "createdBy": "النظام",
+        "role_key": "admin",
+        "permissions": []
+    },
+    {
+        "id": "r_consultant",
+        "name": "مستشار",
+        "description": "تقديم الاستشارات الضريبية والمالية وعقد الجلسات المباشرة وإدارة العملاء.",
+        "type": "دور أساسي",
+        "permsCount": 18,
+        "status": "مفعل",
+        "createdAt": "2026-01-01",
+        "createdBy": "النظام",
+        "role_key": "consultant",
+        "permissions": []
+    },
+    {
+        "id": "r_user",
+        "name": "مستخدم وعميل",
+        "description": "حجز المواعيد، طلب الاستشارات، وإدارة الفواتير والاشتراكات.",
+        "type": "دور أساسي",
         "permsCount": 12,
         "status": "مفعل",
-        "createdAt": "2026-06-01",
-        "createdBy": "مدير النظام",
-        "assignedUsers": []
-    },
-    {
-        "id": "r5",
-        "name": "موظف دعم فني",
-        "description": "الرد على تذاكر الدعم ومساعدة المستخدمين وحل المشكلات.",
-        "type": "دور إضافي",
-        "usersCount": 1,
-        "activeUsersCount": 1,
-        "permsCount": 7,
-        "status": "مفعل",
-        "createdAt": "2026-06-15",
-        "createdBy": "مدير النظام",
-        "assignedUsers": []
-    },
-    {
-        "id": "r6",
-        "name": "مسؤول مالي",
-        "description": "إدارة الفواتير والمدفوعات وتنفيذ طلبات سحب الأرباح البنكية.",
-        "type": "دور أساسي",
-        "usersCount": 2,
-        "activeUsersCount": 2,
-        "permsCount": 11,
-        "status": "مفعل",
-        "createdAt": "2026-07-01",
-        "createdBy": "مدير النظام",
-        "assignedUsers": []
-    },
-    {
-        "id": "r7",
-        "name": "مسؤول خدمة العملاء",
-        "description": "إدارة علاقات العملاء والتواصل المباشر ومتابعة الحجوزات.",
-        "type": "دور أساسي",
-        "usersCount": 3,
-        "activeUsersCount": 3,
-        "permsCount": 6,
-        "status": "مفعل",
-        "createdAt": "2026-07-10",
-        "createdBy": "مدير النظام",
-        "assignedUsers": []
-    },
-    {
-        "id": "r8",
-        "name": "صادق للقراءة فقط",
-        "description": "اطلاع على التقارير والسجلات والتدقيق بدون إمكانية التعديل.",
-        "type": "دور أساسي",
-        "usersCount": 4,
-        "activeUsersCount": 4,
-        "permsCount": 4,
-        "status": "مفعل",
-        "createdAt": "2026-07-20",
-        "createdBy": "مدير النظام",
-        "assignedUsers": []
+        "createdAt": "2026-01-01",
+        "createdBy": "النظام",
+        "role_key": "user",
+        "permissions": []
     }
 ]
 
@@ -151,7 +88,7 @@ class AdminPermissionService:
         """
         Lists all users with the admin role.
         """
-        return db.query(User).filter(User.role == UserRole.admin).order_by(User.created_at.desc()).all()
+        return db.query(User).filter(User.role.in_([UserRole.admin, UserRole.super_admin])).order_by(User.created_at.desc()).all()
 
     @staticmethod
     def update_admin_permissions(db: Session, admin_id: uuid.UUID, permissions: List[AdminPermission]) -> User:
@@ -162,8 +99,8 @@ class AdminPermissionService:
         if not admin_user:
             raise ValueError("Administrator not found")
         
-        if admin_user.role != UserRole.admin:
-            raise ValueError("Permissions can only be updated for users with the 'admin' role")
+        if admin_user.role not in [UserRole.admin, UserRole.super_admin]:
+            raise ValueError("Permissions can only be updated for users with the 'admin' or 'super_admin' role")
 
         admin_user.permissions = [p.value for p in permissions]
         db.commit()
@@ -171,34 +108,135 @@ class AdminPermissionService:
         return admin_user
 
     # ══════════════════════════════════════════════════════════════════
-    # DYNAMIC RBAC ROLES PERSISTENCE IN DATABASE
+    # DYNAMIC RBAC ROLES PERSISTENCE IN DATABASE (100% REAL LIVE DATA)
     # ══════════════════════════════════════════════════════════════════
     @staticmethod
     def get_rbac_roles(db: Session) -> List[Dict[str, Any]]:
         """
-        Fetches all dynamic RBAC roles from database platform_settings.
+        Fetches all dynamic RBAC roles populated strictly with live PostgreSQL database users.
         """
+        all_users = db.query(User).order_by(User.created_at.desc()).all()
+
+        def format_user(u: User):
+            return {
+                "id": str(u.id),
+                "name": u.full_name or u.email.split('@')[0],
+                "email": u.email,
+                "phone": u.phone or "—",
+                "status": "مفعل" if u.is_active else "معطل",
+                "assignedAt": u.created_at.strftime("%Y-%m-%d") if u.created_at else "2026-01-01",
+                "assignType": "مباشر"
+            }
+
+        super_admins = [format_user(u) for u in all_users if u.role == UserRole.super_admin]
+        admins = [format_user(u) for u in all_users if u.role == UserRole.admin]
+        consultants = [format_user(u) for u in all_users if u.role == UserRole.consultant]
+        regular_users = [format_user(u) for u in all_users if u.role == UserRole.user]
+
+        # Read custom roles from platform settings
+        custom_roles_list = []
         setting = db.query(PlatformSetting).filter(PlatformSetting.key == "rbac_roles").first()
-        if not setting or not setting.value_json:
-            # Initialize with canonical default roles
-            setting = PlatformSetting(
-                key="rbac_roles",
-                value_json=json.dumps(DEFAULT_ROLES, ensure_ascii=False),
-                description="Custom and system RBAC roles and permissions"
-            )
-            db.add(setting)
-            db.commit()
-            db.refresh(setting)
-            return DEFAULT_ROLES
-        try:
-            return json.loads(setting.value_json)
-        except Exception:
-            return DEFAULT_ROLES
+        if setting and setting.value_json:
+            try:
+                stored = json.loads(setting.value_json)
+                if isinstance(stored, list):
+                    # Filter out old fake mock defaults
+                    for r in stored:
+                        rid = str(r.get("id", ""))
+                        rname = r.get("name", "")
+                        if rid in ["r_super_admin", "r_admin", "r_consultant", "r_user", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8"]:
+                            continue
+                        if rname in ["مدير المنصة", "مدير إداري", "مستشار", "مستخدم وعميل", "مدير المحتوى", "مراجع المحتوى", "موظف دعم فني", "مسؤول مالي", "مسؤول خدمة العملاء", "صادق للقراءة فقط"]:
+                            continue
+                        custom_roles_list.append(r)
+            except Exception:
+                pass
+
+        # Build list of canonical roles with real DB users
+        roles = [
+            {
+                "id": "r_super_admin",
+                "name": "مدير المنصة",
+                "description": "تحكم كامل في كافة ميزات النظام والإعدادات والمستخدمين وإدارة الصلاحيات.",
+                "type": "دور أساسي",
+                "usersCount": len(super_admins),
+                "activeUsersCount": sum(1 for u in super_admins if u["status"] == "مفعل"),
+                "permsCount": 48,
+                "status": "مفعل",
+                "createdAt": "2026-01-01",
+                "createdBy": "النظام",
+                "assignedUsers": super_admins,
+                "permissions": []
+            },
+            {
+                "id": "r_admin",
+                "name": "مدير إداري",
+                "description": "إدارة العمليات التشغيلية، تذاكر الدعم، المستخدمين والمحتوى.",
+                "type": "دور أساسي",
+                "usersCount": len(admins),
+                "activeUsersCount": sum(1 for u in admins if u["status"] == "مفعل"),
+                "permsCount": 35,
+                "status": "مفعل",
+                "createdAt": "2026-01-01",
+                "createdBy": "النظام",
+                "assignedUsers": admins,
+                "permissions": []
+            },
+            {
+                "id": "r_consultant",
+                "name": "مستشار",
+                "description": "تقديم الاستشارات الضريبية والمالية وعقد الجلسات المباشرة وإدارة العملاء.",
+                "type": "دور أساسي",
+                "usersCount": len(consultants),
+                "activeUsersCount": sum(1 for u in consultants if u["status"] == "مفعل"),
+                "permsCount": 18,
+                "status": "مفعل",
+                "createdAt": "2026-01-01",
+                "createdBy": "النظام",
+                "assignedUsers": consultants,
+                "permissions": []
+            },
+            {
+                "id": "r_user",
+                "name": "مستخدم وعميل",
+                "description": "حجز المواعيد، طلب الاستشارات، وإدارة الفواتير والاشتراكات.",
+                "type": "دور أساسي",
+                "usersCount": len(regular_users),
+                "activeUsersCount": sum(1 for u in regular_users if u["status"] == "مفعل"),
+                "permsCount": 12,
+                "status": "مفعل",
+                "createdAt": "2026-01-01",
+                "createdBy": "النظام",
+                "assignedUsers": regular_users,
+                "permissions": []
+            }
+        ]
+
+        # Append any valid custom roles created by the admin
+        for cr in custom_roles_list:
+            cr_perms = cr.get("permissions", [])
+            perms_count = len(cr_perms) if isinstance(cr_perms, list) else int(cr.get("permsCount", 0))
+            roles.append({
+                "id": cr.get("id"),
+                "name": cr.get("name"),
+                "description": cr.get("description", "دور مخصص"),
+                "type": cr.get("type", "دور إضافي"),
+                "usersCount": cr.get("usersCount", 0),
+                "activeUsersCount": cr.get("activeUsersCount", 0),
+                "permsCount": perms_count,
+                "status": cr.get("status", "مفعل"),
+                "createdAt": cr.get("createdAt", datetime.now().strftime("%Y-%m-%d")),
+                "createdBy": cr.get("createdBy", "مدير المنصة"),
+                "assignedUsers": cr.get("assignedUsers", []),
+                "permissions": cr_perms
+            })
+
+        return roles
 
     @staticmethod
     def save_rbac_roles(db: Session, roles_list: List[Dict[str, Any]], admin_id: Optional[uuid.UUID] = None) -> List[Dict[str, Any]]:
         """
-        Saves the updated list of RBAC roles to the database.
+        Saves custom RBAC roles to the database platform_settings.
         """
         setting = db.query(PlatformSetting).filter(PlatformSetting.key == "rbac_roles").first()
         if not setting:
@@ -223,21 +261,24 @@ class AdminPermissionService:
         """
         current_roles = AdminPermissionService.get_rbac_roles(db)
         new_role = {
-            "id": role_data.get("id") or f"r_{int(datetime.now().timestamp())}",
-            "name": role_data.get("name", "دور جديد"),
+            "id": role_data.get("id") or f"custom_{int(datetime.now().timestamp())}",
+            "name": role_data.get("name", "دور مخصص"),
             "description": role_data.get("description", "دور مخصص في النظام"),
-            "type": role_data.get("type", "دور إضافي"),
+            "type": role_data.get("type", "دور مخصص"),
             "usersCount": 0,
             "activeUsersCount": 0,
-            "permsCount": len(role_data.get("permissions", [])) or 48,
+            "permsCount": len(role_data.get("permissions", [])) if isinstance(role_data.get("permissions"), list) else 0,
             "status": role_data.get("status", "مفعل"),
             "createdAt": datetime.now().strftime("%Y-%m-%d"),
             "createdBy": "مدير المنصة",
             "assignedUsers": [],
             "permissions": role_data.get("permissions", [])
         }
-        current_roles.append(new_role)
-        AdminPermissionService.save_rbac_roles(db, current_roles, admin_id)
+        
+        # Save custom roles only to DB
+        existing_custom = [r for r in current_roles if str(r.get("id", "")).startswith("custom_")]
+        existing_custom.append(new_role)
+        AdminPermissionService.save_rbac_roles(db, existing_custom, admin_id)
 
         # Audit Log
         if admin_id:
@@ -259,30 +300,47 @@ class AdminPermissionService:
     @staticmethod
     def update_rbac_role(db: Session, role_id: str, role_data: Dict[str, Any], admin_id: Optional[uuid.UUID] = None) -> Dict[str, Any]:
         """
-        Updates an existing role and persists changes to DB.
+        Updates an existing custom or canonical role and persists changes to DB.
         """
-        current_roles = AdminPermissionService.get_rbac_roles(db)
-        updated_role = None
-        for i, r in enumerate(current_roles):
+        setting = db.query(PlatformSetting).filter(PlatformSetting.key == "rbac_roles").first()
+        stored_custom = []
+        if setting and setting.value_json:
+            try:
+                stored_custom = json.loads(setting.value_json)
+            except Exception:
+                stored_custom = []
+
+        found = False
+        for i, r in enumerate(stored_custom):
             if str(r.get("id")) == str(role_id):
-                current_roles[i].update(role_data)
-                updated_role = current_roles[i]
+                stored_custom[i].update(role_data)
+                found = True
                 break
         
-        if not updated_role:
-            raise ValueError("Role not found")
+        if not found:
+            # If it's a role being customized for the first time, save it
+            updated_role = {
+                "id": role_id,
+                **role_data
+            }
+            stored_custom.append(updated_role)
 
-        AdminPermissionService.save_rbac_roles(db, current_roles, admin_id)
-        return updated_role
+        AdminPermissionService.save_rbac_roles(db, stored_custom, admin_id)
+        return role_data
 
     @staticmethod
     def delete_rbac_role(db: Session, role_id: str, admin_id: Optional[uuid.UUID] = None) -> bool:
         """
-        Deletes a role from the database.
+        Deletes a custom role from the database.
         """
-        current_roles = AdminPermissionService.get_rbac_roles(db)
-        filtered = [r for r in current_roles if str(r.get("id")) != str(role_id)]
-        AdminPermissionService.save_rbac_roles(db, filtered, admin_id)
+        setting = db.query(PlatformSetting).filter(PlatformSetting.key == "rbac_roles").first()
+        if setting and setting.value_json:
+            try:
+                stored_custom = json.loads(setting.value_json)
+                filtered = [r for r in stored_custom if str(r.get("id")) != str(role_id)]
+                AdminPermissionService.save_rbac_roles(db, filtered, admin_id)
+            except Exception:
+                pass
         return True
 
     # ══════════════════════════════════════════════════════════════════
