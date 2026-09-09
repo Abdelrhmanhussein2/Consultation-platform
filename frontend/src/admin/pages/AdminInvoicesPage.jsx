@@ -880,6 +880,43 @@ export default function AdminInvoicesPage({ navigate }) {
   const pendingAmt = invoices.filter(i => i.status !== "paid" && i.status !== "cancelled").reduce((a, i) => a + parseFloat(i.total_amount || 0), 0);
   const overdueAmt = invoices.filter(i => i.status === "overdue").reduce((a, i) => a + parseFloat(i.total_amount || 0), 0);
 
+  // ── Dynamic month-over-month percentage calculation ──
+  const now = new Date();
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthEnd   = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+  const thisMonthInv = invoices.filter(i => new Date(i.created_at) >= thisMonthStart);
+  const lastMonthInv = invoices.filter(i => {
+    const d = new Date(i.created_at);
+    return d >= lastMonthStart && d <= lastMonthEnd;
+  });
+
+  const pct = (curr, prev) => {
+    if (!prev) return curr > 0 ? 100 : 0;
+    return Math.round(((curr - prev) / prev) * 100);
+  };
+  const pctLabel = (curr, prev) => {
+    const p = pct(curr, prev);
+    const arrow = p >= 0 ? "↑" : "↓";
+    const color = p >= 0 ? "#16A34A" : "#DC2626";
+    return { text: `${arrow} ٪${Math.abs(p)} من الشهر الماضي`, color };
+  };
+
+  const thisTotalAmt   = thisMonthInv.reduce((a, i) => a + parseFloat(i.total_amount || 0), 0);
+  const lastTotalAmt   = lastMonthInv.reduce((a, i) => a + parseFloat(i.total_amount || 0), 0);
+  const thisPaidAmt    = thisMonthInv.filter(i => i.status === "paid").reduce((a, i) => a + parseFloat(i.total_amount || 0), 0);
+  const lastPaidAmt    = lastMonthInv.filter(i => i.status === "paid").reduce((a, i) => a + parseFloat(i.total_amount || 0), 0);
+  const thisPendingAmt = thisMonthInv.filter(i => i.status !== "paid" && i.status !== "cancelled").reduce((a, i) => a + parseFloat(i.total_amount || 0), 0);
+  const lastPendingAmt = lastMonthInv.filter(i => i.status !== "paid" && i.status !== "cancelled").reduce((a, i) => a + parseFloat(i.total_amount || 0), 0);
+  const thisOverdueAmt = thisMonthInv.filter(i => i.status === "overdue").reduce((a, i) => a + parseFloat(i.total_amount || 0), 0);
+  const lastOverdueAmt = lastMonthInv.filter(i => i.status === "overdue").reduce((a, i) => a + parseFloat(i.total_amount || 0), 0);
+
+  const totalPct   = pctLabel(thisTotalAmt,   lastTotalAmt);
+  const paidPct    = pctLabel(thisPaidAmt,    lastPaidAmt);
+  const pendingPct = pctLabel(thisPendingAmt, lastPendingAmt);
+  const overduePct = pctLabel(thisOverdueAmt, lastOverdueAmt);
+
   const recRevenue = recList.reduce((a, r) => a + Number(r.paid_amount || r.paid || 0), 0);
   const refTotal = refList.reduce((a, r) => a + Number(r.refund_amount || 0), 0);
 
@@ -2128,10 +2165,10 @@ export default function AdminInvoicesPage({ navigate }) {
             {/* ── ALL INVOICES ── */}
             {tab === "invoices" && (<>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 24 }}>
-                <Card icon="📄" label="إجمالي الفواتير" value={`${fmt(total)} د.أ`} sub="↑ ٪5.67 من الشهر الماضي" subColor="#16A34A" accent="#0D3C5C" />
-                <Card icon="✅" label="الفواتير المدفوعة" value={`${fmt(paidAmt)} د.أ`} sub="↑ ٪14.5 من الشهر الماضي" subColor="#16A34A" accent="#16A34A" />
-                <Card icon="⏳" label="قيد الانتظار" value={`${fmt(pendingAmt)} د.أ`} sub="↑ ٪8.5 من الشهر الماضي" subColor="#D97706" accent="#D97706" />
-                <Card icon="⚠️" label="الفواتير المتأخرة" value={`${fmt(overdueAmt)} د.أ`} sub="↑ ٪7.45 من الشهر الماضي" subColor="#DC2626" accent="#DC2626" />
+                <Card icon="" label="إجمالي الفواتير" value={`${fmt(total)} د.أ`} sub={totalPct.text} subColor={totalPct.color} accent="#0D3C5C" />
+                <Card icon="" label="الفواتير المدفوعة" value={`${fmt(paidAmt)} د.أ`} sub={paidPct.text} subColor={paidPct.color} accent="#16A34A" />
+                <Card icon="" label="قيد الانتظار" value={`${fmt(pendingAmt)} د.أ`} sub={pendingPct.text} subColor={pendingPct.color} accent="#D97706" />
+                <Card icon="" label="الفواتير المتأخرة" value={`${fmt(overdueAmt)} د.أ`} sub={overduePct.text} subColor={overduePct.color} accent="#DC2626" />
               </div>
               <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #E2E8F0", padding: "12px 18px", marginBottom: 20, display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>

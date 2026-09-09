@@ -552,6 +552,23 @@ class ConsultantService:
         db.refresh(service)
         return service
 
+    @staticmethod
+    def delete_service(
+        db: Session, consultant_id: uuid.UUID, service_id: uuid.UUID
+    ) -> bool:
+        """Deletes a service belonging to the consultant."""
+        service = db.query(ConsultantServiceModel).filter(
+            and_(
+                ConsultantServiceModel.id == service_id,
+                ConsultantServiceModel.consultant_id == consultant_id,
+            )
+        ).first()
+        if not service:
+            raise ValueError("Service not found or does not belong to this consultant")
+        db.delete(service)
+        db.commit()
+        return True
+
     # ── Service Expansion operations ─────────────────────────────────
 
     @staticmethod
@@ -570,6 +587,18 @@ class ConsultantService:
         db.commit()
         db.refresh(request)
         return request
+
+    @staticmethod
+    def get_my_expansions(
+        db: Session, consultant_id: uuid.UUID
+    ) -> list[ServiceExpansionRequest]:
+        """Returns all service expansion requests submitted by this consultant."""
+        return (
+            db.query(ServiceExpansionRequest)
+            .filter(ServiceExpansionRequest.consultant_id == consultant_id)
+            .order_by(ServiceExpansionRequest.created_at.desc())
+            .all()
+        )
 
     @staticmethod
     def get_clients(db: Session, consultant_id: uuid.UUID, page: int = 1, limit: int = 20) -> list[dict]:

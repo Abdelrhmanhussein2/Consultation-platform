@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
   DashboardIcon,
@@ -15,6 +15,13 @@ import {
 } from './Icons';
 
 // Custom inline SVG icons for the Consultant Sidebar
+const ConsultingServicesIcon = ({ size = 20, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+  </svg>
+);
+
 const ConsultantDashboardIcon = ({ size = 20, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -154,6 +161,22 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
   const { logout, user } = useAuth();
   const userRole = user?.role;
 
+  const isServicesGroupRoute = Boolean(
+    currentPath && typeof currentPath === 'string' && (
+      currentPath.startsWith('/consultant/services') ||
+      currentPath.startsWith('/consultant/calendar') ||
+      currentPath.startsWith('/consultant/sessions')
+    )
+  );
+
+  const [servicesOpen, setServicesOpen] = useState(isServicesGroupRoute);
+
+  useEffect(() => {
+    if (isServicesGroupRoute) {
+      setServicesOpen(true);
+    }
+  }, [currentPath]);
+
   const [supportOpen, setSupportOpen] = useState(
     Boolean(currentPath && typeof currentPath === 'string' && currentPath.startsWith('/support'))
   );
@@ -176,8 +199,17 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
 
   const consultantNavItems = [
     { path: '/consultant/dashboard', label: 'لوحة المستشار', IconComponent: ConsultantDashboardIcon },
-    { path: '/consultant/calendar', label: 'جدول المواعيد والتقويم', IconComponent: SessionsIcon },
-    { path: '/consultant/sessions', label: 'الجلسات', IconComponent: SessionsIcon },
+    {
+      id: 'consulting_services_group',
+      label: 'إدارة الخدمات الإستشارية',
+      IconComponent: ConsultingServicesIcon,
+      isGroup: true,
+      subItems: [
+        { path: '/consultant/services', label: 'إدارة الخدمات' },
+        { path: '/consultant/calendar', label: 'جدولة المواعيد' },
+        { path: '/consultant/sessions', label: 'الحجوزات والجلسات' }
+      ]
+    },
     { path: '/consultant/clients', label: 'العملاء', IconComponent: ClientsIcon },
     { path: '/consultant/profile', label: 'الملف الشخصي', IconComponent: ProfileIcon },
     { path: '/consultant/earnings', label: 'الأرباح', IconComponent: EarningsIcon },
@@ -241,6 +273,88 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
       {/* Main Navigation Items */}
       <nav className="sidebar-nav">
         {navItems.map((item) => {
+          if (item.isGroup) {
+            const isGroupActive = item.subItems.some(sub => currentPath === sub.path || currentPath.startsWith(sub.path + '/'));
+            const isOpen = item.id === 'consulting_services_group' ? servicesOpen : false;
+            const toggleOpen = () => {
+              if (item.id === 'consulting_services_group') {
+                setServicesOpen(prev => !prev);
+              }
+            };
+            const GroupIcon = item.IconComponent || DashboardIcon;
+
+            return (
+              <div key={item.id || item.label} className="sidebar-accordion-group" style={{ width: '100%' }}>
+                <button
+                  type="button"
+                  className={`nav-item ${isGroupActive ? 'active' : ''}`}
+                  onClick={() => {
+                    if (isCollapsed) {
+                      navigate(item.subItems[0].path);
+                    } else {
+                      toggleOpen();
+                    }
+                  }}
+                  title={item.label}
+                  style={{ display: 'flex', width: '100%', alignItems: 'center' }}
+                >
+                  <span className="nav-icon">
+                    <GroupIcon size={20} color={isGroupActive ? '#FFFFFF' : '#CBD5E1'} />
+                  </span>
+                  {!isCollapsed && (
+                    <>
+                      <span className="nav-label" style={{ marginRight: '8px' }}>{item.label}</span>
+                      <ChevronIcon isOpen={isOpen} />
+                    </>
+                  )}
+                </button>
+                {isOpen && !isCollapsed && (
+                  <div className="sidebar-sub-nav" style={{ paddingRight: '36px', display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                    {item.subItems.map((subItem) => {
+                      const isSubActive = currentPath === subItem.path || currentPath.startsWith(subItem.path + '/');
+                      return (
+                        <button
+                          key={subItem.path}
+                          type="button"
+                          className={`nav-sub-item ${isSubActive ? 'active' : ''}`}
+                          onClick={() => navigate(subItem.path)}
+                          style={{
+                            background: isSubActive ? 'rgba(245, 165, 42, 0.12)' : 'transparent',
+                            border: 'none',
+                            color: isSubActive ? '#F5A52A' : '#94A3B8',
+                            padding: '8px 12px',
+                            textAlign: 'right',
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            borderRadius: '6px',
+                            fontWeight: isSubActive ? '700' : 'normal',
+                            transition: 'all 0.2s',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            width: '100%'
+                          }}
+                          onMouseEnter={(e) => { if (!isSubActive) e.target.style.color = '#FFFFFF'; }}
+                          onMouseLeave={(e) => { if (!isSubActive) e.target.style.color = '#94A3B8'; }}
+                        >
+                          <span style={{
+                            width: '5px',
+                            height: '5px',
+                            borderRadius: '50%',
+                            background: isSubActive ? '#F5A52A' : '#64748B',
+                            display: 'inline-block',
+                            flexShrink: 0
+                          }} />
+                          {subItem.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
           if (item.path === '/tickets') {
             const isSupportActive = currentPath.startsWith('/support');
             return (

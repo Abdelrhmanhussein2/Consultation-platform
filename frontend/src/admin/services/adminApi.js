@@ -18,13 +18,14 @@ const getCookie = (name) => {
 };
 
 /**
- * Get current Auth Token from in-memory state, Cookies, or LocalStorage
+ * Get current Auth Token from in-memory state or Cookies ONLY.
+ * localStorage is intentionally excluded to prevent session hijacking after browser close.
  */
 export function getAdminToken() {
   if (typeof window !== 'undefined') {
     if (window.__ADMIN_TOKEN__) return window.__ADMIN_TOKEN__;
     try {
-      const storedToken = getCookie('token') || getCookie('admin_token') || localStorage.getItem('token') || localStorage.getItem('admin_token');
+      const storedToken = getCookie('token') || getCookie('admin_token');
       if (storedToken) return storedToken;
     } catch {}
   }

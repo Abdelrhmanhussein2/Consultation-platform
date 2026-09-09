@@ -134,6 +134,35 @@ export const consultantService = {
     }, token);
   },
 
+  // Delete a service
+  async deleteService(serviceId, token) {
+    return await apiFetch(`/api/consultants/me/services/${serviceId}`, {
+      method: 'DELETE'
+    }, token);
+  },
+
+  // Get my expansion requests
+  async getMyExpansions(token) {
+    return await apiFetch('/api/consultants/me/expansions', {
+      method: 'GET'
+    }, token);
+  },
+
+  // Submit expansion request
+  async submitExpansionRequest(data, token) {
+    return await apiFetch('/api/consultants/me/expansions', {
+      method: 'POST',
+      body: data
+    }, token);
+  },
+
+  // Get all specializations
+  async getSpecializations(token) {
+    return await apiFetch('/api/specializations/', {
+      method: 'GET'
+    }, token);
+  },
+
   // Get my weekly availability settings
   async getAvailabilities(token) {
     return await apiFetch('/api/consultants/me/availability', {

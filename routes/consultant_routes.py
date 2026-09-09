@@ -268,6 +268,19 @@ def toggle_service(
     return ConsultantController.toggle_service(db, current_user, service_id)
 
 
+@router.delete(
+    "/me/services/{service_id}",
+    summary="Delete a service",
+)
+def delete_service(
+    service_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_consultant),
+):
+    """Deletes a consultant service."""
+    return ConsultantController.delete_service(db, current_user, service_id)
+
+
 @router.post(
     "/me/expansion-requests/{request_id}/credentials",
     response_model=CredentialOut,
@@ -393,6 +406,19 @@ def submit_credentials(
 ):
     """Submits a credential document for admin review."""
     return ConsultantController.submit_credential(db, current_user, cred_in)
+
+
+@router.get(
+    "/me/expansions",
+    response_model=List[ServiceExpansionRequestOut],
+    summary="Get all my service expansion requests",
+)
+def get_my_expansions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_consultant),
+):
+    """Returns all service expansion requests submitted by the logged-in consultant."""
+    return ConsultantController.get_my_expansions(db, current_user)
 
 
 @router.post(

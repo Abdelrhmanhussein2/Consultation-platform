@@ -355,6 +355,24 @@ class ConsultantController:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     @staticmethod
+    def delete_service(db: Session, current_user: User, service_id: str):
+        """Deletes a consultant service."""
+        _require_consultant(current_user)
+        profile = _get_profile_or_404(db, current_user)
+        try:
+            service_uuid = uuid.UUID(service_id)
+            return ConsultantService.delete_service(db, profile.id, service_uuid)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
+    def get_my_expansions(db: Session, current_user: User):
+        """Returns all service expansion requests for current consultant."""
+        _require_consultant(current_user)
+        profile = _get_profile_or_404(db, current_user)
+        return ConsultantService.get_my_expansions(db, profile.id)
+
+    @staticmethod
     def get_clients(db: Session, current_user: User, page: int, limit: int):
         """Retrieves aggregated client lists for the logged-in consultant."""
         _require_consultant(current_user)

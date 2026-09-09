@@ -41,6 +41,7 @@ import ConsultantDocumentsPage from './pages/ConsultantDocumentsPage';
 import ConsultantTemplatesPage from './pages/ConsultantTemplatesPage';
 import ConsultantFavoritesPage from './pages/ConsultantFavoritesPage';
 import ConsultantDetailPage from './pages/ConsultantDetailPage';
+import ConsultantServicesPage from './pages/ConsultantServicesPage';
 import DiwanAppointmentsPage from './pages/DiwanAppointmentsPage';
 
 function MainApp() {
@@ -110,6 +111,7 @@ function MainApp() {
     '/policies-portal',
     '/consultant',
     '/consultant/dashboard',
+    '/consultant/services',
     '/consultant/calendar',
     '/consultant/sessions',
     '/consultant/clients',
@@ -200,6 +202,9 @@ function MainApp() {
     // Consultant Portal Screens
     if (pathname === '/consultant' || pathname === '/consultant/' || pathname === '/consultant/dashboard') {
       return <ConsultantDashboard navigate={navigate} />;
+    }
+    if (pathname === '/consultant/services') {
+      return <ConsultantServicesPage navigate={navigate} />;
     }
     if (pathname === '/consultant/sessions') {
       return <ConsultantSessionsPage navigate={navigate} />;

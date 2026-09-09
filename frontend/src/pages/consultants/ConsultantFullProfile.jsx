@@ -184,10 +184,20 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
     ? Math.round(Number(activeProfile.price_per_hour))
     : (liveServices.length > 0 ? Math.round(Number(liveServices[0].price)) : 30);
 
-  const displayServices = [
-    { id: 'dur-30-min', name: 'جلسة استشارة 30 دقيقة',    duration_minutes: 30, price: Math.round(basePriceVal * 0.5) || 15 },
-    { id: 'dur-60-min', name: 'جلسة محادثة ساعة واحدة', duration_minutes: 60, price: basePriceVal || 30 }
-  ];
+  const displayServices = (Array.isArray(liveServices) && liveServices.length > 0)
+    ? liveServices.map(s => ({
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        duration_minutes: s.duration_minutes || 60,
+        price: Math.round(Number(s.price)) || basePriceVal,
+        is_active: s.is_active
+      }))
+    : [
+        { id: 'dur-30-min', name: 'جلسة استشارة 30 دقيقة', duration_minutes: 30, price: Math.round(basePriceVal * 0.5) || 15 },
+        { id: 'dur-60-min', name: 'جلسة محادثة ساعة واحدة', duration_minutes: 60, price: basePriceVal || 30 }
+      ];
+
   const selectedService = displayServices.find(s => s.id === selectedServiceId) || displayServices[0];
 
   const hasRatingVal    = activeProfile.average_rating !== null && activeProfile.average_rating !== undefined && Number(activeProfile.average_rating) > 0;
@@ -382,11 +392,18 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
                     style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       background: isSelected ? '#FFF9F0' : '#F8FAFC', padding: '16px 20px', borderRadius: '16px',
                       border: isSelected ? '2px solid #F59A23' : '1px solid #E2E8F0', cursor: 'pointer', transition: 'all .18s' }}>
-                    <div>
-                      <b style={{ color: '#0B2E4B', fontSize: '15px' }}>{s.name}</b>
-                      <small style={{ display: 'block', color: '#64748B', marginTop: '4px' }}>⏱ {s.duration_minutes} دقيقة</small>
+                    <div style={{ flex: 1, paddingLeft: '14px' }}>
+                      <b style={{ color: '#0B2E4B', fontSize: '15px', display: 'block' }}>{s.name}</b>
+                      {s.description && (
+                        <p style={{ margin: '4px 0 6px', fontSize: '12.5px', color: '#64748B', lineHeight: '1.5' }}>
+                          {s.description}
+                        </p>
+                      )}
+                      <small style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#64748B', fontSize: '12px' }}>
+                        ⏱ <strong>{s.duration_minutes} دقيقة</strong>
+                      </small>
                     </div>
-                    <div style={{ textAlign: 'left' }}>
+                    <div style={{ textAlign: 'left', flexShrink: 0 }}>
                       <b style={{ color: '#F59A23', fontSize: '18px', fontWeight: '900', display: 'block' }}>{s.price} د.أ</b>
                       <span style={{ fontSize: '11px', color: isSelected ? '#F59A23' : '#0B2E4B', fontWeight: '800' }}>
                         {isSelected ? '✓ ممررة للتقويم' : 'حدد هذه الخدمة ←'}
@@ -530,18 +547,34 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
               </div>
             </div>
 
-            <div className="booking-durations" style={{ gridTemplateColumns: displayServices.length>1?'1fr 1fr':'1fr' }}>
-              {displayServices.map((srv,idx) => {
-                const isSel = selectedServiceId===srv.id || (!selectedServiceId&&idx===0);
-                return (
-                  <div key={srv.id||idx} className={`booking-dur-item ${isSel?'active':''}`}
-                    onClick={()=>{setSelectedServiceId(srv.id);setSelectedDuration(String(srv.duration_minutes));}}>
-                    <span style={{ fontSize:'14px' }}>⏱</span>
-                    <div><small style={{ display:'block',color:'#64748B',fontSize:'10px' }}>{srv.name}</small><b>{srv.duration_minutes} دقيقة</b></div>
-                    <small>{srv.price} د.أ</small>
-                  </div>
-                );
-              })}
+            <div className="booking-durations" style={{ gridTemplateColumns: '1fr 1fr' }}>
+              <div
+                className={`booking-dur-item ${selectedDuration === '30' ? 'active' : ''}`}
+                onClick={() => {
+                  setSelectedDuration('30');
+                }}
+              >
+                <span style={{ fontSize: '14px' }}>⏱</span>
+                <div>
+                  <small style={{ display: 'block', color: '#64748B', fontSize: '10px' }}>جلسة استشارة</small>
+                  <b>30 دقيقة</b>
+                </div>
+                <small>{Math.round(basePriceVal * 0.5) || 15} د.أ</small>
+              </div>
+
+              <div
+                className={`booking-dur-item ${selectedDuration === '60' ? 'active' : ''}`}
+                onClick={() => {
+                  setSelectedDuration('60');
+                }}
+              >
+                <span style={{ fontSize: '14px' }}>⏱</span>
+                <div>
+                  <small style={{ display: 'block', color: '#64748B', fontSize: '10px' }}>جلسة محادثة</small>
+                  <b>60 دقيقة</b>
+                </div>
+                <small>{basePriceVal || 30} د.أ</small>
+              </div>
             </div>
 
             <div className="booking-days-row">
@@ -584,7 +617,7 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
               </button>
               <button onClick={handleProceedToBookingRequest}
                 style={{ width:'100%',background:'#fff',color:'#0B2E4B',border:'1px solid #0B2E4B',borderRadius:'30px',padding:'12px',fontWeight:'800',fontSize:'12.5px',cursor:'pointer',fontFamily:'inherit',marginTop:'10px' }}>
-                إرسال طلب الحجز • {selectedService?.price||42.50} د.أ
+                إرسال طلب الحجز • {selectedDuration === '30' ? (Math.round(basePriceVal * 0.5) || 15) : (basePriceVal || 30)} د.أ
               </button>
               <p style={{ fontSize:'11px',color:'#64748B',textAlign:'center',margin:'10px 0 0' }}>✓ إلغاء مجاني حتى 24 ساعة قبل الجلسة</p>
             </div>

@@ -1,36 +1,37 @@
-/**
- * Centralized API service helper with Bearer token authentication and 401 Silent Refresh Interceptor
- * Strictly uses Cookies (document.cookie) for token storage.
- */
+// Token keys that must NEVER be written to localStorage
+const TOKEN_KEYS = ['token', 'refresh_token', 'admin_token'];
+
 const getCookie = (name) => {
   try {
     const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
     if (match) return decodeURIComponent(match[2]);
   } catch {}
-  try {
-    return localStorage.getItem(name) || sessionStorage.getItem(name) || null;
-  } catch {
-    return null;
+  if (!TOKEN_KEYS.includes(name)) {
+    try { return localStorage.getItem(name) || sessionStorage.getItem(name) || null; } catch {}
   }
+  return null;
 };
 
 const setCookie = (name, value, days = null) => {
   try {
     let expires = '';
-    if (days) {
+    if (days && !TOKEN_KEYS.includes(name)) {
       const date = new Date();
       date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
       expires = '; expires=' + date.toUTCString();
     }
+    // Token cookies: Session Cookie only (no expires → deleted on browser close)
     document.cookie = `${name}=${encodeURIComponent(value || '')}${expires}; path=/; SameSite=Lax`;
   } catch {}
-  try {
-    if (value) {
-      localStorage.setItem(name, value);
-    } else {
-      localStorage.removeItem(name);
-    }
-  } catch {}
+  if (!TOKEN_KEYS.includes(name)) {
+    try {
+      if (value) {
+        localStorage.setItem(name, value);
+      } else {
+        localStorage.removeItem(name);
+      }
+    } catch {}
+  }
 };
 
 const isTokenExpiringSoon = (tokenStr) => {
