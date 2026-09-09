@@ -1,6 +1,6 @@
 import uuid
 from typing import Optional
-from sqlalchemy import Column, String, DateTime, ForeignKey, Text, func
+from sqlalchemy import Column, String, DateTime, ForeignKey, Text, func, JSON
 from sqlalchemy.dialects.postgresql import UUID, ENUM as PG_ENUM, JSONB
 from sqlalchemy.orm import relationship
 
@@ -21,7 +21,7 @@ class SupportTicket(Base):
     sub_category = Column(String(100), nullable=True)
     priority = Column(PG_ENUM(TicketPriority, name="ticket_priority", inherit_schema=True), nullable=False, default=TicketPriority.low)
     status = Column(PG_ENUM(TicketStatus, name="ticket_status", inherit_schema=True), nullable=False, default=TicketStatus.open)
-    extra_fields = Column(JSONB, nullable=True)
+    extra_fields = Column(JSONB().with_variant(JSON, "sqlite"), nullable=True)
     internal_note = Column(Text, nullable=True)
     
     closed_at = Column(DateTime(timezone=True), nullable=True)

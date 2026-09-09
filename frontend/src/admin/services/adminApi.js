@@ -435,6 +435,75 @@ export async function getAdminTicketDetail(ticketId) {
   return adminRequest(`/super-admin/tickets/${ticketId}`);
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   CONTROL CENTER (AUTOMATION, R360, AI CONTROL)
+   ══════════════════════════════════════════════════════════════════ */
+export async function getAutomationRules(status = null, search = null) {
+  const params = new URLSearchParams();
+  if (status && status !== 'all') params.append('status', status);
+  if (search) params.append('search', search);
+  const queryString = params.toString() ? `?${params.toString()}` : '';
+  return adminRequest(`/super-admin/automation-rules${queryString}`);
+}
+
+export async function createAutomationRule(ruleData) {
+  return adminRequest('/super-admin/automation-rules', {
+    method: 'POST',
+    body: JSON.stringify(ruleData)
+  });
+}
+
+export async function updateAutomationRule(ruleId, ruleData) {
+  return adminRequest(`/super-admin/automation-rules/${ruleId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(ruleData)
+  });
+}
+
+export async function deleteAutomationRule(ruleId) {
+  return adminRequest(`/super-admin/automation-rules/${ruleId}`, {
+    method: 'DELETE'
+  });
+}
+
+export async function getAutomationRuleEffects(limit = 50) {
+  return adminRequest(`/super-admin/automation-rules/effects?limit=${limit}`);
+}
+
+export async function search360Entities(query = '', entityType = 'all', limit = 50) {
+  const params = new URLSearchParams();
+  if (query) params.append('query', query);
+  if (entityType) params.append('entity_type', entityType);
+  if (limit) params.append('limit', limit.toString());
+  return adminRequest(`/super-admin/r360/search?${params.toString()}`);
+}
+
+export async function get360EntityDetails(entityType, entityId) {
+  return adminRequest(`/super-admin/r360/${entity_type_map(entityType)}/${entityId}`);
+}
+
+function entity_type_map(type) {
+  if (type === 'consultant') return 'consultant';
+  if (type === 'session') return 'session';
+  return 'user';
+}
+
+export async function getAIControlConfig() {
+  return adminRequest('/super-admin/ai-control/config');
+}
+
+export async function updateAIControlConfig(configData) {
+  return adminRequest('/super-admin/ai-control/config', {
+    method: 'PATCH',
+    body: JSON.stringify(configData)
+  });
+}
+
+export async function getPendingConsultants() {
+  return adminRequest('/super-admin/consultants/pending');
+}
+
+
 
 
 

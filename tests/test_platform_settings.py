@@ -1,15 +1,3 @@
-"""
-Targeted Integration & Unit Tests: Phase 4 Platform & System Settings Ecosystem
-================================================================================
-Tests:
-- Default settings initialization (Jordan defaults: JOD currency, Asia/Amman timezone)
-- Update settings sections (brand, system, company, currency, contract, smtp, gateways)
-- Secret masking & preservation (passwords and secret keys masked in responses and retained across edits)
-- Dynamic price and contract sample formatting
-- Public settings API (/api/settings/public) with no secret leaks
-- Interactive test email endpoint (/api/super-admin/settings/email/test)
-- RBAC permissions on admin settings routes
-"""
 
 import os
 import sys

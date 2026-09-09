@@ -78,6 +78,9 @@ from schemes.schemes import (
 from schemes.invoice_schemes import InvoiceCreate, InvoiceOut
 from schemes.recurring_invoice_schemes import RecurringInvoiceCreate, RecurringInvoiceOut
 from schemes.refunded_invoice_schemes import RefundedInvoiceCreate, RefundedInvoiceOut
+from schemes.automation_rule_schemas import AutomationRuleCreate, AutomationRuleUpdate, AutomationRuleOut
+from schemes.r360_schemas import Entity360SearchItem, Entity360Response
+from schemes.ai_control_schemas import AIServiceConfigUpdate, AISystemStatsOut
 
 
 

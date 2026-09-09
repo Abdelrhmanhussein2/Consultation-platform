@@ -19,8 +19,10 @@ import {
   IconRbac,
   IconAudit,
   IconSettings,
-  IconReports
+  IconReports,
+  IconSparkles
 } from './AdminIcons';
+
 
 export default function AdminSidebar({ currentPath, navigate, userRole = 'super_admin', permissions = [] }) {
   const { logout } = useAuth();
@@ -31,7 +33,11 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
     // 1. Dashboard
     { id: 'dashboard', label: 'لوحة التحكم', path: '/admin', icon: IconDashboard },
 
+    // Control Center (New Feature)
+    { id: 'control_center', label: 'مركز التحكم الإداري', path: '/admin/control-center', icon: IconSparkles },
+
     // 2. Reports & Analytics
+
     { id: 'reports', label: 'التقارير والتحليلات', path: '/admin/reports', icon: IconReports },
 
     // 3. Accounts (Users & Consultants)

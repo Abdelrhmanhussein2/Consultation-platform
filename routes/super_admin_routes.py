@@ -24,6 +24,11 @@ from schemes import (
     SMSSettingsSchema, AISettingsSchema, PoliciesSettingsSchema,
     AllPlatformSettingsOut, TestEmailRequest, TestEmailResponse
 )
+from schemes.automation_rule_schemas import AutomationRuleCreate, AutomationRuleUpdate, AutomationRuleOut
+from schemes.ai_control_schemas import AIServiceConfigUpdate
+from services.super_admin.admin_automation_service import AdminAutomationService
+from services.super_admin.admin_r360_service import AdminR360Service
+from services.super_admin.admin_ai_control_service import AdminAIControlService
 from controllers.super_admin_controller import SuperAdminController
 from controllers.platform_settings_controller import PlatformSettingsController
 from controllers import ServiceExpansionController, TicketController, AdminPermissionController, UserController
@@ -1315,6 +1320,144 @@ def get_dashboard_stats(
     directly queried from PostgreSQL for the Admin Central Command dashboard.
     """
     return SuperAdminController.get_dashboard_stats(db, period)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# AUTOMATION RULES & CONTROL ENGINE (require_admin)
+# ─────────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/automation-rules",
+    response_model=List[AutomationRuleOut],
+    summary="List all automation rules with optional status/search filters",
+)
+def list_automation_rules(
+    status_filter: Optional[str] = Query(None, alias="status", description="Filter by status (active, paused, needs_review)"),
+    search: Optional[str] = Query(None, description="Search by rule name"),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    """Lists all system automation rules for the admin control center."""
+    return AdminAutomationService.list_rules(db=db, status_filter=status_filter, search=search)
+
+
+@router.post(
+    "/automation-rules",
+    response_model=AutomationRuleOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new automation rule",
+)
+def create_automation_rule(
+    rule_in: AutomationRuleCreate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    """Creates a new automated engine rule."""
+    return AdminAutomationService.create_rule(db=db, rule_in=rule_in, admin_id=current_admin.id)
+
+
+@router.patch(
+    "/automation-rules/{rule_id}",
+    response_model=AutomationRuleOut,
+    summary="Update an existing automation rule",
+)
+def update_automation_rule(
+    rule_id: str,
+    rule_in: AutomationRuleUpdate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    """Updates status, actions, triggers or parameters of an automation rule."""
+    return AdminAutomationService.update_rule(db=db, rule_id=rule_id, rule_in=rule_in)
+
+
+@router.delete(
+    "/automation-rules/{rule_id}",
+    summary="Delete an automation rule",
+)
+def delete_automation_rule(
+    rule_id: str,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    """Removes an automation rule."""
+    return {"success": AdminAutomationService.delete_rule(db=db, rule_id=rule_id)}
+
+
+@router.get(
+    "/automation-rules/effects",
+    summary="Get recent automated system actions and rule effect logs",
+)
+def get_automation_rule_effects(
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    """Returns recent log records of automated rule actions."""
+    return AdminAutomationService.get_rule_effects(db=db, limit=limit)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# 360 RELATIONS ENGINE (r360) (require_admin)
+# ─────────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/r360/search",
+    summary="Unified search for 360 degree entities (users, consultants, sessions)",
+)
+def search_360_entities(
+    query: Optional[str] = Query(None, description="Search term (name, email, phone, id)"),
+    entity_type: Optional[str] = Query("all", description="Entity type: user, consultant, session, all"),
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    """Searches across users, consultants, and sessions returning 360 degree cards."""
+    return AdminR360Service.search_entities(db=db, query=query, entity_type=entity_type, limit=limit)
+
+
+@router.get(
+    "/r360/{entity_type}/{entity_id}",
+    summary="Get 360 degree entity profile with all related records and activity history",
+)
+def get_entity_360_details(
+    entity_type: str,
+    entity_id: str,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    """Retrieves complete 360 view for a user, consultant, or session including appointments, invoices, tickets, and ratings."""
+    return AdminR360Service.get_entity_360_details(db=db, entity_type=entity_type, entity_id=entity_id)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# AI CONTROL CENTER (require_admin)
+# ─────────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/ai-control/config",
+    summary="Get AI Control Center configuration and consumption statistics",
+)
+def get_ai_control_config(
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    """Returns AI model settings, active toggles, token usage, and cost estimates."""
+    return AdminAIControlService.get_ai_config_and_stats(db)
+
+
+@router.patch(
+    "/ai-control/config",
+    summary="Update AI Control Center configuration",
+)
+def update_ai_control_config(
+    update_in: AIServiceConfigUpdate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    """Updates AI model defaults, max tokens, temperature, and feature toggles."""
+    return AdminAIControlService.update_ai_config(db=db, update_in=update_in)
+
 
 
 
