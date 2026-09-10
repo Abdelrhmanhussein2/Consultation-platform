@@ -512,7 +512,7 @@ class ConsultantServiceCreate(BaseModel):
     name: str = Field(..., max_length=200)
     description: Optional[str] = None
     price: Decimal = Field(..., ge=0)
-    duration_minutes: int = Field(60, ge=1)
+    duration_minutes: int = Field(60, ge=0)
     is_out_of_specialization: bool = False
     expansion_request_id: Optional[str] = None
 
@@ -521,7 +521,7 @@ class ConsultantServiceUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=200)
     description: Optional[str] = None
     price: Optional[Decimal] = Field(None, ge=0)
-    duration_minutes: Optional[int] = Field(None, ge=1)
+    duration_minutes: Optional[int] = Field(None, ge=0)
 
 class ConsultantServiceOut(BaseModel):
     id: uuid.UUID

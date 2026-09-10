@@ -185,7 +185,7 @@ export default function ConsultantEarningsPage({ navigate }) {
   const isWithdrawalEnabled = availableBal >= 50 && wallet?.has_bank_account;
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', direction: 'rtl', textAlign: 'right', fontFamily: 'sans-serif' }}>
+    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', direction: 'rtl', textAlign: 'right', fontFamily: "'Tajawal', sans-serif" }}>
       
       {/* Back Button */}
       <button 

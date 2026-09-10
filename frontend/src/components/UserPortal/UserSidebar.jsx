@@ -164,7 +164,7 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
   const isServicesGroupRoute = Boolean(
     currentPath && typeof currentPath === 'string' && (
       currentPath.startsWith('/consultant/services') ||
-      currentPath.startsWith('/consultant/calendar') ||
+      currentPath.startsWith('/consultant/schedule') ||
       currentPath.startsWith('/consultant/sessions')
     )
   );
@@ -206,10 +206,11 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
       isGroup: true,
       subItems: [
         { path: '/consultant/services', label: 'إدارة الخدمات' },
-        { path: '/consultant/calendar', label: 'جدولة المواعيد' },
+        { path: '/consultant/schedule', label: 'جدولة المواعيد' },
         { path: '/consultant/sessions', label: 'الحجوزات والجلسات' }
       ]
     },
+    { path: '/consultant/calendar', label: 'إدارة المواعيد والتقويم', IconComponent: AppointmentsIcon },
     { path: '/consultant/clients', label: 'العملاء', IconComponent: ClientsIcon },
     { path: '/consultant/profile', label: 'الملف الشخصي', IconComponent: ProfileIcon },
     { path: '/consultant/earnings', label: 'الأرباح', IconComponent: EarningsIcon },

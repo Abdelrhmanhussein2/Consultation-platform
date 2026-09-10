@@ -171,7 +171,7 @@ export default function ConsultantSubscriptionsPage({ navigate }) {
   };
 
   return (
-    <div style={{ direction: 'rtl', fontFamily: 'Cairo, Tajawal, sans-serif', color: '#1E293B', paddingBottom: '50px' }}>
+    <div style={{ direction: 'rtl', fontFamily: "'Tajawal', sans-serif", color: '#1E293B', paddingBottom: '50px' }}>
       <Toast {...toast} />
 
       {/* Header */}

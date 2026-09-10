@@ -794,7 +794,7 @@ export default function ConsultantSettingsPage({ navigate }) {
   const otpStrength = getPasswordStrength(pwdOtpNewPassword);
 
   return (
-    <div dir="rtl" style={{ maxWidth: '1080px', margin: '0 auto', width: '100%', paddingBottom: '50px', fontFamily: 'Cairo, Tajawal, sans-serif', textAlign: 'right' }}>
+    <div dir="rtl" style={{ maxWidth: '1080px', margin: '0 auto', width: '100%', paddingBottom: '50px', fontFamily: "'Tajawal', sans-serif", textAlign: 'right' }}>
 
       {/* Toast Notification */}
       {toastMsg && (

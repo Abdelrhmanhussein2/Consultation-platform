@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@200;300;400;500;700;800;900&family=Cairo:wght@300;400;500;600;700;800&display=swap');
 
 :root {
   --primary-color: #0D3C5C;
@@ -28,14 +28,15 @@
   --transition-normal: 0.3s ease;
 }
 
-* {
+*, *::before, *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: 'Tajawal', sans-serif !important;
 }
 
-body {
-  font-family: 'Cairo', sans-serif;
+html, body, #root {
+  font-family: 'Tajawal', sans-serif !important;
   background: var(--bg-gradient);
   color: var(--text-main);
   direction: rtl;
@@ -46,19 +47,8 @@ body {
   flex-direction: column;
 }
 
-a {
-  color: var(--primary-light);
-  text-decoration: none;
-  transition: var(--transition-fast);
-}
-
-a:hover {
-  color: var(--secondary-color);
-  text-decoration: none;
-}
-
-input, button {
-  font-family: 'Cairo', sans-serif;
+input, button, select, textarea, label, h1, h2, h3, h4, h5, h6, p, span, a, div {
+  font-family: 'Tajawal', sans-serif !important;
 }
 
 /* Custom Scrollbar */

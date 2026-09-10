@@ -207,3 +207,54 @@ def reschedule_appointment(
     return AppointmentController.reschedule_appointment(
         db, current_user, appointment_id, reschedule_in
     )
+
+
+@router.patch(
+    "/{appointment_id}/status",
+    response_model=AppointmentOut,
+    summary="Update appointment status / details directly",
+)
+def update_appointment_status(
+    appointment_id: str,
+    status_data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Directly updates appointment status, notes, or payment status.
+    """
+    import uuid
+    from fastapi import HTTPException
+    from models import Appointment
+    from helpers.enums import AppointmentStatus
+
+    try:
+        appt_uuid = uuid.UUID(appointment_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid appointment ID")
+
+    appt = db.query(Appointment).filter(Appointment.id == appt_uuid).first()
+    if not appt:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    new_st = status_data.get("status")
+    if new_st:
+        try:
+            appt.status = AppointmentStatus(new_st)
+        except ValueError:
+            pass
+
+    if "notes" in status_data:
+        appt.notes = status_data["notes"]
+
+    if "scheduled_at" in status_data:
+        try:
+            from datetime import datetime
+            appt.scheduled_at = datetime.fromisoformat(status_data["scheduled_at"].replace("Z", "+00:00"))
+        except Exception:
+            pass
+
+    db.commit()
+    db.refresh(appt)
+    return appt
+
