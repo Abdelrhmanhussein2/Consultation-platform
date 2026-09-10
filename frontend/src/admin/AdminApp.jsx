@@ -26,7 +26,7 @@ import AdminInvoicesPage from './pages/AdminInvoicesPage';
 import AdminRefundedInvoicesPage from './pages/AdminRefundedInvoicesPage';
 import DiwanAppointmentsPage from '../pages/DiwanAppointmentsPage';
 import ControlCenter from './pages/ControlCenter';
-
+import UnifiedRegistryPage from './pages/UnifiedRegistryPage';
 
 export default function AdminApp({ currentPath = '/admin', navigate }) {
   const { user, isAuthenticated, loading } = useAuth();
@@ -128,6 +128,9 @@ export default function AdminApp({ currentPath = '/admin', navigate }) {
         return <AdminPromptsPage navigate={navigate} />;
       case '/admin/control-center':
         return <ControlCenter navigate={navigate} />;
+      case '/admin/unified-registry':
+      case '/admin/control-center/registry':
+        return <UnifiedRegistryPage navigate={navigate} />;
       case '/admin/settings':
         return <AdminSettingsPage navigate={navigate} />;
 

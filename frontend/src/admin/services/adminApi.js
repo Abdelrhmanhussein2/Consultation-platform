@@ -25,7 +25,13 @@ export function getAdminToken() {
   if (typeof window !== 'undefined') {
     if (window.__ADMIN_TOKEN__) return window.__ADMIN_TOKEN__;
     try {
-      const storedToken = getCookie('token') || getCookie('admin_token');
+      const storedToken =
+        getCookie('token') ||
+        getCookie('admin_token') ||
+        localStorage.getItem('token') ||
+        sessionStorage.getItem('token') ||
+        localStorage.getItem('admin_token') ||
+        sessionStorage.getItem('admin_token');
       if (storedToken) return storedToken;
     } catch {}
   }
@@ -255,7 +261,11 @@ export async function adminAddUser(userData) {
    SUPPORT TICKETS
    ══════════════════════════════════════════════════════════════════ */
 export async function getAdminTickets(params = {}) {
-  const query = new URLSearchParams(params).toString();
+  let queryObj = params;
+  if (typeof params === 'string') {
+    queryObj = params !== 'all' ? { status: params } : {};
+  }
+  const query = new URLSearchParams(queryObj).toString();
   return adminRequest(`/super-admin/tickets${query ? `?${query}` : ''}`);
 }
 
@@ -503,8 +513,6 @@ export async function getPendingConsultants() {
   return adminRequest('/super-admin/consultants/pending');
 }
 
-
-
-
-
-
+export async function getAllInvoices(page = 1, limit = 50) {
+  return adminRequest(`/invoices/all?page=${page}&limit=${limit}`);
+}

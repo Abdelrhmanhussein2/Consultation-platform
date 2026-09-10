@@ -56,8 +56,17 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
     // 1. Dashboard
     { id: 'dashboard', label: 'لوحة التحكم', path: '/admin', icon: IconDashboard },
 
-    // Control Center (New Feature)
-    { id: 'control_center', label: 'مركز التحكم الإداري', path: '/admin/control-center', icon: IconSparkles },
+    // Control Center (Group with Sub-Items)
+    {
+      id: 'control_center_group',
+      label: 'مركز التحكم الإداري',
+      icon: IconSparkles,
+      defaultPath: '/admin/control-center',
+      subItems: [
+        { id: 'control_center_ops', label: 'لوحة التحكم والعمليات', path: '/admin/control-center' },
+        { id: 'unified_registry', label: 'السجل الإداري الموحد', path: '/admin/unified-registry' }
+      ]
+    },
 
     // 2. Reports & Analytics
 

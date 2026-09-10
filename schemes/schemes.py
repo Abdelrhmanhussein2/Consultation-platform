@@ -772,20 +772,26 @@ class AdminUserListOut(BaseModel):
     id: uuid.UUID
     full_name: str
     email: str
-    phone: Optional[str]
+    phone: Optional[str] = None
     role: UserRole
     entity_type: EntityType
-    company_name: Optional[str]
-    tax_number: Optional[str]
-    sector: Optional[BusinessSector]
+    company_name: Optional[str] = None
+    tax_number: Optional[str] = None
+    sector: Optional[BusinessSector] = None
     is_active: bool
-    created_at: datetime
+    created_at: Optional[datetime] = None
     bio: Optional[str] = None
     verification_status: Optional[VerificationStatus] = None
     price_per_hour: Optional[Decimal] = None
     address: Optional[str] = None
     title: Optional[str] = None
     sessions_count: Optional[int] = 0
+    consultations_count: Optional[int] = 0
+    tickets_count: Optional[int] = 0
+    rating: Optional[str] = "—"
+    ai_usage: Optional[str] = "0%"
+    desc: Optional[str] = None
+    status: Optional[str] = "نشط"
 
     class Config:
         from_attributes = True
