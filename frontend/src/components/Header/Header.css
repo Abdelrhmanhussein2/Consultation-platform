@@ -39,7 +39,7 @@
   gap: 24px;
 }
 
-.nav-item {
+.header-nav .nav-item {
   color: rgba(255, 255, 255, 0.8) !important;
   font-weight: 500;
   font-size: 0.95rem;
@@ -47,7 +47,7 @@
   position: relative;
 }
 
-.nav-item::after {
+.header-nav .nav-item::after {
   content: '';
   position: absolute;
   bottom: 0;
@@ -58,11 +58,11 @@
   transition: var(--transition-fast);
 }
 
-.nav-item:hover, .nav-item.active {
+.header-nav .nav-item:hover, .header-nav .nav-item.active {
   color: var(--text-white) !important;
 }
 
-.nav-item:hover::after, .nav-item.active::after {
+.header-nav .nav-item:hover::after, .header-nav .nav-item.active::after {
   width: 100%;
 }
 

@@ -14,6 +14,7 @@ import BookingModal  from '../../components/Consultants/BookingModal';
 import PaymentModal  from '../../components/Consultants/PaymentModal';
 import ConsultantListCard    from './ConsultantListCard';
 import ConsultantFullProfile from './ConsultantFullProfile';
+import ModernSelect from '../../components/ModernSelect';
 import { applyFilters, applySorting, buildPageNums, CITIES, COMM, CHIPS, PAGE_SIZE } from './consultantFilterUtils';
 
 /* ── CSS ──────────────────────────────────────────────────────────── */
@@ -383,19 +384,27 @@ export default function ConsultantsPage({ navigate }) {
               onKeyDown={e => { if (e.key === 'Enter') setPage(1); }}
             />
           </div>
-          <div className="cp-top-filter">
-            <label>التوفر:</label>
-            <select className="cp-top-select" value={availF ? 'now' : ''} onChange={e => { setAvailF(e.target.value === 'now'); setPage(1); }}>
-              <option value="">أي وقت</option>
-              <option value="now">متاح الآن</option>
-            </select>
+          <div className="cp-top-filter" style={{ minWidth: '130px' }}>
+            <ModernSelect
+              value={availF ? 'now' : ''}
+              onChange={val => { setAvailF(val === 'now'); setPage(1); }}
+              options={[
+                { value: '', label: 'أي وقت' },
+                { value: 'now', label: 'متاح الآن' }
+              ]}
+              placeholder="التوفر"
+            />
           </div>
-          <div className="cp-top-filter">
-            <label>المدينة:</label>
-            <select className="cp-top-select" value={cityF} onChange={e => { setCityF(e.target.value); setPage(1); }}>
-              <option value="">أي مكان</option>
-              {CITIES.map(c => <option key={c}>{c}</option>)}
-            </select>
+          <div className="cp-top-filter" style={{ minWidth: '140px' }}>
+            <ModernSelect
+              value={cityF}
+              onChange={val => { setCityF(val); setPage(1); }}
+              options={[
+                { value: '', label: 'أي مكان' },
+                ...CITIES.map(c => ({ value: c, label: c }))
+              ]}
+              placeholder="المدينة"
+            />
           </div>
           <button className="cp-search-btn" onClick={() => setPage(1)}>ابحث الآن ←</button>
         </div>
@@ -498,14 +507,18 @@ export default function ConsultantsPage({ navigate }) {
                   <button className={view === 'grid' ? 'active' : ''} onClick={() => setView('grid')} title="شبكي">▦</button>
                   <button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')} title="قائمة">☰</button>
                 </div>
-                <div className="cp-sort">
-                  <span>ترتيب حسب:</span>
-                  <select value={sort} onChange={e => setSort(e.target.value)}>
-                    <option value="best">الأفضل تطابقاً</option>
-                    <option value="rating">الأعلى تقييماً</option>
-                    <option value="priceLow">السعر الأقل</option>
-                    <option value="priceHigh">السعر الأعلى</option>
-                  </select>
+                <div className="cp-sort" style={{ minWidth: '160px' }}>
+                  <ModernSelect
+                    value={sort}
+                    onChange={setSort}
+                    options={[
+                      { value: 'best', label: 'الأفضل تطابقاً' },
+                      { value: 'rating', label: 'الأعلى تقييماً' },
+                      { value: 'priceLow', label: 'السعر الأقل' },
+                      { value: 'priceHigh', label: 'السعر الأعلى' }
+                    ]}
+                    placeholder="ترتيب حسب"
+                  />
                 </div>
               </div>
             </div>

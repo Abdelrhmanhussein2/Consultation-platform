@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { IconSearch } from '../components/AdminIcons';
 import { getAdminSessions, updateAdminSessionStatus, adminJoinSession } from '../services/adminApi';
+import ModernSelect from '../../components/ModernSelect';
 
 export default function AdminSessionsPage({ navigate }) {
   // View mode: 'kanban' | 'table'
@@ -234,7 +235,8 @@ export default function AdminSessionsPage({ navigate }) {
     const matchStatus = statusFilter === 'all' || s.status.includes(statusFilter);
     const matchConsultant = consultantFilter === 'all' || s.consultantName.includes(consultantFilter);
     const matchType = typeFilter === 'all' || s.type.includes(typeFilter);
-    return matchSearch && matchStatus && matchConsultant && matchType;
+    const matchDate = !dateFilter || (s.datetime && s.datetime.includes(dateFilter)) || (s.date && s.date.includes(dateFilter));
+    return matchSearch && matchStatus && matchConsultant && matchType && matchDate;
   });
 
   const clearFilters = () => {
@@ -426,56 +428,78 @@ export default function AdminSessionsPage({ navigate }) {
         <button
           type="button"
           onClick={clearFilters}
-          style={{ background: 'none', border: 'none', color: '#EF4444', fontSize: '12.5px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+          title="مسح الفلاتر"
+          style={{
+            background: '#FEF2F2',
+            border: '1px solid #FECACA',
+            color: '#DC2626',
+            padding: '8px 14px',
+            borderRadius: '10px',
+            fontSize: '12px',
+            fontWeight: '700',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
         >
-          <span>✕</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+            <path d="M3 3v5h5" />
+          </svg>
           <span>مسح الفلاتر</span>
         </button>
 
-        <select
-          className="admin-select-input"
-          style={{ width: '130px', height: '36px' }}
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
-        >
-          <option value="all">جميع الحالات</option>
-          <option value="مكتملة">مكتملة</option>
-          <option value="قيد التنفيذ">قيد التنفيذ</option>
-          <option value="مؤكدة">مؤكدة</option>
-          <option value="معلقة">معلقة</option>
-          <option value="ملغاة">ملغاة</option>
-        </select>
+        <div style={{ width: '150px' }}>
+          <ModernSelect
+            options={[
+              { value: 'all', label: 'جميع الحالات' },
+              { value: 'مكتملة', label: 'مكتملة' },
+              { value: 'قيد التنفيذ', label: 'قيد التنفيذ' },
+              { value: 'مؤكدة', label: 'مؤكدة' },
+              { value: 'معلقة', label: 'معلقة' },
+              { value: 'ملغاة', label: 'ملغاة' }
+            ]}
+            value={statusFilter}
+            onChange={setStatusFilter}
+            placeholder="جميع الحالات"
+          />
+        </div>
 
-        <select
-          className="admin-select-input"
-          style={{ width: '140px', height: '36px' }}
-          value={consultantFilter}
-          onChange={e => setConsultantFilter(e.target.value)}
-        >
-          <option value="all">جميع المستشارين</option>
-          <option value="أحمد">أحمد نصار</option>
-          <option value="عبدالرحمن">عبدالرحمن حسين</option>
-        </select>
+        <div style={{ width: '160px' }}>
+          <ModernSelect
+            options={[
+              { value: 'all', label: 'جميع المستشارين' },
+              { value: 'أحمد', label: 'أحمد نصار' },
+              { value: 'عبدالرحمن', label: 'عبدالرحمن حسين' }
+            ]}
+            value={consultantFilter}
+            onChange={setConsultantFilter}
+            placeholder="جميع المستشارين"
+          />
+        </div>
 
-        <select
-          className="admin-select-input"
-          style={{ width: '120px', height: '36px' }}
-          value={typeFilter}
-          onChange={e => setTypeFilter(e.target.value)}
-        >
-          <option value="all">نوع الجلسة</option>
-          <option value="مرئية">مرئية 🎥</option>
-          <option value="صوتية">صوتية 📞</option>
-          <option value="مكتوبة">مكتوبة 💬</option>
-        </select>
+        <div style={{ width: '140px' }}>
+          <ModernSelect
+            options={[
+              { value: 'all', label: 'نوع الجلسة' },
+              { value: 'مرئية', label: 'مرئية 🎥' },
+              { value: 'صوتية', label: 'صوتية 📞' },
+              { value: 'مكتوبة', label: 'مكتوبة 💬' }
+            ]}
+            value={typeFilter}
+            onChange={setTypeFilter}
+            placeholder="نوع الجلسة"
+          />
+        </div>
 
         <input
-          type="text"
+          type="date"
           className="admin-search-input"
-          placeholder="من تاريخ - إلى تاريخ"
-          style={{ width: '150px', height: '36px' }}
+          style={{ width: '150px', height: '40px', padding: '0 10px', borderRadius: '10px', border: '1.5px solid #CBD5E1', background: '#FFFFFF', fontSize: '12.5px', fontWeight: '700', color: '#0e3b5e', outline: 'none', cursor: 'pointer' }}
           value={dateFilter}
           onChange={e => setDateFilter(e.target.value)}
+          title="تصفية حسب التاريخ"
         />
 
         <div className="admin-search-wrapper" style={{ flex: 1, minWidth: '180px' }}>
@@ -706,51 +730,65 @@ export default function AdminSessionsPage({ navigate }) {
                         {/* View details */}
                         <button
                           className="admin-icon-btn-minimal"
-                          style={{ border: '1px solid #E2E8F0', borderRadius: '6px', background: '#FFFFFF', width: '28px', height: '28px', cursor: 'pointer' }}
+                          style={{ border: '1px solid #E2E8F0', borderRadius: '6px', background: '#FFFFFF', width: '30px', height: '30px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}
                           title="تفاصيل الجلسة"
                           onClick={() => setViewDetailsModal(session)}
                         >
-                          👁
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
                         </button>
 
                         {/* Edit Booking */}
                         <button
                           className="admin-icon-btn-minimal"
-                          style={{ border: '1px solid #E2E8F0', borderRadius: '6px', background: '#FFFFFF', width: '28px', height: '28px', color: '#475569', cursor: 'pointer' }}
+                          style={{ border: '1px solid #E2E8F0', borderRadius: '6px', background: '#FFFFFF', width: '30px', height: '30px', color: '#475569', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                           title="تعديل الحجز"
                           onClick={() => setEditBookingModal(session)}
                         >
-                          ✏️
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
                         </button>
 
                         {/* Live Observer Video */}
                         <button
                           className="admin-icon-btn-minimal"
-                          style={{ border: '1px solid #BAE6FD', background: '#F0F9FF', borderRadius: '6px', width: '28px', height: '28px', color: '#0284C7', cursor: 'pointer' }}
+                          style={{ border: '1px solid #BAE6FD', background: '#F0F9FF', borderRadius: '6px', width: '30px', height: '30px', color: '#0284C7', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                           title="دخول غرفة المراقب اللحظي"
                           onClick={() => handleJoinObserver(session)}
                         >
-                          🎥
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="23 7 16 12 23 17 23 7" />
+                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                          </svg>
                         </button>
 
                         {/* Accept */}
                         <button
                           className="admin-icon-btn-minimal"
-                          style={{ border: '1px solid #A7F3D0', background: '#ECFDF5', borderRadius: '6px', width: '28px', height: '28px', color: '#059669', cursor: 'pointer' }}
+                          style={{ border: '1px solid #A7F3D0', background: '#ECFDF5', borderRadius: '6px', width: '30px', height: '30px', color: '#059669', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                           title="تأكيد الحجز"
                           onClick={() => updateSessionStatus(session.id, 'مؤكدة')}
                         >
-                          ✓
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
                         </button>
 
-                        {/* Cancel */}
+                        {/* Delete / Cancel */}
                         <button
                           className="admin-icon-btn-minimal"
-                          style={{ border: '1px solid #FECACA', background: '#FEF2F2', borderRadius: '6px', width: '28px', height: '28px', color: '#DC2626', cursor: 'pointer' }}
-                          title="إلغاء الجلسة"
+                          style={{ border: '1px solid #FECACA', background: '#FEF2F2', borderRadius: '6px', width: '30px', height: '30px', color: '#DC2626', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          title="حذف / إلغاء الجلسة"
                           onClick={() => updateSessionStatus(session.id, 'ملغاة')}
                         >
-                          ✕
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
                         </button>
                       </div>
                     </td>

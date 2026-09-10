@@ -4,6 +4,7 @@ import { consultantService } from '../services/consultantService';
 import { appointmentService } from '../services/appointmentService';
 import { chatAiService } from '../services/chatAiService';
 import Toast, { useToast } from '../components/Toast/Toast';
+import ModernSelect from '../components/ModernSelect';
 import './ChatPage.css';
 
 // Formal SVG Icons (No childish emojis)
@@ -27,6 +28,13 @@ const TrashIcon = () => (
     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
     <line x1="10" y1="11" x2="10" y2="17"></line>
     <line x1="14" y1="11" x2="14" y2="17"></line>
+  </svg>
+);
+
+const DetailsIcon = ({ size = 15, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+    <line x1="15" y1="3" x2="15" y2="21" />
   </svg>
 );
 
@@ -93,7 +101,7 @@ export default function ChatPage({ navigate }) {
     ai_summary: false,
     rating: false
   });
-  const [isDetailsVisible, setIsDetailsVisible] = useState(true);
+  const [isDetailsVisible, setIsDetailsVisible] = useState(false);
 
   // Modals state
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
@@ -660,6 +668,17 @@ export default function ChatPage({ navigate }) {
     return 'استشارة نشطة';
   };
 
+  const getShortStatusLabel = (statusStr, scheduledAt) => {
+    if (!statusStr) return 'نشطة';
+    if (statusStr === 'completed') return 'مكتملة';
+    if (statusStr === 'confirmed' || statusStr === 'pending_approval' || statusStr === 'pending_payment') {
+      const isPast = scheduledAt && new Date(scheduledAt) < new Date();
+      return isPast ? 'متابعة' : 'نشطة';
+    }
+    if (statusStr.startsWith('cancelled') || statusStr === 'no_show') return 'ملغاة';
+    return 'نشطة';
+  };
+
   const toggleSection = (sectionKey) => {
     setExpandedSections(prev => ({ ...prev, [sectionKey]: !prev[sectionKey] }));
   };
@@ -877,58 +896,18 @@ export default function ChatPage({ navigate }) {
         {/* 1. FAR RIGHT in RTL: Conversations Sidebar (Users/Inbox List) */}
         <div className="conversations-sidebar">
           <div className="conversations-header">
-            <div className="conversations-filter-row">
+            <div className="conversations-filter-row" style={{ position: 'relative', zIndex: 50, overflow: 'visible' }}>
               <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0D3C5C' }}>
                 المحادثات
               </span>
 
-              <div className="conversations-custom-select" ref={filterDropdownRef}>
-                <button
-                  type="button"
-                  className={`conversations-select-trigger ${filterDropdownOpen ? 'open' : ''}`}
-                  onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
-                >
-                  <span className="trigger-label">{currentFilterObj.label}</span>
-                  <svg
-                    className={`trigger-arrow ${filterDropdownOpen ? 'rotated' : ''}`}
-                    width="13"
-                    height="13"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </button>
-
-                {filterDropdownOpen && (
-                  <div className="conversations-select-menu">
-                    {filterOptions.map(opt => {
-                      const isSelected = consultationFilter === opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          className={`conversations-option-item ${isSelected ? 'selected' : ''}`}
-                          onClick={() => {
-                            setConsultationFilter(opt.value);
-                            setFilterDropdownOpen(false);
-                          }}
-                        >
-                          <span className="option-text">{opt.label}</span>
-                          {isSelected && (
-                            <svg className="option-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+              <div style={{ minWidth: '160px', position: 'relative', zIndex: 50 }}>
+                <ModernSelect
+                  options={filterOptions}
+                  value={consultationFilter}
+                  onChange={setConsultationFilter}
+                  placeholder="كل الاستشارات"
+                />
               </div>
             </div>
 
@@ -1041,20 +1020,12 @@ export default function ChatPage({ navigate }) {
                 <div className="chat-partner-title-area">
                   <h2>{getPartnerName(activeAppt)}</h2>
 
-                  <span className="topic-subtext">
-                    {activeAppt.notes || activeAppt.service_name || 'استشارة تخصصية'} — {getStatusLabel(activeAppt.status, activeAppt.scheduled_at)}
+                  <span className="topic-sub-badge">
+                    {getShortStatusLabel(activeAppt.status, activeAppt.scheduled_at)}
                   </span>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {!isDetailsVisible && (
-                    <button
-                      onClick={() => setIsDetailsVisible(true)}
-                      style={{ background: '#F8FAFC', border: '1px solid #BCCCDC', padding: '5px 12px', borderRadius: '8px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600, color: '#0D3C5C' }}
-                    >
-                      إظهار التفاصيل ◄
-                    </button>
-                  )}
                   <button
                     onClick={handleCloseChat}
                     title="إغلاق المحادثة الحالية"
@@ -1072,6 +1043,14 @@ export default function ChatPage({ navigate }) {
                     onMouseOut={e => e.currentTarget.style.color = '#64748B'}
                   >
                     إغلاق المحادثة
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsDetailsVisible(prev => !prev)}
+                    className={`btn-icon-toggle-details ${isDetailsVisible ? 'active' : ''}`}
+                    title={isDetailsVisible ? 'إخفاء تفاصيل الاستشارة' : 'إظهار تفاصيل الاستشارة'}
+                  >
+                    <DetailsIcon size={16} color={isDetailsVisible ? '#FFFFFF' : '#0D3C5C'} />
                   </button>
                 </div>
               </div>
@@ -1331,15 +1310,15 @@ export default function ChatPage({ navigate }) {
               {expandedSections.status && (
                 <div className="accordion-body">
                   {user?.role === 'consultant' ? (
-                    <select
+                    <ModernSelect
+                      options={[
+                        { value: 'confirmed', label: 'تحدث ما قبل الجلسة (نشطة)' },
+                        { value: 'completed', label: 'متابعة ما بعد الجلسة (مكتملة)' },
+                        { value: 'cancelled_by_consultant', label: 'إلغاء الاستشارة' }
+                      ]}
                       value={activeAppt.status || 'confirmed'}
-                      onChange={e => handleUpdateAppointmentStatus(e.target.value)}
-                      className="status-dropdown"
-                    >
-                      <option value="confirmed">تحدث ما قبل الجلسة (نشطة)</option>
-                      <option value="completed">متابعة ما بعد الجلسة (مكتملة)</option>
-                      <option value="cancelled_by_consultant">إلغاء الاستشارة</option>
-                    </select>
+                      onChange={handleUpdateAppointmentStatus}
+                    />
                   ) : (
                     <div className="info-value">
                       {getStatusLabel(activeAppt.status, activeAppt.scheduled_at)}
@@ -1523,43 +1502,43 @@ export default function ChatPage({ navigate }) {
               <div className="form-grid-2">
                 <div className="form-group-clean">
                   <label className="form-label-clean">الغرض</label>
-                  <select
+                  <ModernSelect
+                    options={[
+                      { value: 'اقتراح رد', label: 'اقتراح رد' },
+                      { value: 'عرض', label: 'عرض' },
+                      { value: 'تلخيص', label: 'تلخيص' },
+                      { value: 'متابعة', label: 'متابعة' }
+                    ]}
                     value={aiParams.purpose}
-                    onChange={e => setAiParams(p => ({ ...p, purpose: e.target.value }))}
-                    className="form-control-clean"
-                  >
-                    <option value="اقتراح رد">اقتراح رد</option>
-                    <option value="عرض">عرض</option>
-                    <option value="تلخيص">تلخيص</option>
-                    <option value="متابعة">متابعة</option>
-                  </select>
+                    onChange={val => setAiParams(p => ({ ...p, purpose: val }))}
+                  />
                 </div>
 
                 <div className="form-group-clean">
                   <label className="form-label-clean">اللغة</label>
-                  <select
+                  <ModernSelect
+                    options={[
+                      { value: 'ar', label: 'العربية' },
+                      { value: 'en', label: 'English' }
+                    ]}
                     value={aiParams.language}
-                    onChange={e => setAiParams(p => ({ ...p, language: e.target.value }))}
-                    className="form-control-clean"
-                  >
-                    <option value="ar">العربية</option>
-                    <option value="en">English</option>
-                  </select>
+                    onChange={val => setAiParams(p => ({ ...p, language: val }))}
+                  />
                 </div>
               </div>
 
               <div className="form-grid-2">
                 <div className="form-group-clean">
                   <label className="form-label-clean">إبداع الذكاء الاصطناعي</label>
-                  <select
+                  <ModernSelect
+                    options={[
+                      { value: 'منخفض', label: 'منخفض' },
+                      { value: 'متوسط', label: 'متوسط' },
+                      { value: 'مرتفع', label: 'مرتفع' }
+                    ]}
                     value={aiParams.creativity}
-                    onChange={e => setAiParams(p => ({ ...p, creativity: e.target.value }))}
-                    className="form-control-clean"
-                  >
-                    <option value="منخفض">منخفض</option>
-                    <option value="متوسط">متوسط</option>
-                    <option value="مرتفع">مرتفع</option>
-                  </select>
+                    onChange={val => setAiParams(p => ({ ...p, creativity: val }))}
+                  />
                 </div>
 
                 <div className="form-group-clean">

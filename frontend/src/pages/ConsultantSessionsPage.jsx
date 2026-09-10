@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { consultantService } from '../services/consultantService';
 import Toast, { useToast } from '../components/Toast/Toast';
 import VideoSessionModal from '../components/VideoSession/VideoSessionModal';
+import ModernSelect from '../components/ModernSelect';
 
 // ── Crisp SVG Icons ──────────────────────────────────────────────
 const KanbanGridIcon = ({ size = 16, color = 'currentColor' }) => (
@@ -969,7 +970,10 @@ export default function ConsultantSessionsPage({ navigate }) {
           border: '1px solid #E2E8F0',
           boxShadow: '0 1px 6px rgba(10, 50, 84, 0.02)',
           padding: '16px 20px',
-          marginBottom: '24px'
+          marginBottom: '24px',
+          position: 'relative',
+          zIndex: 50,
+          overflow: 'visible'
         }}
       >
         {/* Row 1: All Filter Controls & View Buttons (RTL layout) */}
@@ -977,8 +981,8 @@ export default function ConsultantSessionsPage({ navigate }) {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
-            flexWrap: 'nowrap',
+            gap: '8px',
+            flexWrap: 'wrap',
             width: '100%'
           }}
         >
@@ -1038,7 +1042,7 @@ export default function ConsultantSessionsPage({ navigate }) {
               backgroundColor: '#FFFFFF',
               border: '1px solid #CBD5E1',
               borderRadius: '8px',
-              padding: '0 18px',
+              padding: '0 14px',
               fontSize: '13px',
               fontWeight: '800',
               color: '#0A3254',
@@ -1054,129 +1058,65 @@ export default function ConsultantSessionsPage({ navigate }) {
           </button>
 
           {/* Status Dropdown: جميع الحالات */}
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            <select
+          <div style={{ width: '138px', flexShrink: 0 }}>
+            <ModernSelect
+              options={[
+                { value: 'all', label: 'جميع الحالات' },
+                { value: 'completed', label: 'مكتمله' },
+                { value: 'in_progress', label: 'قيد التنفيذ' },
+                { value: 'confirmed', label: 'مؤكدة' },
+                { value: 'pending', label: 'معلقه' },
+                { value: 'cancelled', label: 'ملغاة' }
+              ]}
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              style={{
-                height: '38px',
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #CBD5E1',
-                borderRadius: '8px',
-                padding: '0 28px 0 12px',
-                fontSize: '12.5px',
-                fontWeight: '700',
-                color: '#0A3254',
-                outline: 'none',
-                cursor: 'pointer',
-                fontFamily: "'Tajawal', sans-serif",
-                appearance: 'none',
-                WebkitAppearance: 'none'
-              }}
-            >
-              <option value="all">جميع الحالات</option>
-              <option value="completed">مكتمله</option>
-              <option value="in_progress">قيد التنفيذ</option>
-              <option value="confirmed">مؤكدة</option>
-              <option value="pending">معلقه</option>
-              <option value="cancelled">ملغاة</option>
-            </select>
-            <div style={{ position: 'absolute', left: '10px', top: '14px', pointerEvents: 'none' }}>
-              <ChevronDownIcon size={10} color="#64748B" />
-            </div>
+              onChange={setFilterStatus}
+              placeholder="جميع الحالات"
+            />
           </div>
 
           {/* Booking Type Dropdown: جميع الحجوزات */}
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            <select
+          <div style={{ width: '138px', flexShrink: 0 }}>
+            <ModernSelect
+              options={[
+                { value: 'all', label: 'جميع الحجوزات' },
+                { value: 'video', label: 'جلسات فيديو' },
+                { value: 'chat', label: 'جلسات محادثة' },
+                { value: 'report', label: 'تقارير مكتوبة' }
+              ]}
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              style={{
-                height: '38px',
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #CBD5E1',
-                borderRadius: '8px',
-                padding: '0 28px 0 12px',
-                fontSize: '12.5px',
-                fontWeight: '700',
-                color: '#0A3254',
-                outline: 'none',
-                cursor: 'pointer',
-                fontFamily: "'Tajawal', sans-serif",
-                appearance: 'none',
-                WebkitAppearance: 'none'
-              }}
-            >
-              <option value="all">جميع الحجوزات</option>
-              <option value="video">جلسات فيديو</option>
-              <option value="chat">جلسات محادثة</option>
-              <option value="report">تقارير مكتوبة</option>
-            </select>
-            <div style={{ position: 'absolute', left: '10px', top: '14px', pointerEvents: 'none' }}>
-              <ChevronDownIcon size={10} color="#64748B" />
-            </div>
+              onChange={setFilterType}
+              placeholder="جميع الحجوزات"
+            />
           </div>
 
           {/* Client Type Dropdown: جميع المستخدمين */}
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            <select
+          <div style={{ width: '138px', flexShrink: 0 }}>
+            <ModernSelect
+              options={[
+                { value: 'all', label: 'جميع المستخدمين' },
+                { value: 'companies', label: 'شركات ومؤسسات' },
+                { value: 'individuals', label: 'أفراد' },
+                { value: 'consultants', label: 'مستشارون' }
+              ]}
               value={filterUser}
-              onChange={(e) => setFilterUser(e.target.value)}
-              style={{
-                height: '38px',
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #CBD5E1',
-                borderRadius: '8px',
-                padding: '0 28px 0 12px',
-                fontSize: '12.5px',
-                fontWeight: '700',
-                color: '#0A3254',
-                outline: 'none',
-                cursor: 'pointer',
-                fontFamily: "'Tajawal', sans-serif",
-                appearance: 'none',
-                WebkitAppearance: 'none'
-              }}
-            >
-              <option value="all">جميع المستخدمين</option>
-              <option value="companies">شركات ومؤسسات</option>
-              <option value="individuals">أفراد</option>
-              <option value="consultants">مستشارون</option>
-            </select>
-            <div style={{ position: 'absolute', left: '10px', top: '14px', pointerEvents: 'none' }}>
-              <ChevronDownIcon size={10} color="#64748B" />
-            </div>
+              onChange={setFilterUser}
+              placeholder="جميع المستخدمين"
+            />
           </div>
 
           {/* Period Dropdown: الفترة الزمنية */}
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            <select
+          <div style={{ width: '138px', flexShrink: 0 }}>
+            <ModernSelect
+              options={[
+                { value: 'all', label: 'الفترة الزمنية' },
+                { value: 'today', label: 'اليوم' },
+                { value: 'this_week', label: 'هذا الأسبوع' },
+                { value: 'this_month', label: 'هذا الشهر' }
+              ]}
               value={filterPeriod}
-              onChange={(e) => setFilterPeriod(e.target.value)}
-              style={{
-                height: '38px',
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #CBD5E1',
-                borderRadius: '8px',
-                padding: '0 28px 0 12px',
-                fontSize: '12.5px',
-                fontWeight: '700',
-                color: '#0A3254',
-                outline: 'none',
-                cursor: 'pointer',
-                fontFamily: "'Tajawal', sans-serif",
-                appearance: 'none',
-                WebkitAppearance: 'none'
-              }}
-            >
-              <option value="all">الفترة الزمنية</option>
-              <option value="today">اليوم</option>
-              <option value="this_week">هذا الأسبوع</option>
-              <option value="this_month">هذا الشهر</option>
-            </select>
-            <div style={{ position: 'absolute', left: '10px', top: '14px', pointerEvents: 'none' }}>
-              <ChevronDownIcon size={10} color="#64748B" />
-            </div>
+              onChange={setFilterPeriod}
+              placeholder="الفترة الزمنية"
+            />
           </div>
 
           {/* Date Picker Start */}
@@ -2051,44 +1991,15 @@ export default function ConsultantSessionsPage({ navigate }) {
                 >
                   نوع التعديل
                 </label>
-                <div style={{ position: 'relative', width: '100%' }}>
-                  <select
-                    value={editType}
-                    onChange={(e) => setEditType(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px 10px 36px',
-                      borderRadius: '8px',
-                      border: '1.5px solid #CBD5E1',
-                      fontSize: '14px',
-                      fontWeight: '700',
-                      color: '#0A3254',
-                      backgroundColor: '#FFFFFF',
-                      appearance: 'none',
-                      cursor: 'pointer',
-                      fontFamily: "'Tajawal', sans-serif",
-                      boxSizing: 'border-box',
-                      outline: 'none'
-                    }}
-                  >
-                    <option value="">اختر نوع التعديل</option>
-                    <option value="reschedule">تغيير الموعد</option>
-                    <option value="payment">تغيير حالة الدفع</option>
-                  </select>
-                  <div
-                    style={{
-                      position: 'absolute',
-                      left: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      pointerEvents: 'none',
-                      display: 'flex',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <ChevronDownIcon size={14} color="#0A3254" />
-                  </div>
-                </div>
+                <ModernSelect
+                  options={[
+                    { value: 'reschedule', label: 'تغيير الموعد' },
+                    { value: 'payment', label: 'تغيير حالة الدفع' }
+                  ]}
+                  value={editType}
+                  onChange={setEditType}
+                  placeholder="اختر نوع التعديل"
+                />
               </div>
 
               {/* Case 1: تغيير الموعد (reschedule) */}
@@ -2246,44 +2157,16 @@ export default function ConsultantSessionsPage({ navigate }) {
                     >
                       حالة الدفع
                     </label>
-                    <div style={{ position: 'relative', width: '100%' }}>
-                      <select
-                        value={newPaymentStatus}
-                        onChange={(e) => setNewPaymentStatus(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '10px 14px 10px 36px',
-                          borderRadius: '8px',
-                          border: '1.5px solid #CBD5E1',
-                          fontSize: '14px',
-                          fontWeight: '700',
-                          color: '#0A3254',
-                          backgroundColor: '#FFFFFF',
-                          appearance: 'none',
-                          cursor: 'pointer',
-                          fontFamily: "'Tajawal', sans-serif",
-                          boxSizing: 'border-box',
-                          outline: 'none'
-                        }}
-                      >
-                        <option value="غير مدفوعة">غير مدفوعة</option>
-                        <option value="بانتظار الدفع">بانتظار الدفع</option>
-                        <option value="مدفوعة">مدفوعة</option>
-                      </select>
-                      <div
-                        style={{
-                          position: 'absolute',
-                          left: '12px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          pointerEvents: 'none',
-                          display: 'flex',
-                          alignItems: 'center'
-                        }}
-                      >
-                        <ChevronDownIcon size={14} color="#0A3254" />
-                      </div>
-                    </div>
+                    <ModernSelect
+                      options={[
+                        { value: 'غير مدفوعة', label: 'غير مدفوعة' },
+                        { value: 'بانتظار الدفع', label: 'بانتظار الدفع' },
+                        { value: 'مدفوعة', label: 'مدفوعة' }
+                      ]}
+                      value={newPaymentStatus}
+                      onChange={setNewPaymentStatus}
+                      placeholder="حالة الدفع"
+                    />
                   </div>
 
                   {/* Note Container */}

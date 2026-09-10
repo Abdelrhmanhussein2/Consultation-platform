@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import './AdminSubscriptionsPage.css';
+import ModernSelect from '../../components/ModernSelect';
 
 // ══════════════════════════════════════════════════════════════════
 // DATASETS & CONSTANTS
@@ -1245,30 +1246,36 @@ export default function AdminSubscriptionsPage({ navigate }) {
                 />
               </div>
 
-              <select
-                className="sub-control"
-                value={subPlanFilter}
-                onChange={(e) => setSubPlanFilter(e.target.value)}
-              >
-                <option value="all">كل الباقات</option>
-                <option value="مجانية">مجانية</option>
-                <option value="أساسية">أساسية</option>
-                <option value="احترافية">احترافية</option>
-              </select>
+              <div style={{ width: '150px' }}>
+                <ModernSelect
+                  options={[
+                    { value: 'all', label: 'كل الباقات' },
+                    { value: 'مجانية', label: 'مجانية' },
+                    { value: 'أساسية', label: 'أساسية' },
+                    { value: 'احترافية', label: 'احترافية' }
+                  ]}
+                  value={subPlanFilter}
+                  onChange={setSubPlanFilter}
+                  placeholder="كل الباقات"
+                />
+              </div>
 
-              <select
-                className="sub-control"
-                value={subLifecycleFilter}
-                onChange={(e) => setSubLifecycleFilter(e.target.value)}
-              >
-                <option value="all">كل الحالات</option>
-                <option value="active">فعّال</option>
-                <option value="renewal">بانتظار التجديد</option>
-                <option value="payment">بانتظار الدفع</option>
-                <option value="grace">فترة سماح</option>
-                <option value="expiring">سينتهي قريبًا</option>
-                <option value="scheduled">تغيير مجدول</option>
-              </select>
+              <div style={{ width: '160px' }}>
+                <ModernSelect
+                  options={[
+                    { value: 'all', label: 'كل الحالات' },
+                    { value: 'active', label: 'فعّال' },
+                    { value: 'renewal', label: 'بانتظار التجديد' },
+                    { value: 'payment', label: 'بانتظار الدفع' },
+                    { value: 'grace', label: 'فترة سماح' },
+                    { value: 'expiring', label: 'سينتهي قريبًا' },
+                    { value: 'scheduled', label: 'تغيير مجدول' }
+                  ]}
+                  value={subLifecycleFilter}
+                  onChange={setSubLifecycleFilter}
+                  placeholder="كل الحالات"
+                />
+              </div>
             </div>
 
             <div className="sub-toolbar-left">
@@ -1366,27 +1373,33 @@ export default function AdminSubscriptionsPage({ navigate }) {
                 />
               </div>
 
-              <select
-                className="sub-control"
-                value={reqStatusFilter}
-                onChange={(e) => setReqStatusFilter(e.target.value)}
-              >
-                <option value="all">كل الحالات</option>
-                <option value="pending">معلّقة</option>
-                <option value="approved">معتمدة</option>
-                <option value="rejected">مرفوضة</option>
-              </select>
+              <div style={{ width: '140px' }}>
+                <ModernSelect
+                  options={[
+                    { value: 'all', label: 'كل الحالات' },
+                    { value: 'pending', label: 'معلّقة' },
+                    { value: 'approved', label: 'معتمدة' },
+                    { value: 'rejected', label: 'مرفوضة' }
+                  ]}
+                  value={reqStatusFilter}
+                  onChange={setReqStatusFilter}
+                  placeholder="كل الحالات"
+                />
+              </div>
 
-              <select
-                className="sub-control"
-                value={reqPlanFilter}
-                onChange={(e) => setReqPlanFilter(e.target.value)}
-              >
-                <option value="all">كل الباقات</option>
-                <option value="مجانية">مجانية</option>
-                <option value="أساسية">أساسية</option>
-                <option value="احترافية">احترافية</option>
-              </select>
+              <div style={{ width: '150px' }}>
+                <ModernSelect
+                  options={[
+                    { value: 'all', label: 'كل الباقات' },
+                    { value: 'مجانية', label: 'مجانية' },
+                    { value: 'أساسية', label: 'أساسية' },
+                    { value: 'احترافية', label: 'احترافية' }
+                  ]}
+                  value={reqPlanFilter}
+                  onChange={setReqPlanFilter}
+                  placeholder="كل الباقات"
+                />
+              </div>
             </div>
 
             <div className="sub-toolbar-left">

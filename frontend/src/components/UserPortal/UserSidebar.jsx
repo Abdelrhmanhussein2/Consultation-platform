@@ -147,10 +147,12 @@ const ChevronIcon = ({ isOpen }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     style={{
-      transition: 'transform 0.2s',
+      transition: 'transform 0.2s ease',
       transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-      marginLeft: '0',
-      marginRight: 'auto'
+      marginLeft: 'auto',
+      marginRight: '0',
+      flexShrink: 0,
+      color: '#94A3B8'
     }}
   >
     <polyline points="6 9 12 15 18 9" />
@@ -275,7 +277,12 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
       <nav className="sidebar-nav">
         {navItems.map((item) => {
           if (item.isGroup) {
-            const isGroupActive = item.subItems.some(sub => currentPath === sub.path || currentPath.startsWith(sub.path + '/'));
+            const exactSubMatch = item.subItems.find(sub => currentPath === sub.path);
+            const activeSubPath = exactSubMatch
+              ? exactSubMatch.path
+              : item.subItems.find(sub => currentPath.startsWith(sub.path + '/'))?.path;
+
+            const isGroupActive = !!activeSubPath;
             const isOpen = item.id === 'consulting_services_group' ? servicesOpen : false;
             const toggleOpen = () => {
               if (item.id === 'consulting_services_group') {
@@ -297,22 +304,20 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
                     }
                   }}
                   title={item.label}
-                  style={{ display: 'flex', width: '100%', alignItems: 'center' }}
+                  style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between' }}
                 >
-                  <span className="nav-icon">
-                    <GroupIcon size={20} color={isGroupActive ? '#FFFFFF' : '#CBD5E1'} />
-                  </span>
-                  {!isCollapsed && (
-                    <>
-                      <span className="nav-label" style={{ marginRight: '8px' }}>{item.label}</span>
-                      <ChevronIcon isOpen={isOpen} />
-                    </>
-                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span className="nav-icon">
+                      <GroupIcon size={20} color={isGroupActive ? '#FFFFFF' : '#CBD5E1'} />
+                    </span>
+                    {!isCollapsed && <span className="nav-label">{item.label}</span>}
+                  </div>
+                  {!isCollapsed && <ChevronIcon isOpen={isOpen} />}
                 </button>
                 {isOpen && !isCollapsed && (
                   <div className="sidebar-sub-nav" style={{ paddingRight: '36px', display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
                     {item.subItems.map((subItem) => {
-                      const isSubActive = currentPath === subItem.path || currentPath.startsWith(subItem.path + '/');
+                      const isSubActive = subItem.path === activeSubPath;
                       return (
                         <button
                           key={subItem.path}
@@ -320,15 +325,16 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
                           className={`nav-sub-item ${isSubActive ? 'active' : ''}`}
                           onClick={() => navigate(subItem.path)}
                           style={{
-                            background: isSubActive ? 'rgba(245, 165, 42, 0.12)' : 'transparent',
+                            background: 'transparent',
                             border: 'none',
-                            color: isSubActive ? '#F5A52A' : '#94A3B8',
-                            padding: '8px 12px',
+                            color: isSubActive ? '#FFFFFF' : '#94A3B8',
+                            padding: '6px 10px',
                             textAlign: 'right',
-                            fontSize: '13px',
+                            fontSize: '12px',
                             cursor: 'pointer',
                             borderRadius: '6px',
                             fontWeight: isSubActive ? '700' : 'normal',
+                            boxShadow: 'none',
                             transition: 'all 0.2s',
                             display: 'flex',
                             alignItems: 'center',
@@ -339,12 +345,13 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
                           onMouseLeave={(e) => { if (!isSubActive) e.target.style.color = '#94A3B8'; }}
                         >
                           <span style={{
-                            width: '5px',
-                            height: '5px',
+                            width: '6px',
+                            height: '6px',
                             borderRadius: '50%',
-                            background: isSubActive ? '#F5A52A' : '#64748B',
+                            background: isSubActive ? '#FFFFFF' : '#64748B',
                             display: 'inline-block',
-                            flexShrink: 0
+                            flexShrink: 0,
+                            transition: 'background 0.2s'
                           }} />
                           {subItem.label}
                         </button>
@@ -371,17 +378,15 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
                     }
                   }}
                   title="الدعم والمساعدة"
-                  style={{ display: 'flex', width: '100%', alignItems: 'center' }}
+                  style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between' }}
                 >
-                  <span className="nav-icon">
-                    <TicketsIcon size={20} color={isSupportActive ? '#FFFFFF' : '#CBD5E1'} />
-                  </span>
-                  {!isCollapsed && (
-                    <>
-                      <span className="nav-label" style={{ marginRight: '8px' }}>الدعم والمساعدة</span>
-                      <ChevronIcon isOpen={supportOpen} />
-                    </>
-                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span className="nav-icon">
+                      <TicketsIcon size={20} color={isSupportActive ? '#FFFFFF' : '#CBD5E1'} />
+                    </span>
+                    {!isCollapsed && <span className="nav-label">الدعم والمساعدة</span>}
+                  </div>
+                  {!isCollapsed && <ChevronIcon isOpen={supportOpen} />}
                 </button>
                 {supportOpen && !isCollapsed && (
                   <div className="sidebar-sub-nav" style={{ paddingRight: '36px', display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
@@ -400,20 +405,32 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
                           style={{
                             background: 'transparent',
                             border: 'none',
-                            color: isSubActive ? '#F5A52A' : '#94A3B8',
-                            padding: '8px 12px',
+                            color: isSubActive ? '#FFFFFF' : '#94A3B8',
+                            padding: '6px 10px',
                             textAlign: 'right',
-                            fontSize: '13px',
+                            fontSize: '12px',
                             cursor: 'pointer',
                             borderRadius: '6px',
                             fontWeight: isSubActive ? '700' : 'normal',
+                            boxShadow: 'none',
                             transition: 'all 0.2s',
-                            display: 'block',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
                             width: '100%'
                           }}
                           onMouseEnter={(e) => { if (!isSubActive) e.target.style.color = '#FFFFFF'; }}
                           onMouseLeave={(e) => { if (!isSubActive) e.target.style.color = '#94A3B8'; }}
                         >
+                          <span style={{
+                            width: '6px',
+                            height: '6px',
+                            borderRadius: '50%',
+                            background: isSubActive ? '#FFFFFF' : '#64748B',
+                            display: 'inline-block',
+                            flexShrink: 0,
+                            transition: 'background 0.2s'
+                          }} />
                           {subItem.label}
                         </button>
                       );

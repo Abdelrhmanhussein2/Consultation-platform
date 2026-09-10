@@ -1,4 +1,5 @@
 import React from 'react';
+import ModernSelect from '../../../components/ModernSelect';
 
 export default function RbacRolesView({
   roles,
@@ -103,11 +104,15 @@ export default function RbacRolesView({
             value={rolesSearch} 
             onChange={e => setRolesSearch(e.target.value)} 
           />
-          <select value={rolesTypeFilter} onChange={e => setRolesTypeFilter(e.target.value)}>
-            <option value="all">جميع الأدوار</option>
-            <option value="system">الأدوار الأساسية</option>
-            <option value="custom">الأدوار المخصصة</option>
-          </select>
+          <ModernSelect
+            value={rolesTypeFilter}
+            onChange={(val) => setRolesTypeFilter(val)}
+            options={[
+              { value: 'all', label: 'جميع الأدوار' },
+              { value: 'system', label: 'الأدوار الأساسية' },
+              { value: 'custom', label: 'الأدوار المخصصة' }
+            ]}
+          />
         </div>
 
         <div className="tableWrap">

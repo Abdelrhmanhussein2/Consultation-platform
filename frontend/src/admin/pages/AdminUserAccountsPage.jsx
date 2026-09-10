@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import './AdminUserAccountsPage.css';
+import ModernSelect from '../../components/ModernSelect';
 import {
   getAdminUsers,
   toggleUserActive,
@@ -639,49 +640,56 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
         <div className="uacc-card">
           <div className="uacc-toolbar">
             <div className="uacc-toolbar-group">
-              <select
-                className="uacc-select"
-                value={userEntries}
-                onChange={e => { setUserEntries(Number(e.target.value)); setUserPage(1); }}
-              >
-                <option value="10">10</option>
-                <option value="15">15</option>
-                <option value="25">25</option>
-              </select>
+              <div style={{ width: '80px' }}>
+                <ModernSelect
+                  options={[
+                    { value: 10, label: '10' },
+                    { value: 15, label: '15' },
+                    { value: 25, label: '25' }
+                  ]}
+                  value={userEntries}
+                  onChange={val => { setUserEntries(Number(val)); setUserPage(1); }}
+                />
+              </div>
               <span className="uacc-entries-label">سجل لكل صفحة</span>
 
-              <select
-                className="uacc-select uacc-filter-select"
-                value={roleFilter}
-                onChange={e => { setRoleFilter(e.target.value); setUserPage(1); }}
-              >
-                <option value="">جميع الحسابات ({users.length})</option>
-                <option value="user">المستخدمين والعملاء ({users.filter(u => u.role === 'user').length})</option>
-                <option value="consultant">المستشارين المعتمدين ({users.filter(u => u.role === 'consultant' || u.role === 'platform_consultant').length})</option>
-                <option value="admin">مدراء المنصة ({users.filter(u => u.role === 'admin' || u.role === 'super_admin').length})</option>
-              </select>
+              <div style={{ width: '220px' }}>
+                <ModernSelect
+                  options={[
+                    { value: '', label: `جميع الحسابات (${users.length})` },
+                    { value: 'user', label: `المستخدمين والعملاء (${users.filter(u => u.role === 'user').length})` },
+                    { value: 'consultant', label: `المستشارين المعتمدين (${users.filter(u => u.role === 'consultant' || u.role === 'platform_consultant').length})` },
+                    { value: 'admin', label: `مدراء المنصة (${users.filter(u => u.role === 'admin' || u.role === 'super_admin').length})` }
+                  ]}
+                  value={roleFilter}
+                  onChange={val => { setRoleFilter(val); setUserPage(1); }}
+                  placeholder="جميع الحسابات"
+                />
+              </div>
 
-              <select
-                className="uacc-select uacc-filter-select"
-                value={legalFilter}
-                onChange={e => { setLegalFilter(e.target.value); setUserPage(1); }}
-              >
-                <option value="">كل الصفات القانونية</option>
-                {LEGALS.map(l => (
-                  <option key={l} value={l}>{l}</option>
-                ))}
-              </select>
+              <div style={{ width: '200px' }}>
+                <ModernSelect
+                  options={[
+                    { value: '', label: 'كل الصفات القانونية' },
+                    ...LEGALS.map(l => ({ value: l, label: l }))
+                  ]}
+                  value={legalFilter}
+                  onChange={val => { setLegalFilter(val); setUserPage(1); }}
+                  placeholder="كل الصفات القانونية"
+                />
+              </div>
 
-              <select
-                className="uacc-select uacc-filter-select"
-                value={sectorFilter}
-                onChange={e => { setSectorFilter(e.target.value); setUserPage(1); }}
-              >
-                <option value="">كل القطاعات</option>
-                {SECTORS.map(s => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
+              <div style={{ width: '170px' }}>
+                <ModernSelect
+                  options={[
+                    { value: '', label: 'كل القطاعات' },
+                    ...SECTORS.map(s => ({ value: s, label: s }))
+                  ]}
+                  value={sectorFilter}
+                  onChange={val => { setSectorFilter(val); setUserPage(1); }}
+                  placeholder="كل القطاعات"
+                />
+              </div>
             </div>
 
             <div className="uacc-toolbar-group">
@@ -810,53 +818,60 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
           <div className="uacc-history-filter-bar">
             <div className="uacc-compact-filter">
               <label>السنة</label>
-              <select
-                className="uacc-select"
-                value={historyYear}
-                onChange={e => { setHistoryYear(e.target.value); setHistoryPage(1); }}
-              >
-                <option value="">كل السنوات</option>
-                <option value="2025">2025</option>
-                <option value="2026">2026</option>
-                <option value="2027">2027</option>
-              </select>
+              <div style={{ width: '130px' }}>
+                <ModernSelect
+                  options={[
+                    { value: '', label: 'كل السنوات' },
+                    { value: '2025', label: '2025' },
+                    { value: '2026', label: '2026' },
+                    { value: '2027', label: '2027' }
+                  ]}
+                  value={historyYear}
+                  onChange={val => { setHistoryYear(val); setHistoryPage(1); }}
+                  placeholder="كل السنوات"
+                />
+              </div>
             </div>
 
             <div className="uacc-compact-filter">
               <label>الشهر</label>
-              <select
-                className="uacc-select"
-                value={historyMonth}
-                onChange={e => { setHistoryMonth(e.target.value); setHistoryPage(1); }}
-              >
-                <option value="">كل الأشهر</option>
-                <option value="01">يناير</option>
-                <option value="02">فبراير</option>
-                <option value="03">مارس</option>
-                <option value="04">أبريل</option>
-                <option value="05">مايو</option>
-                <option value="06">يونيو</option>
-                <option value="07">يوليو</option>
-                <option value="08">أغسطس</option>
-                <option value="09">سبتمبر</option>
-                <option value="10">أكتوبر</option>
-                <option value="11">نوفمبر</option>
-                <option value="12">ديسمبر</option>
-              </select>
+              <div style={{ width: '140px' }}>
+                <ModernSelect
+                  options={[
+                    { value: '', label: 'كل الأشهر' },
+                    { value: '01', label: 'يناير' },
+                    { value: '02', label: 'فبراير' },
+                    { value: '03', label: 'مارس' },
+                    { value: '04', label: 'أبريل' },
+                    { value: '05', label: 'مايو' },
+                    { value: '06', label: 'يونيو' },
+                    { value: '07', label: 'يوليو' },
+                    { value: '08', label: 'أغسطس' },
+                    { value: '09', label: 'سبتمبر' },
+                    { value: '10', label: 'أكتوبر' },
+                    { value: '11', label: 'نوفمبر' },
+                    { value: '12', label: 'ديسمبر' }
+                  ]}
+                  value={historyMonth}
+                  onChange={val => { setHistoryMonth(val); setHistoryPage(1); }}
+                  placeholder="كل الأشهر"
+                />
+              </div>
             </div>
 
             <div className="uacc-compact-filter user-filter">
               <label>المستخدم</label>
-              <select
-                className="uacc-select"
-                value={historyUser}
-                onChange={e => { setHistoryUser(e.target.value); setHistoryPage(1); }}
-              >
-                <option value="">كل المستخدمين</option>
-                {users.map(u => (
-                  <option key={u.id} value={u.id}>{u.name}</option>
-                ))}
-              </select>
+              <div style={{ width: '220px' }}>
+                <ModernSelect
+                  options={[
+                    { value: '', label: 'كل المستخدمين' },
+                    ...users.map(u => ({ value: u.id, label: u.name }))
+                  ]}
+                  value={historyUser}
+                  onChange={val => { setHistoryUser(val); setHistoryPage(1); }}
+                  placeholder="كل المستخدمين"
+                />
+              </div>
             </div>
 
             <div className="uacc-history-filter-actions">
@@ -900,15 +915,17 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
 
           <div className="uacc-toolbar">
             <div className="uacc-toolbar-group">
-              <select
-                className="uacc-select"
-                value={historyEntries}
-                onChange={e => { setHistoryEntries(Number(e.target.value)); setHistoryPage(1); }}
-              >
-                <option value="10">10</option>
-                <option value="15">15</option>
-                <option value="25">25</option>
-              </select>
+              <div style={{ width: '80px' }}>
+                <ModernSelect
+                  options={[
+                    { value: 10, label: '10' },
+                    { value: 15, label: '15' },
+                    { value: 25, label: '25' }
+                  ]}
+                  value={historyEntries}
+                  onChange={val => { setHistoryEntries(Number(val)); setHistoryPage(1); }}
+                />
+              </div>
               <span className="uacc-entries-label">سجل لكل صفحة</span>
             </div>
 
@@ -1017,14 +1034,16 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
         <div className="uacc-card">
           <div className="uacc-toolbar">
             <div className="uacc-toolbar-group">
-              <select
-                className="uacc-select"
-                value={roleEntries}
-                onChange={e => setRoleEntries(Number(e.target.value))}
-              >
-                <option value="10">10</option>
-                <option value="15">15</option>
-              </select>
+              <div style={{ width: '80px' }}>
+                <ModernSelect
+                  options={[
+                    { value: 10, label: '10' },
+                    { value: 15, label: '15' }
+                  ]}
+                  value={roleEntries}
+                  onChange={val => setRoleEntries(Number(val))}
+                />
+              </div>
               <span className="uacc-entries-label">سجل لكل صفحة</span>
             </div>
 

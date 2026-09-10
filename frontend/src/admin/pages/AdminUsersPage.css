@@ -67,22 +67,23 @@
   margin: 18px 0 38px;
   background: #FFFFFF;
   border: 1px solid var(--admin-line);
-  border-radius: 999px;
-  box-shadow: 0 12px 28px rgba(11, 46, 75, 0.08);
-  min-height: 66px;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(11, 46, 75, 0.06);
+  min-height: 60px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 175px 150px 150px 145px;
   align-items: center;
-  padding: 7px 8px;
+  padding: 7px 10px;
   position: relative;
   z-index: 50;
+  gap: 8px;
 }
 
 .users-search-input {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 18px;
+  padding: 0 12px;
 }
 
 .users-search-input input {
@@ -90,39 +91,39 @@
   border: 0;
   outline: 0;
   background: transparent;
-  font-size: 14px;
+  font-size: 13.5px;
   color: var(--admin-text);
 }
 
 .users-top-filter {
   height: 100%;
-  border-right: 1px solid #e9edf0;
-  padding: 0 6px;
+  padding: 0 2px;
   display: flex;
   align-items: center;
-  gap: 4px;
   position: relative;
 }
 
 .users-top-filter select {
-  border: 0;
-  background: transparent;
+  height: 40px;
+  border-radius: 10px;
+  border: 1.5px solid #CBD5E1;
+  background: #FFFFFF;
   color: var(--admin-navy);
   font-weight: 700;
   outline: 0;
   width: 100%;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12.5px;
 }
 
 .users-search-btn {
-  height: 50px;
+  height: 42px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 10px;
   background: linear-gradient(135deg, var(--admin-orange), #E68A14);
   color: #FFFFFF;
   font-weight: 800;
-  font-size: 14px;
+  font-size: 13.5px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 4px 14px rgba(245, 154, 35, 0.25);
@@ -263,8 +264,8 @@
 }
 
 .users-sort select {
-  border: 1px solid var(--admin-line);
-  border-radius: 999px;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 10px;
   background: #FFFFFF;
   padding: 8px 12px;
   color: var(--admin-navy);
@@ -1892,14 +1893,16 @@
    MODERN SELECT & EMOJI-FREE CUSTOM FILTERS (ULTRA PREMIUM UI)
    ========================================================================== */
 
-.modern-select-wrapper {
+.users-filter-pill .modern-select-wrapper,
+.users-sort .modern-select-wrapper {
   position: relative;
   width: 100%;
   font-family: inherit;
   user-select: none;
 }
 
-.modern-select-trigger {
+.users-filter-pill .modern-select-trigger,
+.users-sort .modern-select-trigger {
   width: 100%;
   height: 46px;
   background: transparent;
@@ -1918,11 +1921,13 @@
   outline: none;
 }
 
-.modern-select-wrapper:hover .modern-select-trigger {
+.users-filter-pill .modern-select-wrapper:hover .modern-select-trigger,
+.users-sort .modern-select-wrapper:hover .modern-select-trigger {
   background: rgba(11, 46, 75, 0.04);
 }
 
-.modern-select-wrapper.is-open .modern-select-trigger {
+.users-filter-pill .modern-select-wrapper.is-open .modern-select-trigger,
+.users-sort .modern-select-wrapper.is-open .modern-select-trigger {
   background: rgba(11, 46, 75, 0.08);
 }
 

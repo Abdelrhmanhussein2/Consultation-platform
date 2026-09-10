@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import ModernSelect from '../../components/ModernSelect';
 import { notificationService } from '../../services/notificationService';
 import { sendBroadcastNotification } from '../services/adminApi';
 
@@ -494,26 +495,26 @@ export default function AdminNotificationsPage({ navigate }) {
                 />
               </div>
 
-              <select
+              <ModernSelect
                 value={incomingStatusFilter}
-                onChange={e => setIncomingStatusFilter(e.target.value)}
-                style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#FFFFFF', outline: 'none' }}
-              >
-                <option value="all">كل حالات القراءة</option>
-                <option value="unread">غير المقروءة فقط</option>
-                <option value="read">المقروءة فقط</option>
-              </select>
+                onChange={(val) => setIncomingStatusFilter(val)}
+                options={[
+                  { value: 'all', label: 'كل حالات القراءة' },
+                  { value: 'unread', label: 'غير المقروءة فقط' },
+                  { value: 'read', label: 'المقروءة فقط' }
+                ]}
+              />
 
-              <select
+              <ModernSelect
                 value={incomingTypeFilter}
-                onChange={e => setIncomingTypeFilter(e.target.value)}
-                style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#FFFFFF', outline: 'none' }}
-              >
-                <option value="all">كل أنواع الإشعارات</option>
-                <option value="general">عام / اشتراكات</option>
-                <option value="appointment">حجوزات واستشارات</option>
-                <option value="system">نظام</option>
-              </select>
+                onChange={(val) => setIncomingTypeFilter(val)}
+                options={[
+                  { value: 'all', label: 'كل أنواع الإشعارات' },
+                  { value: 'general', label: 'عام / اشتراكات' },
+                  { value: 'appointment', label: 'حجوزات واستشارات' },
+                  { value: 'system', label: 'نظام' }
+                ]}
+              />
 
               <button
                 type="button"
@@ -701,28 +702,27 @@ export default function AdminNotificationsPage({ navigate }) {
                 />
               </div>
 
-              <select
+              <ModernSelect
                 value={filterAudience}
-                onChange={e => setFilterAudience(e.target.value)}
-                style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#FFFFFF', outline: 'none' }}
-              >
-                <option value="all">كل الشرائح</option>
-                <option value="all">الكل</option>
-                <option value="consultants">المستشارون فقط</option>
-                <option value="clients">العملاء والشركات</option>
-              </select>
+                onChange={(val) => setFilterAudience(val)}
+                options={[
+                  { value: 'all', label: 'كل الشرائح' },
+                  { value: 'consultants', label: 'المستشارون فقط' },
+                  { value: 'clients', label: 'العملاء والشركات' }
+                ]}
+              />
 
-              <select
+              <ModernSelect
                 value={filterType}
-                onChange={e => setFilterType(e.target.value)}
-                style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#FFFFFF', outline: 'none' }}
-              >
-                <option value="all">كل الأنواع</option>
-                <option value="update">تحديث نظام</option>
-                <option value="financial">إشعار مالي</option>
-                <option value="maintenance">صيانة</option>
-                <option value="promo">عرض ترويجي</option>
-              </select>
+                onChange={(val) => setFilterType(val)}
+                options={[
+                  { value: 'all', label: 'كل الأنواع' },
+                  { value: 'update', label: 'تحديث نظام' },
+                  { value: 'financial', label: 'إشعار مالي' },
+                  { value: 'maintenance', label: 'صيانة' },
+                  { value: 'promo', label: 'عرض ترويجي' }
+                ]}
+              />
 
               <button
                 type="button"
@@ -882,29 +882,31 @@ export default function AdminNotificationsPage({ navigate }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '6px' }}>الشريحة المستهدفة:</label>
-                  <select
+                  <ModernSelect
                     value={newBroadcast.audience}
-                    onChange={e => setNewBroadcast({ ...newBroadcast, audience: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1' }}
-                  >
-                    <option value="all">كافة المستخدمين</option>
-                    <option value="consultants">المستشارون فقط</option>
-                    <option value="clients">العملاء والشركات</option>
-                  </select>
+                    onChange={(val) => setNewBroadcast({ ...newBroadcast, audience: val })}
+                    options={[
+                      { value: 'all', label: 'كافة المستخدمين' },
+                      { value: 'consultants', label: 'المستشارون فقط' },
+                      { value: 'clients', label: 'العملاء والشركات' }
+                    ]}
+                    style={{ width: '100%' }}
+                  />
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '6px' }}>الأولوية:</label>
-                  <select
+                  <ModernSelect
                     value={newBroadcast.priority}
-                    onChange={e => setNewBroadcast({ ...newBroadcast, priority: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1' }}
-                  >
-                    <option value="normal">عادي</option>
-                    <option value="medium">متوسط</option>
-                    <option value="high">عالي</option>
-                    <option value="urgent">عاجل جداً</option>
-                  </select>
+                    onChange={(val) => setNewBroadcast({ ...newBroadcast, priority: val })}
+                    options={[
+                      { value: 'normal', label: 'عادي' },
+                      { value: 'medium', label: 'متوسط' },
+                      { value: 'high', label: 'عالي' },
+                      { value: 'urgent', label: 'عاجل جداً' }
+                    ]}
+                    style={{ width: '100%' }}
+                  />
                 </div>
               </div>
 

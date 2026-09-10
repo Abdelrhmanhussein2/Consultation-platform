@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../services/api';
 import { CATEGORIES } from './supportFormConfig';
+import ModernSelect from '../components/ModernSelect';
 
 export default function SupportNewTicketPage({ navigate }) {
   const { token } = useAuth();
@@ -250,46 +251,44 @@ export default function SupportNewTicketPage({ navigate }) {
             {/* Category */}
             <div>
               <label className="form-label">الفئة الرئيسية <span className="req">*</span></label>
-              <select
+              <ModernSelect
                 value={category}
-                onChange={(e) => { setCategory(e.target.value); setSubCategory(''); setExtraFieldsData({}); }}
-                className="input-field"
-              >
-                <option value="">اختر الفئة الرئيسية</option>
-                {Object.keys(CATEGORIES).map((key) => (
-                  <option key={key} value={key}>{CATEGORIES[key].label}</option>
-                ))}
-              </select>
+                onChange={(val) => { setCategory(val); setSubCategory(''); setExtraFieldsData({}); }}
+                options={[
+                  { value: '', label: 'اختر الفئة الرئيسية' },
+                  ...Object.keys(CATEGORIES).map(key => ({ value: key, label: CATEGORIES[key].label }))
+                ]}
+                placeholder="اختر الفئة الرئيسية"
+              />
             </div>
 
             {/* Sub category */}
             <div>
               <label className="form-label">الفئة الفرعية <span className="req">*</span></label>
-              <select
+              <ModernSelect
                 value={subCategory}
-                onChange={(e) => handleSubCategoryChange(e.target.value)}
-                disabled={!category}
-                className="input-field"
-              >
-                <option value="">اختر الفئة الفرعية</option>
-                {category && Object.keys(CATEGORIES[category].subs).map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
+                onChange={(val) => handleSubCategoryChange(val)}
+                options={[
+                  { value: '', label: 'اختر الفئة الفرعية' },
+                  ...(category ? Object.keys(CATEGORIES[category].subs).map(s => ({ value: s, label: s })) : [])
+                ]}
+                placeholder="اختر الفئة الفرعية"
+              />
             </div>
 
             {/* Priority */}
             <div>
               <label className="form-label">الأولوية <span className="text-[10px] text-gray-400 mr-2">(تُحدد تلقائياً ويمكن تعديلها)</span></label>
-              <select
+              <ModernSelect
                 value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-                className="input-field"
-              >
-                <option value="منخفضة">منخفضة</option>
-                <option value="متوسطة">متوسطة</option>
-                <option value="عالية">عالية</option>
-              </select>
+                onChange={(val) => setPriority(val)}
+                options={[
+                  { value: 'منخفضة', label: 'منخفضة' },
+                  { value: 'متوسطة', label: 'متوسطة' },
+                  { value: 'عالية', label: 'عالية' }
+                ]}
+                placeholder="اختر الأولوية"
+              />
             </div>
 
             {/* Subject */}
@@ -382,16 +381,15 @@ export default function SupportNewTicketPage({ navigate }) {
 
                   {/* select */}
                   {f.type === 'select' && (
-                    <select
+                    <ModernSelect
                       value={val}
-                      onChange={(e) => setVal(e.target.value)}
-                      className="input-field"
-                    >
-                      <option value="">اختر...</option>
-                      {f.options.map((opt) => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
+                      onChange={(newVal) => setVal(newVal)}
+                      options={[
+                        { value: '', label: 'اختر...' },
+                        ...f.options.map(opt => ({ value: opt, label: opt }))
+                      ]}
+                      placeholder="اختر..."
+                    />
                   )}
 
                   {/* radio */}

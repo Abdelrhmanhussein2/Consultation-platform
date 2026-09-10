@@ -1,17 +1,18 @@
 /* ModernSelect Component Dedicated Styles */
 .modern-select-wrapper {
   position: relative;
-  width: 100%;
+  width: 170px;
+  max-width: 100%;
   font-family: 'Cairo', 'Tajawal', system-ui, -apple-system, sans-serif;
   direction: rtl;
 }
 
 .modern-select-trigger {
   width: 100%;
-  height: 44px;
+  height: 40px;
   background: #FFFFFF;
-  border: 1px solid #CBD5E1;
-  padding: 0 14px;
+  border: 1.5px solid #CBD5E1;
+  padding: 0 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -19,16 +20,21 @@
   cursor: pointer;
   color: #0e3b5e;
   font-weight: 700;
-  font-size: 13px;
-  border-radius: 999px;
+  font-size: 12.5px;
+  border-radius: 10px;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   outline: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .modern-select-wrapper:hover .modern-select-trigger {
-  border-color: #0e7490;
-  box-shadow: 0 2px 8px rgba(14, 116, 144, 0.1);
+  border-color: #0e3b5e;
+  box-shadow: 0 2px 8px rgba(14, 59, 94, 0.08);
+}
+
+.modern-select-wrapper.is-open {
+  z-index: 99999 !important;
+  position: relative;
 }
 
 .modern-select-wrapper.is-open .modern-select-trigger {
@@ -49,7 +55,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   color: #334155;
-  font-size: 13px;
+  font-size: 12.5px;
 }
 
 .modern-select-prefix-icon {
@@ -80,15 +86,15 @@
 /* Floating Dropdown Panel */
 .modern-select-dropdown {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 4px);
   z-index: 99999;
   background: #FFFFFF;
-  border: 1px solid #E2E8F0;
-  border-radius: 16px;
-  box-shadow: 0 16px 36px rgba(14, 59, 94, 0.15), 0 4px 12px rgba(0, 0, 0, 0.05);
-  padding: 6px;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(14, 59, 94, 0.12), 0 4px 10px rgba(0, 0, 0, 0.04);
+  padding: 4px;
   animation: modernDropdownIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  max-height: 280px;
+  max-height: 260px;
   overflow-y: auto;
   scrollbar-width: thin;
 }
@@ -106,6 +112,7 @@
     opacity: 0;
     transform: translateY(-8px) scale(0.97);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -119,16 +126,16 @@
 }
 
 .modern-select-option {
-  padding: 10px 14px;
-  border-radius: 10px;
-  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12.5px;
   font-weight: 600;
   color: #1E293B;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   transition: all 0.15s ease;
   white-space: nowrap;
 }

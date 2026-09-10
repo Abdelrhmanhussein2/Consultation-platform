@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { IconSearch } from '../components/AdminIcons';
 import { getAdminUsers, createAdminUser, toggleUserActive, updateUserProfile, handleConsultantAction, getAdminSessions } from '../services/adminApi';
+import ModernSelect from '../../components/ModernSelect';
 
 export default function AdminConsultantsPage({ navigate }) {
   const [activeTab, setActiveTab] = useState('consultants'); // 'consultants' | 'sessions'
@@ -494,17 +495,19 @@ export default function AdminConsultantsPage({ navigate }) {
               />
             </div>
 
-            <select 
-              className="admin-select-input"
-              style={{ width: '180px', height: '38px' }}
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-            >
-              <option value="all">كل الحالات ({consultants.length})</option>
-              <option value="approved">معتمد ({consultants.filter(c => c.status === 'معتمد').length})</option>
-              <option value="pending">بانتظار ({consultants.filter(c => c.status === 'بانتظار').length})</option>
-              <option value="suspended">مرفوض/موقوف ({consultants.filter(c => c.status === 'موقوف' || c.status === 'مرفوض').length})</option>
-            </select>
+            <div style={{ width: '200px' }}>
+              <ModernSelect
+                options={[
+                  { value: 'all', label: `كل الحالات (${consultants.length})` },
+                  { value: 'approved', label: `معتمد (${consultants.filter(c => c.status === 'معتمد').length})` },
+                  { value: 'pending', label: `بانتظار (${consultants.filter(c => c.status === 'بانتظار').length})` },
+                  { value: 'suspended', label: `مرفوض/موقوف (${consultants.filter(c => c.status === 'موقوف' || c.status === 'مرفوض').length})` }
+                ]}
+                value={statusFilter}
+                onChange={setStatusFilter}
+                placeholder="كل الحالات"
+              />
+            </div>
           </div>
 
       {/* 4. Consultant Cards List */}
@@ -529,7 +532,64 @@ export default function AdminConsultantsPage({ navigate }) {
                 background: '#FFFFFF'
               }}
             >
-              <div style={{ display: 'flex', gap: '8px' }}>
+              {/* Consultant Info (Right Side in RTL) */}
+              <div style={{ textAlign: 'right', flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '900', color: '#0F172A' }}>
+                    {c.name}
+                  </h4>
+
+                  <span 
+                    style={{ 
+                      fontSize: '11px', 
+                      padding: '2px 10px', 
+                      borderRadius: '12px',
+                      background: c.status === 'معتمد' ? '#ECFDF5' : (c.status === 'موقوف' || c.status === 'مرفوض' ? '#FEF2F2' : '#FFFBEB'),
+                      color: c.status === 'معتمد' ? '#059669' : (c.status === 'موقوف' || c.status === 'مرفوض' ? '#DC2626' : '#D97706'),
+                      border: c.status === 'معتمد' ? '1px solid #A7F3D0' : (c.status === 'موقوف' || c.status === 'مرفوض' ? '1px solid #FECACA' : '1px solid #FDE68A'),
+                      fontWeight: '700'
+                    }}
+                  >
+                    {c.status}
+                  </span>
+
+                  <span 
+                    style={{ 
+                      fontSize: '11px', 
+                      padding: '2px 10px', 
+                      borderRadius: '12px',
+                      background: '#F0F9FF', 
+                      color: '#0284C7', 
+                      border: '1px solid #BAE6FD',
+                      fontWeight: '700'
+                    }}
+                  >
+                    {c.hourlyRate}
+                  </span>
+                </div>
+
+                <div style={{ fontSize: '11.5px', color: '#64748B', marginBottom: c.specialties.length > 0 ? '8px' : '0' }}>
+                  {c.email && <span>{c.email} • </span>}
+                  {c.city} • {c.sessionsCount} جلسة • {c.license}
+                </div>
+
+                {c.specialties.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {c.specialties.map((s, idx) => (
+                      <span 
+                        key={idx} 
+                        className="admin-category-chip" 
+                        style={{ fontSize: '10.5px', padding: '2px 8px' }}
+                      >
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons (Left Side in RTL) */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <button 
                   className="admin-btn-action-outline" 
                   style={{ fontSize: '12px', padding: '6px 14px' }}
@@ -579,61 +639,6 @@ export default function AdminConsultantsPage({ navigate }) {
                   >
                     رفض
                   </button>
-                )}
-              </div>
-
-              <div style={{ textAlign: 'left' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', justifyContent: 'flex-end' }}>
-                  <span 
-                    style={{ 
-                      fontSize: '11px', 
-                      padding: '2px 10px', 
-                      borderRadius: '12px',
-                      background: '#F0F9FF', 
-                      color: '#0284C7', 
-                      border: '1px solid #BAE6FD',
-                      fontWeight: '700'
-                    }}
-                  >
-                    {c.hourlyRate}
-                  </span>
-
-                  <span 
-                    style={{ 
-                      fontSize: '11px', 
-                      padding: '2px 10px', 
-                      borderRadius: '12px',
-                      background: c.status === 'معتمد' ? '#ECFDF5' : (c.status === 'موقوف' || c.status === 'مرفوض' ? '#FEF2F2' : '#FFFBEB'),
-                      color: c.status === 'معتمد' ? '#059669' : (c.status === 'موقوف' || c.status === 'مرفوض' ? '#DC2626' : '#D97706'),
-                      border: c.status === 'معتمد' ? '1px solid #A7F3D0' : (c.status === 'موقوف' || c.status === 'مرفوض' ? '1px solid #FECACA' : '1px solid #FDE68A'),
-                      fontWeight: '700'
-                    }}
-                  >
-                    {c.status}
-                  </span>
-
-                  <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '900', color: '#0F172A' }}>
-                    {c.name}
-                  </h4>
-                </div>
-
-                <div style={{ fontSize: '11.5px', color: '#64748B', marginBottom: c.specialties.length > 0 ? '8px' : '0' }}>
-                  {c.email && <span>{c.email} • </span>}
-                  {c.city} • {c.sessionsCount} جلسة • {c.license}
-                </div>
-
-                {c.specialties.length > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
-                    {c.specialties.map((s, idx) => (
-                      <span 
-                        key={idx} 
-                        className="admin-category-chip" 
-                        style={{ fontSize: '10.5px', padding: '2px 8px' }}
-                      >
-                        {s}
-                      </span>
-                    ))}
-                  </div>
                 )}
               </div>
             </div>
@@ -740,18 +745,20 @@ export default function AdminConsultantsPage({ navigate }) {
               />
             </div>
 
-            <select 
-              className="admin-select-input"
-              style={{ width: '180px', height: '38px' }}
-              value={sessionStatusFilter}
-              onChange={e => setSessionStatusFilter(e.target.value)}
-            >
-              <option value="all">كل الحالات ({sessions.length})</option>
-              <option value="completed">مكتملة ({sessions.filter(s => s.status === 'completed').length})</option>
-              <option value="confirmed">مؤكدة ({sessions.filter(s => s.status === 'confirmed').length})</option>
-              <option value="pending">معلقة ({sessions.filter(s => s.status === 'pending').length})</option>
-              <option value="cancelled">ملغاة ({sessions.filter(s => s.status === 'cancelled').length})</option>
-            </select>
+            <div style={{ width: '200px' }}>
+              <ModernSelect
+                options={[
+                  { value: 'all', label: `كل الحالات (${sessions.length})` },
+                  { value: 'completed', label: `مكتملة (${sessions.filter(s => s.status === 'completed').length})` },
+                  { value: 'confirmed', label: `مؤكدة (${sessions.filter(s => s.status === 'confirmed').length})` },
+                  { value: 'pending', label: `معلقة (${sessions.filter(s => s.status === 'pending').length})` },
+                  { value: 'cancelled', label: `ملغاة (${sessions.filter(s => s.status === 'cancelled').length})` }
+                ]}
+                value={sessionStatusFilter}
+                onChange={setSessionStatusFilter}
+                placeholder="كل الحالات"
+              />
+            </div>
           </div>
 
           {/* Sessions Table Card */}

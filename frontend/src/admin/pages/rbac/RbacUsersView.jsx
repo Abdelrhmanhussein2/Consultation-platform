@@ -1,4 +1,5 @@
 import React from 'react';
+import ModernSelect from '../../../components/ModernSelect';
 
 export default function RbacUsersView({
   systemUsers,
@@ -105,17 +106,23 @@ export default function RbacUsersView({
             value={userSearch} 
             onChange={e => setUserSearch(e.target.value)} 
           />
-          <select value={userRoleFilter} onChange={e => setUserRoleFilter(e.target.value)}>
-            <option value="all">جميع الأدوار</option>
-            {roles.map(r => (
-              <option key={r.id} value={r.id}>{r.name}</option>
-            ))}
-          </select>
-          <select value={userStatusFilter} onChange={e => setUserStatusFilter(e.target.value)}>
-            <option value="all">جميع الحالات</option>
-            <option value="active">مفعّل</option>
-            <option value="inactive">غير مفعّل</option>
-          </select>
+          <ModernSelect
+            value={userRoleFilter}
+            onChange={(val) => setUserRoleFilter(val)}
+            options={[
+              { value: 'all', label: 'جميع الأدوار' },
+              ...roles.map(r => ({ value: r.id, label: r.name }))
+            ]}
+          />
+          <ModernSelect
+            value={userStatusFilter}
+            onChange={(val) => setUserStatusFilter(val)}
+            options={[
+              { value: 'all', label: 'جميع الحالات' },
+              { value: 'active', label: 'مفعّل' },
+              { value: 'inactive', label: 'غير مفعّل' }
+            ]}
+          />
         </div>
 
         <div className="tableWrap">

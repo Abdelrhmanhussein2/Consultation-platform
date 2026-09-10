@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../services/api';
 import { CATEGORIES, STATUS_CONFIG, PRIORITY_CONFIG } from './supportFormConfig';
+import ModernSelect from '../components/ModernSelect';
 
 export default function SupportTicketsListPage({ navigate }) {
   const { token } = useAuth();
@@ -69,7 +70,7 @@ export default function SupportTicketsListPage({ navigate }) {
       </div>
 
       {/* Filter Bar */}
-      <div className="card p-5 mb-6">
+      <div className="card p-5 mb-6" style={{ position: 'relative', zIndex: 50, overflow: 'visible' }}>
         <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* Search Query Input */}
           <div className="relative">
@@ -83,40 +84,39 @@ export default function SupportTicketsListPage({ navigate }) {
           </div>
 
           {/* Status Filter */}
-          <select
+          <ModernSelect
             value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="input-field"
-          >
-            <option value="">كل الحالات</option>
-            {Object.keys(STATUS_CONFIG).map(k => (
-              <option key={k} value={k}>{STATUS_CONFIG[k].label}</option>
-            ))}
-          </select>
+            onChange={(val) => { setStatusFilter(val); setPage(1); }}
+            options={[
+              { value: '', label: 'كل الحالات' },
+              ...Object.keys(STATUS_CONFIG).map(k => ({ value: k, label: STATUS_CONFIG[k].label }))
+            ]}
+            placeholder="كل الحالات"
+          />
 
           {/* Category Filter */}
-          <select
+          <ModernSelect
             value={categoryFilter}
-            onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-            className="input-field"
-          >
-            <option value="">كل الفئات الرئيسية</option>
-            {Object.keys(CATEGORIES).map(k => (
-              <option key={k} value={k}>{CATEGORIES[k].label}</option>
-            ))}
-          </select>
+            onChange={(val) => { setCategoryFilter(val); setPage(1); }}
+            options={[
+              { value: '', label: 'كل الفئات الرئيسية' },
+              ...Object.keys(CATEGORIES).map(k => ({ value: k, label: CATEGORIES[k].label }))
+            ]}
+            placeholder="كل الفئات الرئيسية"
+          />
 
           {/* Priority Filter */}
-          <select
+          <ModernSelect
             value={priorityFilter}
-            onChange={(e) => { setPriorityFilter(e.target.value); setPage(1); }}
-            className="input-field"
-          >
-            <option value="">كل الأولويات</option>
-            <option value="low">منخفضة</option>
-            <option value="medium">متوسطة</option>
-            <option value="high">عالية</option>
-          </select>
+            onChange={(val) => { setPriorityFilter(val); setPage(1); }}
+            options={[
+              { value: '', label: 'كل الأولويات' },
+              { value: 'low', label: 'منخفضة' },
+              { value: 'medium', label: 'متوسطة' },
+              { value: 'high', label: 'عالية' }
+            ]}
+            placeholder="كل الأولويات"
+          />
 
           {/* Filter Actions */}
           <div className="flex gap-2">
@@ -140,7 +140,7 @@ export default function SupportTicketsListPage({ navigate }) {
       </div>
 
       {/* Tickets Log Table */}
-      <div className="card p-6">
+      <div className="card p-6" style={{ position: 'relative', zIndex: 1 }}>
         {loading ? (
           <div className="py-20 text-center text-[#0e3b5e] flex items-center justify-center gap-2">
             <i className="fa fa-spinner fa-spin text-xl"></i>

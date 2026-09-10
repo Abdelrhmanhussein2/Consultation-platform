@@ -9,7 +9,8 @@ export default function ModernSelect({
   prefixIcon = null,
   className = '',
   dropdownWidth = 'auto',
-  align = 'right'
+  align = 'right',
+  style = {}
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
@@ -42,7 +43,7 @@ export default function ModernSelect({
   };
 
   return (
-    <div className={`modern-select-wrapper ${isOpen ? 'is-open' : ''} ${isSelected ? 'has-value' : ''} ${className}`} ref={containerRef}>
+    <div className={`modern-select-wrapper ${isOpen ? 'is-open' : ''} ${isSelected ? 'has-value' : ''} ${className}`} ref={containerRef} style={style}>
       <button
         type="button"
         className="modern-select-trigger"
@@ -53,7 +54,7 @@ export default function ModernSelect({
         <span className="modern-select-label">
           {selectedOption ? selectedOption.label : placeholder}
         </span>
-        
+
         {isSelected && <span className="modern-select-active-dot" />}
 
         <svg

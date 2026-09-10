@@ -362,39 +362,82 @@
 }
 
 .chat-pane-header {
-  padding: 12px 20px;
+  padding: 10px 16px;
   border-bottom: 1px solid #E5EFF5;
   display: flex;
   justify-content: space-between;
   align-items: center;
   background: #FFFFFF;
+  gap: 12px;
+}
+
+/* Icon Toggle Consultation Details Button in Chat Header */
+.btn-icon-toggle-details {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #CBD5E1;
+  background: #FFFFFF;
+  color: #0D3C5C;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.17s ease;
+  box-shadow: 0 1px 3px rgba(13, 60, 92, 0.04);
+  flex-shrink: 0;
+}
+
+.btn-icon-toggle-details:hover {
+  background: #F8FAFC;
+  border-color: #005D9C;
+  color: #005D9C;
+  transform: translateY(-1px);
+}
+
+.btn-icon-toggle-details.active {
+  background: #0D3C5C;
+  border-color: #0D3C5C;
+  color: #FFFFFF;
+  box-shadow: 0 3px 10px rgba(13, 60, 92, 0.15);
+}
+
+.btn-icon-toggle-details.active:hover {
+  background: #005D9C;
+  border-color: #005D9C;
+  color: #FFFFFF;
 }
 
 .chat-partner-title-area {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
 }
 
 .chat-partner-title-area h2 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 800;
   color: #0D3C5C;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 
-.code-badge {
-  background: #005D9C;
-  color: #FFFFFF;
+.topic-sub-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #E5EFF5;
+  color: #005D9C;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 0.72rem;
   font-weight: 700;
-}
-
-.topic-subtext {
-  font-size: 0.78rem;
-  color: #627D98;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .chat-messages-container {

@@ -359,14 +359,13 @@ export default function AdminReportsPage({ navigate }) {
             background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)',
             border: '1px solid #E2E8F0',
             borderRadius: '16px',
-            padding: '14px 18px',
+            padding: '14px 16px',
             marginBottom: '18px',
             display: 'grid',
-            gridTemplateColumns: 'auto auto 1fr 1fr 1fr 1fr',
+            gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
             alignItems: 'end',
-            gap: '12px',
-            boxShadow: '0 2px 12px rgba(11, 46, 75, 0.06)',
-            flexWrap: 'wrap'
+            gap: '8px',
+            boxShadow: '0 2px 12px rgba(11, 46, 75, 0.06)'
           }}>
             {/* من تاريخ */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -377,11 +376,12 @@ export default function AdminReportsPage({ navigate }) {
                 onChange={e => setFromDate(e.target.value)}
                 style={{
                   height: '40px',
-                  padding: '0 12px',
+                  width: '100%',
+                  padding: '0 8px',
                   borderRadius: '10px',
                   border: '1.5px solid #CBD5E1',
                   background: '#FFFFFF',
-                  fontSize: '12.5px',
+                  fontSize: '11.5px',
                   fontWeight: '700',
                   color: '#0e3b5e',
                   outline: 'none',
@@ -404,11 +404,12 @@ export default function AdminReportsPage({ navigate }) {
                 onChange={e => setToDate(e.target.value)}
                 style={{
                   height: '40px',
-                  padding: '0 12px',
+                  width: '100%',
+                  padding: '0 8px',
                   borderRadius: '10px',
                   border: '1.5px solid #CBD5E1',
                   background: '#FFFFFF',
-                  fontSize: '12.5px',
+                  fontSize: '11.5px',
                   fontWeight: '700',
                   color: '#0e3b5e',
                   outline: 'none',
@@ -430,6 +431,7 @@ export default function AdminReportsPage({ navigate }) {
                 value={userTypeFilter}
                 onChange={setUserTypeFilter}
                 placeholder="نوع المستخدم..."
+                style={{ width: '100%' }}
               />
             </div>
 
@@ -441,17 +443,19 @@ export default function AdminReportsPage({ navigate }) {
                 value={sectorFilter}
                 onChange={setSectorFilter}
                 placeholder="القطاع..."
+                style={{ width: '100%' }}
               />
             </div>
 
             {/* المحافظة */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              <label style={{ fontSize: '10.5px', fontWeight: '800', color: '#64748B', letterSpacing: '0.3px' }}>المحافظة</label>
+              <label style={{ fontSize: '10.5px', fontWeight: '800', color: '#64748B', letterSpacing: '0.3px' }}>المافظة</label>
               <ModernSelect
                 options={CITY_OPTIONS}
                 value={cityFilter}
                 onChange={setCityFilter}
                 placeholder="المحافظة..."
+                style={{ width: '100%' }}
               />
             </div>
 
@@ -463,6 +467,7 @@ export default function AdminReportsPage({ navigate }) {
                 value={statusFilter}
                 onChange={setStatusFilter}
                 placeholder="الحالة..."
+                style={{ width: '100%' }}
               />
             </div>
           </div>

@@ -24,6 +24,29 @@ import {
 } from './AdminIcons';
 
 
+const ChevronIcon = ({ isOpen }) => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{
+      transition: 'transform 0.2s ease',
+      transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+      marginLeft: 'auto',
+      marginRight: '0',
+      flexShrink: 0,
+      color: '#94A3B8'
+    }}
+  >
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
 export default function AdminSidebar({ currentPath, navigate, userRole = 'super_admin', permissions = [] }) {
   const { logout } = useAuth();
   // ══════════════════════════════════════════════════════════════════════════
@@ -242,7 +265,14 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
           // Expandable Submenu Group
           if (item.subItems) {
             const isGroupOpen = !!expandedGroups[item.id];
-            const isAnySubActive = item.subItems.some(sub => sub.path === currentPath);
+            
+            // Prioritize exact route match over prefix match to prevent multiple subItems highlighting simultaneously
+            const exactSubMatch = item.subItems.find(sub => currentPath === sub.path);
+            const activeSubId = exactSubMatch
+              ? exactSubMatch.id
+              : item.subItems.find(sub => currentPath.startsWith(sub.path + '/'))?.id;
+
+            const isAnySubActive = !!activeSubId;
 
             return (
               <div key={item.id} className="support-accordion-group" style={{ width: '100%' }}>
@@ -251,29 +281,24 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
                   onClick={(e) => handleGroupClick(e, item)}
                   className={`nav-item ${isAnySubActive ? 'active' : ''}`}
                   title={item.label}
-                  style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between' }}
+                  style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', gap: '6px' }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <span className="nav-icon">
-                      <Icon size={20} color={isAnySubActive ? '#FFFFFF' : '#CBD5E1'} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                    <span className="nav-icon" style={{ flexShrink: 0 }}>
+                      <Icon size={18} color={isAnySubActive ? '#FFFFFF' : '#CBD5E1'} />
                     </span>
-                    <span className="nav-label">{item.label}</span>
+                    <span className="nav-label" style={{ fontSize: '12px', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {item.label}
+                    </span>
                   </div>
-                  <span style={{
-                    fontSize: '11px',
-                    color: '#94A3B8',
-                    transition: 'transform 0.2s ease',
-                    transform: isGroupOpen ? 'rotate(90deg)' : 'none'
-                  }}>
-                    ◀
-                  </span>
+                  <ChevronIcon isOpen={isGroupOpen} />
                 </button>
 
                 {/* Submenu list */}
                 {isGroupOpen && (
                   <div className="sidebar-sub-nav" style={{ paddingRight: '36px', display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
                     {item.subItems.map(sub => {
-                      const isSubActive = currentPath === sub.path;
+                      const isSubActive = sub.id === activeSubId;
                       return (
                         <button
                           key={sub.id}
@@ -283,20 +308,32 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
                           style={{
                             background: 'transparent',
                             border: 'none',
-                            color: isSubActive ? '#F5A52A' : '#94A3B8',
-                            padding: '8px 12px',
+                            color: isSubActive ? '#FFFFFF' : '#94A3B8',
+                            padding: '6px 10px',
                             textAlign: 'right',
-                            fontSize: '13px',
+                            fontSize: '12px',
                             cursor: 'pointer',
                             borderRadius: '6px',
                             fontWeight: isSubActive ? '700' : 'normal',
+                            boxShadow: 'none',
                             transition: 'all 0.2s',
-                            display: 'block',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
                             width: '100%'
                           }}
                           onMouseEnter={(e) => { if (!isSubActive) e.target.style.color = '#FFFFFF'; }}
                           onMouseLeave={(e) => { if (!isSubActive) e.target.style.color = '#94A3B8'; }}
                         >
+                          <span style={{
+                            width: '6px',
+                            height: '6px',
+                            borderRadius: '50%',
+                            background: isSubActive ? '#FFFFFF' : '#64748B',
+                            display: 'inline-block',
+                            flexShrink: 0,
+                            transition: 'background 0.2s'
+                          }} />
                           {sub.label}
                         </button>
                       );
@@ -316,11 +353,12 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
               onClick={(e) => handleItemClick(e, item.path)}
               className={`nav-item ${isActive ? 'active' : ''}`}
               title={item.label}
+              style={{ padding: '7px 10px', gap: '8px' }}
             >
-              <span className="nav-icon">
-                <Icon size={20} color={isActive ? '#FFFFFF' : '#CBD5E1'} />
+              <span className="nav-icon" style={{ flexShrink: 0 }}>
+                <Icon size={18} color={isActive ? '#FFFFFF' : '#CBD5E1'} />
               </span>
-              <span className="nav-label">{item.label}</span>
+              <span className="nav-label" style={{ fontSize: '12px', fontWeight: '600' }}>{item.label}</span>
               {item.badge && <span className="admin-nav-badge">{item.badge}</span>}
             </button>
           );

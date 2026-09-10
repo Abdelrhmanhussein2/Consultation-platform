@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import CreateRefundInvoiceModal from "../components/CreateRefundInvoiceModal";
+import ModernSelect from "../../components/ModernSelect";
 
 const fmt = (n) => Number(n || 0).toLocaleString("ar-JO", { minimumFractionDigits: 3 });
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("zh-Hans-CN") : "-";
@@ -2178,12 +2179,16 @@ export default function AdminInvoicesPage({ navigate }) {
                   <button className="ab" type="button" onClick={() => setShowFilterBar(!showFilterBar)} style={{ fontSize: 12, padding: "6px 14px", background: showFilterBar ? "#0D3C5C" : "#fff", color: showFilterBar ? "#fff" : "#0D3C5C" }}>
                     <i className="fa-solid fa-filter"></i> فلترة
                   </button>
-                  <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ padding: "6px 12px", fontSize: 12, border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff" }}>
-                    <option value="date_desc">الترتيب: الأحدث</option>
-                    <option value="date_asc">الترتيب: الأقدم</option>
-                    <option value="amount_desc">الأعلى قيمة</option>
-                    <option value="amount_asc">الأقل قيمة</option>
-                  </select>
+                  <ModernSelect
+                    value={sortBy}
+                    onChange={(val) => setSortBy(val)}
+                    options={[
+                      { value: "date_desc", label: "الترتيب: الأحدث" },
+                      { value: "date_asc", label: "الترتيب: الأقدم" },
+                      { value: "amount_desc", label: "الأعلى قيمة" },
+                      { value: "amount_asc", label: "الأقل قيمة" }
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -2193,27 +2198,35 @@ export default function AdminInvoicesPage({ navigate }) {
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, alignItems: "flex-end" }}>
                     <div>
                       <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>الحالة</label>
-                      <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ width: "100%", padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff", fontSize: 13, color: "#0D3C5C", fontWeight: 700 }}>
-                        <option value="الكل">كل الحالات</option>
-                        <option value="paid">مدفوعة</option>
-                        <option value="overdue">متأخرة</option>
-                        <option value="issued">قادمة</option>
-                        <option value="cancelled">ملغاة</option>
-                        <option value="partial">مدفوعة جزئياً</option>
-                        <option value="pending">بانتظار الدفع</option>
-                        <option value="refunded">مستردة</option>
-                        <option value="draft">مسودة</option>
-                      </select>
+                      <ModernSelect
+                        value={filterStatus}
+                        onChange={(val) => setFilterStatus(val)}
+                        options={[
+                          { value: "الكل", label: "كل الحالات" },
+                          { value: "paid", label: "مدفوعة" },
+                          { value: "overdue", label: "متأخرة" },
+                          { value: "issued", label: "قادمة" },
+                          { value: "cancelled", label: "ملغاة" },
+                          { value: "partial", label: "مدفوعة جزئياً" },
+                          { value: "pending", label: "بانتظار الدفع" },
+                          { value: "refunded", label: "مستردة" },
+                          { value: "draft", label: "مسودة" }
+                        ]}
+                      />
                     </div>
                     <div>
                       <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>طريقة الدفع</label>
-                      <select value={filterPayMethod} onChange={e => setFilterPayMethod(e.target.value)} style={{ width: "100%", padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff", fontSize: 13, color: "#0D3C5C", fontWeight: 700 }}>
-                        <option value="الكل">كل الطرق</option>
-                        <option value="بطاقة بنكية">بطاقة بنكية</option>
-                        <option value="تحويل بنكي">تحويل بنكي</option>
-                        <option value="محفظة إلكترونية">محفظة إلكترونية</option>
-                        <option value="CliQ">CliQ</option>
-                      </select>
+                      <ModernSelect
+                        value={filterPayMethod}
+                        onChange={(val) => setFilterPayMethod(val)}
+                        options={[
+                          { value: "الكل", label: "كل الطرق" },
+                          { value: "بطاقة بنكية", label: "بطاقة بنكية" },
+                          { value: "تحويل بنكي", label: "تحويل بنكي" },
+                          { value: "محفظة إلكترونية", label: "محفظة إلكترونية" },
+                          { value: "CliQ", label: "CliQ" }
+                        ]}
+                      />
                     </div>
                     <div>
                       <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>من مبلغ</label>
@@ -2294,12 +2307,16 @@ export default function AdminInvoicesPage({ navigate }) {
                   <button className="ab" type="button" onClick={() => setShowFilterBar(!showFilterBar)} style={{ fontSize: 12, padding: "6px 14px", background: showFilterBar ? "#0D3C5C" : "#fff", color: showFilterBar ? "#fff" : "#0D3C5C" }}>
                     <i className="fa-solid fa-filter"></i> فلترة
                   </button>
-                  <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ padding: "6px 12px", fontSize: 12, border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff" }}>
-                    <option value="date_desc">الترتيب: الأحدث</option>
-                    <option value="date_asc">الترتيب: الأقدم</option>
-                    <option value="amount_desc">الأعلى قيمة</option>
-                    <option value="amount_asc">الأقل قيمة</option>
-                  </select>
+                  <ModernSelect
+                    value={sortBy}
+                    onChange={(val) => setSortBy(val)}
+                    options={[
+                      { value: "date_desc", label: "الترتيب: الأحدث" },
+                      { value: "date_asc", label: "الترتيب: الأقدم" },
+                      { value: "amount_desc", label: "الأعلى قيمة" },
+                      { value: "amount_asc", label: "الأقل قيمة" }
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -2309,27 +2326,35 @@ export default function AdminInvoicesPage({ navigate }) {
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, alignItems: "flex-end" }}>
                     <div>
                       <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>الحالة</label>
-                      <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ width: "100%", padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff", fontSize: 13, color: "#0D3C5C", fontWeight: 700 }}>
-                        <option value="الكل">كل الحالات</option>
-                        <option value="paid">مدفوعة</option>
-                        <option value="overdue">متأخرة</option>
-                        <option value="issued">قادمة</option>
-                        <option value="cancelled">ملغاة</option>
-                        <option value="partial">مدفوعة جزئياً</option>
-                        <option value="pending">بانتظار الدفع</option>
-                        <option value="refunded">مستردة</option>
-                        <option value="draft">مسودة</option>
-                      </select>
+                      <ModernSelect
+                        value={filterStatus}
+                        onChange={(val) => setFilterStatus(val)}
+                        options={[
+                          { value: "الكل", label: "كل الحالات" },
+                          { value: "paid", label: "مدفوعة" },
+                          { value: "overdue", label: "متأخرة" },
+                          { value: "issued", label: "قادمة" },
+                          { value: "cancelled", label: "ملغاة" },
+                          { value: "partial", label: "مدفوعة جزئياً" },
+                          { value: "pending", label: "بانتظار الدفع" },
+                          { value: "refunded", label: "مستردة" },
+                          { value: "draft", label: "مسودة" }
+                        ]}
+                      />
                     </div>
                     <div>
                       <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>طريقة الدفع</label>
-                      <select value={filterPayMethod} onChange={e => setFilterPayMethod(e.target.value)} style={{ width: "100%", padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff", fontSize: 13, color: "#0D3C5C", fontWeight: 700 }}>
-                        <option value="الكل">كل الطرق</option>
-                        <option value="بطاقة بنكية">بطاقة بنكية</option>
-                        <option value="تحويل بنكي">تحويل بنكي</option>
-                        <option value="محفظة إلكترونية">محفظة إلكترونية</option>
-                        <option value="CliQ">CliQ</option>
-                      </select>
+                      <ModernSelect
+                        value={filterPayMethod}
+                        onChange={(val) => setFilterPayMethod(val)}
+                        options={[
+                          { value: "الكل", label: "كل الطرق" },
+                          { value: "بطاقة بنكية", label: "بطاقة بنكية" },
+                          { value: "تحويل بنكي", label: "تحويل بنكي" },
+                          { value: "محفظة إلكترونية", label: "محفظة إلكترونية" },
+                          { value: "CliQ", label: "CliQ" }
+                        ]}
+                      />
                     </div>
                     <div>
                       <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>من مبلغ</label>
@@ -2413,12 +2438,16 @@ export default function AdminInvoicesPage({ navigate }) {
                   <button className="ab" type="button" onClick={() => setShowFilterBar(!showFilterBar)} style={{ fontSize: 12, padding: "6px 14px", background: showFilterBar ? "#0D3C5C" : "#fff", color: showFilterBar ? "#fff" : "#0D3C5C" }}>
                     <i className="fa-solid fa-filter"></i> فلترة
                   </button>
-                  <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ padding: "6px 12px", fontSize: 12, border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff" }}>
-                    <option value="date_desc">الترتيب: الأحدث</option>
-                    <option value="date_asc">الترتيب: الأقدم</option>
-                    <option value="amount_desc">الأعلى قيمة</option>
-                    <option value="amount_asc">الأقل قيمة</option>
-                  </select>
+                  <ModernSelect
+                    value={sortBy}
+                    onChange={(val) => setSortBy(val)}
+                    options={[
+                      { value: "date_desc", label: "الترتيب: الأحدث" },
+                      { value: "date_asc", label: "الترتيب: الأقدم" },
+                      { value: "amount_desc", label: "الأعلى قيمة" },
+                      { value: "amount_asc", label: "الأقل قيمة" }
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -2428,27 +2457,35 @@ export default function AdminInvoicesPage({ navigate }) {
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, alignItems: "flex-end" }}>
                     <div>
                       <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>الحالة</label>
-                      <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ width: "100%", padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff", fontSize: 13, color: "#0D3C5C", fontWeight: 700 }}>
-                        <option value="الكل">كل الحالات</option>
-                        <option value="paid">مدفوعة</option>
-                        <option value="overdue">متأخرة</option>
-                        <option value="issued">قادمة</option>
-                        <option value="cancelled">ملغاة</option>
-                        <option value="partial">مدفوعة جزئياً</option>
-                        <option value="pending">بانتظار الدفع</option>
-                        <option value="refunded">مستردة</option>
-                        <option value="draft">مسودة</option>
-                      </select>
+                      <ModernSelect
+                        value={filterStatus}
+                        onChange={(val) => setFilterStatus(val)}
+                        options={[
+                          { value: "الكل", label: "كل الحالات" },
+                          { value: "paid", label: "مدفوعة" },
+                          { value: "overdue", label: "متأخرة" },
+                          { value: "issued", label: "قادمة" },
+                          { value: "cancelled", label: "ملغاة" },
+                          { value: "partial", label: "مدفوعة جزئياً" },
+                          { value: "pending", label: "بانتظار الدفع" },
+                          { value: "refunded", label: "مستردة" },
+                          { value: "draft", label: "مسودة" }
+                        ]}
+                      />
                     </div>
                     <div>
                       <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>طريقة الدفع</label>
-                      <select value={filterPayMethod} onChange={e => setFilterPayMethod(e.target.value)} style={{ width: "100%", padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9, background: "#fff", fontSize: 13, color: "#0D3C5C", fontWeight: 700 }}>
-                        <option value="الكل">كل الطرق</option>
-                        <option value="بطاقة بنكية">بطاقة بنكية</option>
-                        <option value="تحويل بنكي">تحويل بنكي</option>
-                        <option value="محفظة إلكترونية">محفظة إلكترونية</option>
-                        <option value="CliQ">CliQ</option>
-                      </select>
+                      <ModernSelect
+                        value={filterPayMethod}
+                        onChange={(val) => setFilterPayMethod(val)}
+                        options={[
+                          { value: "الكل", label: "كل الطرق" },
+                          { value: "بطاقة بنكية", label: "بطاقة بنكية" },
+                          { value: "تحويل بنكي", label: "تحويل بنكي" },
+                          { value: "محفظة إلكترونية", label: "محفظة إلكترونية" },
+                          { value: "CliQ", label: "CliQ" }
+                        ]}
+                      />
                     </div>
                     <div>
                       <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>من مبلغ</label>

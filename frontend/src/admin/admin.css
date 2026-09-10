@@ -104,9 +104,12 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 50;
+  bottom: 0;
+  right: 0;
+  z-index: 100;
+  box-shadow: -2px 0 15px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
@@ -168,18 +171,16 @@
 .admin-nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  border-radius: 10px;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
   color: #CBD5E1;
-  font-size: 13.5px;
+  font-size: 12px;
   font-weight: 600;
   text-decoration: none;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   border: none;
-  border-bottom: 2.5px solid transparent;
-  border-right: 3.5px solid transparent;
   background: transparent;
   width: 100%;
   text-align: right;
@@ -189,16 +190,16 @@
 .admin-nav-item:hover {
   background-color: rgba(255, 255, 255, 0.08);
   color: #FFFFFF;
-  transform: translateX(-3px);
+  transform: translateX(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .admin-nav-item.active {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.14);
   color: #FFFFFF;
-  font-weight: 800;
-  box-shadow: 0 4px 14px rgba(0, 40, 80, 0.35);
-  border-bottom: 2.5px solid #F5A52A;
-  border-right: 3.5px solid #F5A52A;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  border: none;
 }
 
 .admin-nav-icon {
@@ -240,22 +241,21 @@
   margin-top: 4px;
   margin-bottom: 6px;
   padding-right: 12px;
-  border-right: 2px dashed rgba(245, 165, 42, 0.35);
+  border-right: 2px dashed rgba(255, 255, 255, 0.15);
 }
 
 .admin-subnav-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 12px;
-  border-radius: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
   color: #94A3B8;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
   border: none;
-  border-bottom: 1.5px solid transparent;
   background: transparent;
   width: 100%;
   text-align: right;
@@ -269,10 +269,11 @@
 }
 
 .admin-subnav-item.active {
-  color: #F5A52A;
-  background: rgba(245, 165, 42, 0.14);
-  font-weight: 800;
-  border-bottom: 1.5px solid #F5A52A;
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.12);
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  border: none;
 }
 
 /* Sidebar Footer & Fixed Logout Button (Matching Consultant Style) */
@@ -329,10 +330,11 @@
    ══════════════════════════════════════════════════════════════════ */
 .admin-main-wrap {
   flex: 1;
+  margin-right: 250px;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  width: 100%;
+  width: calc(100% - 250px);
   overflow-x: hidden;
 }
 

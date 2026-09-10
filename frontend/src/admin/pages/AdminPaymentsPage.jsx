@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import './AdminPaymentsPage.css';
+import ModernSelect from '../../components/ModernSelect';
 import { getAdminPayments, processAdminPaymentAction, deleteAdminPayment } from '../services/adminApi';
 
 // Helper to calculate fallback current timestamps
@@ -12,6 +13,54 @@ const getLiveDateStr = (daysAgo, hours, minutes) => {
   const hh = String(hours).padStart(2, '0');
   const min = String(minutes).padStart(2, '0');
   return `${dd}-${mm}-${yyyy} ${hh}:${min}`;
+};
+
+const checkMethodMatch = (methodVal, activeTab) => {
+  if (!activeTab || activeTab === 'الكل') return true;
+  if (!methodVal) return false;
+  const m = String(methodVal).trim().toLowerCase();
+  const a = String(activeTab).trim().toLowerCase();
+  if (m === a) return true;
+  if (a === 'تحويل بنكي' && (m === 'bank_transfer' || m.includes('bank') || m.includes('تحويل'))) return true;
+  if (a === 'cliq' && (m === 'cliq' || m.includes('cliq'))) return true;
+  if (a === 'محفظة إلكترونية' && (m === 'wallet' || m.includes('wallet') || m.includes('محفظة'))) return true;
+  if (a === 'visa' && m.includes('visa')) return true;
+  if (a === 'mastercard' && (m.includes('master') || m.includes('card'))) return true;
+  return false;
+};
+
+const checkStatusMatch = (statusVal, activeStatus) => {
+  if (!activeStatus || activeStatus === 'الكل') return true;
+  if (!statusVal) return false;
+  const s = String(statusVal).trim().toLowerCase();
+  const f = String(activeStatus).trim().toLowerCase();
+  if (s === f) return true;
+  if (f === 'معلّقة' && (s === 'pending' || s.includes('معلّق'))) return true;
+  if (f === 'معتمدة' && (s === 'approved' || s.includes('معتمد'))) return true;
+  if (f === 'مرفوضة' && (s === 'rejected' || s.includes('مرفوض'))) return true;
+  return false;
+};
+
+const checkTypeMatch = (typeVal, activeType) => {
+  if (!activeType || activeType === 'الكل') return true;
+  if (!typeVal) return false;
+  const t = String(typeVal).trim().toLowerCase();
+  const f = String(activeType).trim().toLowerCase();
+  if (t === f) return true;
+  if (f === 'مستخدم' && (t === 'user' || t.includes('مستخدم') || t.includes('عميل'))) return true;
+  if (f === 'مستشار' && (t === 'consultant' || t.includes('مستشار'))) return true;
+  return false;
+};
+
+const formatMethodLabel = (m) => {
+  if (!m) return '—';
+  const str = String(m).trim().toLowerCase();
+  if (str === 'wallet' || str.includes('محفظة')) return 'محفظة إلكترونية';
+  if (str === 'cliq') return 'CliQ';
+  if (str === 'bank_transfer' || str === 'bank') return 'تحويل بنكي';
+  if (str === 'visa') return 'Visa';
+  if (str === 'mastercard') return 'Mastercard';
+  return m;
 };
 
 export default function AdminPaymentsPage({ navigate }) {
@@ -62,9 +111,9 @@ export default function AdminPaymentsPage({ navigate }) {
   const filteredData = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
     return data.filter((r) => {
-      const matchMethod = activeMethod === 'الكل' || r.method === activeMethod;
-      const matchStatus = statusFilter === 'الكل' || r.status === statusFilter;
-      const matchType = typeFilter === 'الكل' || r.type === typeFilter;
+      const matchMethod = checkMethodMatch(r.method, activeMethod);
+      const matchStatus = checkStatusMatch(r.status, statusFilter);
+      const matchType = checkTypeMatch(r.type, typeFilter);
       const matchSearch = !q || Object.values(r).join(' ').toLowerCase().includes(q);
       return matchMethod && matchStatus && matchType && matchSearch;
     });
@@ -222,19 +271,20 @@ export default function AdminPaymentsPage({ navigate }) {
         <div className="payments-toolbar">
 
           <div className="payments-toolbar-right">
-            <select
+            <ModernSelect
               value={perPage}
-              onChange={(e) => {
-                setPerPage(parseInt(e.target.value, 10));
+              onChange={(val) => {
+                setPerPage(parseInt(val, 10));
                 setCurrentPage(1);
               }}
-              className="payments-entries-select"
-            >
-              <option value={10}>10</option>
-              <option value={15}>15</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
+              options={[
+                { value: 10, label: '10' },
+                { value: 15, label: '15' },
+                { value: 25, label: '25' },
+                { value: 50, label: '50' }
+              ]}
+              style={{ width: '80px' }}
+            />
             <span className="payments-entries-label">سجل لكل صفحة</span>
           </div>
 
@@ -297,32 +347,32 @@ export default function AdminPaymentsPage({ navigate }) {
 
         {/* Secondary Filter Dropdowns */}
         <div className="payments-filters-row">
-          <select
-            className="payments-filter-select"
+          <ModernSelect
             value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
+            onChange={(val) => {
+              setStatusFilter(val);
               setCurrentPage(1);
             }}
-          >
-            <option value="الكل">كل الحالات</option>
-            <option value="معلّقة">معلّقة</option>
-            <option value="معتمدة">معتمدة</option>
-            <option value="مرفوضة">مرفوضة</option>
-          </select>
+            options={[
+              { value: 'الكل', label: 'كل الحالات' },
+              { value: 'معلّقة', label: 'معلّقة' },
+              { value: 'معتمدة', label: 'معتمدة' },
+              { value: 'مرفوضة', label: 'مرفوضة' }
+            ]}
+          />
 
-          <select
-            className="payments-filter-select"
+          <ModernSelect
             value={typeFilter}
-            onChange={(e) => {
-              setTypeFilter(e.target.value);
+            onChange={(val) => {
+              setTypeFilter(val);
               setCurrentPage(1);
             }}
-          >
-            <option value="الكل">كل الحسابات</option>
-            <option value="مستخدم">مستخدم</option>
-            <option value="مستشار">مستشار</option>
-          </select>
+            options={[
+              { value: 'الكل', label: 'كل الحسابات' },
+              { value: 'مستخدم', label: 'مستخدم' },
+              { value: 'مستشار', label: 'مستشار' }
+            ]}
+          />
         </div>
 
         {/* Data Table */}
@@ -349,7 +399,7 @@ export default function AdminPaymentsPage({ navigate }) {
                     <td><span className="payments-ltr" title={r.order}>{r.order && r.order.length > 18 ? `${r.order.slice(0, 16)}...` : r.order}</span></td>
                     <td><span className="payments-ltr">{r.date}</span></td>
                     <td><strong>{r.name}</strong></td>
-                    <td>{r.method}</td>
+                    <td>{formatMethodLabel(r.method)}</td>
                     <td><span className="payments-ltr" style={{ fontWeight: '700' }}>{r.amount}</span></td>
                     <td>
                       <span

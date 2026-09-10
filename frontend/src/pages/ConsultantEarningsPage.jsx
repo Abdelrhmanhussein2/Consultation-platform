@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { consultantService } from '../services/consultantService';
 import Toast, { useToast } from '../components/Toast/Toast';
+import ModernSelect from '../components/ModernSelect';
 
 export default function ConsultantEarningsPage({ navigate }) {
   const { token } = useAuth();
@@ -626,14 +627,14 @@ export default function ConsultantEarningsPage({ navigate }) {
                     </div>
                     <div>
                       <label style={{ fontSize: '12px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '4px' }}>عملة الحساب</label>
-                      <select 
-                        value={currency} 
-                        onChange={(e) => setCurrency(e.target.value)}
-                        style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', boxSizing: 'border-box' }}
-                      >
-                        <option value="JOD">دينار أردني (JOD)</option>
-                        <option value="USD">دولار أمريكي (USD)</option>
-                      </select>
+                      <ModernSelect
+                        value={currency}
+                        onChange={setCurrency}
+                        options={[
+                          { value: 'JOD', label: 'دينار أردني (JOD)' },
+                          { value: 'USD', label: 'دولار أمريكي (USD)' }
+                        ]}
+                      />
                     </div>
                   </div>
 
