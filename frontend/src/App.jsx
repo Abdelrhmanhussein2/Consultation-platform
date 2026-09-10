@@ -42,6 +42,7 @@ import ConsultantTemplatesPage from './pages/ConsultantTemplatesPage';
 import ConsultantFavoritesPage from './pages/ConsultantFavoritesPage';
 import ConsultantDetailPage from './pages/ConsultantDetailPage';
 import ConsultantServicesPage from './pages/ConsultantServicesPage';
+import ConsultantSchedulePage from './pages/ConsultantSchedulePage';
 import DiwanAppointmentsPage from './pages/DiwanAppointmentsPage';
 
 function MainApp() {
@@ -112,6 +113,7 @@ function MainApp() {
     '/consultant',
     '/consultant/dashboard',
     '/consultant/services',
+    '/consultant/schedule',
     '/consultant/calendar',
     '/consultant/sessions',
     '/consultant/clients',
@@ -205,6 +207,9 @@ function MainApp() {
     }
     if (pathname === '/consultant/services') {
       return <ConsultantServicesPage navigate={navigate} />;
+    }
+    if (pathname === '/consultant/schedule') {
+      return <ConsultantSchedulePage navigate={navigate} />;
     }
     if (pathname === '/consultant/sessions') {
       return <ConsultantSessionsPage navigate={navigate} />;

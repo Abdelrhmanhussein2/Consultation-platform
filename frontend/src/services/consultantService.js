@@ -85,7 +85,23 @@ export const consultantService = {
   async rejectAppointment(appointmentId, reason, token) {
     return await apiFetch(`/api/appointments/${appointmentId}/cancel`, {
       method: 'POST',
-      body: { reason }
+      body: { reason: reason || 'تم الإلغاء بواسطة المستشار' }
+    }, token);
+  },
+
+  // Reschedule an appointment
+  async rescheduleAppointment(appointmentId, data, token) {
+    return await apiFetch(`/api/appointments/${appointmentId}/reschedule`, {
+      method: 'POST',
+      body: data
+    }, token);
+  },
+
+  // Update appointment status / notes
+  async updateAppointmentStatus(appointmentId, data, token) {
+    return await apiFetch(`/api/appointments/${appointmentId}/status`, {
+      method: 'PATCH',
+      body: data
     }, token);
   },
 

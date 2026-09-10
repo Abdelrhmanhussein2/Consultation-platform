@@ -481,16 +481,16 @@ class AppointmentService:
         if not appt:
             raise ValueError("Appointment not found")
 
-        if appt.status != AppointmentStatus.confirmed:
+        is_consultant = role in (UserRole.consultant, UserRole.platform_consultant, UserRole.admin, UserRole.super_admin)
+
+        if not is_consultant and appt.status != AppointmentStatus.confirmed:
             raise ValueError(
                 f"Only confirmed (paid) appointments can be rescheduled. "
                 f"Current status: '{appt.status.value}'."
             )
 
-        is_consultant = role in (UserRole.consultant, UserRole.platform_consultant)
-
         # Validate ownership
-        if is_consultant and appt.consultant_id != consultant_profile_id:
+        if is_consultant and consultant_profile_id and appt.consultant_id != consultant_profile_id and role not in (UserRole.admin, UserRole.super_admin):
             raise ValueError("This appointment does not belong to you")
         if role == UserRole.user and appt.user_id != requester_user_id:
             raise ValueError("This appointment does not belong to you")
