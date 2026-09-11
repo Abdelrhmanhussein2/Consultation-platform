@@ -542,61 +542,60 @@ export default function ConsultantSessionsPage({ navigate }) {
     setIsLoading(true);
     try {
       // 1. Try incoming appointments endpoint
-      let data = await consultantService.getIncomingAppointments(token).catch(() => null);
-      if (!data || !Array.isArray(data) || data.length === 0) {
-        const myAppts = await fetch('/api/appointments/incoming', {
+      let data = await consultantService.getIncomingAppointments(token, 1, 100).catch(() => null);
+      if (!data || !Array.isArray(data)) {
+        const myAppts = await fetch('/api/appointments/incoming?limit=100', {
           headers: { Authorization: `Bearer ${token}` }
-        }).then(r => r.ok ? r.json() : []).catch(() => []);
-        if (Array.isArray(myAppts) && myAppts.length > 0) {
+        }).then(r => r.ok ? r.json() : null).catch(() => null);
+        if (Array.isArray(myAppts)) {
           data = myAppts;
         }
       }
 
-      if (data && Array.isArray(data) && data.length > 0) {
-        const backendMapped = data.map((item, idx) => {
-          let col = 'pending';
-          const st = String(item.status || '').toLowerCase();
-          if (st === 'confirmed' || st === 'scheduled') col = 'confirmed';
-          else if (st === 'in_progress') col = 'in_progress';
-          else if (st === 'completed') col = 'completed';
-          else if (st.includes('cancel') || st === 'rejected') col = 'cancelled';
-          else col = 'pending';
+      if (data && Array.isArray(data)) {
+        if (data.length > 0) {
+          const backendMapped = data.map((item, idx) => {
+            let col = 'pending';
+            const st = String(item.status || '').toLowerCase();
+            if (st === 'confirmed' || st === 'scheduled' || st === 'rescheduled') col = 'confirmed';
+            else if (st === 'in_progress') col = 'in_progress';
+            else if (st === 'completed') col = 'completed';
+            else if (st.includes('cancel') || st === 'rejected') col = 'cancelled';
+            else col = 'pending';
 
-          const dObj = item.scheduled_at ? new Date(item.scheduled_at) : new Date();
-          const dStr = `${String(dObj.getDate()).padStart(2, '0')}-${String(dObj.getMonth() + 1).padStart(2, '0')}-${dObj.getFullYear()}`;
-          const tStr = `${String(dObj.getHours()).padStart(2, '0')}:${String(dObj.getMinutes()).padStart(2, '0')}`;
+            const dObj = item.scheduled_at ? new Date(item.scheduled_at) : new Date();
+            const dStr = `${String(dObj.getDate()).padStart(2, '0')}-${String(dObj.getMonth() + 1).padStart(2, '0')}-${dObj.getFullYear()}`;
+            const tStr = `${String(dObj.getHours()).padStart(2, '0')}:${String(dObj.getMinutes()).padStart(2, '0')}`;
 
-          let pStatus = 'غير مدفوعة';
-          if (col === 'completed' || col === 'in_progress' || col === 'confirmed' || item.is_paid) {
-            pStatus = 'مدفوعة';
-          } else if (st === 'pending_payment') {
-            pStatus = 'بانتظار الدفع';
-          }
+            let pStatus = 'غير مدفوعة';
+            if (col === 'completed' || col === 'in_progress' || col === 'confirmed' || item.is_paid) {
+              pStatus = 'مدفوعة';
+            } else if (st === 'pending_payment') {
+              pStatus = 'بانتظار الدفع';
+            }
 
-          const isVideo = item.session_type === 'video_call' || item.session_type === 'video';
-          const isChat = item.session_type === 'text_chat' || item.session_type === 'chat';
+            const isVideo = item.session_type === 'video_call' || item.session_type === 'video';
+            const isChat = item.session_type === 'text_chat' || item.session_type === 'chat';
 
-          return {
-            id: item.id || `real-${idx}`,
-            ref_id: item.id ? `#${String(item.id).substring(0, 7)}` : `#202620${idx}`,
-            status: col,
-            title: item.service_name || item.topic || item.notes || 'استشارة استراتيجية ضريبية',
-            client_name: item.client_name || item.user?.full_name || 'عميل منصة ديوان',
-            client_type: item.client_entity_type || 'شركة ذات مسؤولية محدودة',
-            type: isVideo ? 'جلسة فيديو' : isChat ? 'جلسة محادثة' : 'تقرير مكتوب',
-            type_kind: isVideo ? 'video' : isChat ? 'chat' : 'report',
-            date: dStr,
-            time: tStr,
-            duration_and_price: `${item.duration_minutes || 60} دقيقه • ${item.price || 45} د.أ`,
-            payment_status: pStatus,
-            rawBackend: item
-          };
-        });
+            return {
+              id: item.id || `real-${idx}`,
+              ref_id: item.id ? `#${String(item.id).substring(0, 7)}` : `#202620${idx}`,
+              status: col,
+              title: item.service_name || item.topic || item.notes || 'استشارة استراتيجية ضريبية',
+              client_name: item.client_name || item.user?.full_name || 'عميل منصة ديوان',
+              client_type: item.client_entity_type || (item.user?.entity_type === 'company' ? 'شركة ذات مسؤولية محدودة' : 'أفراد'),
+              type: isVideo ? 'جلسة فيديو' : isChat ? 'جلسة محادثة' : 'تقرير مكتوب',
+              type_kind: isVideo ? 'video' : isChat ? 'chat' : 'report',
+              date: dStr,
+              time: tStr,
+              duration_and_price: `${item.duration_minutes || 60} دقيقه • ${item.price || 45} د.أ`,
+              payment_status: pStatus,
+              rawBackend: item
+            };
+          });
 
-        setSessions((prev) => {
-          const backendIds = new Set(backendMapped.map((b) => b.id));
-          return [...backendMapped, ...prev.filter((p) => !backendIds.has(p.id) && !p.rawBackend)];
-        });
+          setSessions(backendMapped);
+        }
       }
     } catch (err) {
       console.error('Failed to load consultant appointments:', err);
@@ -618,11 +617,11 @@ export default function ConsultantSessionsPage({ navigate }) {
     const canc = sessions.filter((s) => s.status === 'cancelled').length;
 
     return {
-      completed: Math.max(comp, 15),
-      in_progress: Math.max(inProg, 15),
-      confirmed: Math.max(conf, 5),
-      pending: Math.max(pend, 4),
-      cancelled: Math.max(canc, 4)
+      completed: comp,
+      in_progress: inProg,
+      confirmed: conf,
+      pending: pend,
+      cancelled: canc
     };
   }, [sessions]);
 
@@ -1287,7 +1286,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                       fontFamily: "'Tajawal', sans-serif"
                     }}
                   >
-                    {col.displayCount || colSessions.length}
+                    {colSessions.length}
                   </span>
                 </div>
 
@@ -1877,8 +1876,59 @@ export default function ConsultantSessionsPage({ navigate }) {
               </div>
             </div>
 
-            {/* Footer: Close Button on Left */}
-            <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '20px' }}>
+            {/* Footer: Action Buttons */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {selectedSession.type_kind === 'video' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveVideoApptId(selectedSession.id);
+                      setSelectedSession(null);
+                    }}
+                    style={{
+                      backgroundColor: '#0A3254',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '8px 20px',
+                      fontSize: '13.5px',
+                      fontWeight: '800',
+                      cursor: 'pointer',
+                      fontFamily: "'Tajawal', sans-serif",
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <span>انضمام لجلسة الفيديو</span>
+                    <VideoCameraIcon size={14} color="#FFFFFF" />
+                  </button>
+                )}
+                {selectedSession.status === 'pending' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleMoveStatus(selectedSession.id, 'confirmed');
+                      setSelectedSession(null);
+                    }}
+                    style={{
+                      backgroundColor: '#10B981',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '8px 20px',
+                      fontSize: '13.5px',
+                      fontWeight: '800',
+                      cursor: 'pointer',
+                      fontFamily: "'Tajawal', sans-serif"
+                    }}
+                  >
+                    قبول وتأكيد الحجز
+                  </button>
+                )}
+              </div>
+
               <button
                 type="button"
                 onClick={() => setSelectedSession(null)}
@@ -1887,7 +1937,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                   color: '#0A3254',
                   border: '1.5px solid #CBD5E1',
                   borderRadius: '8px',
-                  padding: '8px 32px',
+                  padding: '8px 28px',
                   fontSize: '14px',
                   fontWeight: '800',
                   cursor: 'pointer',

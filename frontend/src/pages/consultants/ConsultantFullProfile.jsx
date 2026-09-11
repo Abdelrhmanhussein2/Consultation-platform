@@ -82,7 +82,7 @@ function getDaysForWeek(offset, dbAvailabilities = null, dbWorkingDays = null) {
 }
 
 /* ── Main component ──────────────────────────────────────────────── */
-export default function ConsultantFullProfile({ consultant, onClose, onBook, onOpenPayment, onBookRequest, scrollToBookingOnMount }) {
+export default function ConsultantFullProfile({ consultant, onClose, onBook, onOpenPayment, onBookRequest, scrollToBookingOnMount, isColleagues = false }) {
   const { token } = useAuth();
   const [activeTab, setActiveTab]               = useState('about');
   const [selectedServiceId, setSelectedServiceId] = useState(null);
@@ -289,13 +289,17 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
     setTimeout(() => { setQuestionSent(false); setQuestionText(''); }, 3500);
   };
 
+  const isColleaguesMode = isColleagues || (typeof window !== 'undefined' && window.location.pathname.includes('colleagues'));
+
   return (
     <div className="profile-spa-view">
       <div className="profile-spa-topbar">
-        <span style={{ fontWeight: '800', color: '#0B2E4B', fontSize: '15px' }}>
-          ملف المستشار {profileLoading && '(جاري التحميل...)'}
+        <span style={{ fontWeight: '850', color: 'var(--admin-navy)', fontSize: '15px' }}>
+          {isColleaguesMode ? 'ملف المستشار — زملاء المنصة' : 'ملف المستشار'} {profileLoading && '(جاري التحميل...)'}
         </span>
-        <button className="profile-spa-back-btn" onClick={onClose}>← العودة إلى المستشارين</button>
+        <button className="profile-spa-back-btn" onClick={onClose}>
+          {isColleaguesMode ? '← العودة إلى زملاء المنصة' : '← العودة إلى المستشارين'}
+        </button>
       </div>
 
       {/* Profile Hero Card */}
@@ -309,8 +313,8 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
           </div>
           <div className="profile-details-head">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <h1 style={{ margin: 0, fontSize: '26px', fontWeight: '900', color: '#0B2E4B' }}>{name}</h1>
-              {isVerified && <span style={{ background: '#DCFCE7', color: '#166534', border: '1px solid #BBF7D0', padding: '2px 10px', borderRadius: '15px', fontSize: '11px', fontWeight: '800' }}>✔ موثق</span>}
+              <h1 style={{ margin: 0, fontSize: '26px', fontWeight: '850', color: 'var(--admin-navy)' }}>{name}</h1>
+              {isVerified && <span style={{ background: '#DCFCE7', color: '#166534', border: '1px solid #BBF7D0', padding: '3px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: '800' }}>✔ موثق</span>}
             </div>
             <div className="profile-tagline-text">{bio}</div>
             <div style={{ margin: '8px 0' }}><span className="cp-tier">✔ {tier}</span></div>
@@ -318,8 +322,8 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
               <span>📍 {city}</span><span>•</span>
               <span style={{ color: '#16A36D', fontWeight: '700' }}>● يرد عادةً خلال ساعة</span>
             </div>
-            <div className="profile-meta-row" style={{ marginTop: '10px', fontSize: '13px', color: '#0B2E4B' }}>
-              <span style={{ fontWeight: '800', color: '#F59A23' }}>{ratingFormatted} ⭐⭐⭐⭐⭐</span>
+            <div className="profile-meta-row" style={{ marginTop: '10px', fontSize: '12.5px', color: 'var(--admin-navy)' }}>
+              <span style={{ fontWeight: '800', color: 'var(--admin-orange)' }}>{ratingFormatted} ⭐⭐⭐⭐⭐</span>
               <span>•</span><span><b>{totalReviewsCount}</b> تقييم</span>
               <span>•</span><span><b>{sessionsCount}</b> جلسة مكتملة</span>
               <span>•</span><span><b>{years}</b> سنة خبرة</span>
@@ -330,12 +334,12 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
             </div>
           </div>
           <div className="profile-price-action">
-            <div style={{ fontSize: '11px', color: '#64748B' }}>ابتداءً من</div>
+            <div style={{ fontSize: '11px', color: 'var(--admin-muted)', fontWeight: '600' }}>ابتداءً من</div>
             <div className="profile-price-val">{minServicePrice} <span style={{ fontSize: '13px', fontWeight: '800' }}>د.أ / ساعة</span></div>
             <button className="profile-book-now-btn" onClick={triggerWidgetGlow}>احجز جلسة</button>
           </div>
         </div>
-        <div className="profile-nav-tabs">
+        <nav className="profile-nav-tabs">
           <button className={activeTab==='about'        ?'active':''} onClick={()=>scrollToSection('sec-about','about')}>نبذة</button>
           <button className={activeTab==='experience'   ?'active':''} onClick={()=>scrollToSection('sec-experience','experience')}>الخبرة</button>
           <button className={activeTab==='services'     ?'active':''} onClick={()=>scrollToSection('sec-services','services')}>الخدمات ({displayServices.length})</button>
@@ -343,7 +347,7 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
           <button className={activeTab==='availability' ?'active':''} onClick={triggerWidgetGlow}>التوفر والتقويم</button>
           <button className={activeTab==='pricing'      ?'active':''} onClick={()=>scrollToSection('sec-pricing','pricing')}>الأسعار</button>
           <button className={activeTab==='faq'          ?'active':''} onClick={()=>scrollToSection('sec-faq','faq')}>الأسئلة الشائعة</button>
-        </div>
+        </nav>
       </div>
 
       {/* Two-column layout */}

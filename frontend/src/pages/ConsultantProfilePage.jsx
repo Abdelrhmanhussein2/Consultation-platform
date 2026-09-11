@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { consultantService } from '../services/consultantService';
 import Toast, { useToast } from '../components/Toast/Toast';
+import './ConsultantProfilePage.css';
 
 // Subtle Dark Pencil Icon SVG
 const EditPencilIcon = ({ size = 14, color = '#475569' }) => (
@@ -190,145 +191,78 @@ export default function ConsultantProfilePage({ navigate }) {
   }
 
   return (
-    <div style={{ direction: 'rtl', fontFamily: 'Tajawal, sans-serif', color: '#1E293B', paddingBottom: '60px' }}>
+    <div className="consultant-profile-shell">
       <Toast {...toast} />
 
       {/* ------------------------------------------------------------- */}
-      {/* 1. Main Header Profile Card */}
+      {/* 1. Main Header Profile Card (Matching Admin Profile Aesthetic) */}
       {/* ------------------------------------------------------------- */}
-      <div style={{ marginBottom: '24px' }}>
-        {/* Navy Blue Cover */}
-        <div style={{
-          height: '100px',
-          backgroundColor: '#0E3B5E',
-          borderTopLeftRadius: '20px',
-          borderTopRightRadius: '20px'
-        }} />
+      <section className="profile-card-header">
+        <div className="profile-hero-band"></div>
 
-        {/* White Base Card */}
-        <div style={{
-          backgroundColor: '#FFFFFF',
-          borderBottomLeftRadius: '20px',
-          borderBottomRightRadius: '20px',
-          border: '1px solid #E2E8F0',
-          borderTop: 'none',
-          padding: '24px 32px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          position: 'relative',
-          flexWrap: 'wrap',
-          gap: '20px'
-        }}>
-          {/* Right Side: Square Dark Avatar & Info */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px', flex: '1 1 500px' }}>
-            <div style={{
-              width: '90px',
-              height: '90px',
-              borderRadius: '20px',
-              backgroundColor: '#0E3B5E',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '32px',
-              fontWeight: '800',
-              color: '#FFFFFF',
-              position: 'absolute',
-              top: '-45px',
-              right: '32px',
-              boxShadow: '0 4px 14px rgba(14, 59, 94, 0.25)',
-              border: '4px solid #FFFFFF'
-            }}>
-              {firstTwoLetters}
+        <div className="profile-top-info">
+          {/* Large Overlapping Avatar */}
+          <div className="profile-avatar-large">
+            {profile?.profile_image_url ? (
+              <img src={profile.profile_image_url} alt={fullName} />
+            ) : (
+              firstTwoLetters
+            )}
+          </div>
+
+          {/* Main Info */}
+          <div className="profile-main-title">
+            <h1>{fullName}</h1>
+            <div className="profile-tagline">{bioSummary}</div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
+              <span className="profile-vip-badge">
+                ✔ مستشار VIP معتمد
+              </span>
             </div>
 
-            <div style={{ paddingRight: '110px' }}>
-              <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#1E293B', margin: '0 0 6px 0' }}>
-                {fullName}
-              </h1>
+            <div className="profile-meta-line">
+              <span>📍 عمان، الأردن</span>
+              <span>•</span>
+              <span>⚡ يرد عادة خلال ساعة</span>
+              <span>•</span>
+              <span style={{ color: 'var(--admin-orange)', fontWeight: '800' }}>⭐ {ratingAvg}</span>
+              <span>({ratingCount} تقييم)</span>
+              <span>•</span>
+              <span>💼 {yearsExp} سنة خبرة</span>
+            </div>
 
-              <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 10px 0', lineHeight: '1.6' }}>
-                {bioSummary}
-              </p>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                <span style={{
-                  fontSize: '11px',
-                  fontWeight: '700',
-                  color: '#10B981',
-                  backgroundColor: '#ECFDF5',
-                  padding: '3px 12px',
-                  borderRadius: '20px',
-                  border: '1px solid #A7F3D0',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}>
-                  ✔ مستشار VIP معتمد
+            <div className="profile-specs-chips">
+              {String(specializations || 'ضريبة الدخل').split(/،|,/).filter(Boolean).map((s, idx) => (
+                <span key={idx} className="profile-spec-chip">
+                  {s.trim()}
                 </span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: '#64748B', flexWrap: 'wrap', marginBottom: '12px' }}>
-                <span>📍 عمان، الأردن</span>
-                <span>•</span>
-                <span>⚡ يرد عادة خلال ساعة</span>
-                <span>•</span>
-                <span style={{ color: '#F5A52A', fontWeight: '700' }}>⭐ {ratingAvg}</span>
-                <span>({ratingCount} تقييم)</span>
-                <span>•</span>
-                <span>💼 {yearsExp} سنة خبرة</span>
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {String(specializations || 'ضريبة الدخل').split(/،|,/).filter(Boolean).map((s, idx) => (
-                  <span key={idx} style={{
-                    fontSize: '12px',
-                    fontWeight: '700',
-                    color: '#FFFFFF',
-                    backgroundColor: '#0E3B5E',
-                    padding: '4px 14px',
-                    borderRadius: '16px'
-                  }}>
-                    {s.trim()}
-                  </span>
-                ))}
-              </div>
+              ))}
             </div>
           </div>
 
-          {/* Left Side: Hoverable Price Block with Pure Pencil Icon */}
-          <div style={{ textAlign: 'left', minWidth: '160px' }}>
-            <span style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>
-              ابتداءً من
-            </span>
+          {/* Right Meta: Price & Edit */}
+          <div className="profile-right-meta">
+            <span className="price-label">ابتداءً من</span>
 
             {!editingPrice ? (
               <div
+                className="profile-price-display"
                 onMouseEnter={() => setPriceHovered(true)}
                 onMouseLeave={() => setPriceHovered(false)}
                 onClick={() => setEditingPrice(true)}
                 title="تعديل السعر"
-                style={{
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '4px 8px',
-                  borderRadius: '8px',
-                  backgroundColor: priceHovered ? '#F1F5F9' : 'transparent',
-                  transition: 'background-color 0.2s'
-                }}
               >
-                <span style={{ fontSize: '26px', fontWeight: '800', color: '#0E3B5E', lineHeight: '1' }}>
-                  {basePrice} <span style={{ fontSize: '14px', fontWeight: '600', color: '#64748B' }}>د.أ / ساعة</span>
+                <span className="profile-price-val">
+                  {basePrice} <small>د.أ / ساعة</small>
                 </span>
                 <span style={{
-                  opacity: priceHovered ? 1 : 0.35,
+                  opacity: priceHovered ? 1 : 0.45,
                   transition: 'opacity 0.2s',
                   display: 'inline-flex',
                   alignItems: 'center'
                 }}>
-                  <EditPencilIcon size={16} color="#0E3B5E" />
+                  <EditPencilIcon size={16} color="var(--admin-navy)" />
                 </span>
               </div>
             ) : (
@@ -339,47 +273,28 @@ export default function ConsultantProfilePage({ navigate }) {
                     value={hourlyRate}
                     onChange={(e) => setHourlyRate(e.target.value)}
                     autoFocus
+                    className="profile-input"
                     style={{
                       width: '80px',
                       padding: '6px',
-                      borderRadius: '6px',
-                      border: '1px solid #0E3B5E',
                       fontSize: '14px',
-                      fontWeight: '700',
+                      fontWeight: '800',
                       textAlign: 'center'
                     }}
                   />
-                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#475569' }}>د.أ</span>
+                  <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--admin-muted)' }}>د.أ</span>
                 </div>
-                <div style={{ display: 'flex', gap: '4px' }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
                   <button
                     onClick={handleSavePrice}
                     disabled={savingSection === 'price'}
-                    style={{
-                      background: '#0E3B5E',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      fontWeight: '700',
-                      cursor: 'pointer'
-                    }}
+                    className="profile-btn-save"
                   >
                     {savingSection === 'price' ? 'حفظ...' : 'حفظ'}
                   </button>
                   <button
                     onClick={() => setEditingPrice(false)}
-                    style={{
-                      background: '#E2E8F0',
-                      color: '#475569',
-                      border: 'none',
-                      padding: '4px 8px',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      fontWeight: '700',
-                      cursor: 'pointer'
-                    }}
+                    className="profile-btn-cancel"
                   >
                     إلغاء
                   </button>
@@ -388,61 +303,36 @@ export default function ConsultantProfilePage({ navigate }) {
             )}
           </div>
         </div>
-      </div>
 
-      {/* ------------------------------------------------------------- */}
-      {/* 2. Navigation Pills Bar (Strictly 4 Clean Tabs) */}
-      {/* ------------------------------------------------------------- */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        {[
-          { key: 'نبذة', label: 'نبذة' },
-          { key: 'الخبرة', label: 'الخبرة' },
-          { key: 'الخدمات والمجالات', label: `الخدمات والمجالات (${services.length || 5})` },
-          { key: 'التقييمات', label: `التقييمات (${ratingCount})` }
-        ].map(tab => {
-          const isActive = activeTab === tab.key;
-          return (
+        {/* Navigation Tabs Bar */}
+        <nav className="profile-nav-tabs">
+          {[
+            { key: 'نبذة', label: 'نبذة' },
+            { key: 'الخبرة', label: 'الخبرة' },
+            { key: 'الخدمات والمجالات', label: `الخدمات والمجالات (${services.length || 5})` },
+            { key: 'التقييمات', label: `التقييمات (${ratingCount})` }
+          ].map(tab => (
             <button
               key={tab.key}
+              className={activeTab === tab.key ? 'active' : ''}
               onClick={() => setActiveTab(tab.key)}
-              style={{
-                backgroundColor: isActive ? '#0E3B5E' : '#FFFFFF',
-                color: isActive ? '#FFFFFF' : '#475569',
-                border: isActive ? '1px solid #0E3B5E' : '1px solid #E2E8F0',
-                padding: '8px 24px',
-                borderRadius: '20px',
-                fontSize: '13px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                boxShadow: isActive ? '0 2px 8px rgba(14, 59, 94, 0.2)' : 'none',
-                transition: 'all 0.2s'
-              }}
             >
               {tab.label}
             </button>
-          );
-        })}
-      </div>
+          ))}
+        </nav>
+      </section>
 
       {/* ------------------------------------------------------------- */}
-      {/* 3. Tab Contents Layout */}
+      {/* 2. Tab Contents Layout */}
       {/* ------------------------------------------------------------- */}
       <div>
-        <div style={{
-          backgroundColor: '#FFFFFF',
-          border: '1px solid #E2E8F0',
-          borderRadius: '20px',
-          padding: '28px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.01)'
-        }}>
+        <div className="profile-section-card">
           {/* TAB 1: نبذة */}
           {activeTab === 'نبذة' && (
             <div>
-              {/* Header with Pure Pencil Icon Button (No Text) */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0E3B5E', margin: 0 }}>
-                  نبذة
-                </h3>
+              <div className="profile-section-header">
+                <h3>نبذة</h3>
                 {!editingBio && (
                   <button
                     onClick={() => {
@@ -450,21 +340,9 @@ export default function ConsultantProfilePage({ navigate }) {
                       setEditingBio(true);
                     }}
                     title="تعديل النبذة"
-                    style={{
-                      background: '#F8FAFC',
-                      border: '1px solid #E2E8F0',
-                      color: '#475569',
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
+                    className="profile-edit-btn"
                   >
-                    <EditPencilIcon size={14} color="#475569" />
+                    <EditPencilIcon size={14} color="var(--admin-navy)" />
                   </button>
                 )}
               </div>
@@ -479,14 +357,11 @@ export default function ConsultantProfilePage({ navigate }) {
                     value={bio || bioSummary}
                     onChange={(e) => setBio(e.target.value)}
                     rows={4}
+                    className="profile-textarea"
                     style={{
                       width: '100%',
                       padding: '12px',
-                      borderRadius: '10px',
-                      border: '1px solid #CBD5E1',
                       fontSize: '13px',
-                      fontFamily: 'Tajawal, sans-serif',
-                      color: '#1E293B',
                       boxSizing: 'border-box',
                       marginBottom: '10px'
                     }}
@@ -495,31 +370,13 @@ export default function ConsultantProfilePage({ navigate }) {
                     <button
                       onClick={handleSaveBio}
                       disabled={savingSection === 'bio'}
-                      style={{
-                        background: '#0E3B5E',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        padding: '6px 16px',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        cursor: 'pointer'
-                      }}
+                      className="profile-btn-save"
                     >
                       {savingSection === 'bio' ? 'جاري الحفظ...' : 'حفظ'}
                     </button>
                     <button
                       onClick={() => setEditingBio(false)}
-                      style={{
-                        background: '#E2E8F0',
-                        color: '#475569',
-                        border: 'none',
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        cursor: 'pointer'
-                      }}
+                      className="profile-btn-cancel"
                     >
                       إلغاء
                     </button>
@@ -528,54 +385,36 @@ export default function ConsultantProfilePage({ navigate }) {
               )}
 
               {/* 3 Metric Cards Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '32px' }}>
-                <div style={{
-                  backgroundColor: '#FAFBFD',
-                  border: '1px solid #F1F5F9',
-                  borderRadius: '16px',
-                  padding: '20px 16px',
-                  textAlign: 'center'
-                }}>
-                  <span style={{ fontSize: '12px', color: '#94A3B8', display: 'block', marginBottom: '6px' }}>أسلوب الاستشارة</span>
-                  <b style={{ fontSize: '15px', color: '#0E3B5E' }}>عملي ومباشر</b>
+              <div className="profile-stats-grid">
+                <div className="profile-stat-box">
+                  <small>أسلوب الاستشارة</small>
+                  <b>عملي ومباشر</b>
                 </div>
 
-                <div style={{
-                  backgroundColor: '#FAFBFD',
-                  border: '1px solid #F1F5F9',
-                  borderRadius: '16px',
-                  padding: '20px 16px',
-                  textAlign: 'center'
-                }}>
-                  <span style={{ fontSize: '12px', color: '#94A3B8', display: 'block', marginBottom: '6px' }}>الأنشطة</span>
-                  <b style={{ fontSize: '15px', color: '#0E3B5E' }}>مستشار مستقل</b>
+                <div className="profile-stat-box">
+                  <small>الأنشطة</small>
+                  <b>مستشار مستقل</b>
                 </div>
 
-                <div style={{
-                  backgroundColor: '#FAFBFD',
-                  border: '1px solid #F1F5F9',
-                  borderRadius: '16px',
-                  padding: '20px 16px',
-                  textAlign: 'center'
-                }}>
-                  <span style={{ fontSize: '12px', color: '#94A3B8', display: 'block', marginBottom: '6px' }}>الخبرة</span>
-                  <b style={{ fontSize: '15px', color: '#0E3B5E' }}>{yearsExp} سنة</b>
+                <div className="profile-stat-box">
+                  <small>الخبرة</small>
+                  <b>{yearsExp} سنة</b>
                 </div>
               </div>
 
               {/* Timeline Header */}
-              <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0E3B5E', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '850', color: 'var(--admin-navy)', marginBottom: '16px' }}>
                 الخبرة والمؤهلات
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={{ borderRight: '4px solid #F5A52A', paddingRight: '16px' }}>
-                  <b style={{ fontSize: '14px', color: '#0E3B5E', display: 'block' }}>مستشار ضرائب أول — {specName}</b>
-                  <span style={{ fontSize: '12px', color: '#64748B' }}>مستشار معتمد ومسجل لدى دائرة ضريبة الدخل والمبيعات الأردنية</span>
+                <div style={{ borderRight: '4px solid var(--admin-orange)', paddingRight: '16px' }}>
+                  <b style={{ fontSize: '14.5px', color: 'var(--admin-navy)', display: 'block' }}>مستشار ضرائب أول — {specName}</b>
+                  <span style={{ fontSize: '12.5px', color: 'var(--admin-muted)' }}>مستشار معتمد ومسجل لدى دائرة ضريبة الدخل والمبيعات الأردنية</span>
                 </div>
 
-                <div style={{ borderRight: '4px solid #CBD5E1', paddingRight: '16px' }}>
+                <div style={{ borderRight: '4px solid var(--admin-line)', paddingRight: '16px' }}>
                   <b style={{ fontSize: '14px', color: '#475569', display: 'block' }}>{certificates}</b>
-                  <span style={{ fontSize: '12px', color: '#94A3B8' }}>جمعية المحاسبين القانونيين الأردنيين (JCPA)</span>
+                  <span style={{ fontSize: '12px', color: 'var(--admin-muted)' }}>جمعية المحاسبين القانونيين الأردنيين (JCPA)</span>
                 </div>
               </div>
             </div>
@@ -584,10 +423,8 @@ export default function ConsultantProfilePage({ navigate }) {
           {/* TAB 2: الخبرة */}
           {activeTab === 'الخبرة' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0E3B5E', margin: 0 }}>
-                  الخبرات والمسيرة المهنية
-                </h3>
+              <div className="profile-section-header">
+                <h3>الخبرات والمسيرة المهنية</h3>
                 {!editingExp && (
                   <button
                     onClick={() => {
@@ -595,21 +432,9 @@ export default function ConsultantProfilePage({ navigate }) {
                       setEditingExp(true);
                     }}
                     title="تعديل سنوات الخبرة"
-                    style={{
-                      background: '#F8FAFC',
-                      border: '1px solid #E2E8F0',
-                      color: '#475569',
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
+                    className="profile-edit-btn"
                   >
-                    <EditPencilIcon size={14} color="#475569" />
+                    <EditPencilIcon size={14} color="var(--admin-navy)" />
                   </button>
                 )}
               </div>
@@ -619,18 +444,17 @@ export default function ConsultantProfilePage({ navigate }) {
                   يمتلك المستشار خبرة طويلة تصل إلى <strong>{yearsExp} سنة</strong> في مجالات التخطيط والامتثال الضريبي وتدقيق المبيعات والاعتراضات الضريبية.
                 </p>
               ) : (
-                <div style={{ marginBottom: '24px', backgroundColor: '#FAFBFD', padding: '16px', borderRadius: '12px', border: '1px solid #F1F5F9' }}>
+                <div style={{ marginBottom: '24px', backgroundColor: 'var(--admin-bg)', padding: '16px', borderRadius: '16px', border: '1px solid var(--admin-line)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#334155' }}>سنوات الخبرة:</span>
+                    <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--admin-navy)' }}>سنوات الخبرة:</span>
                     <input
                       type="number"
                       value={yearsOfExperience || yearsExp}
                       onChange={(e) => setYearsOfExperience(e.target.value)}
+                      className="profile-input"
                       style={{
                         width: '90px',
                         padding: '6px',
-                        borderRadius: '6px',
-                        border: '1px solid #CBD5E1',
                         fontSize: '13px',
                         fontWeight: '700',
                         textAlign: 'center'
@@ -641,31 +465,13 @@ export default function ConsultantProfilePage({ navigate }) {
                     <button
                       onClick={handleSaveExp}
                       disabled={savingSection === 'exp'}
-                      style={{
-                        background: '#0E3B5E',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        padding: '6px 14px',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        cursor: 'pointer'
-                      }}
+                      className="profile-btn-save"
                     >
                       {savingSection === 'exp' ? 'حفظ...' : 'حفظ'}
                     </button>
                     <button
                       onClick={() => setEditingExp(false)}
-                      style={{
-                        background: '#E2E8F0',
-                        color: '#475569',
-                        border: 'none',
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        cursor: 'pointer'
-                      }}
+                      className="profile-btn-cancel"
                     >
                       إلغاء
                     </button>
@@ -673,10 +479,10 @@ export default function ConsultantProfilePage({ navigate }) {
                 </div>
               )}
 
-              {/* Certificates Section with Pure Pencil */}
-              <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '20px', marginTop: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <h4 style={{ fontSize: '15px', fontWeight: '800', color: '#0E3B5E', margin: 0 }}>
+              {/* Certificates Section */}
+              <div style={{ borderTop: '1px solid var(--admin-line)', paddingTop: '20px', marginTop: '20px' }}>
+                <div className="profile-section-header">
+                  <h4 style={{ fontSize: '15px', fontWeight: '850', color: 'var(--admin-navy)', margin: 0 }}>
                     🎓 الشهادات والمؤهلات
                   </h4>
                   {!editingCerts && (
@@ -686,41 +492,28 @@ export default function ConsultantProfilePage({ navigate }) {
                         setEditingCerts(true);
                       }}
                       title="تعديل الشهادات"
-                      style={{
-                        background: '#F8FAFC',
-                        border: '1px solid #E2E8F0',
-                        color: '#475569',
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s'
-                      }}
+                      className="profile-edit-btn"
                     >
-                      <EditPencilIcon size={14} color="#475569" />
+                      <EditPencilIcon size={14} color="var(--admin-navy)" />
                     </button>
                   )}
                 </div>
 
                 {!editingCerts ? (
-                  <div style={{ borderRight: '4px solid #CBD5E1', paddingRight: '16px' }}>
+                  <div style={{ borderRight: '4px solid var(--admin-line)', paddingRight: '16px' }}>
                     <b style={{ fontSize: '14px', color: '#475569', display: 'block' }}>{certificates}</b>
-                    <span style={{ fontSize: '12px', color: '#94A3B8' }}>جمعية المحاسبين القانونيين الأردنيين (JCPA)</span>
+                    <span style={{ fontSize: '12px', color: 'var(--admin-muted)' }}>جمعية المحاسبين القانونيين الأردنيين (JCPA)</span>
                   </div>
                 ) : (
-                  <div style={{ backgroundColor: '#FAFBFD', padding: '16px', borderRadius: '12px', border: '1px solid #F1F5F9' }}>
+                  <div style={{ backgroundColor: 'var(--admin-bg)', padding: '16px', borderRadius: '16px', border: '1px solid var(--admin-line)' }}>
                     <input
                       type="text"
                       value={certificates}
                       onChange={(e) => setCertificates(e.target.value)}
+                      className="profile-input"
                       style={{
                         width: '100%',
                         padding: '10px',
-                        borderRadius: '8px',
-                        border: '1px solid #CBD5E1',
                         fontSize: '13px',
                         boxSizing: 'border-box',
                         marginBottom: '10px'
@@ -730,31 +523,13 @@ export default function ConsultantProfilePage({ navigate }) {
                       <button
                         onClick={handleSaveCerts}
                         disabled={savingSection === 'certs'}
-                        style={{
-                          background: '#0E3B5E',
-                          color: '#FFFFFF',
-                          border: 'none',
-                          padding: '6px 14px',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          fontWeight: '700',
-                          cursor: 'pointer'
-                        }}
+                        className="profile-btn-save"
                       >
                         {savingSection === 'certs' ? 'حفظ...' : 'حفظ'}
                       </button>
                       <button
                         onClick={() => setEditingCerts(false)}
-                        style={{
-                          background: '#E2E8F0',
-                          color: '#475569',
-                          border: 'none',
-                          padding: '6px 10px',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          fontWeight: '700',
-                          cursor: 'pointer'
-                        }}
+                        className="profile-btn-cancel"
                       >
                         إلغاء
                       </button>
@@ -768,30 +543,28 @@ export default function ConsultantProfilePage({ navigate }) {
           {/* TAB 3: الخدمات والمجالات */}
           {activeTab === 'الخدمات والمجالات' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0E3B5E', margin: 0 }}>
-                  الخدمات المتاحة للعملاء وأسعارها
-                </h3>
-                <span style={{ fontSize: '11px', color: '#005D9C', backgroundColor: '#E5EFF5', padding: '4px 12px', borderRadius: '12px', fontWeight: '700' }}>
+              <div className="profile-section-header">
+                <h3>الخدمات المتاحة للعملاء وأسعارها</h3>
+                <span style={{ fontSize: '11px', color: 'var(--admin-navy2)', backgroundColor: 'var(--admin-surface)', padding: '5px 14px', borderRadius: '999px', fontWeight: '800', border: '1px solid var(--admin-line)' }}>
                   🔒 الخدمات المعتمدة مفعلة من الإدارة
                 </span>
               </div>
 
-              <div style={{ fontSize: '12px', color: '#64748B', backgroundColor: '#F8FAFC', padding: '12px 16px', borderRadius: '10px', border: '1px solid #E2E8F0', marginBottom: '20px' }}>
+              <div style={{ fontSize: '12.5px', color: 'var(--admin-muted)', backgroundColor: 'var(--admin-surface)', padding: '12px 18px', borderRadius: '14px', border: '1px solid var(--admin-line)', marginBottom: '20px' }}>
                 ℹ️ قائمة الخدمات والأسعار المعتمدة مفعّلة مسبقاً وتخضع لموافقة إدارة منصة ديوان.
               </div>
 
               {services.length === 0 ? (
-                <div style={{ fontSize: '13px', color: '#94A3B8', textAlign: 'center', padding: '30px 0' }}>لا توجد خدمات مسجلة حالياً.</div>
+                <div style={{ fontSize: '13px', color: 'var(--admin-muted)', textAlign: 'center', padding: '30px 0' }}>لا توجد خدمات مسجلة حالياً.</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {services.map((srv, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', border: '1px solid #F1F5F9', borderRadius: '14px', backgroundColor: '#FAFBFD' }}>
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', border: '1px solid var(--admin-line)', borderRadius: '16px', backgroundColor: '#FAFBFD', transition: 'all 0.2s' }}>
                       <div>
-                        <b style={{ fontSize: '14px', color: '#0E3B5E', display: 'block' }}>{srv.name}</b>
-                        <span style={{ fontSize: '12px', color: '#64748B' }}>المدة المعتمدة: {srv.duration_minutes || 60} دقيقة</span>
+                        <b style={{ fontSize: '14.5px', color: 'var(--admin-navy)', display: 'block' }}>{srv.name}</b>
+                        <span style={{ fontSize: '12px', color: 'var(--admin-muted)' }}>المدة المعتمدة: {srv.duration_minutes || 60} دقيقة</span>
                       </div>
-                      <b style={{ fontSize: '18px', color: '#F5A52A' }}>{Math.round(srv.price)} د.أ</b>
+                      <b style={{ fontSize: '18px', color: 'var(--admin-orange)', fontWeight: '900' }}>{Math.round(srv.price)} د.أ</b>
                     </div>
                   ))}
                 </div>
@@ -802,22 +575,22 @@ export default function ConsultantProfilePage({ navigate }) {
           {/* TAB 4: التقييمات */}
           {activeTab === 'التقييمات' && (
             <div>
-              <div style={{ textAlign: 'center', padding: '20px 0', borderBottom: '1px solid #F1F5F9', marginBottom: '24px' }}>
-                <span style={{ fontSize: '46px', fontWeight: '800', color: '#0E3B5E', display: 'block' }}>{ratingAvg}</span>
-                <span style={{ fontSize: '16px', color: '#F5A52A', display: 'block', margin: '4px 0' }}>★★★★★</span>
-                <span style={{ fontSize: '12px', color: '#64748B' }}>من {ratingCount} تقييم حقيقي للعملاء</span>
+              <div style={{ textAlign: 'center', padding: '24px 0', borderBottom: '1px solid var(--admin-line)', marginBottom: '24px' }}>
+                <span style={{ fontSize: '48px', fontWeight: '900', color: 'var(--admin-navy)', display: 'block', lineHeight: '1' }}>{ratingAvg}</span>
+                <span style={{ fontSize: '18px', color: 'var(--admin-orange)', display: 'block', margin: '6px 0 2px' }}>★★★★★</span>
+                <span style={{ fontSize: '12.5px', color: 'var(--admin-muted)', fontWeight: '600' }}>من {ratingCount} تقييم حقيقي للعملاء</span>
               </div>
               {ratings.length === 0 ? (
-                <div style={{ fontSize: '13px', color: '#94A3B8', textAlign: 'center' }}>لا توجد مراجعات مكتوبة مسجلة بعد.</div>
+                <div style={{ fontSize: '13px', color: 'var(--admin-muted)', textAlign: 'center', padding: '20px 0' }}>لا توجد مراجعات مكتوبة مسجلة بعد.</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {ratings.map((r, i) => (
-                    <div key={i} style={{ padding: '14px', borderRadius: '12px', backgroundColor: '#FAFBFD', border: '1px solid #F1F5F9' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: '700', color: '#0E3B5E' }}>
+                    <div key={i} style={{ padding: '16px', borderRadius: '16px', backgroundColor: '#FAFBFD', border: '1px solid var(--admin-line)', transition: 'transform 0.2s' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px', fontWeight: '800', color: 'var(--admin-navy)' }}>
                         <span>{r.client_name || 'عميل المنصة'}</span>
-                        <span style={{ color: '#F5A52A' }}>★ {r.stars}</span>
+                        <span style={{ color: 'var(--admin-orange)' }}>★ {r.stars}</span>
                       </div>
-                      <p style={{ fontSize: '13px', color: '#475569', margin: '6px 0 0 0' }}>{r.comment || 'استشارة ممتازة ومفيدة جداً.'}</p>
+                      <p style={{ fontSize: '13px', color: '#475569', margin: '8px 0 0 0', lineHeight: '1.6' }}>{r.comment || 'استشارة ممتازة ومفيدة جداً.'}</p>
                     </div>
                   ))}
                 </div>
