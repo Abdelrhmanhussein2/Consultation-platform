@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { consultantService } from '../../services/consultantService';
 
@@ -100,6 +100,9 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
   const [liveReviews, setLiveReviews]   = useState([]);
   const [profileLoading, setProfileLoading] = useState(false);
 
+  const mainScrollRef = useRef(null);
+  const sideScrollRef = useRef(null);
+
   const profileId = consultant?.profile_id || consultant?.id || 'mock-raafat-1';
 
   useEffect(() => {
@@ -154,8 +157,9 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
 
   const triggerWidgetGlow = useCallback(() => {
     setActiveTab('availability');
-    const sidebarContainer = document.querySelector('.left-sidebar-stack');
-    if (sidebarContainer) sidebarContainer.scrollTo({ top: 0, behavior: 'smooth' });
+    if (sideScrollRef.current) {
+      sideScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
     const widget = document.getElementById('booking-widget-section');
     if (widget) {
       widget.classList.remove('widget-pulse'); void widget.offsetWidth;
@@ -275,11 +279,51 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
     } catch (err) { console.error('Error booking:', err); }
   };
 
+  const isScrollingToSectionRef = useRef(false);
+
   const scrollToSection = (sectionId, tabKey) => {
     setActiveTab(tabKey);
-    const element   = document.getElementById(sectionId);
-    const container = document.querySelector('.profile-main-column');
-    if (element && container) container.scrollTo({ top: element.offsetTop - container.offsetTop, behavior: 'smooth' });
+    const element = document.getElementById(sectionId);
+    if (element && mainScrollRef.current) {
+      isScrollingToSectionRef.current = true;
+      const container = mainScrollRef.current;
+      const elRect = element.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const relativeTop = elRect.top - containerRect.top + container.scrollTop;
+      container.scrollTo({ top: Math.max(0, relativeTop - 12), behavior: 'smooth' });
+
+      setTimeout(() => {
+        isScrollingToSectionRef.current = false;
+      }, 700);
+    }
+  };
+
+  const handleMainScroll = () => {
+    if (isScrollingToSectionRef.current || !mainScrollRef.current) return;
+    const container = mainScrollRef.current;
+    const containerRect = container.getBoundingClientRect();
+
+    const sections = [
+      { id: 'sec-about', key: 'about' },
+      { id: 'sec-experience', key: 'experience' },
+      { id: 'sec-services', key: 'services' },
+      { id: 'sec-reviews', key: 'reviews' },
+      { id: 'sec-availability', key: 'availability' },
+      { id: 'sec-pricing', key: 'pricing' },
+      { id: 'sec-faq', key: 'faq' }
+    ];
+
+    let current = sections[0].key;
+    for (const sec of sections) {
+      const el = document.getElementById(sec.id);
+      if (el) {
+        const elRect = el.getBoundingClientRect();
+        if (elRect.top <= containerRect.top + 100) {
+          current = sec.key;
+        }
+      }
+    }
+    setActiveTab(current);
   };
 
   const toggleFaq = idx => setOpenFaqs(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]);
@@ -292,365 +336,386 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
   const isColleaguesMode = isColleagues || (typeof window !== 'undefined' && window.location.pathname.includes('colleagues'));
 
   return (
-    <div className="profile-spa-view">
-      <div className="profile-spa-topbar">
-        <span style={{ fontWeight: '850', color: 'var(--admin-navy)', fontSize: '15px' }}>
-          {isColleaguesMode ? 'ملف المستشار — زملاء المنصة' : 'ملف المستشار'} {profileLoading && '(جاري التحميل...)'}
-        </span>
-        <button className="profile-spa-back-btn" onClick={onClose}>
+    <div className="profile-overlay-wrapper">
+      {/* Top Return Bar */}
+      <div className="profile-return-bar">
+        <button onClick={onClose}>
           {isColleaguesMode ? '← العودة إلى زملاء المنصة' : '← العودة إلى المستشارين'}
         </button>
+        <b>
+          {isColleaguesMode ? 'ملف المستشار — زملاء المنصة' : 'ملف المستشار'} {profileLoading && '(جاري التحميل...)'}
+        </b>
       </div>
 
-      {/* Profile Hero Card */}
-      <div className="profile-hero-card">
-        <div className="profile-cover-bg" />
-        <div className="profile-main-info">
-          <div className="profile-avatar-box">
-            {activeProfile.profile_image_url || activeProfile.img
-              ? <img src={activeProfile.profile_image_url || activeProfile.img} alt={name} />
-              : init}
-          </div>
-          <div className="profile-details-head">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <h1 style={{ margin: 0, fontSize: '26px', fontWeight: '850', color: 'var(--admin-navy)' }}>{name}</h1>
-              {isVerified && <span style={{ background: '#DCFCE7', color: '#166534', border: '1px solid #BBF7D0', padding: '3px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: '800' }}>✔ موثق</span>}
-            </div>
-            <div className="profile-tagline-text">{bio}</div>
-            <div style={{ margin: '8px 0' }}><span className="cp-tier">✔ {tier}</span></div>
-            <div className="profile-meta-row">
-              <span>📍 {city}</span><span>•</span>
-              <span style={{ color: '#16A36D', fontWeight: '700' }}>● يرد عادةً خلال ساعة</span>
-            </div>
-            <div className="profile-meta-row" style={{ marginTop: '10px', fontSize: '12.5px', color: 'var(--admin-navy)' }}>
-              <span style={{ fontWeight: '800', color: 'var(--admin-orange)' }}>{ratingFormatted} ⭐⭐⭐⭐⭐</span>
-              <span>•</span><span><b>{totalReviewsCount}</b> تقييم</span>
-              <span>•</span><span><b>{sessionsCount}</b> جلسة مكتملة</span>
-              <span>•</span><span><b>{years}</b> سنة خبرة</span>
-            </div>
-            <div style={{ display: 'flex', gap: '6px', marginTop: '12px', flexWrap: 'wrap' }}>
-              <span className="cp-chip active">{activeProfile.specialization_name || 'ضريبة المبيعات'}</span>
-              <span className="cp-chip active">ضريبة الدخل</span>
-            </div>
-          </div>
-          <div className="profile-price-action">
-            <div style={{ fontSize: '11px', color: 'var(--admin-muted)', fontWeight: '600' }}>ابتداءً من</div>
-            <div className="profile-price-val">{minServicePrice} <span style={{ fontSize: '13px', fontWeight: '800' }}>د.أ / ساعة</span></div>
-            <button className="profile-book-now-btn" onClick={triggerWidgetGlow}>احجز جلسة</button>
-          </div>
-        </div>
-        <nav className="profile-nav-tabs">
-          <button className={activeTab==='about'        ?'active':''} onClick={()=>scrollToSection('sec-about','about')}>نبذة</button>
-          <button className={activeTab==='experience'   ?'active':''} onClick={()=>scrollToSection('sec-experience','experience')}>الخبرة</button>
-          <button className={activeTab==='services'     ?'active':''} onClick={()=>scrollToSection('sec-services','services')}>الخدمات ({displayServices.length})</button>
-          <button className={activeTab==='reviews'      ?'active':''} onClick={()=>scrollToSection('sec-reviews','reviews')}>التقييمات ({totalReviewsCount})</button>
-          <button className={activeTab==='availability' ?'active':''} onClick={triggerWidgetGlow}>التوفر والتقويم</button>
-          <button className={activeTab==='pricing'      ?'active':''} onClick={()=>scrollToSection('sec-pricing','pricing')}>الأسعار</button>
-          <button className={activeTab==='faq'          ?'active':''} onClick={()=>scrollToSection('sec-faq','faq')}>الأسئلة الشائعة</button>
-        </nav>
-      </div>
+      {/* Fixed Viewport Shell */}
+      <div className="profile-viewport-shell">
+        <div className="profile-shell-grid">
 
-      {/* Two-column layout */}
-      <div className="profile-grid-layout">
-        <div className="profile-main-column">
-
-          {/* نبذة */}
-          <div id="sec-about" className="profile-section-card">
-            <h2>نبذة</h2><p>{bio}</p>
-            <div className="profile-stats-grid">
-              <div className="profile-stat-box"><small>أسلوب الاستشارة</small><b>عملي ومباشر</b></div>
-              <div className="profile-stat-box"><small>الأنشطة</small><b>{activityType}</b></div>
-              <div className="profile-stat-box"><small>الخبرة</small><b>{years} سنة</b></div>
-            </div>
-          </div>
-
-          {/* الخبرة */}
-          <div id="sec-experience" className="profile-section-card">
-            <h2>الخبرة والمؤهلات</h2>
-            <div style={{ borderRight: '3px solid #F59A23', paddingRight: '14px', margin: '14px 0' }}>
-              <h4 style={{ margin: '0 0 4px', color: '#0B2E4B', fontSize: '14px' }}>مستشار ضرائب أول — {activeProfile.specialization_name || 'ضريبة الدخل والمبيعات'}</h4>
-              <p style={{ fontSize: '12px', color: '#64748B' }}>{activityType}</p>
-            </div>
-            <p style={{ marginTop: '14px' }}>{certificates}</p>
-            <div className="profile-stats-grid" style={{ marginTop: '16px' }}>
-              <div className="profile-stat-box" style={{ background: '#FFF9F0', borderColor: '#FDE68A' }}>
-                <small>الهوية موثقة</small>
-                <b style={{ color: isVerified ? '#166534' : '#64748B', fontSize: '13px' }}>{isVerified ? '✔ تم اعتمادها' : 'قيد المراجعة'}</b>
+          {/* Profile Card Header (Full Width Span) */}
+          <section className="profile-card-header">
+            <div className="profile-hero-band" />
+            <div className="profile-top-info">
+              <div className="profile-avatar-large">
+                {activeProfile.profile_image_url || activeProfile.img
+                  ? <img src={activeProfile.profile_image_url || activeProfile.img} alt={name} />
+                  : init}
+                {isVerified && <i className="user-online-dot" style={{ width: 16, height: 16, border: '3px solid #fff' }} title="موثق" />}
               </div>
-              <div className="profile-stat-box" style={{ background: '#FFF9F0', borderColor: '#FDE68A' }}><small>الشهادات المهنية</small><b style={{ color: '#0B2E4B', fontSize: '13px' }}>JCPA • دورات ضريبية</b></div>
-              <div className="profile-stat-box" style={{ background: '#FFF9F0', borderColor: '#FDE68A' }}><small>التراخيص</small><b style={{ color: '#0B2E4B', fontSize: '13px' }}>سارية ومعتمدة</b></div>
-            </div>
-          </div>
-
-          {/* الخدمات */}
-          <div id="sec-services" className="profile-section-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <h2>الخدمات والمجالات</h2>
-              <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '700' }}>اضغط على أي خدمة لتحديدها</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {displayServices.map(s => {
-                const isSelected = selectedServiceId === s.id;
-                return (
-                  <div key={s.id} onClick={() => { setSelectedServiceId(s.id); setSelectedDuration(String(s.duration_minutes)); }}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      background: isSelected ? '#FFF9F0' : '#F8FAFC', padding: '16px 20px', borderRadius: '16px',
-                      border: isSelected ? '2px solid #F59A23' : '1px solid #E2E8F0', cursor: 'pointer', transition: 'all .18s' }}>
-                    <div style={{ flex: 1, paddingLeft: '14px' }}>
-                      <b style={{ color: '#0B2E4B', fontSize: '15px', display: 'block' }}>{s.name}</b>
-                      {s.description && (
-                        <p style={{ margin: '4px 0 6px', fontSize: '12.5px', color: '#64748B', lineHeight: '1.5' }}>
-                          {s.description}
-                        </p>
-                      )}
-                      <small style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#64748B', fontSize: '12px' }}>
-                        ⏱ <strong>{s.duration_minutes} دقيقة</strong>
-                      </small>
-                    </div>
-                    <div style={{ textAlign: 'left', flexShrink: 0 }}>
-                      <b style={{ color: '#F59A23', fontSize: '18px', fontWeight: '900', display: 'block' }}>{s.price} د.أ</b>
-                      <span style={{ fontSize: '11px', color: isSelected ? '#F59A23' : '#0B2E4B', fontWeight: '800' }}>
-                        {isSelected ? '✓ ممررة للتقويم' : 'حدد هذه الخدمة ←'}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <p style={{ color: '#166534', fontWeight: '700', background: '#F0FDF4', padding: '12px 16px', borderRadius: '12px', marginTop: '18px', border: '1px solid #BBF7D0' }}>
-              👍 موصى به من {totalReviewsCount > 0 ? totalReviewsCount : sessionsCount || 10} عميلاً بناءً على استشارات موثقة.
-            </p>
-          </div>
-
-          {/* التقييمات */}
-          <div id="sec-reviews" className="profile-section-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0, border: 'none', padding: 0 }}>التقييمات ({totalReviewsCount})</h2>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '210px minmax(0,1fr)', gap: '24px', alignItems: 'center', marginBottom: '28px', direction: 'rtl' }}>
-              <div style={{ background: '#F1F5F9', borderRadius: '20px', padding: '24px 16px', textAlign: 'center' }}>
-                <div style={{ fontSize: '48px', fontWeight: '900', color: '#0B2E4B', lineHeight: '1' }}>{ratingFormatted}</div>
-                <div style={{ color: '#F59A23', fontSize: '16px', margin: '8px 0 4px' }}>⭐⭐⭐⭐⭐</div>
-                <div style={{ color: '#64748B', fontSize: '12px' }}>{totalReviewsCount} تقييم</div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {[5,4,3,2,1].map(n => {
-                  const pct = getStarPct(n);
-                  return (
-                    <div key={n} style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13px' }}>
-                      <span style={{ width: '36px', textAlign: 'right', color: '#64748B', fontSize: '12px' }}>{pct}%</span>
-                      <div style={{ flex: 1, height: '8px', background: '#E2E8F0', borderRadius: '4px', overflow: 'hidden', direction: 'ltr' }}>
-                        <div style={{ width: `${pct}%`, height: '100%', background: '#F59A23', borderRadius: '4px', float: 'right' }} />
-                      </div>
-                      <span style={{ width: '28px' }}>{n}★</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            {liveReviews.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {liveReviews.map((r, i) => {
-                  const rName = r.reviewer_name || 'عميل موثق';
-                  return (
-                    <div key={r.id || i} className="cp-review-box">
-                      <div className="cp-review-top">
-                        <div className="cp-reviewer-info">
-                          <div className="cp-reviewer-avatar">{rName.split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
-                          <div><div className="cp-reviewer-name">{rName}</div><div className="cp-reviewer-tag">حجز موثّق</div></div>
-                        </div>
-                        <div className="cp-review-date">{r.created_at ? new Date(r.created_at).toLocaleDateString('ar-EG',{day:'numeric',month:'long',year:'numeric'}) : ''}</div>
-                      </div>
-                      <div className="cp-review-stars">{'⭐'.repeat(r.stars||5)}</div>
-                      <p className="cp-review-body">{r.comment}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={{ background: '#F8FAFC', border: '1px dashed #CBD5E1', padding: '30px', borderRadius: '16px', textAlign: 'center', color: '#64748B' }}>
-                <div style={{ fontSize: '28px', marginBottom: '8px' }}>💬</div>
-                <b style={{ color: '#0B2E4B' }}>لا توجد تقييمات بعد</b>
-              </div>
-            )}
-          </div>
-
-          {/* التوفر */}
-          <div id="sec-availability" className="profile-section-card">
-            <h2>التوفر الأسبوعي</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '14px' }}>
-              {days.map((d, i) => (
-                <div key={d.num+i} onClick={() => { if(d.avail){setSelectedDayIdx(i);setSelectedTime(null);} }}
-                  style={{ background: d.avail ? (selectedDayIdx===i?'#FFF9F0':'#F0FDF4') : '#F8FAFC',
-                    border: `1px solid ${d.avail?(selectedDayIdx===i?'#F59A23':'#BBF7D0'):'#E2E8F0'}`,
-                    padding: '14px 18px', borderRadius: '14px', cursor: d.avail?'pointer':'default', transition: 'all .15s' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <b style={{ color: '#0B2E4B', fontSize: '14px' }}>{d.label} {d.num} {d.month}</b>
-                    {d.avail && selectedDayIdx===i && <span style={{ fontSize: '11px', color: '#F59A23', fontWeight: '800' }}>محدد ✓</span>}
-                  </div>
-                  <p style={{ fontSize: '12px', color: d.avail?'#166534':'#94A3B8', margin: '6px 0 0', fontWeight: '700' }}>{d.timeRange}</p>
+              <div className="profile-main-title">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <h1>{name}</h1>
+                  {isVerified && (
+                    <span style={{ background: '#DCFCE7', color: '#166534', border: '1px solid #BBF7D0', padding: '3px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: '800' }}>
+                      ✔ موثق
+                    </span>
+                  )}
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* الأسعار */}
-          <div id="sec-pricing" className="profile-section-card">
-            <h2>الأسعار والخدمات المتاحة</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(displayServices.length,3)},1fr)`, gap: '16px', margin: '20px 0 16px', direction: 'rtl' }}>
-              {displayServices.map(s => (
-                <div key={s.id} style={{ background: '#F1F5F9', borderRadius: '16px', padding: '22px 16px', textAlign: 'center' }}>
-                  <small style={{ color: '#64748B', fontSize: '11px', display: 'block', marginBottom: '8px' }}>{s.name}</small>
-                  <b style={{ fontSize: '22px', color: '#0B2E4B', fontWeight: '900' }}>{s.price} <span style={{ fontSize: '13px' }}>د.أ / {s.duration_minutes} دقيقة</span></b>
+                <div className="profile-tagline">{bio}</div>
+                <div className="profile-meta-line">
+                  <span>📍 {city}</span>
+                  <span style={{ color: '#16A36D', fontWeight: '700' }}>● يرد عادةً خلال ساعة</span>
+                  <span style={{ fontWeight: '800', color: 'var(--admin-orange)' }}>⭐ {ratingFormatted}</span>
+                  <span><b>{totalReviewsCount}</b> تقييم</span>
+                  <span><b>{sessionsCount}</b> جلسة مكتملة</span>
+                  <span><b>{years}</b> سنة خبرة</span>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* الأسئلة الشائعة */}
-          <div id="sec-faq" className="profile-section-card">
-            <h2>الأسئلة الشائعة</h2>
-            {[
-              { q: 'كيف تتم الاستشارة؟', a: 'تبدأ الاستشارة بتحديد السؤال أو المشكلة الضريبية، ثم مراجعة المعلومات وتقديم الرأي المهني والخطوات العملية.' },
-              { q: 'كيف أحجز استشارة؟', a: 'اختر نوع الخدمة، المدة، اليوم والوقت المناسب، ثم تابع إلى تأكيد الحجز والدفع.' },
-              { q: 'ماذا لو احتجت لإعادة جدولة الجلسة؟', a: 'يمكن إعادة الجدولة وفق سياسة الحجز والإلغاء المعتمدة في المنصة.' },
-              { q: 'كيف يتم الدفع؟', a: 'يتم الدفع عبر وسائل الدفع المتاحة في المنصة قبل تأكيد الخدمة.' }
-            ].map((faq, idx, arr) => {
-              const isOpen = openFaqs.includes(idx);
-              return (
-                <div key={idx} style={{ padding: '18px 0', borderBottom: idx<arr.length-1?'1px solid #F1F5F9':'none' }}>
-                  <div onClick={() => toggleFaq(idx)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
-                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#0B2E4B' }}>{faq.q}</h4>
-                    <span style={{ fontSize: '20px', fontWeight: '800', color: '#F59A23', userSelect: 'none' }}>{isOpen?'−':'+'}</span>
-                  </div>
-                  {isOpen && <p style={{ margin: '10px 0 0', color: '#64748B', fontSize: '13.5px', lineHeight: '1.7' }}>{faq.a}</p>}
+                <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span className="cp-chip active">{activeProfile.specialization_name || 'ضريبة المبيعات'}</span>
+                  <span className="cp-chip active">ضريبة الدخل</span>
+                  <span className="cp-tier" style={{ margin: 0 }}>✔ {tier}</span>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Left Sidebar */}
-        <div className="left-sidebar-stack">
-          {/* Booking Widget */}
-          <div id="booking-widget-section" className="booking-widget-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <small style={{ color: '#64748B', fontSize: '11px', fontWeight: '700' }}>حجز جلسة</small>
-                <h3 style={{ fontSize: '20px', fontWeight: '900', color: '#0B2E4B', margin: '2px 0 0' }}>{getWeekTitle(weekOffset)}</h3>
               </div>
-              <div style={{ display: 'flex', gap: '6px' }}>
-                {[{onClick:()=>{setWeekOffset(w=>w+1);setSelectedTime(null);},label:'‹',title:'الأسبوع القادم',disabled:false},
-                  {onClick:()=>{setWeekOffset(w=>Math.max(0,w-1));setSelectedTime(null);},label:'›',title:'الأسبوع السابق',disabled:weekOffset===0}
-                ].map((btn,i) => (
-                  <button key={i} onClick={btn.onClick} disabled={btn.disabled} title={btn.title}
-                    style={{ border:'1px solid #CBD5E1',borderRadius:'50%',width:'30px',height:'30px',background:btn.disabled?'#F1F5F9':'#fff',cursor:btn.disabled?'not-allowed':'pointer',fontWeight:'800',color:btn.disabled?'#94A3B8':'#0B2E4B',opacity:btn.disabled?0.4:1 }}>
-                    {btn.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="booking-durations" style={{ gridTemplateColumns: '1fr 1fr' }}>
-              <div
-                className={`booking-dur-item ${selectedDuration === '30' ? 'active' : ''}`}
-                onClick={() => {
-                  setSelectedDuration('30');
-                }}
-              >
-                <span style={{ fontSize: '14px' }}>⏱</span>
-                <div>
-                  <small style={{ display: 'block', color: '#64748B', fontSize: '10px' }}>جلسة استشارة</small>
-                  <b>30 دقيقة</b>
-                </div>
-                <small>{Math.round(basePriceVal * 0.5) || 15} د.أ</small>
-              </div>
-
-              <div
-                className={`booking-dur-item ${selectedDuration === '60' ? 'active' : ''}`}
-                onClick={() => {
-                  setSelectedDuration('60');
-                }}
-              >
-                <span style={{ fontSize: '14px' }}>⏱</span>
-                <div>
-                  <small style={{ display: 'block', color: '#64748B', fontSize: '10px' }}>جلسة محادثة</small>
-                  <b>60 دقيقة</b>
-                </div>
-                <small>{basePriceVal || 30} د.أ</small>
-              </div>
-            </div>
-
-            <div className="booking-days-row">
-              {days.map((d, i) => (
-                <button key={d.num+i}
-                  className={`booking-day-btn ${selectedDayIdx===i?'active':d.avail?'available':''}`}
-                  onClick={()=>{setSelectedDayIdx(i);setSelectedTime(null);}}>
-                  <div>{d.label}</div><b style={{ fontSize:'13px' }}>{d.num}</b>
+              <div className="profile-right-meta">
+                <span className="account-id">ابتداءً من</span>
+                <strong>{minServicePrice} <span style={{ fontSize: '12px', fontWeight: '700' }}>د.أ / ساعة</span></strong>
+                <button className="profile-book-now-btn" onClick={triggerWidgetGlow} style={{ marginTop: '8px' }}>
+                  احجز جلسة
                 </button>
-              ))}
+              </div>
             </div>
 
-            <div style={{ fontSize:'13px',color:'#0B2E4B',fontWeight:'800',marginTop:'12px',textAlign:'center' }}>
-              {currentDayObj.fullDate}
-              <small style={{ display:'block',color:currentDayObj.avail?'#166534':'#EF4444',fontSize:'11px',marginTop:'2px' }}>
-                {currentDayObj.timeRange}
-              </small>
-            </div>
+            <nav className="profile-nav-tabs">
+              <button className={activeTab==='about'        ?'active':''} onClick={()=>scrollToSection('sec-about','about')}>نبذة</button>
+              <button className={activeTab==='experience'   ?'active':''} onClick={()=>scrollToSection('sec-experience','experience')}>الخبرة</button>
+              <button className={activeTab==='services'     ?'active':''} onClick={()=>scrollToSection('sec-services','services')}>الخدمات ({displayServices.length})</button>
+              <button className={activeTab==='reviews'      ?'active':''} onClick={()=>scrollToSection('sec-reviews','reviews')}>التقييمات ({totalReviewsCount})</button>
+              <button className={activeTab==='availability' ?'active':''} onClick={()=>{scrollToSection('sec-availability','availability'); triggerWidgetGlow();}}>التوفر والتقويم</button>
+              <button className={activeTab==='pricing'      ?'active':''} onClick={()=>scrollToSection('sec-pricing','pricing')}>الأسعار</button>
+              <button className={activeTab==='faq'          ?'active':''} onClick={()=>scrollToSection('sec-faq','faq')}>الأسئلة الشائعة</button>
+            </nav>
+          </section>
 
-            {!currentDayObj.avail ? (
-              <div style={{ border:'1px dashed #CBD5E1',background:'#F8FAFC',borderRadius:'16px',padding:'24px 16px',textAlign:'center',color:'#64748B',fontSize:'14px',fontWeight:'700',marginTop:'14px' }}>
-                لا توجد مواعيد متاحة في هذا اليوم.
+          {/* Main Scroll Content (Column 1 - Right visually in RTL) */}
+          <main className="profile-main-scroll" ref={mainScrollRef} onScroll={handleMainScroll}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '40px' }}>
+
+              {/* نبذة */}
+              <section id="sec-about" className="profile-section-card">
+                <h2>نبذة</h2>
+                <p style={{ color: '#475569', lineHeight: '1.8', fontSize: '13.5px', margin: 0 }}>{bio}</p>
+                <div className="profile-stats-grid">
+                  <div className="profile-stat-box"><small>أسلوب الاستشارة</small><b>عملي ومباشر</b></div>
+                  <div className="profile-stat-box"><small>الأنشطة</small><b>{activityType}</b></div>
+                  <div className="profile-stat-box"><small>الخبرة</small><b>{years} سنة</b></div>
+                </div>
+              </section>
+
+              {/* الخبرة */}
+              <section id="sec-experience" className="profile-section-card">
+                <h2>الخبرة والمؤهلات</h2>
+                <div style={{ borderRight: '3px solid #F59A23', paddingRight: '14px', margin: '14px 0' }}>
+                  <h4 style={{ margin: '0 0 4px', color: '#0B2E4B', fontSize: '14px' }}>مستشار ضرائب أول — {activeProfile.specialization_name || 'ضريبة الدخل والمبيعات'}</h4>
+                  <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>{activityType}</p>
+                </div>
+                <p style={{ marginTop: '14px', color: '#475569', lineHeight: '1.7', fontSize: '13px' }}>{certificates}</p>
+                <div className="profile-stats-grid" style={{ marginTop: '16px' }}>
+                  <div className="profile-stat-box" style={{ background: '#FFF9F0', borderColor: '#FDE68A' }}>
+                    <small>الهوية موثقة</small>
+                    <b style={{ color: isVerified ? '#166534' : '#64748B', fontSize: '13px' }}>{isVerified ? '✔ تم اعتمادها' : 'قيد المراجعة'}</b>
+                  </div>
+                  <div className="profile-stat-box" style={{ background: '#FFF9F0', borderColor: '#FDE68A' }}><small>الشهادات المهنية</small><b style={{ color: '#0B2E4B', fontSize: '13px' }}>JCPA • دورات ضريبية</b></div>
+                  <div className="profile-stat-box" style={{ background: '#FFF9F0', borderColor: '#FDE68A' }}><small>التراخيص</small><b style={{ color: '#0B2E4B', fontSize: '13px' }}>سارية ومعتمدة</b></div>
+                </div>
+              </section>
+
+              {/* الخدمات */}
+              <section id="sec-services" className="profile-section-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <h2>الخدمات والمجالات</h2>
+                  <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '700' }}>اضغط على أي خدمة لتحديدها</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {displayServices.map(s => {
+                    const isSelected = selectedServiceId === s.id;
+                    return (
+                      <div key={s.id} onClick={() => { setSelectedServiceId(s.id); setSelectedDuration(String(s.duration_minutes)); }}
+                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          background: isSelected ? '#FFF9F0' : '#F8FAFC', padding: '16px 20px', borderRadius: '16px',
+                          border: isSelected ? '2px solid #F59A23' : '1px solid #E2E8F0', cursor: 'pointer', transition: 'all .18s' }}>
+                        <div style={{ flex: 1, paddingLeft: '14px' }}>
+                          <b style={{ color: '#0B2E4B', fontSize: '15px', display: 'block' }}>{s.name}</b>
+                          {s.description && (
+                            <p style={{ margin: '4px 0 6px', fontSize: '12.5px', color: '#64748B', lineHeight: '1.5' }}>
+                              {s.description}
+                            </p>
+                          )}
+                          <small style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#64748B', fontSize: '12px' }}>
+                            ⏱ <strong>{s.duration_minutes} دقيقة</strong>
+                          </small>
+                        </div>
+                        <div style={{ textAlign: 'left', flexShrink: 0 }}>
+                          <b style={{ color: '#F59A23', fontSize: '18px', fontWeight: '900', display: 'block' }}>{s.price} د.أ</b>
+                          <span style={{ fontSize: '11px', color: isSelected ? '#F59A23' : '#0B2E4B', fontWeight: '800' }}>
+                            {isSelected ? '✓ ممررة للتقويم' : 'حدد هذه الخدمة ←'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p style={{ color: '#166534', fontWeight: '700', background: '#F0FDF4', padding: '12px 16px', borderRadius: '12px', marginTop: '18px', border: '1px solid #BBF7D0' }}>
+                  👍 موصى به من {totalReviewsCount > 0 ? totalReviewsCount : sessionsCount || 10} عميلاً بناءً على استشارات موثقة.
+                </p>
+              </section>
+
+              {/* التقييمات */}
+              <section id="sec-reviews" className="profile-section-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h2 style={{ margin: 0, border: 'none', padding: 0 }}>التقييمات ({totalReviewsCount})</h2>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '210px minmax(0,1fr)', gap: '24px', alignItems: 'center', marginBottom: '28px', direction: 'rtl' }}>
+                  <div style={{ background: '#F1F5F9', borderRadius: '20px', padding: '24px 16px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '48px', fontWeight: '900', color: '#0B2E4B', lineHeight: '1' }}>{ratingFormatted}</div>
+                    <div style={{ color: '#F59A23', fontSize: '16px', margin: '8px 0 4px' }}>⭐⭐⭐⭐⭐</div>
+                    <div style={{ color: '#64748B', fontSize: '12px' }}>{totalReviewsCount} تقييم</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {[5,4,3,2,1].map(n => {
+                      const pct = getStarPct(n);
+                      return (
+                        <div key={n} style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13px' }}>
+                          <span style={{ width: '36px', textAlign: 'right', color: '#64748B', fontSize: '12px' }}>{pct}%</span>
+                          <div style={{ flex: 1, height: '8px', background: '#E2E8F0', borderRadius: '4px', overflow: 'hidden', direction: 'ltr' }}>
+                            <div style={{ width: `${pct}%`, height: '100%', background: '#F59A23', borderRadius: '4px', float: 'right' }} />
+                          </div>
+                          <span style={{ width: '28px' }}>{n}★</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {liveReviews.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {liveReviews.map((r, i) => {
+                      const rName = r.reviewer_name || 'عميل موثق';
+                      return (
+                        <div key={r.id || i} className="cp-review-box">
+                          <div className="cp-review-top">
+                            <div className="cp-reviewer-info">
+                              <div className="cp-reviewer-avatar">{rName.split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
+                              <div><div className="cp-reviewer-name">{rName}</div><div className="cp-reviewer-tag">حجز موثّق</div></div>
+                            </div>
+                            <div className="cp-review-date">{r.created_at ? new Date(r.created_at).toLocaleDateString('ar-EG',{day:'numeric',month:'long',year:'numeric'}) : ''}</div>
+                          </div>
+                          <div className="cp-review-stars">{'⭐'.repeat(r.stars||5)}</div>
+                          <p className="cp-review-body">{r.comment}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ background: '#F8FAFC', border: '1px dashed #CBD5E1', padding: '30px', borderRadius: '16px', textAlign: 'center', color: '#64748B' }}>
+                    <div style={{ fontSize: '28px', marginBottom: '8px' }}>💬</div>
+                    <b style={{ color: '#0B2E4B' }}>لا توجد تقييمات بعد</b>
+                  </div>
+                )}
+              </section>
+
+              {/* التوفر */}
+              <section id="sec-availability" className="profile-section-card">
+                <h2>التوفر الأسبوعي</h2>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '14px' }}>
+                  {days.map((d, i) => (
+                    <div key={d.num+i} onClick={() => { if(d.avail){setSelectedDayIdx(i);setSelectedTime(null);} }}
+                      style={{ background: d.avail ? (selectedDayIdx===i?'#FFF9F0':'#F0FDF4') : '#F8FAFC',
+                        border: `1px solid ${d.avail?(selectedDayIdx===i?'#F59A23':'#BBF7D0'):'#E2E8F0'}`,
+                        padding: '14px 18px', borderRadius: '14px', cursor: d.avail?'pointer':'default', transition: 'all .15s' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <b style={{ color: '#0B2E4B', fontSize: '14px' }}>{d.label} {d.num} {d.month}</b>
+                        {d.avail && selectedDayIdx===i && <span style={{ fontSize: '11px', color: '#F59A23', fontWeight: '800' }}>محدد ✓</span>}
+                      </div>
+                      <p style={{ fontSize: '12px', color: d.avail?'#166534':'#94A3B8', margin: '6px 0 0', fontWeight: '700' }}>{d.timeRange}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* الأسعار */}
+              <section id="sec-pricing" className="profile-section-card">
+                <h2>الأسعار والخدمات المتاحة</h2>
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(displayServices.length,3)},1fr)`, gap: '16px', margin: '20px 0 16px', direction: 'rtl' }}>
+                  {displayServices.map(s => (
+                    <div key={s.id} style={{ background: '#F1F5F9', borderRadius: '16px', padding: '22px 16px', textAlign: 'center' }}>
+                      <small style={{ color: '#64748B', fontSize: '11px', display: 'block', marginBottom: '8px' }}>{s.name}</small>
+                      <b style={{ fontSize: '22px', color: '#0B2E4B', fontWeight: '900' }}>{s.price} <span style={{ fontSize: '13px' }}>د.أ / {s.duration_minutes} دقيقة</span></b>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* الأسئلة الشائعة */}
+              <section id="sec-faq" className="profile-section-card">
+                <h2>الأسئلة الشائعة</h2>
+                {[
+                  { q: 'كيف تتم الاستشارة؟', a: 'تبدأ الاستشارة بتحديد السؤال أو المشكلة الضريبية، ثم مراجعة المعلومات وتقديم الرأي المهني والخطوات العملية.' },
+                  { q: 'كيف أحجز استشارة؟', a: 'اختر نوع الخدمة، المدة، اليوم والوقت المناسب، ثم تابع إلى تأكيد الحجز والدفع.' },
+                  { q: 'ماذا لو احتجت لإعادة جدولة الجلسة؟', a: 'يمكن إعادة الجدولة وفق سياسة الحجز والإلغاء المعتمدة في المنصة.' },
+                  { q: 'كيف يتم الدفع؟', a: 'يتم الدفع عبر وسائل الدفع المتاحة في المنصة قبل تأكيد الخدمة.' }
+                ].map((faq, idx, arr) => {
+                  const isOpen = openFaqs.includes(idx);
+                  return (
+                    <div key={idx} style={{ padding: '18px 0', borderBottom: idx<arr.length-1?'1px solid #F1F5F9':'none' }}>
+                      <div onClick={() => toggleFaq(idx)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
+                        <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#0B2E4B' }}>{faq.q}</h4>
+                        <span style={{ fontSize: '20px', fontWeight: '800', color: '#F59A23', userSelect: 'none' }}>{isOpen?'−':'+'}</span>
+                      </div>
+                      {isOpen && <p style={{ margin: '10px 0 0', color: '#64748B', fontSize: '13.5px', lineHeight: '1.7' }}>{faq.a}</p>}
+                    </div>
+                  );
+                })}
+              </section>
+
+            </div>
+          </main>
+
+          {/* Side Scroll Rail (Column 2 - Left visually in RTL) */}
+          <aside className="profile-side-scroll" ref={sideScrollRef}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '40px' }}>
+
+              {/* Booking Widget */}
+              <div id="booking-widget-section" className="booking-widget-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <small style={{ color: '#64748B', fontSize: '11px', fontWeight: '700' }}>حجز جلسة</small>
+                    <h3 style={{ fontSize: '20px', fontWeight: '900', color: '#0B2E4B', margin: '2px 0 0' }}>{getWeekTitle(weekOffset)}</h3>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    {[{onClick:()=>{setWeekOffset(w=>w+1);setSelectedTime(null);},label:'‹',title:'الأسبوع القادم',disabled:false},
+                      {onClick:()=>{setWeekOffset(w=>Math.max(0,w-1));setSelectedTime(null);},label:'›',title:'الأسبوع السابق',disabled:weekOffset===0}
+                    ].map((btn,i) => (
+                      <button key={i} onClick={btn.onClick} disabled={btn.disabled} title={btn.title}
+                        style={{ border:'1px solid #CBD5E1',borderRadius:'50%',width:'30px',height:'30px',background:btn.disabled?'#F1F5F9':'#fff',cursor:btn.disabled?'not-allowed':'pointer',fontWeight:'800',color:btn.disabled?'#94A3B8':'#0B2E4B',opacity:btn.disabled?0.4:1 }}>
+                        {btn.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="booking-durations" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                  <div
+                    className={`booking-dur-item ${selectedDuration === '30' ? 'active' : ''}`}
+                    onClick={() => {
+                      setSelectedDuration('30');
+                    }}
+                  >
+                    <span style={{ fontSize: '14px' }}>⏱</span>
+                    <div>
+                      <small style={{ display: 'block', color: '#64748B', fontSize: '10px' }}>جلسة استشارة</small>
+                      <b>30 دقيقة</b>
+                    </div>
+                    <small>{Math.round(basePriceVal * 0.5) || 15} د.أ</small>
+                  </div>
+
+                  <div
+                    className={`booking-dur-item ${selectedDuration === '60' ? 'active' : ''}`}
+                    onClick={() => {
+                      setSelectedDuration('60');
+                    }}
+                  >
+                    <span style={{ fontSize: '14px' }}>⏱</span>
+                    <div>
+                      <small style={{ display: 'block', color: '#64748B', fontSize: '10px' }}>جلسة محادثة</small>
+                      <b>60 دقيقة</b>
+                    </div>
+                    <small>{basePriceVal || 30} د.أ</small>
+                  </div>
+                </div>
+
+                <div className="booking-days-row">
+                  {days.map((d, i) => (
+                    <button key={d.num+i}
+                      className={`booking-day-btn ${selectedDayIdx===i?'active':d.avail?'available':''}`}
+                      onClick={()=>{setSelectedDayIdx(i);setSelectedTime(null);}}>
+                      <div>{d.label}</div><b style={{ fontSize:'13px' }}>{d.num}</b>
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ fontSize:'13px',color:'#0B2E4B',fontWeight:'800',marginTop:'12px',textAlign:'center' }}>
+                  {currentDayObj.fullDate}
+                  <small style={{ display:'block',color:currentDayObj.avail?'#166534':'#EF4444',fontSize:'11px',marginTop:'2px' }}>
+                    {currentDayObj.timeRange}
+                  </small>
+                </div>
+
+                {!currentDayObj.avail ? (
+                  <div style={{ border:'1px dashed #CBD5E1',background:'#F8FAFC',borderRadius:'16px',padding:'24px 16px',textAlign:'center',color:'#64748B',fontSize:'14px',fontWeight:'700',marginTop:'14px' }}>
+                    لا توجد مواعيد متاحة في هذا اليوم.
+                  </div>
+                ) : timeslots.length === 0 ? (
+                  <div style={{ border:'1px dashed #FCA5A5',background:'#FEF2F2',borderRadius:'16px',padding:'24px 16px',textAlign:'center',color:'#991B1B',fontSize:'13px',fontWeight:'700',marginTop:'14px' }}>
+                    جميع المواعيد المتاحة محجوزة.
+                  </div>
+                ) : (
+                  <div className="booking-slots-grid">
+                    {timeslots.map(t => (
+                      <button key={t} className={`booking-slot-btn ${selectedTime===t?'active':''}`} onClick={()=>setSelectedTime(t)}>{t}</button>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ marginTop: '16px' }}>
+                  <button onClick={handleProceedToBookingRequest}
+                    style={{ width:'100%',background:'#F59A23',color:'#fff',border:'none',borderRadius:'25px',padding:'12px',fontWeight:'800',fontSize:'13px',cursor:'pointer',fontFamily:'inherit',boxShadow:'0 4px 14px rgba(245,154,35,0.35)' }}>
+                    إرسال طلب الحجز ←
+                  </button>
+                  <button onClick={handleProceedToBookingRequest}
+                    style={{ width:'100%',background:'#fff',color:'#0B2E4B',border:'1px solid #0B2E4B',borderRadius:'30px',padding:'12px',fontWeight:'800',fontSize:'12.5px',cursor:'pointer',fontFamily:'inherit',marginTop:'10px' }}>
+                    إرسال طلب الحجز • {selectedDuration === '30' ? (Math.round(basePriceVal * 0.5) || 15) : (basePriceVal || 30)} د.أ
+                  </button>
+                  <p style={{ fontSize:'11px',color:'#64748B',textAlign:'center',margin:'10px 0 0' }}>✓ إلغاء مجاني حتى 24 ساعة قبل الجلسة</p>
+                </div>
               </div>
-            ) : timeslots.length === 0 ? (
-              <div style={{ border:'1px dashed #FCA5A5',background:'#FEF2F2',borderRadius:'16px',padding:'24px 16px',textAlign:'center',color:'#991B1B',fontSize:'13px',fontWeight:'700',marginTop:'14px' }}>
-                جميع المواعيد المتاحة محجوزة.
-              </div>
-            ) : (
-              <div className="booking-slots-grid">
-                {timeslots.map(t => (
-                  <button key={t} className={`booking-slot-btn ${selectedTime===t?'active':''}`} onClick={()=>setSelectedTime(t)}>{t}</button>
+
+              {/* Quick Overview */}
+              <div className="booking-widget-card">
+                <h3 style={{ fontSize:'15px',fontWeight:'800',color:'#64748B',marginBottom:'14px' }}>نظرة سريعة</h3>
+                {[['وقت الاستجابة','عادةً خلال ساعة'],['الجلسات المكتملة',sessionsCount],['عضو منذ','2024'],['الخبرة',`${years} سنة`],['رسوم الجلسات',`${minServicePrice} د.أ`],['الحجز','فوري']].map(([k,v],i)=>(
+                  <div key={i} className="quick-overview-row">
+                    <span className="quick-overview-label">{k}</span>
+                    <span className="quick-overview-val" style={k==='الحجز'?{color:'#166534'}:{}}>{v}</span>
+                  </div>
                 ))}
               </div>
-            )}
 
-            <div style={{ marginTop: '16px' }}>
-              <button onClick={handleProceedToBookingRequest}
-                style={{ width:'100%',background:'#F59A23',color:'#fff',border:'none',borderRadius:'25px',padding:'12px',fontWeight:'800',fontSize:'13px',cursor:'pointer',fontFamily:'inherit',boxShadow:'0 4px 14px rgba(245,154,35,0.35)' }}>
-                إرسال طلب الحجز ←
-              </button>
-              <button onClick={handleProceedToBookingRequest}
-                style={{ width:'100%',background:'#fff',color:'#0B2E4B',border:'1px solid #0B2E4B',borderRadius:'30px',padding:'12px',fontWeight:'800',fontSize:'12.5px',cursor:'pointer',fontFamily:'inherit',marginTop:'10px' }}>
-                إرسال طلب الحجز • {selectedDuration === '30' ? (Math.round(basePriceVal * 0.5) || 15) : (basePriceVal || 30)} د.أ
-              </button>
-              <p style={{ fontSize:'11px',color:'#64748B',textAlign:'center',margin:'10px 0 0' }}>✓ إلغاء مجاني حتى 24 ساعة قبل الجلسة</p>
+              {/* Ask Question */}
+              <div className="ask-question-card">
+                <h3 style={{ margin:0,fontSize:'15px',fontWeight:'800',color:'#fff' }}>لست متأكداً بعد؟</h3>
+                <p style={{ fontSize:'11.5px',color:'#94A3B8',margin:'4px 0 0' }}>يرد عادةً خلال ساعة في أيام العمل.</p>
+                {questionSent ? (
+                  <div style={{ background:'rgba(22,163,109,0.2)',border:'1px solid #16A36D',color:'#6EE7B7',padding:'10px 14px',borderRadius:'14px',fontSize:'12px',fontWeight:'700',marginTop:'12px' }}>✅ تم إرسال سؤالك بنجاح!</div>
+                ) : (
+                  <div className="ask-question-input-wrap">
+                    <input placeholder="اكتب سؤالك للمستشار..." value={questionText} onChange={e=>setQuestionText(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')handleSendQuestion();}} />
+                    <button className="ask-question-btn" onClick={handleSendQuestion}>إرسال</button>
+                  </div>
+                )}
+              </div>
+
             </div>
-          </div>
+          </aside>
 
-          {/* Quick Overview */}
-          <div className="booking-widget-card">
-            <h3 style={{ fontSize:'15px',fontWeight:'800',color:'#64748B',marginBottom:'14px' }}>نظرة سريعة</h3>
-            {[['وقت الاستجابة','عادةً خلال ساعة'],['الجلسات المكتملة',sessionsCount],['عضو منذ','2024'],['الخبرة',`${years} سنة`],['رسوم الجلسات',`${minServicePrice} د.أ`],['الحجز','فوري']].map(([k,v],i)=>(
-              <div key={i} className="quick-overview-row">
-                <span className="quick-overview-label">{k}</span>
-                <span className="quick-overview-val" style={k==='الحجز'?{color:'#166534'}:{}}>{v}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Ask Question */}
-          <div className="ask-question-card">
-            <h3 style={{ margin:0,fontSize:'15px',fontWeight:'800',color:'#fff' }}>لست متأكداً بعد؟</h3>
-            <p style={{ fontSize:'11.5px',color:'#94A3B8',margin:'4px 0 0' }}>يرد عادةً خلال ساعة في أيام العمل.</p>
-            {questionSent ? (
-              <div style={{ background:'rgba(22,163,109,0.2)',border:'1px solid #16A36D',color:'#6EE7B7',padding:'10px 14px',borderRadius:'14px',fontSize:'12px',fontWeight:'700',marginTop:'12px' }}>✅ تم إرسال سؤالك بنجاح!</div>
-            ) : (
-              <div className="ask-question-input-wrap">
-                <input placeholder="اكتب سؤالك للمستشار..." value={questionText} onChange={e=>setQuestionText(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')handleSendQuestion();}} />
-                <button className="ask-question-btn" onClick={handleSendQuestion}>إرسال</button>
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>

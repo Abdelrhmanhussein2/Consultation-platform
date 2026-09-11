@@ -245,51 +245,85 @@ const CSS = `
   .cp-toast-icon { color: #16A36D; flex-shrink: 0; }
 
   /* ── Full Profile View (Exact match to Admin Profile aesthetic) ──── */
-  .profile-spa-view {
+  .profile-overlay-wrapper {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
     background: var(--admin-bg);
-    min-height: 100vh;
-    padding-bottom: 60px;
-    animation: profileFadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-  .profile-spa-topbar {
-    height: 54px;
+    overflow: hidden;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 32px;
+    flex-direction: column;
+    direction: rtl;
+    font-family: 'Cairo', 'Tajawal', Arial, sans-serif;
+  }
+
+  .profile-return-bar {
+    height: 54px;
     background: rgba(255, 255, 255, 0.98);
     border-bottom: 1px solid var(--admin-line);
-    position: sticky;
-    top: 0;
-    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
     box-shadow: 0 4px 14px rgba(11, 46, 75, 0.05);
+    flex: 0 0 auto;
   }
-  .profile-spa-back-btn {
+
+  .profile-return-bar button {
     border: 1px solid var(--admin-line);
-    background: #fff;
+    background: #FFFFFF;
     color: var(--admin-navy);
     border-radius: 999px;
     padding: 8px 18px;
-    font-family: inherit;
-    font-size: 12px;
     font-weight: 800;
+    font-size: 11.5px;
     cursor: pointer;
-    transition: all .15s;
+    transition: 0.15s ease;
+    font-family: inherit;
   }
-  .profile-spa-back-btn:hover { background: var(--admin-surface); }
 
-  /* Profile Hero Card */
-  .profile-hero-card {
-    background: #fff;
+  .profile-return-bar button:hover {
+    background: #EEF3F6;
+  }
+
+  .profile-return-bar b {
+    color: var(--admin-navy);
+    font-size: 13.5px;
+    font-weight: 850;
+  }
+
+  .profile-viewport-shell {
+    height: calc(100vh - 54px);
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .profile-shell-grid {
+    width: min(1200px, calc(100% - 36px));
+    height: 100%;
+    margin: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 390px;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 0 28px;
+    overflow: hidden;
+  }
+
+  /* Header Card in profile */
+  .profile-card-header {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    background: #FFFFFF;
     border: 1px solid var(--admin-line);
     border-radius: 24px;
     box-shadow: var(--admin-shadow);
     overflow: hidden;
-    margin: 20px auto 0;
-    max-width: 1350px;
-    width: calc(100% - 48px);
+    margin: 18px 5px 8px;
+    z-index: 2;
+    direction: rtl;
   }
-  .profile-cover-bg {
+
+  .profile-hero-band {
     height: 145px;
     border-radius: 24px 24px 0 0;
     background:
@@ -297,15 +331,16 @@ const CSS = `
       linear-gradient(135deg, transparent 75%, rgba(255, 255, 255, 0.045) 75%) -12px 0/28px 28px,
       linear-gradient(115deg, var(--admin-navy2) 0%, var(--admin-navy) 58%, var(--admin-navy3) 100%);
   }
-  .profile-main-info {
+
+  .profile-top-info {
     display: grid;
     grid-template-columns: 130px minmax(0, 1fr) auto;
     gap: 20px;
-    padding: 0 28px 22px;
+    padding: 0 27px 23px;
     align-items: start;
-    margin-top: 0;
   }
-  .profile-avatar-box {
+
+  .profile-avatar-large {
     width: 112px;
     height: 112px;
     border-radius: 22px;
@@ -320,87 +355,222 @@ const CSS = `
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.13);
     position: relative;
     overflow: hidden;
-    flex-shrink: 0;
   }
-  .profile-avatar-box img { width: 100%; height: 100%; object-fit: cover; }
-  .profile-details-head { padding-top: 20px; }
-  .profile-details-head h1 { margin: 0; font-size: 26px; font-weight: 850; color: var(--admin-navy); line-height: 1.3; }
-  .profile-tagline-text { font-size: 13.5px; color: #2D5978; line-height: 1.6; margin: 6px 0 0; font-weight: 600; max-width: 620px; }
-  .profile-meta-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 8px; font-size: 12px; color: var(--admin-muted); font-weight: 600; }
-  .profile-price-action { padding-top: 20px; text-align: left; min-width: 140px; }
-  .profile-price-val { font-size: 26px; font-weight: 900; color: var(--admin-navy); line-height: 1; margin: 4px 0 8px; }
+
+  .profile-avatar-large img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .profile-main-title {
+    padding-top: 21px;
+  }
+
+  .profile-main-title h1 {
+    margin: 0;
+    color: var(--admin-navy);
+    font-size: 28px;
+    font-weight: 850;
+  }
+
+  .profile-tagline {
+    color: #2D5978;
+    margin-top: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.5;
+    max-width: 650px;
+  }
+
+  .profile-meta-line {
+    display: flex;
+    gap: 13px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    color: var(--admin-muted);
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .profile-meta-line span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .profile-right-meta {
+    padding-top: 22px;
+    text-align: left;
+    min-width: 130px;
+  }
+
+  .profile-right-meta .account-id {
+    font-size: 10px;
+    color: var(--admin-muted);
+    display: block;
+    font-weight: 700;
+  }
+
+  .profile-right-meta strong {
+    display: block;
+    color: var(--admin-navy);
+    font-size: 18px;
+    margin-top: 4px;
+    font-weight: 900;
+  }
+
   .profile-book-now-btn {
     background: var(--admin-navy);
     color: #fff;
     border: 0;
     border-radius: 999px;
-    padding: 10px 22px;
+    padding: 8px 18px;
     font-family: inherit;
     font-weight: 800;
-    font-size: 12.5px;
+    font-size: 12px;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(11, 46, 75, 0.2);
-    transition: all .2s;
+    box-shadow: 0 4px 12px rgba(11, 46, 75, 0.18);
+    transition: all .18s;
   }
-  .profile-book-now-btn:hover { background: var(--admin-navy2); transform: translateY(-1px); }
 
-  /* Nav Tabs matching Admin */
+  .profile-book-now-btn:hover {
+    background: var(--admin-navy2);
+    transform: translateY(-1px);
+  }
+
   .profile-nav-tabs {
     border-top: 1px solid var(--admin-line);
-    padding: 10px 24px;
+    padding: 9px 22px;
     display: flex;
-    gap: 8px;
+    gap: 5px;
     flex-wrap: wrap;
     background: #FAFCFD;
   }
+
   .profile-nav-tabs button {
-    border: 1px solid transparent;
+    border: 0;
     background: #FFFFFF;
     color: var(--admin-navy);
-    padding: 9px 18px;
+    padding: 9px 13px;
     border-radius: 999px;
     font-family: inherit;
-    font-size: 12px;
-    font-weight: 800;
+    font-size: 11px;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.16s ease;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   }
+
   .profile-nav-tabs button:hover {
     background: var(--admin-surface);
     color: var(--admin-navy);
-    transform: translateY(-1px);
   }
+
   .profile-nav-tabs button.active {
     background: var(--admin-navy);
     color: #FFFFFF;
-    border-color: var(--admin-navy);
     box-shadow: 0 4px 12px rgba(11, 46, 75, 0.18);
-    transform: translateY(-1px);
   }
 
-  /* Two Column Layout */
-  .profile-grid-layout {
-    display: grid;
-    grid-template-columns: 1fr 370px;
-    gap: 24px;
-    padding: 24px 0;
-    max-width: 1350px;
-    width: calc(100% - 48px);
-    margin: 0 auto;
-    align-items: start;
+  /* Scroll Columns */
+  .profile-main-scroll {
+    grid-column: 1;
+    grid-row: 2;
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    direction: ltr !important;
+    padding-right: 10px !important;
+    padding-left: 5px !important;
+    scrollbar-gutter: stable !important;
+    scrollbar-width: thin;
   }
-  .profile-main-column {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+
+  .profile-main-scroll > * {
+    direction: rtl !important;
   }
-  .left-sidebar-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    position: sticky;
-    top: 74px;
+
+  .profile-side-scroll {
+    grid-column: 2;
+    grid-row: 2;
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    direction: rtl !important;
+    padding-left: 10px !important;
+    padding-right: 5px !important;
+    scrollbar-gutter: stable !important;
+    scrollbar-width: thin;
+  }
+
+  .profile-side-scroll > * {
+    direction: rtl !important;
+  }
+
+  .profile-main-scroll::-webkit-scrollbar,
+  .profile-side-scroll::-webkit-scrollbar {
+    width: 7px;
+  }
+
+  .profile-main-scroll::-webkit-scrollbar-track,
+  .profile-side-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .profile-main-scroll::-webkit-scrollbar-thumb,
+  .profile-side-scroll::-webkit-scrollbar-thumb {
+    background: #AEBFCB;
+    border-radius: 999px;
+  }
+
+  .profile-main-scroll::-webkit-scrollbar-thumb:hover,
+  .profile-side-scroll::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+  }
+
+  .profile-section-card {
+    background: #FFFFFF;
+    border: 1px solid var(--admin-line);
+    border-radius: 24px;
+    margin-bottom: 20px;
+    padding: 24px 27px;
+    box-shadow: 0 8px 20px rgba(11, 46, 75, 0.04);
+    scroll-margin-top: 16px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .profile-section-card h2 {
+    margin: 0 0 16px;
+    color: var(--admin-navy);
+    font-size: 22px;
+    font-weight: 850;
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  @media (max-width: 1024px) {
+    .profile-viewport-shell {
+      overflow-y: auto !important;
+      height: calc(100vh - 54px);
+    }
+    .profile-shell-grid {
+      display: flex;
+      flex-direction: column;
+      height: auto;
+      overflow: visible;
+    }
+    .profile-main-scroll,
+    .profile-side-scroll {
+      overflow: visible;
+      height: auto;
+      direction: rtl !important;
+      padding: 0 !important;
+    }
+  }
+
+  .video-modal-overlay {
+    z-index: 100001 !important;
   }
 
   /* Section Cards */
@@ -649,41 +819,39 @@ export default function ConsultantsPage({ navigate }) {
     return (
       <>
         <style>{CSS}</style>
-        <div className="cp-root">
-          <ConsultantFullProfile
-            consultant={viewProfile}
-            isColleagues={isColleaguesMode}
-            onClose={() => {
-              const backPath = isColleaguesMode ? '/consultant/colleagues' : '/consultants';
-              window.history.replaceState({}, '', backPath);
-              setViewProfile(null);
-              setScrollToBooking(false);
-            }}
-            onBook={c => setSelected(c)}
-            onBookRequest={handleBookRequest}
-            scrollToBookingOnMount={scrollToBooking}
-          />
-          <BookingModal consultant={selected} isOpen={!!selected} onClose={() => setSelected(null)}
-            onSuccess={() => { setSelected(null); showToast('تم حجز الاستشارة بنجاح'); navigate && navigate('/my-appointments'); }} />
-          <PaymentModal isOpen={!!paymentData} onClose={() => setPaymentData(null)}
-            onSuccess={() => { setPaymentData(null); showToast('تم دفع الاستشارة بنجاح وتأكيد الحجز'); if (navigate) navigate('/my-appointments'); }}
-            price={paymentData?.price || 42.50} consultantName={paymentData?.consultantName || 'مستشار'} serviceName={paymentData?.serviceName || 'استشارة'} isMock={true} />
-          {toast && <div className="cp-toast-backdrop"><div className="cp-toast"><div className="cp-toast-icon">✓</div><div>{toast}</div></div></div>}
-          {errorModal && (
-            <div onClick={() => setErrorModal('')} style={{ position:'fixed',inset:0,zIndex:9999,background:'rgba(13,60,92,0.5)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center' }}>
-              <div onClick={e => e.stopPropagation()} style={{ background:'#fff',borderRadius:'18px',padding:'36px 32px',maxWidth:'400px',width:'90%',textAlign:'center',direction:'rtl' }}>
-                <div style={{ width:'64px',height:'64px',borderRadius:'50%',background:'#FEE2E2',border:'3px solid #FECACA',margin:'0 auto 18px',display:'flex',alignItems:'center',justifyContent:'center' }}>
-                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </div>
-                <h3 style={{ fontSize:'18px',fontWeight:'800',color:'#0D3C5C',margin:'0 0 10px' }}>فشل الحجز</h3>
-                <p style={{ fontSize:'14px',color:'#64748B',margin:'0 0 24px',lineHeight:1.7 }}>{errorModal}</p>
-                <button onClick={() => setErrorModal('')} style={{ width:'100%',padding:'12px 0',borderRadius:'10px',border:'none',background:'#EF4444',color:'#fff',fontWeight:'700',fontSize:'14px',cursor:'pointer' }}>
-                  حسناً، سأختار وقتاً آخر
-                </button>
+        <ConsultantFullProfile
+          consultant={viewProfile}
+          isColleagues={isColleaguesMode}
+          onClose={() => {
+            const backPath = isColleaguesMode ? '/consultant/colleagues' : '/consultants';
+            window.history.replaceState({}, '', backPath);
+            setViewProfile(null);
+            setScrollToBooking(false);
+          }}
+          onBook={c => setSelected(c)}
+          onBookRequest={handleBookRequest}
+          scrollToBookingOnMount={scrollToBooking}
+        />
+        <BookingModal consultant={selected} isOpen={!!selected} onClose={() => setSelected(null)}
+          onSuccess={() => { setSelected(null); showToast('تم حجز الاستشارة بنجاح'); navigate && navigate('/my-appointments'); }} />
+        <PaymentModal isOpen={!!paymentData} onClose={() => setPaymentData(null)}
+          onSuccess={() => { setPaymentData(null); showToast('تم دفع الاستشارة بنجاح وتأكيد الحجز'); if (navigate) navigate('/my-appointments'); }}
+          price={paymentData?.price || 42.50} consultantName={paymentData?.consultantName || 'مستشار'} serviceName={paymentData?.serviceName || 'استشارة'} isMock={true} />
+        {toast && <div className="cp-toast-backdrop"><div className="cp-toast"><div className="cp-toast-icon">✓</div><div>{toast}</div></div></div>}
+        {errorModal && (
+          <div onClick={() => setErrorModal('')} style={{ position:'fixed',inset:0,zIndex:100002,background:'rgba(13,60,92,0.5)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center' }}>
+            <div onClick={e => e.stopPropagation()} style={{ background:'#fff',borderRadius:'18px',padding:'36px 32px',maxWidth:'400px',width:'90%',textAlign:'center',direction:'rtl' }}>
+              <div style={{ width:'64px',height:'64px',borderRadius:'50%',background:'#FEE2E2',border:'3px solid #FECACA',margin:'0 auto 18px',display:'flex',alignItems:'center',justifyContent:'center' }}>
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </div>
+              <h3 style={{ fontSize:'18px',fontWeight:'800',color:'#0D3C5C',margin:'0 0 10px' }}>فشل الحجز</h3>
+              <p style={{ fontSize:'14px',color:'#64748B',margin:'0 0 24px',lineHeight:1.7 }}>{errorModal}</p>
+              <button onClick={() => setErrorModal('')} style={{ width:'100%',padding:'12px 0',borderRadius:'10px',border:'none',background:'#EF4444',color:'#fff',fontWeight:'700',fontSize:'14px',cursor:'pointer' }}>
+                حسناً، سأختار وقتاً آخر
+              </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </>
     );
   }

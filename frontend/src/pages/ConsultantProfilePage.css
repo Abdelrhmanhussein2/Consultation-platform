@@ -41,7 +41,11 @@
   direction: rtl;
   color: var(--admin-text);
   font-family: 'Cairo', 'Tajawal', Arial, sans-serif;
-  padding-bottom: 60px;
+  display: flex;
+  flex-direction: column;
+  /* Fill portal-content-body flex height */
+  height: 100%;
+  min-height: 0;
   animation: profileFadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -52,7 +56,7 @@
   border-radius: 24px;
   box-shadow: var(--admin-shadow);
   overflow: hidden;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   z-index: 2;
   position: relative;
   transition: box-shadow 0.25s ease;
@@ -71,7 +75,7 @@
   display: grid;
   grid-template-columns: 130px minmax(0, 1fr) auto;
   gap: 20px;
-  padding: 0 28px 24px;
+  padding: 0 27px 23px;
   align-items: start;
 }
 
@@ -105,7 +109,7 @@
 .consultant-profile-shell .profile-main-title h1 {
   margin: 0;
   color: var(--admin-navy);
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 850;
   line-height: 1.3;
 }
@@ -113,18 +117,18 @@
 .consultant-profile-shell .profile-tagline {
   color: #2D5978;
   margin-top: 6px;
-  font-size: 13.5px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   line-height: 1.6;
 }
 
 .consultant-profile-shell .profile-meta-line {
   display: flex;
-  gap: 12px;
+  gap: 13px;
   flex-wrap: wrap;
   margin-top: 10px;
   color: var(--admin-muted);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
 }
 
@@ -157,9 +161,9 @@
 .consultant-profile-shell .profile-spec-chip {
   background: #0B2E4B;
   color: #FFFFFF;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 4px 14px;
+  padding: 4px 12px;
   border-radius: 999px;
   letter-spacing: 0.2px;
 }
@@ -194,53 +198,67 @@
 }
 
 .consultant-profile-shell .profile-price-val {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 900;
   color: var(--admin-navy);
   line-height: 1;
 }
 
 .consultant-profile-shell .profile-price-val small {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--admin-muted);
 }
 
-/* Nav Tabs matching Admin */
+/* Nav Tabs — now sits inside the fixed header card, no separate wrapper needed */
+
 .consultant-profile-shell .profile-nav-tabs {
   border-top: 1px solid var(--admin-line);
-  padding: 10px 24px;
+  padding: 9px 22px;
   display: flex;
-  gap: 8px;
+  gap: 5px;
   flex-wrap: wrap;
   background: #FAFCFD;
 }
 
 .consultant-profile-shell .profile-nav-tabs button {
-  border: 1px solid transparent;
-  background: #FFFFFF;
+  border: 0;
+  background: transparent;
   color: var(--admin-navy);
-  padding: 9px 20px;
+  padding: 9px 13px;
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: 0.16s ease;
 }
 
 .consultant-profile-shell .profile-nav-tabs button:hover {
-  background: var(--admin-surface);
-  color: var(--admin-navy);
-  transform: translateY(-1px);
+  background: #EEF3F6;
 }
 
 .consultant-profile-shell .profile-nav-tabs button.active {
   background: var(--admin-navy);
   color: #FFFFFF;
-  border-color: var(--admin-navy);
-  box-shadow: 0 4px 12px rgba(11, 46, 75, 0.18);
-  transform: translateY(-1px);
+}
+
+/* Scrollable content area — takes remaining height and scrolls internally */
+.consultant-profile-shell .profile-main-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 0 40px;
+  scrollbar-width: thin;
+  scrollbar-color: #AEBFCB transparent;
+}
+
+.consultant-profile-shell .profile-main-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.consultant-profile-shell .profile-main-scroll::-webkit-scrollbar-thumb {
+  background: #AEBFCB;
+  border-radius: 999px;
 }
 
 /* Section Card */
@@ -248,8 +266,10 @@
   background: #FFFFFF;
   border: 1px solid var(--admin-line);
   border-radius: 24px;
-  padding: 28px 32px;
+  padding: 24px 27px;
+  margin-bottom: 20px;
   box-shadow: 0 8px 20px rgba(11, 46, 75, 0.04);
+  scroll-margin-top: 10px;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   animation: profileFadeInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -297,15 +317,15 @@
 .consultant-profile-shell .profile-stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin: 24px 0 32px;
+  gap: 10px;
+  margin: 20px 0 24px;
 }
 
 .consultant-profile-shell .profile-stat-box {
   background: #F7F9FA;
   border: 1px solid #E7EDF1;
-  border-radius: 18px;
-  padding: 20px 16px;
+  border-radius: 15px;
+  padding: 14px;
   text-align: center;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -320,16 +340,16 @@
 .consultant-profile-shell .profile-stat-box small {
   display: block;
   color: var(--admin-muted);
-  font-size: 12px;
+  font-size: 9px;
   font-weight: 700;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 
 .consultant-profile-shell .profile-stat-box b {
   display: block;
   color: var(--admin-navy);
-  font-size: 17px;
-  font-weight: 850;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 /* Inputs and Forms */
