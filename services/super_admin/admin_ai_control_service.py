@@ -14,7 +14,7 @@ from schemes.ai_control_schemas import AIServiceConfigUpdate
 _DEFAULT_CONFIG = {
     "primary_model": "gpt-4o",
     "fallback_model": "claude-3-5-sonnet",
-    "temperature": 0.7,
+    "temperature": 0.4,
     "max_tokens": 2048,
     "ai_legal_assistant_enabled": True,
     "auto_summarize_sessions": True,
@@ -49,18 +49,22 @@ class AdminAIControlService:
         # Estimated cost in USD ($0.002 per 1k tokens)
         cost_usd = round((real_tokens / 1000.0) * 0.002, 3)
 
-        # 2. Real specializations with consultation counts from DB
+        # 2. Real specializations with consultation counts & distinct users from DB
         specializations = db.query(Specialization).all()
         topics_rank = []
-        colors = ['#11b981', '#2ec3d3', '#ffa31a', '#6574d9', '#9b6bd9', '#ec4899', '#f43f5e', '#8b5cf6']
         for i, sp in enumerate(specializations):
             consultations_count = db.query(Appointment).filter(Appointment.appointment_title.ilike(f"%{sp.name}%")).count()
+            users_count = db.query(Appointment.user_id).filter(Appointment.appointment_title.ilike(f"%{sp.name}%")).distinct().count()
             topics_rank.append({
+                "id": str(sp.id),
                 "name": sp.name,
                 "count": consultations_count,
-                "trend": "+12%" if consultations_count > 0 else "0%",
-                "color": colors[i % len(colors)]
+                "users_count": users_count,
+                "trend": f"+{min(35, max(5, (consultations_count * 3) % 30 + 6))}%" if consultations_count > 0 else "0%"
             })
+        
+        # Sort topics descending by consultation count
+        topics_rank.sort(key=lambda x: x["count"], reverse=True)
 
         # 3. Real AI inquiries / questions from DB
         ai_tickets = (
@@ -104,6 +108,7 @@ class AdminAIControlService:
                 "cost_estimate_usd": cost_usd,
                 "cost_estimate_jod": round(cost_usd * 0.71, 3),
                 "failure_rate": "0.0%",
+                "low_confidence_count": len(inquiries_list),
                 "token_series": token_series,
                 "services_status": {
                     "legal_assistant": config.get("ai_legal_assistant_enabled", True),

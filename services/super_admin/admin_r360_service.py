@@ -36,14 +36,16 @@ class AdminR360Service:
             ).limit(limit).all()
 
             for c in consultants:
+                profile = db.query(ConsultantProfile).filter(ConsultantProfile.user_id == c.id).first()
+                ver_status = profile.verification_status if profile else c.verification_status
+                status_str = "approved" if str(ver_status).lower() in ["approved", "موثق"] else "pending"
                 results.append({
                     "id": str(c.id),
                     "name": c.full_name,
                     "title": c.full_name,
                     "subtitle": c.email or c.phone,
-
                     "type": "consultant",
-                    "status": "approved" if c.is_verified else "pending",
+                    "status": status_str,
                     "created_at": c.created_at.isoformat() if c.created_at else None,
                     "metadata": {"role": c.role}
                 })
@@ -114,13 +116,14 @@ class AdminR360Service:
                     "full_name": consultant.full_name,
                     "email": consultant.email,
                     "phone": consultant.phone,
-                    "rating_avg": float(profile.rating_avg or 5.0) if profile else 5.0,
-                    "total_reviews": profile.total_reviews if profile else 0,
-                    "is_verified": consultant.is_verified,
+                    "rating_avg": float(profile.average_rating or 5.0) if profile else 5.0,
+                    "total_reviews": profile.ratings_count if profile else 0,
+                    "verification_status": str(profile.verification_status.value if profile and hasattr(profile.verification_status, 'value') else (profile.verification_status if profile else consultant.verification_status)),
+                    "is_active": consultant.is_active,
                     "created_at": consultant.created_at.isoformat() if consultant.created_at else None
                 },
                 "related_records": {
-                    "credentials": [{"id": str(c.id), "title": c.title, "status": str(c.verification_status)} for c in credentials],
+                    "credentials": [{"id": str(c.id), "title": c.specialization.name if c.specialization else "شهادة مهنية", "status": str(c.status)} for c in credentials],
                     "services": [{"id": str(s.id), "title": s.title, "price": float(s.price or 0)} for s in services],
                     "appointments_count": len(appointments),
                     "appointments": [{"id": str(a.id), "status": str(a.status), "date": a.scheduled_at.isoformat() if a.scheduled_at else None} for a in appointments[:10]]
@@ -150,7 +153,7 @@ class AdminR360Service:
                 "related_records": {
                     "client": {"id": str(client.id), "name": client.full_name, "email": client.email} if client else None,
                     "consultant": {"id": str(consultant_user.id), "name": consultant_user.full_name, "email": consultant_user.email} if consultant_user else None,
-                    "rating": {"score": rating.score, "comment": rating.comment} if rating else None
+                    "rating": {"stars": rating.stars, "comment": rating.comment} if rating else None
                 }
             }
 

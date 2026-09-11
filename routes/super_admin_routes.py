@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, Query, Body
+from fastapi import APIRouter, Depends, status, Query, Body, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional, Any, Dict
 
@@ -1457,6 +1457,253 @@ def update_ai_control_config(
 ):
     """Updates AI model defaults, max tokens, temperature, and feature toggles."""
     return AdminAIControlService.update_ai_config(db=db, update_in=update_in)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# OPERATIONAL ALERTS & NOTIFICATIONS (require_admin)
+# ─────────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/operational-alerts",
+    summary="Get real-time operational alerts and notifications directly from DB",
+)
+def get_operational_alerts(
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    """
+    Aggregates real-time operational alerts from DB:
+    - Pending consultant verification requests
+    - Pending payout requests
+    - Open/in-progress support tickets
+    - Real database notifications
+    """
+    from models import ConsultantProfile, PayoutRequest, SupportTicket, Notification, Specialization
+    from helpers.enums import VerificationStatus, PayoutStatus, TicketStatus
+
+    alerts = []
+
+    # 1. Pending Consultant Approvals
+    pending_consultants = (
+        db.query(ConsultantProfile, User, Specialization.name.label("spec_name"))
+        .join(User, ConsultantProfile.user_id == User.id)
+        .outerjoin(Specialization, ConsultantProfile.main_specialization_id == Specialization.id)
+        .filter(ConsultantProfile.verification_status == VerificationStatus.pending)
+        .all()
+    )
+    for prof, user, spec_name in pending_consultants:
+        alerts.append({
+            "id": f"ALERT-CONS-{str(prof.id)[:8]}",
+            "type": "consultant_approval",
+            "category": "اعتماد مستشار",
+            "title": f"طلب اعتماد مستشار جديد: {user.full_name}",
+            "message": f"المستشار {user.full_name} بانتظار التحقق من بياناته المهنية واعتماده في تخصص ({spec_name or 'استشارات عامة'}).",
+            "entity_id": str(user.id),
+            "entity_type": "مستشار",
+            "priority": "high",
+            "status": "pending",
+            "created_at": prof.created_at.isoformat() if prof.created_at else (user.created_at.isoformat() if user.created_at else None),
+            "action_url": "/admin/control-center?tab=credential",
+            "details": {
+                "consultant_name": user.full_name,
+                "email": user.email,
+                "phone": user.phone,
+                "specialization": spec_name or "استشارات عامة",
+                "years": prof.years_of_experience or 1
+            }
+        })
+
+    # 2. Pending Payout Requests
+    pending_payouts = (
+        db.query(PayoutRequest, ConsultantProfile, User)
+        .join(ConsultantProfile, PayoutRequest.consultant_id == ConsultantProfile.id)
+        .join(User, ConsultantProfile.user_id == User.id)
+        .filter(PayoutRequest.status == PayoutStatus.pending)
+        .all()
+    )
+    for pay, prof, user in pending_payouts:
+        alerts.append({
+            "id": f"ALERT-PAY-{str(pay.id)[:8]}",
+            "type": "payout_request",
+            "category": "تسوية مالية",
+            "title": f"طلب سحب أرباح معلق بقيمة {pay.amount} د.أ",
+            "message": f"طلب سحب أرباح للمستشار {user.full_name} بقيمة {pay.amount} د.أ بانتظار التحويل المالي والاعتماد.",
+            "entity_id": str(pay.id),
+            "entity_type": "تسوية",
+            "priority": "high",
+            "status": "pending",
+            "created_at": pay.requested_at.isoformat() if pay.requested_at else None,
+            "action_url": "/admin/finance",
+            "details": {
+                "consultant_name": user.full_name,
+                "amount": float(pay.amount or 0),
+                "bank_name": getattr(pay, "bank_name", "البنك المعتمد"),
+                "iban": getattr(pay, "iban", "—")
+            }
+        })
+
+    # 3. Open Urgent Support Tickets
+    open_tickets = (
+        db.query(SupportTicket, User)
+        .join(User, SupportTicket.submitted_by == User.id)
+        .filter(SupportTicket.status.in_([TicketStatus.open, TicketStatus.in_progress]))
+        .order_by(SupportTicket.created_at.desc())
+        .limit(10)
+        .all()
+    )
+    for ticket, user in open_tickets:
+        status_raw = str(ticket.status.value if hasattr(ticket.status, 'value') else ticket.status).lower()
+        status_ar = "قيد المتابعة والمعالجة" if status_raw in ["in_progress", "قيد المعالجة", "in progress"] else "مفتوحة وبانتظار المراجعة والرد"
+        
+        priority_raw = str(ticket.priority.value if hasattr(ticket.priority, 'value') else ticket.priority).lower()
+        priority_ar = "عاجل ومرتفع" if priority_raw in ["high", "urgent", "عاجل"] else "متوسط" if priority_raw in ["medium", "متوسط"] else "عادي"
+
+        desc_snippet = f"\n\nتفاصيل المشكلة:\n{ticket.description}" if getattr(ticket, "description", None) else ""
+        formatted_message = f"تذكرة دعم فني مقدمة من {user.full_name} بخصوص ({ticket.subject or 'استفسار عام'})، وحالتها الحالية {status_ar}.{desc_snippet}"
+
+        alerts.append({
+            "id": f"ALERT-TCK-{str(ticket.id)[:8]}",
+            "type": "support_ticket",
+            "category": "تذكرة دعم فني",
+            "title": f"تذكرة دعم: {ticket.subject or ticket.id}",
+            "message": formatted_message,
+            "entity_id": str(ticket.id),
+            "entity_type": "تذكرة",
+            "priority": "high" if str(ticket.priority).lower() in ["high", "urgent", "عاجل"] else "medium",
+            "status": "in_progress" if status_raw in ["in_progress", "قيد المعالجة"] else "open",
+            "created_at": ticket.created_at.isoformat() if ticket.created_at else None,
+            "action_url": None,
+            "details": {
+                "ticket_id": str(ticket.id),
+                "subject": ticket.subject or "—",
+                "user_name": user.full_name,
+                "status": "قيد المعالجة" if status_raw in ["in_progress", "قيد المعالجة"] else "مفتوحة",
+                "priority": priority_ar
+            }
+        })
+
+    # 4. Platform Notifications for Super Admin / System
+    notifs = (
+        db.query(Notification)
+        .order_by(Notification.created_at.desc())
+        .limit(20)
+        .all()
+    )
+    for n in notifs:
+        alerts.append({
+            "id": f"ALERT-NOTIF-{str(n.id)[:8]}",
+            "db_id": str(n.id),
+            "type": "system_notification",
+            "category": "إشعار نظام",
+            "title": n.title or "إشعار من المنصة",
+            "message": n.message,
+            "entity_id": str(n.related_entity_id) if n.related_entity_id else str(n.id),
+            "entity_type": n.related_entity_type or "إشعار",
+            "priority": "normal",
+            "is_read": bool(n.is_read),
+            "status": "read" if n.is_read else "unread",
+            "created_at": n.created_at.isoformat() if n.created_at else None,
+            "action_url": None,
+            "details": {
+                "notification_type": str(n.type.value if hasattr(n.type, 'value') else n.type),
+                "is_read": "مقروء" if n.is_read else "غير مقروء",
+                "recipient_user_id": str(n.user_id) if n.user_id else "النظام"
+            }
+        })
+
+    # Sort all alerts newest first
+    alerts.sort(key=lambda x: x.get("created_at") or "", reverse=True)
+
+    unread_alerts_count = sum(1 for a in alerts if not a.get("is_read", False) and a.get("type") == "system_notification")
+
+    return {
+        "status": "success",
+        "total_count": len(alerts),
+        "unread_notifications_count": unread_alerts_count,
+        "pending_payouts_count": len(pending_payouts),
+        "pending_consultants_count": len(pending_consultants),
+        "open_tickets_count": len(open_tickets),
+        "alerts": alerts
+    }
+
+
+@router.patch(
+    "/operational-alerts/notifications/{notification_id}/read",
+    summary="Mark a specific operational notification as read in the DB",
+)
+def mark_operational_notification_read(
+    notification_id: str,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    from models import Notification
+    import uuid
+    try:
+        n_uuid = uuid.UUID(notification_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid notification UUID format")
+
+    notif = db.query(Notification).filter(Notification.id == n_uuid).first()
+    if not notif:
+        raise HTTPException(status_code=404, detail="Notification not found")
+
+    notif.is_read = True
+    db.commit()
+    db.refresh(notif)
+    return {
+        "status": "success",
+        "message": "تم تحديث حالة الإشعار إلى مقروء في قاعدة البيانات بنجاح",
+        "notification_id": str(notif.id),
+        "is_read": True
+    }
+
+
+@router.post(
+    "/operational-alerts/notifications/read-all",
+    summary="Mark all platform notifications as read in the DB",
+)
+def mark_all_operational_notifications_read(
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    from models import Notification
+    updated_rows = db.query(Notification).filter(Notification.is_read == False).update({"is_read": True})
+    db.commit()
+    return {
+        "status": "success",
+        "message": f"تم تمييز {updated_rows} إشعار كمقروء في قاعدة البيانات بنجاح",
+        "updated_count": updated_rows
+    }
+
+
+@router.delete(
+    "/operational-alerts/notifications/{notification_id}",
+    summary="Delete a platform notification from DB",
+)
+def delete_operational_notification(
+    notification_id: str,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    from models import Notification
+    import uuid
+    try:
+        n_uuid = uuid.UUID(notification_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid notification UUID format")
+
+    notif = db.query(Notification).filter(Notification.id == n_uuid).first()
+    if not notif:
+        raise HTTPException(status_code=404, detail="Notification not found")
+
+    db.delete(notif)
+    db.commit()
+    return {
+        "status": "success",
+        "message": "تم حذف الإشعار من قاعدة البيانات بنجاح"
+    }
+
+
 
 
 

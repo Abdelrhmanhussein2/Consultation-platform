@@ -445,6 +445,8 @@ export async function getAdminTicketDetail(ticketId) {
   return adminRequest(`/super-admin/tickets/${ticketId}`);
 }
 
+export const updateAdminTicket = updateAdminTicketStatus;
+
 /* ══════════════════════════════════════════════════════════════════
    CONTROL CENTER (AUTOMATION, R360, AI CONTROL)
    ══════════════════════════════════════════════════════════════════ */
@@ -516,3 +518,27 @@ export async function getPendingConsultants() {
 export async function getAllInvoices(page = 1, limit = 50) {
   return adminRequest(`/invoices/all?page=${page}&limit=${limit}`);
 }
+
+export async function getOperationalAlerts() {
+  return adminRequest('/super-admin/operational-alerts');
+}
+
+export async function markOperationalNotificationAsRead(notificationId) {
+  return adminRequest(`/super-admin/operational-alerts/notifications/${notificationId}/read`, {
+    method: 'PATCH'
+  });
+}
+
+export async function markAllOperationalNotificationsAsRead() {
+  return adminRequest('/super-admin/operational-alerts/notifications/read-all', {
+    method: 'POST'
+  });
+}
+
+export async function deleteOperationalNotification(notificationId) {
+  return adminRequest(`/super-admin/operational-alerts/notifications/${notificationId}`, {
+    method: 'DELETE'
+  });
+}
+
+
