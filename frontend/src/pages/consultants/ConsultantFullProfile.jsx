@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { consultantService } from '../../services/consultantService';
+import { appointmentService } from '../../services/appointmentService';
+import Toast, { useToast } from '../../components/Toast/Toast';
+import { cleanServiceDescription } from '../../utils/serviceUtils';
 
 /* ── Helpers ─────────────────────────────────────────────────────── */
 function getWeekTitle(offset) {
@@ -83,7 +86,8 @@ function getDaysForWeek(offset, dbAvailabilities = null, dbWorkingDays = null) {
 
 /* ── Main component ──────────────────────────────────────────────── */
 export default function ConsultantFullProfile({ consultant, onClose, onBook, onOpenPayment, onBookRequest, scrollToBookingOnMount, isColleagues = false }) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const { toast, showToast } = useToast();
   const [activeTab, setActiveTab]               = useState('about');
   const [selectedServiceId, setSelectedServiceId] = useState(null);
   const [selectedDuration, setSelectedDuration] = useState('30');
@@ -92,7 +96,9 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
   const [selectedTime, setSelectedTime]         = useState(null);
   const [openFaqs, setOpenFaqs]                 = useState([0, 1, 2, 3]);
   const [questionText, setQuestionText]         = useState('');
-  const [questionSent, setQuestionSent]         = useState(false);
+  const [pendingWaiting, setPendingWaiting]     = useState(false);
+  const [isSendingQuestion, setIsSendingQuestion] = useState(false);
+  const [linkedApptId, setLinkedApptId]         = useState(null);
 
   const [liveProfile, setLiveProfile]   = useState(null);
   const [liveServices, setLiveServices] = useState([]);
@@ -155,6 +161,73 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
     fetchBackendData();
   }, [profileId, consultant, token]);
 
+  const checkPendingInquiryStatus = useCallback(async () => {
+    if (!token || !user || !profileId) return;
+    try {
+      const isUuidStr = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(str || ''));
+      const resolvedConsultantId = isUuidStr(profileId)
+        ? profileId
+        : (isUuidStr(consultant?.id)
+          ? consultant.id
+          : (isUuidStr(consultant?.profile_id)
+            ? consultant.profile_id
+            : (isUuidStr(liveProfile?.id)
+              ? liveProfile.id
+              : '93413316-ef5a-42aa-9177-dd057a588b2e')));
+
+      const localKey = `cp_inquiry_wait_${user.id || user.email}_${profileId}`;
+      const myAppts = await appointmentService.getMyAppointments(token).catch(() => []);
+      const matchAppt = (myAppts || []).find(a =>
+        (String(a.consultant_id) === String(resolvedConsultantId) ||
+         String(a.consultant?.id) === String(resolvedConsultantId) ||
+         String(a.consultant_id) === String(profileId) ||
+         (liveProfile && a.consultant_name === liveProfile.full_name)) &&
+        a.status !== 'cancelled'
+      );
+
+      if (matchAppt) {
+        setLinkedApptId(matchAppt.id);
+        const res = await fetch(`/api/chat/${matchAppt.id}/messages?limit=50`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }).then(r => r.ok ? r.json() : []).catch(() => []);
+
+        if (Array.isArray(res) && res.length > 0) {
+          const lastMsg = res[res.length - 1];
+          const isLastFromUser = String(lastMsg.sender_id) === String(user.id);
+          if (isLastFromUser) {
+            setPendingWaiting(true);
+            localStorage.setItem(localKey, JSON.stringify({ apptId: matchAppt.id, time: lastMsg.created_at }));
+          } else {
+            setPendingWaiting(false);
+            localStorage.removeItem(localKey);
+          }
+        } else {
+          setPendingWaiting(false);
+          localStorage.removeItem(localKey);
+        }
+      } else {
+        setPendingWaiting(false);
+        setLinkedApptId(null);
+        localStorage.removeItem(localKey);
+      }
+    } catch (err) {
+      console.warn('Error checking pending inquiry status:', err);
+    }
+  }, [token, user, profileId, consultant, liveProfile]);
+
+  useEffect(() => {
+    checkPendingInquiryStatus();
+  }, [checkPendingInquiryStatus]);
+
+  // Poll every 10 seconds while waiting for consultant reply, to auto-unlock when they respond
+  useEffect(() => {
+    if (!pendingWaiting) return;
+    const interval = setInterval(() => {
+      checkPendingInquiryStatus();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [pendingWaiting, checkPendingInquiryStatus]);
+
   const triggerWidgetGlow = useCallback(() => {
     setActiveTab('availability');
     if (sideScrollRef.current) {
@@ -192,7 +265,7 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
     ? liveServices.map(s => ({
         id: s.id,
         name: s.name,
-        description: s.description,
+        description: cleanServiceDescription(s.description, s.name),
         duration_minutes: s.duration_minutes || 60,
         price: Math.round(Number(s.price)) || basePriceVal,
         is_active: s.is_active
@@ -327,16 +400,110 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
   };
 
   const toggleFaq = idx => setOpenFaqs(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]);
-  const handleSendQuestion = () => {
-    if (!questionText.trim()) return;
-    setQuestionSent(true);
-    setTimeout(() => { setQuestionSent(false); setQuestionText(''); }, 3500);
+  
+  const isUuid = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(str || ''));
+
+  const handleSendQuestion = async () => {
+    const text = questionText.trim();
+    if (!text) return;
+    if (!token || !user) {
+      showToast('يرجى تسجيل الدخول أولاً لإرسال استفسارك للمستشار', 'error');
+      return;
+    }
+
+    const resolvedConsultantId = isUuid(profileId)
+      ? profileId
+      : (isUuid(consultant?.id)
+        ? consultant.id
+        : (isUuid(consultant?.profile_id)
+          ? consultant.profile_id
+          : (isUuid(liveProfile?.id)
+            ? liveProfile.id
+            : '93413316-ef5a-42aa-9177-dd057a588b2e')));
+
+    if (user.role === 'consultant' && (String(resolvedConsultantId) === String(user?.profile?.id || user?.id) || String(profileId) === String(user?.profile?.id || user?.id))) {
+      showToast('لا يمكنك إرسال رسالة لنفسك', 'error');
+      return;
+    }
+    if (pendingWaiting) {
+      showToast('لديك استفسار مرسل مسبقاً، يرجى انتظار رد المستشار أولاً.', 'warning');
+      return;
+    }
+
+    setIsSendingQuestion(true);
+    try {
+      let targetApptId = linkedApptId;
+
+      if (!targetApptId) {
+        const myAppts = await appointmentService.getMyAppointments(token).catch(() => []);
+        const matchAppt = (myAppts || []).find(a =>
+          (String(a.consultant_id) === String(resolvedConsultantId) ||
+           String(a.consultant?.id) === String(resolvedConsultantId) ||
+           String(a.consultant_id) === String(profileId) ||
+           (liveProfile && a.consultant_name === liveProfile.full_name)) &&
+          a.status !== 'cancelled'
+        );
+
+        if (matchAppt) {
+          targetApptId = matchAppt.id;
+        } else {
+          const srv = (liveServices && liveServices.length > 0) ? liveServices[0] : null;
+          const validServiceId = (srv && isUuid(srv.id)) ? srv.id : null;
+          const newAppt = await appointmentService.bookAppointment({
+            consultant_id: resolvedConsultantId,
+            service_id: validServiceId,
+            scheduled_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            duration_minutes: srv?.duration_minutes || 30,
+            session_type: 'chat',
+            notes: `استفسار: ${text}`
+          }, token);
+          targetApptId = newAppt.id;
+        }
+      }
+
+      setLinkedApptId(targetApptId);
+
+      const msgRes = await fetch(`/api/chat/${targetApptId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message_text: text })
+      });
+
+      if (!msgRes.ok) {
+        const errData = await msgRes.json().catch(() => ({}));
+        throw new Error(errData.detail || 'تعذر إرسال الرسالة للمستشار');
+      }
+
+      // Ensure this chat is not hidden in localStorage
+      try {
+        const hidden = JSON.parse(localStorage.getItem('cp_hidden_chats') || '[]');
+        if (hidden.includes(String(targetApptId))) {
+          const updated = hidden.filter(id => id !== String(targetApptId));
+          localStorage.setItem('cp_hidden_chats', JSON.stringify(updated));
+        }
+      } catch {}
+
+      setPendingWaiting(true);
+      setQuestionText('');
+      const localKey = `cp_inquiry_wait_${user.id || user.email}_${profileId}`;
+      localStorage.setItem(localKey, JSON.stringify({ apptId: targetApptId, time: new Date().toISOString() }));
+      showToast('تم إرسال رسالتك إلى صندوق محادثات المستشار بنجاح ✓', 'success');
+    } catch (err) {
+      console.error('Error sending question:', err);
+      showToast(err.message || 'حدث خطأ أثناء إرسال الرسالة، حاول مرة أخرى', 'error');
+    } finally {
+      setIsSendingQuestion(false);
+    }
   };
 
   const isColleaguesMode = isColleagues || (typeof window !== 'undefined' && window.location.pathname.includes('colleagues'));
 
   return (
     <div className="profile-overlay-wrapper">
+      <Toast {...toast} />
       {/* Top Return Bar */}
       <div className="profile-return-bar">
         <button onClick={onClose}>
@@ -701,14 +868,98 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
 
               {/* Ask Question */}
               <div className="ask-question-card">
-                <h3 style={{ margin:0,fontSize:'15px',fontWeight:'800',color:'#fff' }}>لست متأكداً بعد؟</h3>
-                <p style={{ fontSize:'11.5px',color:'#94A3B8',margin:'4px 0 0' }}>يرد عادةً خلال ساعة في أيام العمل.</p>
-                {questionSent ? (
-                  <div style={{ background:'rgba(22,163,109,0.2)',border:'1px solid #16A36D',color:'#6EE7B7',padding:'10px 14px',borderRadius:'14px',fontSize:'12px',fontWeight:'700',marginTop:'12px' }}>✅ تم إرسال سؤالك بنجاح!</div>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#fff' }}>لست متأكداً بعد؟</h3>
+                <p style={{ fontSize: '11.5px', color: '#94A3B8', margin: '4px 0 0' }}>يرد عادةً خلال ساعة في أيام العمل.</p>
+
+                {pendingWaiting ? (
+                  /* ⏳ Waiting for consultant reply */
+                  <div style={{ marginTop: '12px' }}>
+                    <div style={{
+                      background: 'rgba(245, 158, 11, 0.18)',
+                      border: '1px solid #F59E0B',
+                      color: '#FEF3C7',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      lineHeight: '1.7'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#FBBF24', fontWeight: '800', marginBottom: '4px' }}>
+                        <span>⏳</span>
+                        <span>تم إرسال استفسارك بنجاح</span>
+                      </div>
+                      بانتظار رد المستشار... سيُفتح صندوق الرسائل تلقائياً فور رده.
+                    </div>
+                  </div>
+                ) : linkedApptId ? (
+                  /* ✅ Consultant has replied */
+                  <div style={{ marginTop: '12px' }}>
+                    <div style={{
+                      background: 'rgba(22, 163, 74, 0.18)',
+                      border: '1px solid #16A34A',
+                      color: '#D1FAE5',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      lineHeight: '1.7'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4ADE80', fontWeight: '800', marginBottom: '4px' }}>
+                        <span>✅</span>
+                        <span>رد عليك المستشار!</span>
+                      </div>
+                      المستشار قام بالرد على استفسارك. يمكنك الآن متابعة المحادثة والرد عليه.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onClose) onClose();
+                        if (typeof window !== 'undefined') window.location.href = `/chat?apptId=${linkedApptId}`;
+                      }}
+                      style={{
+                        marginTop: '8px',
+                        width: '100%',
+                        background: '#16A34A',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '9px 12px',
+                        fontSize: '12px',
+                        fontWeight: '800',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        transition: 'background 0.15s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#15803D'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = '#16A34A'}
+                    >
+                      فتح المحادثة والرد ←
+                    </button>
+                  </div>
                 ) : (
-                  <div className="ask-question-input-wrap">
-                    <input placeholder="اكتب سؤالك للمستشار..." value={questionText} onChange={e=>setQuestionText(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')handleSendQuestion();}} />
-                    <button className="ask-question-btn" onClick={handleSendQuestion}>إرسال</button>
+                  /* Normal: input to send first question */
+                  <div className="ask-question-input-wrap" style={{ marginTop: '10px' }}>
+                    <input
+                      placeholder="اكتب سؤالك للمستشار..."
+                      value={questionText}
+                      disabled={isSendingQuestion}
+                      onChange={e => setQuestionText(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleSendQuestion(); }}
+                    />
+                    <button
+                      className="ask-question-btn"
+                      disabled={isSendingQuestion || !questionText.trim()}
+                      onClick={handleSendQuestion}
+                      style={{
+                        opacity: (isSendingQuestion || !questionText.trim()) ? 0.6 : 1,
+                        cursor: (isSendingQuestion || !questionText.trim()) ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {isSendingQuestion ? 'جاري...' : 'إرسال'}
+                    </button>
                   </div>
                 )}
               </div>

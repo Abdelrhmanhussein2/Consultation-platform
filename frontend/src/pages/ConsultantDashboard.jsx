@@ -1195,7 +1195,7 @@ export default function ConsultantDashboard({ navigate }) {
 
               <div className="modalList">
                 {filteredServiceItems.map(item => (
-                  <div key={item.id} className="modalListRow" onClick={() => { setConsultantModal(null); handleNavigate('/consultant/sessions'); }}>
+                  <div key={item.id} className="modalListRow" onClick={() => { setConsultantModal(null); handleNavigate('/consultant/services'); }}>
                     <i className={item.badgeClass}></i>
                     <div><b>{item.name}</b><small>{item.desc}</small></div>
                     <em>تعديل السعر ←</em>

@@ -2,55 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { consultantService } from '../services/consultantService';
 import Toast, { useToast } from '../components/Toast/Toast';
-
-// Helper to parse embedded JSON metadata (service_type, tiers) from description
-const parseServiceMeta = (service) => {
-  if (!service) return { meta: null, cleanDesc: '' };
-  let rawDesc = service.description || '';
-  let meta = null;
-
-  // 1. Extract JSON from <!--meta:...--> or corrupted variations
-  const match = rawDesc.match(/<!--meta:([\s\S]*?)-->/);
-  if (match) {
-    try {
-      meta = JSON.parse(match[1]);
-    } catch {}
-  }
-
-  // 2. Fallback JSON search
-  if (!meta) {
-    const jsonMatch = rawDesc.match(/meta:(\{[\s\S]*?\})/);
-    if (jsonMatch) {
-      try {
-        meta = JSON.parse(jsonMatch[1]);
-      } catch {}
-    }
-  }
-
-  // 3. Strip ALL html comments and metadata patterns completely from cleanDesc
-  let cleanDesc = rawDesc
-    .replace(/<!--meta:[\s\S]*?-->/gi, '')
-    .replace(/<!--[\s\S]*?-->/gi, '')
-    .replace(/<--[\s\S]*?-->/gi, '')
-    .replace(/meta:\{[\s\S]*?\}/gi, '')
-    .replace(/meta:[\s\S]*?\}/gi, '')
-    .replace(/<--[\s\S]*?\}/gi, '')
-    .replace(/<--/gi, '')
-    .replace(/-->/gi, '')
-    .trim();
-
-  return { meta, cleanDesc };
-};
-
-// Helper to get sanitized clean description for UI display
-const getServiceCleanDescription = (service) => {
-  if (!service) return 'مراجعة كاملة للوضع الضريبي وتحديد الالتزامات والمخاطر';
-  const { cleanDesc } = parseServiceMeta(service);
-  if (cleanDesc && cleanDesc.trim().length > 0) {
-    return cleanDesc.trim();
-  }
-  return 'مراجعة كاملة للوضع الضريبي وتحديد الالتزامات والمخاطر';
-};
+import { parseServiceMeta, cleanServiceDescription, getServiceCleanDescription } from '../utils/serviceUtils';
 
 // Helper to determine service type based on name or description or metadata
 const getServiceTypeInfo = (service) => {
@@ -486,16 +438,12 @@ export default function ConsultantServicesPage({ navigate }) {
 
   return (
     <div
-      className="portal-content-container"
       style={{
-        padding: '24px 32px',
-        maxWidth: '1440px',
-        margin: '0 auto',
+        width: '100%',
+        boxSizing: 'border-box',
         fontFamily: "'Tajawal', sans-serif",
         direction: 'rtl',
-        color: '#1E293B',
-        backgroundColor: '#F8FAFC',
-        minHeight: '100vh'
+        color: '#1E293B'
       }}
     >
       <Toast show={toast.show} message={toast.message} type={toast.type} />

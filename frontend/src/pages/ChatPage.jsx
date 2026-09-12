@@ -140,33 +140,37 @@ export default function ChatPage({ navigate }) {
       if (!token) return;
       setLoading(true);
       try {
-        let list = await appointmentService.getMyAppointments(token).catch(() => []);
-        if (!Array.isArray(list) || list.length === 0) {
-          const incoming = await consultantService.getIncomingAppointments(token).catch(() => []);
-          if (Array.isArray(incoming) && incoming.length > 0) list = incoming;
-        }
+        const [myAppts, incomingAppts] = await Promise.all([
+          appointmentService.getMyAppointments(token).catch(() => []),
+          consultantService.getIncomingAppointments(token).catch(() => [])
+        ]);
 
-        // Deduplicate conversations so each partner has 1 single chat thread
-        const partnerMap = new Map();
-        (list || []).forEach(appt => {
-          if (appt.status === 'cancelled') return;
-          const isConsultantRole = user?.role === 'consultant' ||
-            (user?.profile && String(appt.consultant_id) === String(user.profile.id));
+        const rawList = [
+          ...(Array.isArray(myAppts) ? myAppts : []),
+          ...(Array.isArray(incomingAppts) ? incomingAppts : [])
+        ];
 
-          const partnerIdKey = isConsultantRole
-            ? (appt.user_id || appt.user?.id || appt.client_name || 'client')
-            : (appt.consultant_id || appt.consultant?.id || appt.consultant_name || 'consultant');
-
-          if (!partnerMap.has(partnerIdKey)) {
-            partnerMap.set(partnerIdKey, appt);
+        // Deduplicate appointments by appointment.id first
+        const apptById = new Map();
+        rawList.forEach(a => {
+          if (a && a.id && !apptById.has(String(a.id))) {
+            apptById.set(String(a.id), a);
           }
         });
+        const uniqueAppts = Array.from(apptById.values());
 
-        let validChats = Array.from(partnerMap.values());
+        // Show all appointments as separate chat threads (each appointment = one conversation)
+        // Also exclude any appointments the user has permanently hidden
+        const currentHidden = (() => {
+          try { return JSON.parse(localStorage.getItem('cp_hidden_chats') || '[]'); } catch { return []; }
+        })();
+        let validChats = uniqueAppts.filter(appt =>
+          appt.status !== 'cancelled' && !currentHidden.includes(String(appt.id))
+        );
         if (validChats.length === 0) {
           validChats = [
             {
-              id: '929fbe80-60b6-455b-a818-b2a8c3dca018',
+              id: '929fbe80-e910-43ee-b9d3-a835cc30e63a',
               client_name: 'رانيا الخطيب',
               consultant_name: 'عبدالرحمن حسين محمد حسين الأصفر',
               service_name: 'جلسة فيديو 30 دقيقة',
@@ -189,7 +193,24 @@ export default function ChatPage({ navigate }) {
         let targetChat = null;
 
         if (paramApptId) {
+          // If paramApptId is in hidden list, remove it
+          setHiddenChatIds(prev => prev.filter(id => id !== String(paramApptId)));
+          try {
+            const hidden = JSON.parse(localStorage.getItem('cp_hidden_chats') || '[]');
+            if (hidden.includes(String(paramApptId))) {
+              localStorage.setItem('cp_hidden_chats', JSON.stringify(hidden.filter(id => id !== String(paramApptId))));
+            }
+          } catch {}
+
           targetChat = validChats.find(a => String(a.id) === String(paramApptId));
+          if (!targetChat) {
+            const foundInAll = uniqueAppts.find(a => String(a.id) === String(paramApptId));
+            if (foundInAll) {
+              targetChat = foundInAll;
+              validChats = [targetChat, ...validChats.filter(v => v.id !== targetChat.id)];
+              setAppointments(validChats);
+            }
+          }
         }
 
         if (!targetChat && paramUser) {
@@ -221,6 +242,8 @@ export default function ChatPage({ navigate }) {
 
         if (targetChat) {
           handleSelectChat(targetChat);
+        } else if (validChats.length > 0) {
+          handleSelectChat(validChats[0]);
         }
       } catch (err) {
         showToast('فشل تحميل قائمة المحادثات.', 'error');
@@ -634,7 +657,8 @@ export default function ChatPage({ navigate }) {
     if (!appt) return 'مستخدم';
     const isConsultantAppt = user?.role === 'consultant' ||
       (appt.consultant && String(appt.consultant.user_id) === String(user?.id)) ||
-      (appt.consultant_id && user?.profile && String(appt.consultant_id) === String(user.profile.id));
+      (appt.consultant_id && user?.profile && String(appt.consultant_id) === String(user.profile.id)) ||
+      (user?.email && (appt.consultant_name?.includes(user?.full_name) || appt.consultant?.user?.email === user?.email));
 
     if (isConsultantAppt) {
       return appt.client_name || appt.user?.full_name || appt.user_name || appt.client?.full_name || 'رانيا الخطيب';
@@ -686,17 +710,21 @@ export default function ChatPage({ navigate }) {
   // Filter and sort appointments: pinned first, then by last message time (most recent first)
   let rawFiltered = appointments
     .filter(a => {
-      if (hiddenChatIds.includes(String(a.id))) return false;
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramApptId = urlParams.get('apptId') || urlParams.get('appointment_id');
+
+      // Hidden chats are filtered out before entering state in fetchChatRooms.
+      // As a second safety net, still filter here using current state.
+      if (hiddenChatIds.includes(String(a.id)) && !(paramApptId && String(a.id) === String(paramApptId))) return false;
 
       const pName = (getPartnerName(a) || '').toLowerCase();
       const matchesSearch = !chatSearch || pName.includes(chatSearch.toLowerCase());
 
-      const isPast = a.scheduled_at && new Date(a.scheduled_at) < new Date();
-
       let matchesStatus = true;
       if (consultationFilter === 'active') {
-        matchesStatus = a.status !== 'completed' && !String(a.status || '').startsWith('cancelled') && !isPast;
+        matchesStatus = a.status === 'confirmed' || a.status === 'pending_approval' || a.status === 'pending_payment' || a.status === 'active' || (!String(a.status || '').startsWith('cancelled') && a.status !== 'completed');
       } else if (consultationFilter === 'follow_up') {
+        const isPast = a.scheduled_at && new Date(a.scheduled_at) < new Date();
         matchesStatus = a.status === 'completed' || (isPast && !String(a.status || '').startsWith('cancelled'));
       } else if (consultationFilter === 'completed') {
         matchesStatus = a.status === 'completed';
@@ -1083,135 +1111,195 @@ export default function ChatPage({ navigate }) {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Rich Text Editor Footer Area */}
-              <div className="chat-editor-container">
-                {/* Hidden File Input */}
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                  style={{ display: 'none' }}
-                />
+              {/* Rich Text Editor Footer Area or Client Waiting Notice */}
+              {(() => {
+                const isConsultantForAppt = user?.role === 'consultant' ||
+                  (activeAppt?.consultant && String(activeAppt.consultant.user_id) === String(user?.id)) ||
+                  (activeAppt?.consultant_id && user?.profile && String(activeAppt.consultant_id) === String(user.profile.id)) ||
+                  (user?.email && (activeAppt?.consultant_name?.includes(user?.full_name) || activeAppt?.consultant?.user?.email === user?.email));
 
-                {/* Editor Top Toolbar */}
-                <div className="editor-toolbar">
-                  <button
-                    type="button"
-                    onClick={() => applyFormattingToSelection('bold')}
-                    className="editor-tool-btn"
-                    style={{
-                      background: isBold ? '#005D9C' : '#F8FAFC',
-                      color: isBold ? '#FFFFFF' : '#0D3C5C',
-                      borderColor: isBold ? '#005D9C' : '#BCCCDC',
-                      fontWeight: '800'
-                    }}
-                    title="عريض B"
-                  >
-                    B
-                  </button>
+                const isClientRole = !isConsultantForAppt;
+                const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+                const isLastMsgFromClient = lastMsg ? (lastMsg.sender_id === user?.id || lastMsg.sender_id === 'me') : false;
+                // Lock chat ONLY if consultant has never replied at all (initial inquiry state)
+                // Once consultant replies even once, chat stays fully open permanently
+                const consultantHasEverReplied = messages.some(m => m.sender_id !== user?.id && m.sender_id !== 'me');
+                const isWaitingForConsultantReply = isClientRole && isLastMsgFromClient && !consultantHasEverReplied;
 
-                  <button
-                    type="button"
-                    onClick={() => applyFormattingToSelection('italic')}
-                    className="editor-tool-btn"
-                    style={{
-                      background: isItalic ? '#005D9C' : '#F8FAFC',
-                      color: isItalic ? '#FFFFFF' : '#0D3C5C',
-                      borderColor: isItalic ? '#005D9C' : '#BCCCDC',
-                      fontStyle: 'italic'
-                    }}
-                    title="مائل I"
-                  >
-                    I
-                  </button>
+                if (isWaitingForConsultantReply) {
+                  return (
+                    <div style={{
+                      background: 'linear-gradient(135deg, #F0FDF4 0%, #EFF6FF 100%)',
+                      border: '1.5px solid #BAE6FD',
+                      borderRadius: '16px',
+                      padding: '24px 20px',
+                      margin: '14px 16px 16px',
+                      textAlign: 'center',
+                      direction: 'rtl',
+                      boxShadow: '0 4px 16px rgba(13, 60, 92, 0.05)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <div style={{
+                        width: '46px',
+                        height: '46px',
+                        borderRadius: '50%',
+                        background: '#0284C7',
+                        color: '#FFFFFF',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '22px',
+                        boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)'
+                      }}>
+                        ⏳
+                      </div>
+                      <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0369A1', margin: 0 }}>
+                        تم استلام استفسارك بنجاح
+                      </h3>
+                      <p style={{ fontSize: '13px', color: '#0C4A6E', margin: 0, lineHeight: '1.6', maxWidth: '480px' }}>
+                        تم إرسال استفسارك للمستشار وهو بصدد مراجعته والرد عليك. تم إغلاق خانة الرسائل مؤقتاً وبانتظار رد المستشار لتتمكن من المتابعة.
+                      </p>
+                      <span style={{ fontSize: '11.5px', color: '#64748B', fontWeight: '700', marginTop: '2px' }}>
+                        ✓ سيصلك إشعار وتُتاح خانة الكتابة تلقائياً فور رد المستشار.
+                      </span>
+                    </div>
+                  );
+                }
 
-                  <button
-                    type="button"
-                    onClick={() => applyFormattingToSelection('underline')}
-                    className="editor-tool-btn"
-                    style={{
-                      background: isUnderline ? '#005D9C' : '#F8FAFC',
-                      color: isUnderline ? '#FFFFFF' : '#0D3C5C',
-                      borderColor: isUnderline ? '#005D9C' : '#BCCCDC',
-                      textDecoration: 'underline'
-                    }}
-                    title="تحته خط U"
-                  >
-                    U
-                  </button>
+                return (
+                  <div className="chat-editor-container">
+                    {/* Hidden File Input */}
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileUpload}
+                      style={{ display: 'none' }}
+                    />
 
-                  {user?.role === 'consultant' && (
-                    <>
+                    {/* Editor Top Toolbar */}
+                    <div className="editor-toolbar">
                       <button
                         type="button"
-                        onClick={() => setShowTemplatesModal(true)}
+                        onClick={() => applyFormattingToSelection('bold')}
                         className="editor-tool-btn"
-                        title="القوالب الجاهزة"
+                        style={{
+                          background: isBold ? '#005D9C' : '#F8FAFC',
+                          color: isBold ? '#FFFFFF' : '#0D3C5C',
+                          borderColor: isBold ? '#005D9C' : '#BCCCDC',
+                          fontWeight: '800'
+                        }}
+                        title="عريض B"
                       >
-                        القوالب الجاهزة
+                        B
                       </button>
 
                       <button
                         type="button"
-                        onClick={() => setShowAiModal(true)}
+                        onClick={() => applyFormattingToSelection('italic')}
                         className="editor-tool-btn"
-                        style={{ borderColor: '#005D9C', color: '#005D9C' }}
-                        title="توليد محتوى بالذكاء الاصطناعي"
+                        style={{
+                          background: isItalic ? '#005D9C' : '#F8FAFC',
+                          color: isItalic ? '#FFFFFF' : '#0D3C5C',
+                          borderColor: isItalic ? '#005D9C' : '#BCCCDC',
+                          fontStyle: 'italic'
+                        }}
+                        title="مائل I"
                       >
-                        توليد محتوى بالذكاء الاصطناعي
+                        I
                       </button>
-                    </>
-                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="editor-tool-btn"
-                    title="إرفاق ملف"
-                  >
-                    إرفاق
-                  </button>
-                </div>
-
-                {/* Textarea Input */}
-                <textarea
-                  ref={textareaRef}
-                  value={inputText}
-                  onChange={e => setInputText(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                  placeholder="اكتب ردك هنا..."
-                  className="editor-textarea"
-                />
-
-                {/* Bottom Bar Controls */}
-                <div className="editor-bottom-bar">
-                  <div className="editor-actions-left">
-                    {user?.role === 'consultant' && (
                       <button
                         type="button"
-                        onClick={(e) => handleSendMessage(e, true)}
-                        className="btn-send-close"
+                        onClick={() => applyFormattingToSelection('underline')}
+                        className="editor-tool-btn"
+                        style={{
+                          background: isUnderline ? '#005D9C' : '#F8FAFC',
+                          color: isUnderline ? '#FFFFFF' : '#0D3C5C',
+                          borderColor: isUnderline ? '#005D9C' : '#BCCCDC',
+                          textDecoration: 'underline'
+                        }}
+                        title="تحته خط U"
                       >
-                        إرسال وإغلاق
+                        U
                       </button>
-                    )}
+
+                      {user?.role === 'consultant' && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setShowTemplatesModal(true)}
+                            className="editor-tool-btn"
+                            title="القوالب الجاهزة"
+                          >
+                            القوالب الجاهزة
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setShowAiModal(true)}
+                            className="editor-tool-btn"
+                            style={{ borderColor: '#005D9C', color: '#005D9C' }}
+                            title="توليد محتوى بالذكاء الاصطناعي"
+                          >
+                            توليد محتوى بالذكاء الاصطناعي
+                          </button>
+                        </>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="editor-tool-btn"
+                        title="إرفاق ملف"
+                      >
+                        إرفاق
+                      </button>
+                    </div>
+
+                    {/* Textarea Input */}
+                    <textarea
+                      ref={textareaRef}
+                      value={inputText}
+                      onChange={e => setInputText(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      placeholder="اكتب ردك هنا..."
+                      className="editor-textarea"
+                    />
+
+                    {/* Bottom Bar Controls */}
+                    <div className="editor-bottom-bar">
+                      <div className="editor-actions-left">
+                        {user?.role === 'consultant' && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleSendMessage(e, true)}
+                            className="btn-send-close"
+                          >
+                            إرسال وإغلاق
+                          </button>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleSendMessage}
+                        disabled={!inputText.trim()}
+                        className="btn-send-main"
+                      >
+                        إرسال ↵
+                      </button>
+                    </div>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={handleSendMessage}
-                    disabled={!inputText.trim()}
-                    className="btn-send-main"
-                  >
-                    إرسال ↵
-                  </button>
-                </div>
-              </div>
+                );
+              })()}
             </>
           ) : (
             <div style={{
