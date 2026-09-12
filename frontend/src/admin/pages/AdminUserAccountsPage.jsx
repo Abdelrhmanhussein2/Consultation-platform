@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import './AdminUserAccountsPage.css';
 import ModernSelect from '../../components/ModernSelect';
+import FilterResetButton from '../../components/FilterResetButton';
 import {
   getAdminUsers,
   toggleUserActive,
@@ -692,12 +693,23 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
               </div>
             </div>
 
-            <div className="uacc-toolbar-group">
+            <div className="uacc-toolbar-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <input
                 className="uacc-input uacc-search"
                 placeholder="بحث بالاسم أو البريد..."
                 value={userSearch}
                 onChange={e => { setUserSearch(e.target.value); setUserPage(1); }}
+              />
+              <FilterResetButton
+                onClick={() => {
+                  setUserSearch('');
+                  setRoleFilter('');
+                  setLegalFilter('');
+                  setSectorFilter('');
+                  setUserPage(1);
+                  showToast('تم مسح جميع الفلاتر');
+                }}
+                size={38}
               />
             </div>
           </div>
@@ -884,9 +896,7 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
                 <span className="uacc-tooltip">تطبيق الفلتر</span>
               </button>
 
-              <button
-                className="uacc-icon-btn light"
-                title="مسح الفلتر"
+              <FilterResetButton
                 onClick={() => {
                   setHistoryYear('');
                   setHistoryMonth('');
@@ -895,10 +905,8 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
                   setHistoryPage(1);
                   showToast('تم مسح التصفية');
                 }}
-              >
-                <svg viewBox="0 0 24 24"><path d="M4 4l16 16" /><path d="M20 4 4 20" /></svg>
-                <span className="uacc-tooltip">مسح الفلتر</span>
-              </button>
+                size={38}
+              />
 
               <span className="uacc-history-filter-separator"></span>
 
@@ -1054,6 +1062,7 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
                 value={roleSearch}
                 onChange={e => setRoleSearch(e.target.value)}
               />
+              <FilterResetButton onClick={() => setRoleSearch('')} size={38} />
               <button className="uacc-icon-btn green" onClick={handleOpenAddRole} title="إضافة دور">
                 <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
                 <span className="uacc-tooltip">إضافة دور</span>

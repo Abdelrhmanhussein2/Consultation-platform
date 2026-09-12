@@ -192,10 +192,7 @@ export default function MyAppointmentsPage({ navigate }) {
       {/* Header controls & Title */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px', marginBottom: '28px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '24px' }}>📅</span>
-            <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#0D3C5C', margin: 0 }}>استشاراتي ومواعيدي</h1>
-          </div>
+          <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#0D3C5C', margin: 0 }}>استشاراتي ومواعيدي</h1>
           <p style={{ color: '#64748B', fontSize: '13px', margin: '6px 0 0 0' }}>جميع طلبات الاستشارة ومواعيدك في مكان واحد.</p>
         </div>
 
@@ -317,7 +314,6 @@ export default function MyAppointmentsPage({ navigate }) {
                           opacity: isConfirmed ? 1 : 0.7
                         }}
                       >
-                        <span>📹</span>
                         <span>دخول الغرفة</span>
                       </button>
                     );
@@ -452,7 +448,6 @@ export default function MyAppointmentsPage({ navigate }) {
                         gap: '6px'
                       }}
                     >
-                      <span>📹</span>
                       <span>دخول الغرفة</span>
                     </button>
                   )}
@@ -478,7 +473,7 @@ export default function MyAppointmentsPage({ navigate }) {
 
                   {isPendingPayment && (user?.role === 'consultant' || user?.role === 'platform_consultant') && (
                     <span style={{ fontSize: '12px', color: '#D97706', backgroundColor: '#FFFBEB', padding: '6px 14px', borderRadius: '20px', border: '1px solid #FDE68A', fontWeight: '700' }}>
-                      ⏳ بانتظار سداد العميل
+                      بانتظار سداد العميل
                     </span>
                   )}
 
@@ -499,7 +494,6 @@ export default function MyAppointmentsPage({ navigate }) {
                         gap: '4px'
                       }}
                     >
-                      <span>💬</span>
                       <span>{user?.role === 'consultant' ? 'راسل العميل' : 'راسل المستشار'}</span>
                     </button>
                   )}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import './AdminPaymentsPage.css';
 import ModernSelect from '../../components/ModernSelect';
+import FilterResetButton from '../../components/FilterResetButton';
 import { getAdminPayments, processAdminPaymentAction, deleteAdminPayment } from '../services/adminApi';
 
 // Helper to calculate fallback current timestamps
@@ -298,14 +299,7 @@ export default function AdminPaymentsPage({ navigate }) {
               <span className="payments-tooltip">تصدير البيانات</span>
             </button>
 
-            <button
-              className="payments-icon-btn payments-pink"
-              onClick={handleReset}
-              title="إعادة ضبط"
-            >
-              <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>
-              <span className="payments-tooltip">إعادة ضبط</span>
-            </button>
+            <FilterResetButton onClick={handleReset} size={38} />
 
             <button
               className="payments-icon-btn payments-orange"

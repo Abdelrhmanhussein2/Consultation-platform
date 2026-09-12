@@ -344,7 +344,7 @@ export default function DashboardCharts({
             <div className="db-donut-center">
               <div>
                 <span>{incomeTotal}</span>
-                <small>دينار أردني</small>
+                <small>د.أ</small>
               </div>
             </div>
           </div>

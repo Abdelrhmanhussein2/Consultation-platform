@@ -631,7 +631,7 @@ export default function ConsultantEarningsPage({ navigate }) {
                         value={currency}
                         onChange={setCurrency}
                         options={[
-                          { value: 'JOD', label: 'دينار أردني (JOD)' },
+                          { value: 'JOD', label: 'د.أ (JOD)' },
                           { value: 'USD', label: 'دولار أمريكي (USD)' }
                         ]}
                       />

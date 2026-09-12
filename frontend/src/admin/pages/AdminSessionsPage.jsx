@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { IconSearch } from '../components/AdminIcons';
+
 import { getAdminSessions, updateAdminSessionStatus, adminJoinSession } from '../services/adminApi';
 import ModernSelect from '../../components/ModernSelect';
+import FilterResetButton from '../../components/FilterResetButton';
 
 export default function AdminSessionsPage({ navigate }) {
   // View mode: 'kanban' | 'table'
@@ -85,7 +87,7 @@ export default function AdminSessionsPage({ navigate }) {
               type: 'جلسة مرئية',
               typeIcon: '🎥',
               datetime: item.scheduled_at ? new Date(item.scheduled_at).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(item.scheduled_at).toISOString().split('T')[0] : '14:00 - 2026-08-30',
-              amount: '75 دينار أردني',
+              amount: '75 د.أ',
               status: displayStatus,
               statusColor,
               statusBg,
@@ -425,30 +427,7 @@ export default function AdminSessionsPage({ navigate }) {
           </button>
         </div>
 
-        <button
-          type="button"
-          onClick={clearFilters}
-          title="مسح الفلاتر"
-          style={{
-            background: '#FEF2F2',
-            border: '1px solid #FECACA',
-            color: '#DC2626',
-            padding: '8px 14px',
-            borderRadius: '10px',
-            fontSize: '12px',
-            fontWeight: '700',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
-            <path d="M3 3v5h5" />
-          </svg>
-          <span>مسح الفلاتر</span>
-        </button>
+        <FilterResetButton onClick={clearFilters} size={38} />
 
         <div style={{ width: '150px' }}>
           <ModernSelect

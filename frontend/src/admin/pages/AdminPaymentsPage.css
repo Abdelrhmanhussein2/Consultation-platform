@@ -18,7 +18,7 @@
 
   padding: 20px 18px 40px;
   background: var(--bg);
-  font-family: "Cairo", "Tajawal", Arial, sans-serif;
+  font-family: var(--font-main);
   color: var(--text);
   min-height: 100vh;
   direction: rtl;
@@ -187,7 +187,7 @@
   color: #52606c;
   border-radius: 7px;
   padding: 7px 14px;
-  font: 600 12px "Cairo", sans-serif;
+  font: 600 12px var(--font-main);
   cursor: pointer;
   transition: all 0.18s ease;
 }
@@ -462,7 +462,7 @@
   border-radius: 6px;
   color: #fff;
   padding: 10px 24px;
-  font: 700 13px "Cairo", sans-serif;
+  font: 700 13px var(--font-main);
   cursor: pointer;
   transition: filter 0.18s;
 }

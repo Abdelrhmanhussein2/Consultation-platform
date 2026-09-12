@@ -1,5 +1,6 @@
 import React from 'react';
 import ModernSelect from '../../../components/ModernSelect';
+import FilterResetButton from '../../../components/FilterResetButton';
 
 export default function RbacUsersView({
   systemUsers,
@@ -123,6 +124,7 @@ export default function RbacUsersView({
               { value: 'inactive', label: 'غير مفعّل' }
             ]}
           />
+          <FilterResetButton onClick={() => { setUserSearch(''); setUserRoleFilter('all'); setUserStatusFilter('all'); }} size={38} />
         </div>
 
         <div className="tableWrap">

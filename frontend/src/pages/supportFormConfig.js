@@ -160,7 +160,7 @@ export const CATEGORIES = {
       'عملية دفع فاشلة': {
         priority: 'عالية',
         fields: [
-          { id: 'amount', label: 'المبلغ المدفوع بالدينار الأردني', type: 'text', required: true },
+          { id: 'amount', label: 'المبلغ المدفوع (د.أ)', type: 'text', required: true },
           { id: 'payment_method', label: 'وسيلة الدفع المستخدمة', type: 'select', required: true, options: ['بطاقة ائتمان', 'مدى', 'Apple Pay', 'تحويل بنكي', 'أخرى'] },
           { id: 'transaction_date', label: 'تاريخ ووقت المحاولة', type: 'text', required: false }
         ]
@@ -168,7 +168,7 @@ export const CATEGORIES = {
       'خصم مكرر': {
         priority: 'عالية',
         fields: [
-          { id: 'amount', label: 'المبلغ المخصوم بالدينار الأردني', type: 'text', required: true },
+          { id: 'amount', label: 'المبلغ المخصوم (د.أ)', type: 'text', required: true },
           { id: 'transaction_id', label: 'رقم العملية البنكية أو الرقم المرجعي للخصم المكرر', type: 'text', required: true },
           { id: 'payment_method', label: 'وسيلة الدفع', type: 'select', required: true, options: ['بطاقة ائتمان', 'مدى', 'Apple Pay', 'تحويل بنكي', 'أخرى'] }
         ]

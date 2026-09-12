@@ -163,7 +163,7 @@ export default function OperationalAlertsModal({
           boxShadow: '0 12px 36px rgba(13, 60, 92, 0.12)',
           background: '#ffffff',
           border: '1px solid #e2e8f0',
-          fontFamily: '"Tajawal", "Cairo", Arial, sans-serif'
+          fontFamily: 'var(--font-main)'
         }}
         onClick={(e) => e.stopPropagation()}
       >

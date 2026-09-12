@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════════
-   ADMIN CHAT MANAGEMENT PAGE STYLES (Cairo Font + Dark Navy & Gold Theme)
+   ADMIN CHAT MANAGEMENT PAGE STYLES (Tajawal Font + Dark Navy & Gold Theme)
    ══════════════════════════════════════════════════════════════════ */
 
 .admin-chat-app-root {
@@ -7,7 +7,7 @@
   flex-direction: column;
   height: calc(100vh - 64px);
   background: #FFFFFF;
-  font-family: 'Cairo', 'Tajawal', sans-serif;
+  font-family: var(--font-main);
   direction: rtl;
   color: #1E293B;
   overflow: hidden;

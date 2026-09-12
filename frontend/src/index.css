@@ -1,6 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@200;300;400;500;700;800;900&family=Cairo:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@200;300;400;500;700;800;900&display=swap');
 
 :root {
+  --font-main: 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-weight-header: 800;
+  --font-weight-title: 700;
+  --font-weight-subtitle: 600;
+  --font-weight-body: 400;
+  --font-weight-medium: 500;
+  --font-weight-btn: 700;
+  --font-weight-sidebar: 700;
+
   --primary-color: #0D3C5C;
   --header-bg: #005D9C;
   --primary-light: #005D9C;
@@ -32,11 +41,11 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Tajawal', sans-serif !important;
+  font-family: var(--font-main) !important;
 }
 
 html, body, #root {
-  font-family: 'Tajawal', sans-serif !important;
+  font-family: var(--font-main) !important;
   background: var(--bg-gradient);
   color: var(--text-main);
   direction: rtl;
@@ -47,8 +56,38 @@ html, body, #root {
   flex-direction: column;
 }
 
-input, button, select, textarea, label, h1, h2, h3, h4, h5, h6, p, span, a, div {
-  font-family: 'Tajawal', sans-serif !important;
+/* ══════════════════════════════════════════════════════════════════
+   GLOBAL STRICT TYPOGRAPHY SYSTEM (Tajawal Font)
+   ══════════════════════════════════════════════════════════════════ */
+
+/* 1. Main App Header & Navigation */
+header, .app-header, .top-navbar, nav, .site-header {
+  font-family: var(--font-main) !important;
+}
+
+/* 2. Section Headers & Titles */
+h1, h2, h3, h4, h5, h6,
+.section-title, .section-header, .card-title, .modal-title, .widget-title {
+  font-family: var(--font-main) !important;
+}
+
+/* 3. Section Content & Body Text */
+p, span, label, input, textarea, td, th, li, code, pre,
+.section-content, .card-body, .modal-body, .description {
+  font-family: var(--font-main) !important;
+}
+
+/* 4. Buttons & Interaction Controls */
+button, .btn, .button, input[type="button"], input[type="submit"], .action-btn {
+  font-family: var(--font-main) !important;
+}
+
+/* 5. Sidebar & Nested Sections */
+aside, .sidebar, .admin-sidebar, .sidebar-menu, .sidebar-item, .sidebar-section {
+  font-family: var(--font-main) !important;
+}
+aside *, .sidebar *, .admin-sidebar * {
+  font-family: var(--font-main) !important;
 }
 
 /* Custom Scrollbar */
@@ -129,7 +168,7 @@ select,
   font-size: 12.5px !important;
   font-weight: 700 !important;
   color: #0e3b5e !important;
-  font-family: 'Cairo', 'Tajawal', system-ui, sans-serif !important;
+  font-family: var(--font-main) !important;
   outline: none !important;
   cursor: pointer !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;

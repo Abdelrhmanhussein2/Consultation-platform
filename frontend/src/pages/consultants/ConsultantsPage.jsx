@@ -15,11 +15,12 @@ import PaymentModal  from '../../components/Consultants/PaymentModal';
 import ConsultantListCard    from './ConsultantListCard';
 import ConsultantFullProfile from './ConsultantFullProfile';
 import ModernSelect from '../../components/ModernSelect';
+import FilterResetButton from '../../components/FilterResetButton';
 import { applyFilters, applySorting, buildPageNums, CITIES, COMM, CHIPS, PAGE_SIZE } from './consultantFilterUtils';
 
 /* ── CSS ──────────────────────────────────────────────────────────── */
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
 
   :root {
     --admin-navy: #0B2E4B;
@@ -41,7 +42,7 @@ const CSS = `
 
   *, *::before, *::after { box-sizing: border-box; }
   .cp-root {
-    font-family: 'Cairo', 'Tajawal', Arial, sans-serif;
+    font-family: var(--font-main);
     direction: rtl;
     background: var(--admin-bg);
     min-height: 100vh;
@@ -254,7 +255,7 @@ const CSS = `
     display: flex;
     flex-direction: column;
     direction: rtl;
-    font-family: 'Cairo', 'Tajawal', Arial, sans-serif;
+    font-family: var(--font-main);
   }
 
   .profile-return-bar {
@@ -923,7 +924,7 @@ export default function ConsultantsPage({ navigate }) {
           <aside className="cp-filters">
             <div className="cp-filter-top">
               <h2>الفلاتر</h2>
-              <button className="cp-clear-btn" onClick={reset}>مسح الكل</button>
+              <FilterResetButton onClick={reset} />
             </div>
 
             {/* Specialization */}

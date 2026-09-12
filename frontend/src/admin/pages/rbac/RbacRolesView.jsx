@@ -1,5 +1,6 @@
 import React from 'react';
 import ModernSelect from '../../../components/ModernSelect';
+import FilterResetButton from '../../../components/FilterResetButton';
 
 export default function RbacRolesView({
   roles,
@@ -113,6 +114,7 @@ export default function RbacRolesView({
               { value: 'custom', label: 'الأدوار المخصصة' }
             ]}
           />
+          <FilterResetButton onClick={() => { setRolesSearch(''); setRolesTypeFilter('all'); }} size={38} />
         </div>
 
         <div className="tableWrap">

@@ -40,7 +40,7 @@
   margin: 0 auto;
   direction: rtl;
   color: var(--admin-text);
-  font-family: 'Cairo', 'Tajawal', Arial, sans-serif;
+  font-family: var(--font-main);
   display: flex;
   flex-direction: column;
   /* Fill portal-content-body flex height */

@@ -3,7 +3,7 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 .diwan-rbac-root {
-  font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif !important;
+  font-family: var(--font-main) !important;
   direction: rtl;
   text-align: right;
   color: #0D3C5C;

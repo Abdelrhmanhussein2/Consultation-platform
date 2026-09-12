@@ -59,7 +59,7 @@ export default function SupportTicketDetailPage({ ticketId, navigate }) {
 
   if (loading) {
     return (
-      <div className="py-20 text-center text-[#0e3b5e] flex items-center justify-center gap-2" dir="rtl" style={{ fontFamily: 'Cairo, sans-serif' }}>
+      <div className="py-20 text-center text-[#0e3b5e] flex items-center justify-center gap-2" dir="rtl" style={{ fontFamily: 'var(--font-main)' }}>
         <i className="fa fa-spinner fa-spin text-2xl"></i>
         <span className="font-bold text-sm">جاري تحميل تفاصيل التذكرة...</span>
       </div>
@@ -68,7 +68,7 @@ export default function SupportTicketDetailPage({ ticketId, navigate }) {
 
   if (error || !ticket) {
     return (
-      <div className="max-w-xl mx-auto py-20 text-center" dir="rtl" style={{ fontFamily: 'Cairo, sans-serif' }}>
+      <div className="max-w-xl mx-auto py-20 text-center" dir="rtl" style={{ fontFamily: 'var(--font-main)' }}>
         <span className="text-5xl">⚠️</span>
         <h3 className="mt-4 font-bold text-red-600 text-base">{error || 'التذكرة غير موجودة'}</h3>
         <button
@@ -103,7 +103,7 @@ export default function SupportTicketDetailPage({ ticketId, navigate }) {
   });
 
   return (
-    <div className="fade-in max-w-5xl mx-auto p-4 md:p-6" dir="rtl" style={{ fontFamily: 'Cairo, sans-serif' }}>
+    <div className="fade-in max-w-5xl mx-auto p-4 md:p-6" dir="rtl" style={{ fontFamily: 'var(--font-main)' }}>
       
       {/* Header wrapper */}
       <div className="flex items-center justify-between border-b border-gray-200 pb-4 mb-6">

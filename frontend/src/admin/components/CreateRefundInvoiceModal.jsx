@@ -364,7 +364,7 @@ export default function CreateRefundInvoiceModal({
         padding: "16px",
         boxSizing: "border-box",
         direction: "rtl",
-        fontFamily: "'Cairo','Tajawal',sans-serif"
+        fontFamily: "var(--font-main)"
       }}
     >
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -1319,7 +1319,7 @@ export default function CreateRefundInvoiceModal({
               overflowY: "auto",
               boxShadow: "0 25px 60px rgba(0,0,0,0.3)",
               direction: "rtl",
-              fontFamily: "'Cairo','Tajawal',sans-serif"
+              fontFamily: "var(--font-main)"
             }}
           >
             {/* Top Preview Title Bar */}
@@ -1411,7 +1411,7 @@ export default function CreateRefundInvoiceModal({
                         fontSize: 34,
                         fontWeight: 900,
                         color: "#0D3C5C",
-                        fontFamily: "'Cairo', sans-serif"
+                        fontFamily: "var(--font-main)"
                       }}>
                         ديوان
                       </div>
@@ -1796,7 +1796,7 @@ export default function CreateRefundInvoiceModal({
                       fontSize: 28,
                       fontWeight: 900,
                       color: "#0D3C5C",
-                      fontFamily: "'Cairo', sans-serif"
+                      fontFamily: "var(--font-main)"
                     }}>
                       ديوان
                     </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import './AdminSubscriptionsPage.css';
 import ModernSelect from '../../components/ModernSelect';
+import FilterResetButton from '../../components/FilterResetButton';
 
 // ══════════════════════════════════════════════════════════════════
 // DATASETS & CONSTANTS
@@ -1276,6 +1277,7 @@ export default function AdminSubscriptionsPage({ navigate }) {
                   placeholder="كل الحالات"
                 />
               </div>
+              <FilterResetButton onClick={() => { setSubSearch(''); setSubPlanFilter('all'); setSubLifecycleFilter('all'); }} size={38} />
             </div>
 
             <div className="sub-toolbar-left">
@@ -1400,6 +1402,7 @@ export default function AdminSubscriptionsPage({ navigate }) {
                   placeholder="كل الباقات"
                 />
               </div>
+              <FilterResetButton onClick={() => { setReqSearch(''); setReqStatusFilter('all'); setReqPlanFilter('all'); }} size={38} />
             </div>
 
             <div className="sub-toolbar-left">
@@ -1683,6 +1686,7 @@ export default function AdminSubscriptionsPage({ navigate }) {
                 value={orderDateTo}
                 onChange={(e) => setOrderDateTo(e.target.value)}
               />
+              <FilterResetButton onClick={() => { setOrderSearch(''); setOrderStatusFilter('all'); setOrderDateFrom(''); setOrderDateTo(''); }} size={38} />
             </div>
 
             <div className="sub-toolbar-left">
@@ -2680,16 +2684,7 @@ export default function AdminSubscriptionsPage({ navigate }) {
                   <option value="شهري">شهري</option>
                   <option value="سنوي">سنوي</option>
                 </select>
-                <button
-                  className="sub-secondary-btn"
-                  onClick={() => {
-                    setDrillSearch('');
-                    setDrillPlanFilter('all');
-                    setDrillCycleFilter('all');
-                  }}
-                >
-                  إعادة ضبط
-                </button>
+                <FilterResetButton onClick={() => { setDrillSearch(''); setDrillPlanFilter('all'); setDrillCycleFilter('all'); }} size={38} />
               </div>
 
               <div className="sub-table-wrap">

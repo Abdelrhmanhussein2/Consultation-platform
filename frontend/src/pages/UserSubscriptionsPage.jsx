@@ -502,7 +502,7 @@ export default function UserSubscriptionsPage({ navigate }) {
                   <div className="summary-row">
                     <span>القيمة الإجمالية:</span>
                     <strong className="summary-price">
-                      {selectedPlanModal.cycles[billingCycle]?.price?.toFixed(2) || '0.00'} دينار أردني
+                      {selectedPlanModal.cycles[billingCycle]?.price?.toFixed(2) || '0.00'} د.أ
                     </strong>
                   </div>
                 </div>

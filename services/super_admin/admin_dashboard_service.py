@@ -240,10 +240,10 @@ class AdminDashboardService:
         pct_c4 = max(0, 100 - (pct_c1 + pct_c2 + pct_c3)) if total_revenue > 0 else 0
 
         income_data = [
-            ["الاستشارات الفردية", pct_c1, f"{int(rev_consultations):,} دينار", "#0e5a95"],
-            ["حصة المنصة من المستشارين", pct_c2, f"{int(rev_consultant_cut):,} دينار", "#1673b8"],
-            ["الباقات والاشتراكات", pct_c3, f"{int(rev_subscriptions):,} دينار", "#3a92d8"],
-            ["خدمات إضافية", pct_c4, f"{int(rev_other):,} دينار", "#f6a800"]
+            ["الاستشارات الفردية", pct_c1, f"{int(rev_consultations):,} د.أ", "#0e5a95"],
+            ["حصة المنصة من المستشارين", pct_c2, f"{int(rev_consultant_cut):,} د.أ", "#1673b8"],
+            ["الباقات والاشتراكات", pct_c3, f"{int(rev_subscriptions):,} د.أ", "#3a92d8"],
+            ["خدمات إضافية", pct_c4, f"{int(rev_other):,} د.أ", "#f6a800"]
         ]
 
         # 5. Real AI line chart points (actual message volume over 7 intervals)

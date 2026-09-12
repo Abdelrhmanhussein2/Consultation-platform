@@ -24,7 +24,7 @@
 
   padding: 0;
   background: transparent;
-  font-family: "Cairo", "Tajawal", Arial, sans-serif;
+  font-family: var(--font-main);
   color: var(--ink);
   width: 100% !important;
   max-width: 100% !important;

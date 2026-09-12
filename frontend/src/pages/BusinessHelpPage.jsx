@@ -62,7 +62,7 @@ const TOOLS = [
 const FAQS = [
   {
     q: 'متى يجب التسجيل في ضريبة المبيعات؟',
-    a: 'يجب التسجيل إذا تجاوزت مبيعاتك السنوية 30,000 دينار أردني، أو إذا كنت تمارس أنشطة معينة منصوص عليها في قانون ضريبة المبيعات رقم 29 لسنة 2009.',
+    a: 'يجب التسجيل إذا تجاوزت مبيعاتك السنوية 30,000 د.أ، أو إذا كنت تمارس أنشطة معينة منصوص عليها في قانون ضريبة المبيعات رقم 29 لسنة 2009.',
   },
   {
     q: 'ما الفرق بين ضريبة الدخل ومساهمة الدعم الوطني؟',
@@ -186,9 +186,9 @@ function IncomeTaxModal({ onClose }) {
 
   return (
     <ModalWrapper title="حاسبة ضريبة الدخل" icon="🧮" onClose={onClose}>
-      <Label>إجمالي الدخل السنوي (دينار)</Label>
+      <Label>إجمالي الدخل السنوي (د.أ)</Label>
       <Input value={income} onChange={e => setIncome(e.target.value)} placeholder="مثال: 25000" />
-      <Label>النفقات المسموح بخصمها (دينار)</Label>
+      <Label>النفقات المسموح بخصمها (د.أ)</Label>
       <Input value={expenses} onChange={e => setExpenses(e.target.value)} placeholder="مثال: 5000" />
       <CalcBtn onClick={calc}>احسب الضريبة</CalcBtn>
       {result && (
@@ -215,7 +215,7 @@ function SalesTaxModal({ onClose }) {
 
   return (
     <ModalWrapper title="حاسبة ضريبة المبيعات" icon="🧾" onClose={onClose}>
-      <Label>قيمة البضاعة / الخدمة (دينار)</Label>
+      <Label>قيمة البضاعة / الخدمة (د.أ)</Label>
       <Input value={amount} onChange={e => setAmount(e.target.value)} placeholder="مثال: 1000" />
       <Label>نسبة ضريبة المبيعات</Label>
       <select value={rate} onChange={e => setRate(e.target.value)} style={selectStyle}>
@@ -278,7 +278,7 @@ function CompanyModal({ onClose }) {
     { n: '03', title: 'رخصة البلدية ومكان العمل', desc: 'الحصول على رخصة المهن من البلدية المختصة وفق نوع النشاط' },
     { n: '04', title: 'التسجيل في الضمان الاجتماعي', desc: 'تسجيل الشركة والموظفين في مؤسسة الضمان الاجتماعي' },
     { n: '05', title: 'فتح حساب بنكي مؤسسي', desc: 'فتح حساب تجاري باسم الشركة مع تقديم الوثائق الرسمية للبنك' },
-    { n: '06', title: 'التسجيل بضريبة المبيعات (اختياري)', desc: 'التسجيل إذا تجاوزت المبيعات المتوقعة 30,000 دينار سنوياً' },
+    { n: '06', title: 'التسجيل بضريبة المبيعات (اختياري)', desc: 'التسجيل إذا تجاوزت المبيعات المتوقعة 30,000 د.أ سنوياً' },
   ];
   return (
     <ModalWrapper title="دليل تأسيس شركة" icon="🏢" onClose={onClose}>
@@ -324,7 +324,7 @@ function SimulatorModal({ onClose }) {
         <option value="individual">فرد / مؤسسة فردية</option>
         <option value="company">شركة</option>
       </select>
-      <Label>الدخل / الإيرادات السنوية (دينار)</Label>
+      <Label>الدخل / الإيرادات السنوية (د.أ)</Label>
       <Input value={revenue} onChange={e => setRevenue(e.target.value)} placeholder="مثال: 50000" />
       <CalcBtn onClick={calc}>محاكاة الأعباء الضريبية</CalcBtn>
       {result && (

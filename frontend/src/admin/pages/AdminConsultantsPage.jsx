@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { IconSearch } from '../components/AdminIcons';
 import { getAdminUsers, createAdminUser, toggleUserActive, updateUserProfile, handleConsultantAction, getAdminSessions } from '../services/adminApi';
 import ModernSelect from '../../components/ModernSelect';
+import FilterResetButton from '../../components/FilterResetButton';
 
 export default function AdminConsultantsPage({ navigate }) {
   const [activeTab, setActiveTab] = useState('consultants'); // 'consultants' | 'sessions'
@@ -508,6 +509,7 @@ export default function AdminConsultantsPage({ navigate }) {
                 placeholder="كل الحالات"
               />
             </div>
+            <FilterResetButton onClick={() => { setSearchTerm(''); setStatusFilter('all'); }} size={38} />
           </div>
 
       {/* 4. Consultant Cards List */}
@@ -759,6 +761,7 @@ export default function AdminConsultantsPage({ navigate }) {
                 placeholder="كل الحالات"
               />
             </div>
+            <FilterResetButton onClick={() => { setSessionSearch(''); setSessionStatusFilter('all'); }} size={38} />
           </div>
 
           {/* Sessions Table Card */}

@@ -221,7 +221,7 @@ export default function AdminRefundedInvoicesPage({ navigate }) {
   `;
 
   return (
-    <div style={{ direction: "rtl", fontFamily: "'Cairo','Tajawal',sans-serif", color: "#1E293B", minHeight: "100vh", background: "#F8FAFC" }}>
+    <div style={{ direction: "rtl", fontFamily: "var(--font-main)", color: "#1E293B", minHeight: "100vh", background: "#F8FAFC" }}>
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
       <style>{CSS}</style>
 

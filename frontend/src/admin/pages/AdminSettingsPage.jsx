@@ -256,7 +256,7 @@ export default function AdminSettingsPage({ navigate }) {
   ];
 
   return (
-    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '22px', paddingBottom: '40px', textAlign: 'right', direction: 'rtl', fontFamily: 'Cairo, Tajawal, sans-serif' }}>
+    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '22px', paddingBottom: '40px', textAlign: 'right', direction: 'rtl', fontFamily: 'var(--font-main)' }}>
       
       {/* Save Toast */}
       {saveSuccessMsg && (

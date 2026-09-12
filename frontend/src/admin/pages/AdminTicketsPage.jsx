@@ -7,6 +7,7 @@ import {
   closeAdminTicket
 } from '../services/adminApi';
 import ModernSelect from '../../components/ModernSelect';
+import FilterResetButton from '../../components/FilterResetButton';
 
 // ══════════════════════════════════════════════════════════════════════════
 // STATUS & PRIORITY DEFINITIONS & COLOR CONFIGS
@@ -1566,32 +1567,13 @@ export default function AdminTicketsPage({ navigate }) {
                   />
                 </div>
 
-                <button
+                <FilterResetButton
                   onClick={() => {
                     setActiveKpiFilter('all');
                     setFilters({ search: '', status: '', category: '', priority: '', assignee: '' });
                   }}
-                  style={{
-                    padding: '8px 16px',
-                    height: '46px',
-                    background: '#F1F5F9',
-                    border: '1px solid #CBD5E1',
-                    borderRadius: '999px',
-                    fontSize: '12.5px',
-                    fontWeight: '700',
-                    color: '#475569',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                    <path d="M3 3v5h5" />
-                  </svg>
-                  <span>مسح</span>
-                </button>
+                  size={38}
+                />
               </div>
 
               {/* View Mode Toggle Switcher */}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { IconSearch } from '../components/AdminIcons';
 import { getReportsAnalytics } from '../services/adminApi';
 import ModernSelect from '../../components/ModernSelect';
+import FilterResetButton from '../../components/FilterResetButton';
 
 const USER_TYPE_OPTIONS = [
   { value: 'all', label: 'الكل' },
@@ -290,7 +291,7 @@ export default function AdminReportsPage({ navigate }) {
   };
 
   return (
-    <div dir="rtl" style={{ textAlign: 'right', fontFamily: 'Cairo, Tajawal, sans-serif' }}>
+    <div dir="rtl" style={{ textAlign: 'right', fontFamily: 'var(--font-main)' }}>
       {/* 1. Header Banner */}
       <div className="admin-command-banner" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -306,15 +307,7 @@ export default function AdminReportsPage({ navigate }) {
 
         {/* Top Action Buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="admin-btn-action-outline"
-            style={{ fontSize: '12.5px', padding: '8px 16px', background: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: '800' }}
-          >
-            <IconRefresh size={14} />
-            <span>مسح الفلاتر</span>
-          </button>
+          <FilterResetButton onClick={clearFilters} size={38} />
 
           <button
             type="button"

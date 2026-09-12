@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../services/api';
 import { CATEGORIES, STATUS_CONFIG, PRIORITY_CONFIG } from './supportFormConfig';
 import ModernSelect from '../components/ModernSelect';
+import FilterResetButton from '../components/FilterResetButton';
 
 export default function SupportTicketsListPage({ navigate }) {
   const { token } = useAuth();
@@ -52,7 +53,7 @@ export default function SupportTicketsListPage({ navigate }) {
   };
 
   return (
-    <div className="fade-in max-w-6xl mx-auto p-4 md:p-6" dir="rtl" style={{ fontFamily: 'Cairo, sans-serif' }}>
+    <div className="fade-in max-w-6xl mx-auto p-4 md:p-6" dir="rtl" style={{ fontFamily: 'var(--font-main)' }}>
       
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -127,14 +128,7 @@ export default function SupportTicketsListPage({ navigate }) {
             >
               بحث
             </button>
-            <button
-              type="button"
-              onClick={handleClearFilters}
-              className="btn-secondary px-4 py-2.5"
-              title="مسح الفلاتر"
-            >
-              <i className="fa fa-rotate-left"></i>
-            </button>
+            <FilterResetButton onClick={handleClearFilters} size={38} />
           </div>
         </form>
       </div>

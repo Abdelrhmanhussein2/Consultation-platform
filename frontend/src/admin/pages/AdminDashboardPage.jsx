@@ -65,7 +65,7 @@ export default function AdminDashboardPage({ navigate }) {
       if (stats) {
         setDashboardData({
           kpis: [
-            ['الدخل الإجمالي', Number(stats.total_revenue || 0).toLocaleString(), 'دينار أردني', '', '', 'income'],
+            ['الدخل الإجمالي', Number(stats.total_revenue || 0).toLocaleString(), 'د.أ', '', '', 'income'],
             ['التذاكر المفتوحة', Number(stats.open_tickets || 0).toLocaleString(), '', '', '', 'ticket'],
             ['طلبات الانضمام (المستشارين)', Number(stats.pending_consultants || 0).toLocaleString(), '', '', '', 'cplus'],
             ['طلبات الانضمام (مستخدمين)', Number(stats.pending_users || 0).toLocaleString(), '', '', '', 'uplus'],

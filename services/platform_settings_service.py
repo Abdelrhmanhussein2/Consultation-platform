@@ -58,7 +58,7 @@ DEFAULT_CURRENCY_SETTINGS = {
     "currencies": [
         {
             "code": "JOD",
-            "name_ar": "دينار أردني",
+            "name_ar": "د.أ",
             "name_en": "Jordanian Dinar",
             "symbol": "د.أ",
             "rate_to_jod": 1.0,

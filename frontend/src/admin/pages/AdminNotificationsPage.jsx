@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import ModernSelect from '../../components/ModernSelect';
+import FilterResetButton from '../../components/FilterResetButton';
 import { notificationService } from '../../services/notificationService';
 import { sendBroadcastNotification } from '../services/adminApi';
 
@@ -336,7 +337,7 @@ export default function AdminNotificationsPage({ navigate }) {
   }, [broadcasts, broadcastSearch, filterAudience, filterType, filterPriority]);
 
   return (
-    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '22px', paddingBottom: '40px', textAlign: 'right', direction: 'rtl', fontFamily: 'Cairo, Tajawal, sans-serif' }}>
+    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '22px', paddingBottom: '40px', textAlign: 'right', direction: 'rtl', fontFamily: 'var(--font-main)' }}>
       
       {/* Toast Notification */}
       {toastMsg && (
@@ -516,17 +517,14 @@ export default function AdminNotificationsPage({ navigate }) {
                 ]}
               />
 
-              <button
-                type="button"
+              <FilterResetButton
                 onClick={() => {
                   setIncomingSearch('');
                   setIncomingStatusFilter('all');
                   setIncomingTypeFilter('all');
                 }}
-                style={{ padding: '10px 16px', background: '#F1F5F9', border: '1px solid #CBD5E1', borderRadius: '10px', fontSize: '13px', fontWeight: '700', color: '#475569', cursor: 'pointer' }}
-              >
-                مسح الفلاتر
-              </button>
+                size={38}
+              />
 
               {unreadIncoming > 0 && (
                 <button

@@ -513,7 +513,7 @@ export default function ConsultantSubscriptionsPage({ navigate }) {
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>القيمة الإجمالية:</span>
                 <strong style={{ color: '#005D9C' }}>
-                  {selectedPlanModal.cycles[billingCycle]?.price?.toFixed(2) || '0.00'} دينار أردني
+                  {selectedPlanModal.cycles[billingCycle]?.price?.toFixed(2) || '0.00'} د.أ
                 </strong>
               </div>
             </div>

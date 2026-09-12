@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import CreateRefundInvoiceModal from "../components/CreateRefundInvoiceModal";
 import ModernSelect from "../../components/ModernSelect";
+import FilterResetButton from "../../components/FilterResetButton";
 
 const fmt = (n) => Number(n || 0).toLocaleString("ar-JO", { minimumFractionDigits: 3 });
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("zh-Hans-CN") : "-";
@@ -79,10 +80,10 @@ const Card = ({ icon, label, value, sub, subColor, accent }) => (
 const Th = ({ ch }) => <th style={{ padding: "12px 14px", color: "#64748B", fontWeight: 800, fontSize: 12, textAlign: "right", whiteSpace: "nowrap" }}>{ch}</th>;
 
 function numberToArabicWords(num) {
-  if (!num || isNaN(num) || num === 0) return "صفر دينار أردني";
+  if (!num || isNaN(num) || num === 0) return "صفر د.أ";
   const integerPart = Math.floor(num);
   const decimalPart = Math.round((num - integerPart) * 1000);
-  return `${integerPart} دينار أردني ${decimalPart > 0 ? `و ${decimalPart} فلس` : ""}`;
+  return `${integerPart} د.أ ${decimalPart > 0 ? `و ${decimalPart} فلس` : ""}`;
 }
 
 export default function AdminInvoicesPage({ navigate }) {
@@ -715,7 +716,7 @@ export default function AdminInvoicesPage({ navigate }) {
                     height: 148mm!important;
                     overflow: hidden!important;
                     background: #fff!important;
-                    font-family: 'Cairo', 'Tajawal', sans-serif;
+                    font-family: var(--font-main);
                 }
                 #printPage {
                     width: 210mm;
@@ -1005,7 +1006,7 @@ export default function AdminInvoicesPage({ navigate }) {
   const currentCust = CUSTOMERS[selectedCustIndex] || CUSTOMERS[0];
 
   return (
-    <div style={{ direction: "rtl", fontFamily: "'Cairo','Tajawal',sans-serif", color: "#1E293B", minHeight: "100vh", background: "#F8FAFC" }}>
+    <div style={{ direction: "rtl", fontFamily: "var(--font-main)", color: "#1E293B", minHeight: "100vh", background: "#F8FAFC" }}>
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
       <style>{`
         @keyframes sp{to{transform:rotate(360deg)}}
@@ -1167,7 +1168,7 @@ export default function AdminInvoicesPage({ navigate }) {
                 border: "1.5px solid #E2E8F0",
                 padding: "40px 48px",
                 boxShadow: "0 24px 60px rgba(0,0,0,0.08)",
-                fontFamily: "'Cairo','Tajawal',sans-serif",
+                fontFamily: "var(--font-main)",
                 direction: "rtl"
               }}
             >
@@ -1358,7 +1359,7 @@ export default function AdminInvoicesPage({ navigate }) {
                     {signatureUrl ? (
                       <img src={signatureUrl} alt="Signature" style={{ maxHeight: 60, maxWidth: 180, objectFit: "contain", marginBottom: 6 }} />
                     ) : (
-                      <div style={{ fontFamily: "cursive, 'Cairo'", fontSize: 26, color: "#0D3C5C", fontWeight: 900, fontStyle: "italic", marginBottom: 4 }}>Tax Platform</div>
+                      <div style={{ fontFamily: "var(--font-main)", fontSize: 26, color: "#0D3C5C", fontWeight: 900, fontStyle: "italic", marginBottom: 4 }}>Tax Platform</div>
                     )}
                     <div style={{ fontSize: 13, color: "#0D3C5C", fontWeight: 800 }}>{signName || "سارة علي - النائب التنفيذي"}</div>
                   </div>
@@ -1450,7 +1451,7 @@ export default function AdminInvoicesPage({ navigate }) {
                 <div>
                   <label>العملة</label>
                   <select value={currency} onChange={e => setCurrency(e.target.value)}>
-                    <option value="JOD">الدينار الأردني (JOD)</option>
+                    <option value="JOD">د.أ (JOD)</option>
                     <option value="USD">الدولار الأمريكي (USD)</option>
                   </select>
                 </div>
@@ -2236,14 +2237,8 @@ export default function AdminInvoicesPage({ navigate }) {
                       <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 6, display: "block" }}>إلى مبلغ</label>
                       <input className="input" type="number" step="0.001" placeholder="إلى" value={filterMaxAmount} onChange={e => setFilterMaxAmount(e.target.value)} style={{ padding: "8px 12px", border: "1.5px solid #CBD5E1", borderRadius: 9 }} />
                     </div>
-                    <div>
-                      <button
-                        type="button"
-                        onClick={handleResetFilters}
-                        style={{ width: "100%", background: "#fff", border: "1.5px solid #CBD5E1", borderRadius: 9, padding: "8px 14px", fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: "#0D3C5C", cursor: "pointer", transition: "all 0.2s" }}
-                      >
-                        إعادة تعيين
-                      </button>
+                    <div style={{ display: "flex", alignItems: "flex-end" }}>
+                      <FilterResetButton onClick={handleResetFilters} size={38} />
                     </div>
                   </div>
                 </div>
@@ -2616,7 +2611,7 @@ export default function AdminInvoicesPage({ navigate }) {
                   border: "1.5px solid #E2E8F0",
                   padding: "40px 48px",
                   boxShadow: "0 24px 60px rgba(0,0,0,0.08)",
-                  fontFamily: "'Cairo','Tajawal',sans-serif",
+                  fontFamily: "var(--font-main)",
                   direction: "rtl"
                 }}
               >
@@ -2801,7 +2796,7 @@ export default function AdminInvoicesPage({ navigate }) {
                       {signatureUrl ? (
                         <img src={signatureUrl} alt="Signature" style={{ maxHeight: 60, maxWidth: 180, objectFit: "contain", marginBottom: 6 }} />
                       ) : (
-                        <div style={{ fontFamily: "cursive, 'Cairo'", fontSize: 26, color: "#0D3C5C", fontWeight: 900, fontStyle: "italic", marginBottom: 4 }}>Tax Platform</div>
+                        <div style={{ fontFamily: "var(--font-main)", fontSize: 26, color: "#0D3C5C", fontWeight: 900, fontStyle: "italic", marginBottom: 4 }}>Tax Platform</div>
                       )}
                       <div style={{ fontSize: 13, color: "#0D3C5C", fontWeight: 800 }}>{sel.signer_name || signName || "سارة علي - النائب التنفيذي"}</div>
                     </div>
@@ -2834,7 +2829,7 @@ export default function AdminInvoicesPage({ navigate }) {
           background: '#fff',
           padding: '24px 30px',
           boxSizing: 'border-box',
-          fontFamily: "'Cairo', 'Tajawal', sans-serif",
+          fontFamily: "var(--font-main)",
           direction: 'rtl',
           color: '#0F172A',
           border: '1px solid #E2E8F0',

@@ -1871,7 +1871,7 @@ export default function ConsultantServicesPage({ navigate }) {
                         fontFamily: "'Tajawal', sans-serif"
                       }}
                     >
-                      السعر (بالدينار)
+                      السعر (د.أ)
                     </label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <div style={{ flex: 1 }}>
@@ -1972,7 +1972,7 @@ export default function ConsultantServicesPage({ navigate }) {
                             />
                           </div>
 
-                          {/* Child 2 (MIDDLE in RTL): السعر (بالدينار) */}
+                          {/* Child 2 (MIDDLE in RTL): السعر (د.أ) */}
                           <div style={{ flex: 1 }}>
                             {idx === 0 && (
                               <label
@@ -1986,7 +1986,7 @@ export default function ConsultantServicesPage({ navigate }) {
                                   fontFamily: "'Tajawal', sans-serif"
                                 }}
                               >
-                                السعر (بالدينار)
+                                السعر (د.أ)
                               </label>
                             )}
                             <input

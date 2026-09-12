@@ -190,7 +190,7 @@ export default function PaymentModal({
           <div style={{ textAlign: 'left' }}>
             <span style={{ fontSize: '11px', color: '#64748B', display: 'block', marginBottom: '4px' }}>المبلغ الإجمالي</span>
             <span style={{ fontSize: '20px', fontWeight: '800', color: '#F5A52A' }}>
-              {price} <span style={{ fontSize: '12px', fontWeight: '600' }}>دينار</span>
+              {price} <span style={{ fontSize: '12px', fontWeight: '600' }}>د.أ</span>
             </span>
           </div>
         </div>
@@ -484,7 +484,7 @@ export default function PaymentModal({
                   gap: '6px'
                 }}
               >
-                <span>🛡️ دفع {price} دينار</span>
+                <span>🛡️ دفع {price} د.أ</span>
               </button>
               <button
                 type="button"

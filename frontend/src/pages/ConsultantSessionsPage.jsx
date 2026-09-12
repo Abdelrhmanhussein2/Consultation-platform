@@ -4,6 +4,7 @@ import { consultantService } from '../services/consultantService';
 import Toast, { useToast } from '../components/Toast/Toast';
 import VideoSessionModal from '../components/VideoSession/VideoSessionModal';
 import ModernSelect from '../components/ModernSelect';
+import FilterResetButton from '../components/FilterResetButton';
 
 // ── Crisp SVG Icons ──────────────────────────────────────────────
 const KanbanGridIcon = ({ size = 16, color = 'currentColor' }) => (
@@ -1033,28 +1034,7 @@ export default function ConsultantSessionsPage({ navigate }) {
           </div>
 
           {/* Clear Filters Button */}
-          <button
-            type="button"
-            onClick={handleClearFilters}
-            style={{
-              height: '38px',
-              backgroundColor: '#FFFFFF',
-              border: '1px solid #CBD5E1',
-              borderRadius: '8px',
-              padding: '0 14px',
-              fontSize: '13px',
-              fontWeight: '800',
-              color: '#0A3254',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              fontFamily: "'Tajawal', sans-serif",
-              flexShrink: 0
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8FAFC')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
-          >
-            مسح الفلاتر
-          </button>
+          <FilterResetButton onClick={handleClearFilters} size={38} />
 
           {/* Status Dropdown: جميع الحالات */}
           <div style={{ width: '138px', flexShrink: 0 }}>

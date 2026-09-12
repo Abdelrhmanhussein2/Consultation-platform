@@ -5,7 +5,7 @@
   padding: 24px;
   direction: rtl;
   text-align: right;
-  font-family: 'Inter', 'Roboto', 'system-ui', sans-serif;
+  font-family: var(--font-main);
 }
 
 .wizard-card {
