@@ -43,6 +43,23 @@ export default function ChatPage({ navigate }) {
   const { token, user } = useAuth();
   const { toast, showToast } = useToast();
 
+  const handleNavigate = (path) => {
+    if (typeof navigate === 'function') {
+      navigate(path);
+    } else {
+      window.history.pushState({}, '', path);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
+  };
+
+  // Redirect any admin_support query parameter straight to official Support Tickets
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('apptId') === 'admin_support') {
+      handleNavigate('/support/tickets');
+    }
+  }, []);
+
   // Chats list & active chat
   const [appointments, setAppointments] = useState([]);
   const [activeAppt, setActiveAppt] = useState(null);
@@ -171,19 +188,6 @@ export default function ChatPage({ navigate }) {
           appt.status !== 'cancelled' && !currentHidden.includes(String(appt.id))
         );
 
-        const adminSupportRoom = {
-          id: 'admin_support',
-          is_admin_room: true,
-          client_name: 'إدارة المنصة والدعم المباشر',
-          consultant_name: 'إدارة المنصة والدعم المباشر',
-          service_name: 'قناة التواصل الإداري المباشر',
-          status: 'confirmed',
-          topic: 'المراسلات والتوجيهات الإدارية المباشرة من إدارة المنصة',
-          scheduled_at: new Date().toISOString()
-        };
-
-        validChats = [adminSupportRoom, ...validChats.filter(v => v.id !== 'admin_support')];
-
         setAppointments(validChats);
 
         // Initialize last message time from scheduled_at as fallback
@@ -196,27 +200,23 @@ export default function ChatPage({ navigate }) {
         const paramUser = urlParams.get('user');
         let targetChat = null;
 
-        if (paramApptId) {
-          if (paramApptId === 'admin_support') {
-            targetChat = adminSupportRoom;
-          } else {
-            // If paramApptId is in hidden list, remove it
-            setHiddenChatIds(prev => prev.filter(id => id !== String(paramApptId)));
-            try {
-              const hidden = JSON.parse(localStorage.getItem('cp_hidden_chats') || '[]');
-              if (hidden.includes(String(paramApptId))) {
-                localStorage.setItem('cp_hidden_chats', JSON.stringify(hidden.filter(id => id !== String(paramApptId))));
-              }
-            } catch {}
+        if (paramApptId && paramApptId !== 'admin_support') {
+          // If paramApptId is in hidden list, remove it
+          setHiddenChatIds(prev => prev.filter(id => id !== String(paramApptId)));
+          try {
+            const hidden = JSON.parse(localStorage.getItem('cp_hidden_chats') || '[]');
+            if (hidden.includes(String(paramApptId))) {
+              localStorage.setItem('cp_hidden_chats', JSON.stringify(hidden.filter(id => id !== String(paramApptId))));
+            }
+          } catch {}
 
-            targetChat = validChats.find(a => String(a.id) === String(paramApptId));
-            if (!targetChat) {
-              const foundInAll = uniqueAppts.find(a => String(a.id) === String(paramApptId));
-              if (foundInAll) {
-                targetChat = foundInAll;
-                validChats = [targetChat, ...validChats.filter(v => v.id !== targetChat.id)];
-                setAppointments(validChats);
-              }
+          targetChat = validChats.find(a => String(a.id) === String(paramApptId));
+          if (!targetChat) {
+            const foundInAll = uniqueAppts.find(a => String(a.id) === String(paramApptId));
+            if (foundInAll) {
+              targetChat = foundInAll;
+              validChats = [targetChat, ...validChats.filter(v => v.id !== targetChat.id)];
+              setAppointments(validChats);
             }
           }
         }
@@ -321,49 +321,6 @@ export default function ChatPage({ navigate }) {
 
     const interval = setInterval(async () => {
       try {
-        if (activeAppt.id === 'admin_support' || activeAppt.is_admin_room) {
-          const notifRes = await notificationService.getMyNotifications(token).catch(() => []);
-          const rawNotifs = Array.isArray(notifRes) ? notifRes : (notifRes?.notifications || notifRes?.data || []);
-          const directNotifs = rawNotifs.filter(n => {
-            const t = (n.title || '').toLowerCase();
-            const msg = (n.message || '').toLowerCase();
-            const type = (n.type || n.notification_type || '').toLowerCase();
-
-            // Exclude system application approvals, verification, and credentials
-            if (type.includes('consultant_application') || type.includes('application') || type.includes('credential') || t.includes('قبول طلب') || t.includes('انضمام') || msg.includes('انضمامك كمستشار') || t.includes('اعتماد')) return false;
-            // Exclude ticket logs
-            if (t.includes('تذكرت') || msg.includes('تذكرت') || t.includes('تذكرة') || msg.includes('تذكرة') || type.includes('ticket')) return false;
-            // Exclude appointment booking alerts
-            if (t.includes('حجز موعد') || t.includes('جلسة استشارة جاهز') || t.includes('رابط جلسة') || type.includes('appointment') || type.includes('session')) return false;
-            // Exclude subscriptions & payments
-            if (t.includes('فاتورة') || t.includes('اشتراك') || type.includes('invoice') || type.includes('subscription') || type.includes('payout')) return false;
-
-            return true;
-          });
-
-          if (directNotifs.length > 0) {
-            const formatted = directNotifs.map(n => ({
-              id: n.id,
-              sender_id: 'admin',
-              sender_name: n.title || 'إدارة المنصة',
-              message_text: n.message,
-              created_at: n.created_at,
-              is_read: n.is_read
-            }));
-            formatted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-            setMessages(prev => {
-              if (formatted.length !== prev.filter(m => m.sender_id === 'admin').length) {
-                const userSent = prev.filter(m => m.sender_id !== 'admin');
-                const combined = [...formatted, ...userSent];
-                combined.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-                return combined;
-              }
-              return prev;
-            });
-          }
-          return;
-        }
-
         const res = await fetch(`/api/chat/${activeAppt.id}/messages?limit=100`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -384,7 +341,7 @@ export default function ChatPage({ navigate }) {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [activeAppt, token]);
+  }, [activeAppt?.id, token]);
 
   const handleCloseChat = () => {
     setActiveAppt(null);
@@ -395,6 +352,7 @@ export default function ChatPage({ navigate }) {
   };
 
   const handleSelectChat = async (appt) => {
+    if (!appt) return;
     setActiveAppt(appt);
     setMessages([]);
     // Clear unread badge when opening conversation
@@ -405,65 +363,17 @@ export default function ChatPage({ navigate }) {
       window.history.pushState({ apptId: appt.id }, '', newUrl);
     }
 
-    if (appt?.id === 'admin_support' || appt?.is_admin_room) {
-      try {
-        const notifRes = await notificationService.getMyNotifications(token).catch(() => []);
-        const rawNotifs = Array.isArray(notifRes) ? notifRes : (notifRes?.notifications || notifRes?.data || []);
-        const directNotifs = rawNotifs.filter(n => {
-          const t = (n.title || '').toLowerCase();
-          const msg = (n.message || '').toLowerCase();
-          const type = (n.type || n.notification_type || '').toLowerCase();
-
-          // Exclude system application approvals, verification, and credentials
-          if (type.includes('consultant_application') || type.includes('application') || type.includes('credential') || t.includes('قبول طلب') || t.includes('انضمام') || msg.includes('انضمامك كمستشار') || t.includes('اعتماد')) return false;
-          // Exclude ticket logs
-          if (t.includes('تذكرت') || msg.includes('تذكرت') || t.includes('تذكرة') || msg.includes('تذكرة') || type.includes('ticket')) return false;
-          // Exclude appointment booking alerts
-          if (t.includes('حجز موعد') || t.includes('جلسة استشارة جاهز') || t.includes('رابط جلسة') || type.includes('appointment') || type.includes('session')) return false;
-          // Exclude subscriptions & payments
-          if (t.includes('فاتورة') || t.includes('اشتراك') || type.includes('invoice') || type.includes('subscription') || type.includes('payout')) return false;
-
-          return true;
-        });
-
-        let formatted = directNotifs.map(n => ({
-          id: n.id,
-          sender_id: 'admin',
-          sender_name: n.title || 'إدارة المنصة',
-          message_text: n.message,
-          created_at: n.created_at,
-          is_read: n.is_read
-        }));
-
-        if (formatted.length === 0) {
-          formatted = [{
-            id: 'welcome-admin',
-            sender_id: 'admin',
-            sender_name: 'إدارة المنصة',
-            message_text: 'أهلاً بك في قناة التواصل المباشر مع إدارة المنصة. يمكنك إرسال أي استفسار أو طلب هنا مباشرة وسيقوم فريق العمل بالرد عليك.',
-            created_at: new Date().toISOString(),
-            is_read: true
-          }];
-        }
-
-        formatted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-        setMessages(formatted);
-      } catch (err) {
-        console.error('Error fetching admin messages:', err);
-      }
-      return;
-    }
-
     try {
       const res = await fetch(`/api/chat/${appt.id}/messages?limit=100`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         const msgs = await res.json();
-        setMessages(msgs);
+        const msgList = Array.isArray(msgs) ? msgs : (msgs?.messages || []);
+        setMessages(msgList);
         // Set last message time from actual messages
-        if (msgs.length > 0) {
-          const lastMsg = msgs[msgs.length - 1];
+        if (msgList.length > 0) {
+          const lastMsg = msgList[msgList.length - 1];
           setLastMsgTime(prev => ({ ...prev, [appt.id]: lastMsg.created_at || prev[appt.id] }));
         }
       }
@@ -490,25 +400,6 @@ export default function ChatPage({ navigate }) {
     // Update timestamp immediately to float active chat to the top of the sidebar list
     const nowIso = new Date().toISOString();
     setLastMsgTime(prev => ({ ...prev, [activeAppt.id]: nowIso }));
-
-    if (activeAppt?.id === 'admin_support' || activeAppt?.is_admin_room) {
-      try {
-        await notificationService.contactAdmin(textToSend, token);
-        const userMsg = {
-          id: `msg-${Date.now()}`,
-          sender_id: user?.id,
-          sender_name: user?.full_name || 'أنا',
-          message_text: textToSend,
-          created_at: nowIso,
-          is_read: true
-        };
-        setMessages(prev => [...prev, userMsg]);
-        showToast('تم إرسال الرسالة إلى إدارة المنصة بنجاح', 'success');
-      } catch (err) {
-        showToast('فشل إرسال الرسالة إلى الإدارة.', 'error');
-      }
-      return;
-    }
 
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
@@ -1422,81 +1313,20 @@ export default function ChatPage({ navigate }) {
           )}
         </div>
 
-        {/* 3. FAR LEFT in RTL: Consultation or Support Details Pane */}
+        {/* 3. FAR LEFT in RTL: Consultation Details Pane */}
         {activeAppt && isDetailsVisible && (
           <div className="chat-left-details-pane">
             <div className="details-top-bar">
               <div className="details-pane-title">
-                {(activeAppt.id === 'admin_support' || activeAppt.is_admin_room) ? 'بيانات التواصل الإداري' : 'تفاصيل الاستشارة'}
+                تفاصيل الاستشارة
               </div>
               <div className="details-window-controls">
                 <button onClick={() => setIsDetailsVisible(false)} className="window-btn" title="إغلاق اللوحة">✕</button>
               </div>
             </div>
 
-            {/* If Admin Support Room */}
-            {(activeAppt.id === 'admin_support' || activeAppt.is_admin_room) ? (
-              <>
-                <div className="accordion-section">
-                  <div className="accordion-header" onClick={() => toggleSection('client')}>
-                    <span>صاحب الحساب</span>
-                    <span>{expandedSections.client ? '−' : '+'}</span>
-                  </div>
-                  {expandedSections.client && (
-                    <div className="accordion-body">
-                      <div className="info-value">
-                        {user?.full_name || 'المستخدم الحالي'}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="accordion-section">
-                  <div className="accordion-header" onClick={() => toggleSection('consultant')}>
-                    <span>الجهة المتصل بها</span>
-                    <span>{expandedSections.consultant ? '−' : '+'}</span>
-                  </div>
-                  {expandedSections.consultant && (
-                    <div className="accordion-body">
-                      <div className="info-value">
-                        إدارة منصة ديوان والدعم الفني المباشر
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="accordion-section">
-                  <div className="accordion-header" onClick={() => toggleSection('topic')}>
-                    <span>طبيعة القناة</span>
-                    <span>{expandedSections.topic ? '−' : '+'}</span>
-                  </div>
-                  {expandedSections.topic && (
-                    <div className="accordion-body">
-                      <div className="info-value">
-                        قناة مراسلة ومتابعة إدارية مباشرة
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="accordion-section">
-                  <div className="accordion-header" onClick={() => toggleSection('status')}>
-                    <span>الحالة</span>
-                    <span>{expandedSections.status ? '−' : '+'}</span>
-                  </div>
-                  {expandedSections.status && (
-                    <div className="accordion-body">
-                      <div className="info-value">
-                        قناة نشطة ومباشرة (24/7)
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Standard Consultation Accordions */}
-                <div className="accordion-section">
+            {/* Standard Consultation Accordions */}
+            <div className="accordion-section">
                   <div className="accordion-header" onClick={() => toggleSection('client')}>
                     <span>العميل</span>
                     <span>{expandedSections.client ? '−' : '+'}</span>
@@ -1602,8 +1432,6 @@ export default function ChatPage({ navigate }) {
                     </div>
                   )}
                 </div>
-              </>
-            )}
 
             {/* Expandable Accordion Items */}
             <div className="accordion-section">

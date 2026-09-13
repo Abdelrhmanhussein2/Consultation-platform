@@ -617,8 +617,19 @@ def admin_send_direct_user_message(
     # 1. Search for an existing open / in-progress support ticket for this user
     open_ticket = db.query(SupportTicket).filter(
         SupportTicket.submitted_by == u_uuid,
-        SupportTicket.status.in_([TicketStatus.new, TicketStatus.open, TicketStatus.in_progress, TicketStatus.pending_user, TicketStatus.received, TicketStatus.reviewing])
+        SupportTicket.status.in_([
+            TicketStatus.new, TicketStatus.open, TicketStatus.in_progress,
+            TicketStatus.waiting_user, TicketStatus.received, TicketStatus.reviewing,
+            TicketStatus.reopened, TicketStatus.escalated
+        ])
     ).order_by(SupportTicket.updated_at.desc()).first()
+
+    if not open_ticket:
+        # Fallback: any ticket by this user that is not closed
+        open_ticket = db.query(SupportTicket).filter(
+            SupportTicket.submitted_by == u_uuid,
+            SupportTicket.status != TicketStatus.closed
+        ).order_by(SupportTicket.created_at.desc()).first()
 
     if open_ticket:
         # Add reply to the existing open ticket

@@ -42,7 +42,7 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
     };
 
     fetchNotifs();
-    const interval = setInterval(fetchNotifs, 10000); // Poll every 10s
+    const interval = setInterval(fetchNotifs, 3000); // Poll every 3s
     const onFocus = () => fetchNotifs();
     window.addEventListener('focus', onFocus);
     return () => {
@@ -130,16 +130,21 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
       return;
     }
 
-    // 1.5. Support Tickets
+    // 1.5. Support Tickets & Platform Communications from Admin
     if (
       type.includes('ticket') ||
       notif.related_entity_type === 'support_ticket' ||
+      notif.related_entity_type === 'ticket' ||
       title.includes('تذكرة') ||
       msg.includes('تذكرتك') ||
-      title.includes('الدعم الفني')
+      title.includes('الدعم') ||
+      msg.includes('الدعم') ||
+      title.includes('إدارة المنصة') ||
+      msg.includes('إدارة المنصة') ||
+      title.includes('المنصة')
     ) {
       const ticketId = notif.related_entity_id;
-      if (ticketId) {
+      if (ticketId && String(ticketId).length > 10) {
         navigate(`/support/tickets/${ticketId}`);
       } else {
         navigate('/support/tickets');
@@ -147,21 +152,14 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
       return;
     }
 
-    // 2. Chat / Direct Messages & Admin Communications (e.g. "رسالة من إدارة المنصة")
+    // 2. Consultation Chat (Only between Client & Consultant for booked sessions)
     if (
       type.includes('chat') ||
       type.includes('message') ||
       title.includes('رسالة') ||
       title.includes('محادثة') ||
-      msg.includes('رسالة') ||
-      title.includes('إدارة') ||
-      msg.includes('إدارة')
+      msg.includes('رسالة')
     ) {
-      if (title.includes('إدارة المنصة') || msg.includes('إدارة المنصة') || title.includes('المنصة')) {
-        navigate('/chat?apptId=admin_support');
-        return;
-      }
-
       let senderName = '';
       if (rawTitle.includes('من ')) {
         senderName = rawTitle.split('من ')[1]?.trim() || '';
