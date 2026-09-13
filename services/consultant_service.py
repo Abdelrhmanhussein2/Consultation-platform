@@ -19,36 +19,63 @@ class ConsultantService:
 
     @staticmethod
     def set_availability(db: Session, consultant_id: uuid.UUID, availabilities_in) -> list[ConsultantAvailability]:
-        # First, delete existing availability records
-        db.query(ConsultantAvailability).filter(ConsultantAvailability.consultant_id == consultant_id).delete()
-        
+        # Collect specific dates in payload
+        specific_dates = set()
+        for av in availabilities_in:
+            sd = getattr(av, 'specific_date', None)
+            if sd:
+                specific_dates.add(sd)
+
+        # Always clear ALL weekly recurring rows — we now operate in per-date mode only.
+        # This ensures that when the frontend saves (even with an empty payload),
+        # stale weekly entries don't show up after a refresh.
+        db.query(ConsultantAvailability).filter(
+            ConsultantAvailability.consultant_id == consultant_id,
+            ConsultantAvailability.specific_date == None  # noqa: E711
+        ).delete()
+
+        # Delete specific-date rows that are being overwritten
+        for sd in specific_dates:
+            parsed_date = datetime.strptime(sd, "%Y-%m-%d").date() if isinstance(sd, str) else sd
+            db.query(ConsultantAvailability).filter(
+                ConsultantAvailability.consultant_id == consultant_id,
+                ConsultantAvailability.specific_date == parsed_date
+            ).delete()
+
         db_availabilities = []
         for av in availabilities_in:
-            # Convert start_time string (HH:MM) to time object
             start_t = datetime.strptime(av.start_time, "%H:%M").time()
             end_t = None
             if getattr(av, "end_time", None):
                 end_t = datetime.strptime(av.end_time, "%H:%M").time()
-            
+
+            specific_date_val = None
+            sd_raw = getattr(av, 'specific_date', None)
+            if sd_raw:
+                specific_date_val = datetime.strptime(sd_raw, "%Y-%m-%d").date() if isinstance(sd_raw, str) else sd_raw
+
             db_av = ConsultantAvailability(
                 consultant_id=consultant_id,
                 day_of_week=av.day_of_week,
+                specific_date=specific_date_val,
                 start_time=start_t,
                 end_time=end_t,
                 is_active=True
             )
             db.add(db_av)
             db_availabilities.append(db_av)
-            
+
         db.commit()
         return db_availabilities
+
 
     @staticmethod
     def get_availabilities(db: Session, consultant_id: uuid.UUID) -> list[ConsultantAvailability]:
         return db.query(ConsultantAvailability).filter(
             ConsultantAvailability.consultant_id == consultant_id,
             ConsultantAvailability.is_active == True
-        ).order_by(ConsultantAvailability.day_of_week, ConsultantAvailability.start_time).all()
+        ).order_by(ConsultantAvailability.specific_date.nullsfirst(), ConsultantAvailability.day_of_week, ConsultantAvailability.start_time).all()
+
 
     @staticmethod
     def get_available_slots(

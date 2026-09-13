@@ -161,12 +161,33 @@ class WalletService:
         if not profile:
             raise ValueError("ملف المستشار غير موجود")
 
+        # Auto-complete past confirmed appointments whose scheduled time has elapsed
+        now_utc = datetime.now(timezone.utc)
+        past_confirmed = db.query(Appointment).filter(
+            Appointment.consultant_id == consultant_id,
+            Appointment.status == AppointmentStatus.confirmed,
+            Appointment.scheduled_at <= now_utc
+        ).all()
+        if past_confirmed:
+            for appt in past_confirmed:
+                appt.status = AppointmentStatus.completed
+            db.commit()
+
         # 1. Completed Appointments Revenue (Total Earned)
         completed_sum = db.query(func.coalesce(func.sum(Appointment.price), 0)).filter(
             Appointment.consultant_id == consultant_id,
             Appointment.status == AppointmentStatus.completed
         ).scalar()
         total_earned = Decimal(str(completed_sum or 0)).quantize(Decimal("0.01"))
+
+        # Current Month Completed Appointments Revenue
+        month_start = datetime(now_utc.year, now_utc.month, 1, tzinfo=timezone.utc)
+        month_sum = db.query(func.coalesce(func.sum(Appointment.price), 0)).filter(
+            Appointment.consultant_id == consultant_id,
+            Appointment.status == AppointmentStatus.completed,
+            Appointment.scheduled_at >= month_start
+        ).scalar()
+        month_earned = Decimal(str(month_sum or 0)).quantize(Decimal("0.01"))
 
         # 2. Upcoming Confirmed Appointments Escrow (Pending Balance)
         confirmed_sum = db.query(func.coalesce(func.sum(Appointment.price), 0)).filter(
@@ -212,6 +233,7 @@ class WalletService:
             "available_balance": available_balance,
             "pending_balance": pending_balance,
             "total_earned": total_earned,
+            "month_earned": month_earned,
             "total_withdrawn": total_withdrawn,
             "pending_payouts": pending_payouts,
             "currency": currency_code,

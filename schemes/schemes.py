@@ -380,7 +380,7 @@ class ConsultantServiceSummary(BaseModel):
     class Config:
         from_attributes = True
 
-from datetime import time
+from datetime import time, date
 
 class ConsultantAvailabilityOut(BaseModel):
     id: uuid.UUID
@@ -733,6 +733,7 @@ from datetime import time
 
 class ConsultantAvailabilityCreate(BaseModel):
     day_of_week: int = Field(..., ge=0, le=6, description="0 = Monday, 6 = Sunday")
+    specific_date: Optional[str] = Field(None, description="ISO date YYYY-MM-DD. If set, applies to this date only instead of repeating weekly.")
     start_time: str = Field(..., pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$", description="Start time formatted as HH:MM")
     end_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$", description="End time formatted as HH:MM")
 
@@ -740,6 +741,7 @@ class ConsultantAvailabilityOut(BaseModel):
     id: uuid.UUID
     consultant_id: uuid.UUID
     day_of_week: int
+    specific_date: Optional[date] = None
     start_time: time
     end_time: Optional[time] = None
     is_active: bool
@@ -1156,6 +1158,7 @@ class ConsultantWalletOut(BaseModel):
     available_balance: Decimal = Field(..., description="Available funds eligible for withdrawal in primary currency")
     pending_balance: Decimal = Field(..., description="Escrow funds for upcoming sessions")
     total_earned: Decimal = Field(..., description="Lifetime total earnings from completed sessions")
+    month_earned: Optional[Decimal] = Field(Decimal("0.00"), description="Current calendar month completed earnings")
     total_withdrawn: Decimal = Field(..., description="Lifetime total payouts transferred")
     pending_payouts: Decimal = Field(..., description="In-flight payout requests under review")
     currency: str = Field("JOD", description="Primary currency: JOD")

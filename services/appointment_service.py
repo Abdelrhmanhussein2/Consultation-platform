@@ -353,6 +353,17 @@ class AppointmentService:
         db: Session, consultant_id: uuid.UUID, page: int = 1, limit: int = 20, user_id: uuid.UUID = None
     ) -> list[Appointment]:
         """Returns a paginated list of appointments for a consultant profile."""
+        now_utc = datetime.now(timezone.utc)
+        past_confirmed = db.query(Appointment).filter(
+            Appointment.consultant_id == consultant_id,
+            Appointment.status == AppointmentStatus.confirmed,
+            Appointment.scheduled_at <= now_utc
+        ).all()
+        if past_confirmed:
+            for appt in past_confirmed:
+                appt.status = AppointmentStatus.completed
+            db.commit()
+
         query = db.query(Appointment).options(
             joinedload(Appointment.user),
             joinedload(Appointment.consultant).joinedload(ConsultantProfile.user),

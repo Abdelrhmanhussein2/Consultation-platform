@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, Time, Integer, Boolean, ForeignKey, func
+from sqlalchemy import Column, Time, Integer, Boolean, ForeignKey, func, Date
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -11,9 +11,11 @@ class ConsultantAvailability(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, server_default=func.gen_random_uuid())
     consultant_id = Column(UUID(as_uuid=True), ForeignKey("consultant_profiles.id", ondelete="CASCADE"), nullable=False)
     day_of_week = Column(Integer, nullable=False)  # 0 = Monday, 6 = Sunday
+    specific_date = Column(Date, nullable=True)     # If set, applies to this exact date only (overrides weekly repeat)
     start_time = Column(Time, nullable=False)
     end_time = Column(Time, nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
 
     # Relationships
     consultant = relationship("ConsultantProfile", back_populates="availabilities")
+

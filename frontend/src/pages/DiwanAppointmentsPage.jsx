@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { appointmentService } from '../services/appointmentService';
 import { consultantService } from '../services/consultantService';
 import { apiFetch } from '../services/api';
+import ModernSelect from '../components/ModernSelect';
+import FilterResetButton from '../components/FilterResetButton';
 import './DiwanAppointmentsPage.css';
 
 const dayNames = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -63,7 +65,10 @@ const initialEvents = [];
 // Helper Date Functions
 const pad = (n) => String(n || 0).padStart(2, '0');
 const iso = (d) => {
-  if (!d || !(d instanceof Date) || isNaN(d.getTime())) return '2026-09-03';
+  if (!d || !(d instanceof Date) || isNaN(d.getTime())) {
+    const now = new Date();
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  }
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 const parseISO = (s) => {
@@ -89,8 +94,10 @@ const timeFmt = (x) => {
 const initials = (name) => String(name || 'عميل').trim().split(/\s+/).filter(Boolean).map(x => x[0]).slice(0, 2).join('').toUpperCase() || 'ع';
 const startOfWeek = (d) => {
   const x = (d && d instanceof Date && !isNaN(d.getTime())) ? new Date(d) : new Date();
-  const day = (x.getDay() + 6) % 7;
+  // Standard Arabic calendar starts on Sunday (day 0)
+  const day = x.getDay();
   x.setDate(x.getDate() - day);
+  x.setHours(0, 0, 0, 0);
   return x;
 };
 const addDays = (d, n) => {
@@ -399,13 +406,36 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
   // Tax Types set for filter
   const taxTypes = useMemo(() => [...new Set(events.map(e => e.type))], [events]);
 
+  // Events in current visible period
+  const currentPeriodEvents = useMemo(() => {
+    if (currentView === 'day') {
+      const dayISO = iso(selectedDay || anchorDate);
+      return filteredEvents.filter(e => e.date === dayISO);
+    }
+    if (currentView === 'month') {
+      const y = anchorDate.getFullYear();
+      const m = anchorDate.getMonth();
+      return filteredEvents.filter(e => {
+        const d = parseISO(e.date);
+        return d.getFullYear() === y && d.getMonth() === m;
+      });
+    }
+    // Week view
+    const startW = startOfWeek(anchorDate);
+    const startISO = iso(startW);
+    const endISO = iso(addDays(startW, 6));
+    return filteredEvents.filter(e => e.date >= startISO && e.date <= endISO);
+  }, [filteredEvents, currentView, anchorDate, selectedDay]);
+
   // Total stats calculations
   const stats = useMemo(() => {
-    const count = filteredEvents.length;
-    const paid = filteredEvents.filter(e => e.payment === 'paid').length;
-    const value = filteredEvents.reduce((s, e) => s + e.amount, 0);
-    return { count, paid, value };
-  }, [filteredEvents]);
+    const count = currentPeriodEvents.length;
+    const paid = currentPeriodEvents.filter(e => e.payment === 'paid').length;
+    const value = currentPeriodEvents.reduce((s, e) => s + e.amount, 0);
+    const totalCount = filteredEvents.length;
+    const totalValue = filteredEvents.reduce((s, e) => s + e.amount, 0);
+    return { count, paid, value, totalCount, totalValue };
+  }, [currentPeriodEvents, filteredEvents]);
 
   // Period label
   const periodLabel = useMemo(() => {
@@ -688,7 +718,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
         note: 'دفع من المستخدم'
       }
     }));
-    const msg = `تم تأكيد استلام دفعتك بقيمة JOD ${selectedEvent.amount}. رقم العملية: ${txn}.`;
+    const msg = `تم تأكيد استلام دفعتك بقيمة ${selectedEvent.amount} د.أ. رقم العملية: ${txn}.`;
     addSystemMessage(selectedEvent.client, msg);
     addActivity(selectedEvent.id, msg);
     setUserPaymentSuccess(true);
@@ -790,7 +820,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
     const needs = events.filter(e => isAllowed(e) && e.payment !== 'paid').sort((a, b) => parseISO(a.date) - parseISO(b.date));
     if (needs.length) {
       const first = needs[0];
-      setFinanceAnswer(`الأولوية: ${getClient(first.client).name} — ${first.title} — ${paymentLabels[first.payment]} — JOD ${first.amount}. ثم تابع الحالات الأقرب موعدًا.`);
+      setFinanceAnswer(`الأولوية: ${getClient(first.client).name} — ${first.title} — ${paymentLabels[first.payment]} — ${first.amount} د.أ. ثم تابع الحالات الأقرب موعدًا.`);
     } else {
       setFinanceAnswer('لا توجد حالات دفع تحتاج متابعة حاليًا.');
     }
@@ -1235,19 +1265,17 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
             <div className="top-right">
               <div className="user-block">
                 <div className="avatar">
-                  {role === 'admin' ? 'SH' : role === 'consultant' ? 'AN' : 'RK'}
+                  {initials(user?.full_name || (role === 'admin' ? 'الإدارة' : 'المستشار'))}
                 </div>
                 <div className="user-meta">
-                  <b>{user?.full_name || (role === 'admin' ? 'سعيد هارون (الإدارة)' : role === 'consultant' ? 'أحمد نصار (مستشار)' : 'رانيا الخطيب (عميل)')}</b>
+                  <b>{user?.full_name || (role === 'admin' ? 'لوحة الإدارة' : role === 'consultant' ? 'المستشار' : 'العميل')}</b>
                   <span>{role === 'admin' ? 'لوحة المواعيد الإدارية الشاملة' : role === 'consultant' ? 'جدول مواعيد واستشارات المستشار' : 'جدول استشاراتي ومواعيدي'}</span>
                 </div>
               </div>
               <button className="primary" onClick={() => { setNewSlot(null); setNewConsultOpen(true); if (role === 'consultant') fetchCrossConsultants(); }}>+ استشارة جديدة</button>
             </div>
             <div className="top-left">
-              <button className="icon-btn" title="تحديث التقويم من الخادم" onClick={() => { fetchBackendAppointments(); showToast('تم تحديث ومزامنة المواعيد من الخادم'); }}>↻</button>
-              <button className="icon-btn" title="البحث" onClick={() => setShowFilters(f => !f)}>⌕</button>
-              <button className="icon-btn" title="المساعدة" onClick={() => showToast('المساعدة')}>?</button>
+              <button className="icon-btn" title="تحديث المواعيد" onClick={() => { fetchBackendAppointments(); showToast('تم تحديث المواعيد بنجاح'); }}>↻</button>
             </div>
           </header>
 
@@ -1256,8 +1284,8 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
             <div className="title-row">
               <div>
                 <h1>المواعيد</h1>
-                <div style={{ fontSize: '9px', color: '#8c93a0', marginTop: '3px' }}>
-                  {role === 'admin' ? 'عرض جميع استشارات المنصة' : role === 'consultant' ? 'عرض جلسات أحمد نصار فقط' : 'عرض الاستشارات التي حجزتها رانيا الخطيب'}
+                <div style={{ fontSize: '11px', color: '#64748B', marginTop: '3px', fontWeight: '600' }}>
+                  {role === 'admin' ? 'عرض جميع استشارات المنصة' : role === 'consultant' ? `عرض استشارات المستشار (${user?.full_name || 'حسابي'})` : 'عرض استشاراتي ومواعيدي'}
                 </div>
               </div>
               <div className="calendar-actions">
@@ -1294,68 +1322,134 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
             <div className="stats">
               <div className="stat">
                 <strong className="num">{periodLabel}</strong>
-                <span>الفترة الحالية</span>
+                <span>الفترة المعروضة</span>
               </div>
               <div className="stat">
                 <strong className="num">{stats.count}</strong>
-                <span>الاستشارات</span>
+                <span>جلسات الفترة ({stats.totalCount} إجمالي)</span>
               </div>
               <div className="stat">
                 <strong className="num">{stats.paid}</strong>
-                <span>مدفوعة</span>
+                <span>مدفوعة بالفترة</span>
               </div>
               <div className="stat">
-                <strong className="num">JOD {stats.value.toLocaleString('en-US')}</strong>
-                <span>قيمة الحجوزات</span>
+                <strong className="num">{stats.value.toLocaleString('en-US')} د.أ</strong>
+                <span>قيمة حجوزات الفترة</span>
               </div>
             </div>
 
+            {currentView === 'week' && stats.count === 0 && stats.totalCount > 0 && (
+              <div style={{
+                background: '#F0F9FF',
+                border: '1px solid #BAE6FD',
+                borderRadius: '12px',
+                padding: '10px 16px',
+                marginTop: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                fontSize: '12.5px',
+                color: '#0369A1',
+                direction: 'rtl'
+              }}>
+                <span>💡 لا توجد جلسات مجدولة في هذا الأسبوع المعروض ({periodLabel}). لديك {stats.totalCount} استشارات في فترات أخرى.</span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => setCurrentView('month')} style={{ background: '#0284C7', color: '#fff', border: 'none', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', fontFamily: 'inherit' }}>
+                    عرض الشهر بالكامل
+                  </button>
+                  <button onClick={() => navigatePeriod(-1)} style={{ background: '#E0F2FE', color: '#0369A1', border: '1px solid #BAE6FD', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', fontFamily: 'inherit' }}>
+                    الأسبوع السابق
+                  </button>
+                </div>
+              </div>
+            )}
+
             {showFilters && (
               <div className="filterbar">
-                <input
-                  placeholder="ابحث باسم العميل أو موضوع الاستشارة..."
-                  value={filterSearch}
-                  onChange={(e) => setFilterSearch(e.target.value)}
-                />
+                <div className="filter-search-wrap">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="filter-search-icon">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <input
+                    placeholder="ابحث باسم العميل أو موضوع الاستشارة..."
+                    value={filterSearch}
+                    onChange={(e) => setFilterSearch(e.target.value)}
+                  />
+                  {filterSearch && (
+                    <button type="button" className="filter-search-clear" onClick={() => setFilterSearch('')}>×</button>
+                  )}
+                </div>
+
                 {role === 'admin' && (
-                  <select value={filterAdvisor} onChange={(e) => setFilterAdvisor(e.target.value)}>
-                    <option value="">كل المستشارين</option>
-                    {advisors.map(a => (
-                      <option key={a} value={a}>{a}</option>
-                    ))}
-                  </select>
+                  <div style={{ width: '150px', flexShrink: 0 }}>
+                    <ModernSelect
+                      value={filterAdvisor}
+                      onChange={setFilterAdvisor}
+                      placeholder="كل المستشارين"
+                      options={[
+                        { value: '', label: 'كل المستشارين' },
+                        ...advisors.map(a => ({ value: a, label: a }))
+                      ]}
+                    />
+                  </div>
                 )}
-                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-                  <option value="">كل حالات الجلسة</option>
-                  <option value="confirmed">مؤكدة</option>
-                  <option value="pending">معلقة</option>
-                  <option value="progress">قيد التنفيذ</option>
-                  <option value="rejected">مرفوضة</option>
-                  <option value="cancelled">ملغاة</option>
-                  <option value="completed">مكتملة</option>
-                </select>
-                <select value={filterPayment} onChange={(e) => setFilterPayment(e.target.value)}>
-                  <option value="">كل حالات الدفع</option>
-                  <option value="paid">مدفوع</option>
-                  <option value="unpaid">غير مدفوع</option>
-                  <option value="waiting">بانتظار الدفع</option>
-                  <option value="rejected">دفعة مرفوضة</option>
-                </select>
-                <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-                  <option value="">كل أنواع الضرائب</option>
-                  {taxTypes.map(t => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-                <button className="ghost" onClick={() => {
-                  setFilterSearch('');
-                  setFilterAdvisor('');
-                  setFilterStatus('');
-                  setFilterPayment('');
-                  setFilterType('');
-                }}>
-                  مسح الفلاتر
-                </button>
+
+                <div style={{ width: '150px', flexShrink: 0 }}>
+                  <ModernSelect
+                    value={filterStatus}
+                    onChange={setFilterStatus}
+                    placeholder="حالة الجلسة"
+                    options={[
+                      { value: '', label: 'كل حالات الجلسة' },
+                      { value: 'confirmed', label: 'مؤكدة' },
+                      { value: 'pending', label: 'معلقة' },
+                      { value: 'progress', label: 'قيد التنفيذ' },
+                      { value: 'rejected', label: 'مرفوضة' },
+                      { value: 'cancelled', label: 'ملغاة' },
+                      { value: 'completed', label: 'مكتملة' }
+                    ]}
+                  />
+                </div>
+
+                <div style={{ width: '150px', flexShrink: 0 }}>
+                  <ModernSelect
+                    value={filterPayment}
+                    onChange={setFilterPayment}
+                    placeholder="حالة الدفع"
+                    options={[
+                      { value: '', label: 'كل حالات الدفع' },
+                      { value: 'paid', label: 'مدفوع' },
+                      { value: 'unpaid', label: 'غير مدفوع' },
+                      { value: 'waiting', label: 'بانتظار الدفع' },
+                      { value: 'rejected', label: 'دفعة مرفوضة' }
+                    ]}
+                  />
+                </div>
+
+                <div style={{ width: '160px', flexShrink: 0 }}>
+                  <ModernSelect
+                    value={filterType}
+                    onChange={setFilterType}
+                    placeholder="نوع الضريبة"
+                    options={[
+                      { value: '', label: 'كل أنواع الضرائب' },
+                      ...taxTypes.map(t => ({ value: t, label: t }))
+                    ]}
+                  />
+                </div>
+
+                <FilterResetButton
+                  size={40}
+                  title="مسح جميع الفلاتر"
+                  onClick={() => {
+                    setFilterSearch('');
+                    setFilterAdvisor('');
+                    setFilterStatus('');
+                    setFilterPayment('');
+                    setFilterType('');
+                  }}
+                />
               </div>
             )}
           </section>
@@ -1370,7 +1464,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                 {Array.from({ length: 7 }, (_, i) => {
                   const startW = startOfWeek(anchorDate);
                   const d = addDays(startW, i);
-                  const isToday = iso(d) === '2026-08-24';
+                  const isToday = iso(d) === iso(new Date());
                   return (
                     <div key={i} className={`dayhead ${isToday ? 'today' : ''}`}>
                       <span className="dow">{shortDay[d.getDay()]}</span>
@@ -1379,10 +1473,10 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                   );
                 })}
 
-                {/* Times Column */}
+                {/* Times Column - 06:00 to 22:00 */}
                 <div className="timecol">
-                  {Array.from({ length: 14 }, (_, i) => (
-                    <div key={i} className="time num">{pad(i + 8)}:00</div>
+                  {Array.from({ length: 17 }, (_, i) => (
+                    <div key={i} className="time num">{pad(i + 6)}:00</div>
                   ))}
                 </div>
 
@@ -1402,8 +1496,8 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                     >
                       {colEvents.map(evt => {
                         const cl = getClient(evt.client);
-                        const top = (evt.start - 8) * 64 + 3;
-                        const height = evt.dur * 64 - 6;
+                        const top = Math.max(0, (evt.start - 6) * 64 + 3);
+                        const height = Math.max(34, evt.dur * 64 - 6);
 
                         return (
                           <div
@@ -1443,7 +1537,14 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                     </div>
                   );
                 })}
-                <div className="now-line" style={{ top: '240px' }}></div>
+                {(() => {
+                  const now = new Date();
+                  const nowH = now.getHours() + now.getMinutes() / 60;
+                  const lineTop = (nowH - 6) * 64;
+                  return lineTop >= 0 && lineTop <= 17 * 64 ? (
+                    <div className="now-line" style={{ top: `${lineTop}px` }}></div>
+                  ) : null;
+                })()}
               </div>
             )}
 
@@ -1464,8 +1565,8 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                 </div>
                 <div className="day-view-grid">
                   <div>
-                    {Array.from({ length: 14 }, (_, i) => (
-                      <div key={i} className="day-time num">{pad(i + 8)}:00</div>
+                    {Array.from({ length: 17 }, (_, i) => (
+                      <div key={i} className="day-time num">{pad(i + 6)}:00</div>
                     ))}
                   </div>
                   <div className="day-lane">
@@ -1475,7 +1576,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                         <div
                           key={evt.id}
                           className={`day-event st-${evt.status}`}
-                          style={{ top: `${(evt.start - 8) * 64 + 3}px`, height: `${evt.dur * 64 - 6}px` }}
+                          style={{ top: `${Math.max(0, (evt.start - 6) * 64 + 3)}px`, height: `${Math.max(34, evt.dur * 64 - 6)}px` }}
                           onClick={() => openDrawer(evt)}
                         >
                           <b>{evt.title}</b>
@@ -1497,7 +1598,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
             {currentView === 'month' && (
               <div className="month-view">
                 <div className="month-grid">
-                  {['الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'].map(h => (
+                  {['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'].map(h => (
                     <div key={h} className="month-head">{h}</div>
                   ))}
                   {Array.from({ length: 42 }, (_, i) => {
@@ -1513,7 +1614,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                     return (
                       <div
                         key={i}
-                        className={`month-cell ${cellDateISO === '2026-08-24' ? 'today' : ''}`}
+                        className={`month-cell ${cellDateISO === iso(new Date()) ? 'today' : ''}`}
                         style={{ opacity: isSameMonth ? 1 : 0.45 }}
                       >
                         <div className="md num">{cellDate.getDate()}</div>
@@ -1579,7 +1680,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
             </div>
             <div>
               الأتعاب
-              <b className="num">JOD {popover.event.amount}</b>
+              <b className="num">{popover.event.amount} د.أ</b>
             </div>
           </div>
           <div className="pop-actions">
@@ -1607,13 +1708,6 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
 
       {/* Slide-Out Details Drawer */}
       <div className={`drawer ${isDrawerOpen ? 'open' : ''} ${isDrawerCollapsed ? 'collapsed' : ''}`}>
-        <button
-          className="drawer-peek"
-          onClick={() => setIsDrawerCollapsed(c => !c)}
-          title={isDrawerCollapsed ? 'إظهار اللوحة' : 'إخفاء اللوحة'}
-        >
-          <span>‹</span>
-        </button>
         <div className="drawer-head">
           <div className="dh-top">
             <div>
@@ -1790,7 +1884,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                       </div>
                       <div className="field">
                         <label>العملة</label>
-                        <div>JOD</div>
+                        <div>د.أ</div>
                       </div>
                     </div>
                   </div>
@@ -1844,15 +1938,15 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
             <div className="finance-group">
               <div className="finance-item">
                 <span>إجمالي الحجوزات</span>
-                <b className="num">JOD {events.reduce((s, e) => s + e.amount, 0).toLocaleString('en-US')}</b>
+                <b className="num">{events.reduce((s, e) => s + e.amount, 0).toLocaleString('en-US')} د.أ</b>
               </div>
               <div className="finance-item">
                 <span>المحصل</span>
-                <b className="num">JOD {events.filter(e => e.payment === 'paid').reduce((s, e) => s + e.amount, 0).toLocaleString('en-US')}</b>
+                <b className="num">{events.filter(e => e.payment === 'paid').reduce((s, e) => s + e.amount, 0).toLocaleString('en-US')} د.أ</b>
               </div>
               <div className="finance-item">
                 <span>المستحق</span>
-                <b className="num">JOD {events.filter(e => e.payment !== 'paid').reduce((s, e) => s + e.amount, 0).toLocaleString('en-US')}</b>
+                <b className="num">{events.filter(e => e.payment !== 'paid').reduce((s, e) => s + e.amount, 0).toLocaleString('en-US')} د.أ</b>
               </div>
               <div className="finance-item">
                 <span>الجلسات</span>
@@ -1871,7 +1965,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
             <div className="finance-group">
               <div className="finance-item">
                 <span>قيمة جلساتي</span>
-                <b className="num">JOD {events.filter(e => e.advisor === currentConsultant).reduce((s, e) => s + e.amount, 0).toLocaleString('en-US')}</b>
+                <b className="num">{events.filter(e => e.advisor === currentConsultant).reduce((s, e) => s + e.amount, 0).toLocaleString('en-US')} د.أ</b>
               </div>
               <div className="finance-item">
                 <span>مكتملة</span>
@@ -1893,15 +1987,15 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
             <div className="finance-group">
               <div className="finance-item">
                 <span>إجمالي حجوزاتي</span>
-                <b className="num">JOD {events.filter(e => e.client === currentUserClientId).reduce((s, e) => s + e.amount, 0).toLocaleString('en-US')}</b>
+                <b className="num">{events.filter(e => e.client === currentUserClientId).reduce((s, e) => s + e.amount, 0).toLocaleString('en-US')} د.أ</b>
               </div>
               <div className="finance-item">
                 <span>دفعت</span>
-                <b className="num">JOD {events.filter(e => e.client === currentUserClientId && e.payment === 'paid').reduce((s, e) => s + e.amount, 0).toLocaleString('en-US')}</b>
+                <b className="num">{events.filter(e => e.client === currentUserClientId && e.payment === 'paid').reduce((s, e) => s + e.amount, 0).toLocaleString('en-US')} د.أ</b>
               </div>
               <div className="finance-item">
                 <span>المبلغ المستحق</span>
-                <b className="num">JOD {events.filter(e => e.client === currentUserClientId && e.payment !== 'paid').reduce((s, e) => s + e.amount, 0).toLocaleString('en-US')}</b>
+                <b className="num">{events.filter(e => e.client === currentUserClientId && e.payment !== 'paid').reduce((s, e) => s + e.amount, 0).toLocaleString('en-US')} د.أ</b>
               </div>
             </div>
             <div className="finance-actions">
@@ -2305,7 +2399,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                       <div className="payment-back-actions">
                         <button className="ghost" onClick={() => setUserPayMethod(null)}>الرجوع</button>
                         <button className="primary payment-highlight" onClick={completeUserPayment}>
-                          إتمام الدفع — <span className="num">JOD {selectedEvent.amount}</span>
+                          إتمام الدفع — <span className="num">{selectedEvent.amount} د.أ</span>
                         </button>
                       </div>
                     </>
@@ -2355,7 +2449,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                       <div className="receipt">
                         <div className="r"><span>رقم المرجع</span><b className="num">{lastTxn}</b></div>
                         <div className="r"><span>الخدمة</span><b>{selectedEvent.title}</b></div>
-                        <div className="r"><span>المبلغ</span><b className="num">JOD {selectedEvent.amount}</b></div>
+                        <div className="r"><span>المبلغ</span><b className="num">{selectedEvent.amount} د.أ</b></div>
                         <div className="r"><span>الحالة</span><b>تم الدفع</b></div>
                       </div>
                       <button className="primary" style={{ marginTop: '14px', width: '100%' }} onClick={() => {
@@ -2588,7 +2682,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                     <span>رسائل</span>
                   </div>
                   <div className="ai-summary-kpi">
-                    <b className="num">JOD {events.filter(e => isAllowed(e) && e.date === aiDate).reduce((s, e) => s + e.amount, 0)}</b>
+                    <b className="num">{events.filter(e => isAllowed(e) && e.date === aiDate).reduce((s, e) => s + e.amount, 0)} د.أ</b>
                     <span>القيمة</span>
                   </div>
                 </div>
@@ -2751,7 +2845,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                   <h4>الدفع والتقييم</h4>
                   <div className="audit-line">
                     <b>قيمة الجلسة</b>
-                    <div className="num">JOD {intelEvent.amount}</div>
+                    <div className="num">{intelEvent.amount} د.أ</div>
                   </div>
                   <div className="audit-line">
                     <b>تقييم العميل</b>
@@ -2820,7 +2914,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                   <span>دفعات مرفوضة</span>
                 </div>
                 <div className="finance-alert-kpi">
-                  <b className="num">JOD {events.filter(e => e.payment === 'paid').reduce((s, e) => s + e.amount, 0)}</b>
+                  <b className="num">{events.filter(e => e.payment === 'paid').reduce((s, e) => s + e.amount, 0)} د.أ</b>
                   <span>تم تحصيله</span>
                 </div>
               </div>
@@ -2831,7 +2925,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                   <div key={e.id} className="finance-alert-row">
                     <div>
                       <b>{getClient(e.client).name} — {e.title}</b>
-                      <small>{paymentLabels[e.payment]} · {e.advisor} · JOD {e.amount}</small>
+                      <small>{paymentLabels[e.payment]} · {e.advisor} · {e.amount} د.أ</small>
                     </div>
                     <button className="ghost" onClick={() => {
                       setFinancialAlertsOpen(false);
@@ -2947,7 +3041,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                         <select value={crossSelectedServiceId} onChange={(e) => setCrossSelectedServiceId(e.target.value)}>
                           {crossServices.map(s => (
                             <option key={s.id} value={s.id}>
-                              {s.name} — JOD {s.price} ({s.duration_minutes} دقيقة)
+                              {s.name} — {s.price} د.أ ({s.duration_minutes} دقيقة)
                             </option>
                           ))}
                         </select>
@@ -2985,7 +3079,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                       <div className="full">
                         <div className="price-box">
                           <span>سعر الخدمة المختارة</span>
-                          <b className="num">JOD {crossServices.find(s => s.id === crossSelectedServiceId)?.price ?? '—'}</b>
+                          <b className="num">{crossServices.find(s => s.id === crossSelectedServiceId)?.price ?? '—'} د.أ</b>
                         </div>
                         <div className="service-note">السعر محدد من المستشار ولا يمكن تعديله</div>
                       </div>
@@ -3066,7 +3160,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                         {currentAdvisorServices.length > 0 ? (
                           currentAdvisorServices.map(s => (
                             <option key={s.id || s.name} value={s.name}>
-                              {s.name} {s.price ? ` — JOD ${s.price}` : ''}
+                              {s.name} {s.price ? ` — ${s.price} د.أ` : ''}
                             </option>
                           ))
                         ) : (
@@ -3123,7 +3217,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                     <div className="full">
                       <div className="price-box">
                         <span>الأتعاب حسب المستشار والخدمة</span>
-                        <b className="num">JOD {computedPrice}</b>
+                        <b className="num">{computedPrice} د.أ</b>
                       </div>
                       <div className="service-note">الأتعاب ثابتة وفق إعدادات المستشار ولا يمكن تعديلها يدوياً.</div>
                     </div>
@@ -3294,20 +3388,7 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
       )}
 
       {/* Toast Notification */}
-      <div className={`toast ${toastVisible ? 'show' : ''}`} style={{
-        zIndex: 100000,
-        background: '#0B2E4B',
-        color: '#FFFFFF',
-        borderRadius: '10px',
-        padding: '12px 20px',
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
-        fontSize: '13px',
-        fontWeight: '600',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        direction: 'rtl'
-      }}>
+      <div className={`toast ${toastVisible ? 'show' : ''}`}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>

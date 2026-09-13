@@ -142,9 +142,13 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
 
         const srvData = await consultantService.getConsultantServices(profileId, token).catch(() => []);
         if (Array.isArray(srvData) && srvData.length > 0) {
-          setLiveServices(srvData); setSelectedServiceId(srvData[0].id);
+          setLiveServices(srvData); 
+          setSelectedServiceId(srvData[0].id);
+          setSelectedDuration(String(srvData[0].duration_minutes || 30));
         } else if (profData?.services?.length > 0) {
-          setLiveServices(profData.services); setSelectedServiceId(profData.services[0].id);
+          setLiveServices(profData.services); 
+          setSelectedServiceId(profData.services[0].id);
+          setSelectedDuration(String(profData.services[0].duration_minutes || 30));
         }
 
         const startDate = new Date().toISOString().split('T')[0];
@@ -266,7 +270,7 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
         id: s.id,
         name: s.name,
         description: cleanServiceDescription(s.description, s.name),
-        duration_minutes: s.duration_minutes || 60,
+        duration_minutes: s.duration_minutes || 30,
         price: Math.round(Number(s.price)) || basePriceVal,
         is_active: s.is_active
       }))
@@ -779,34 +783,40 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
                   </div>
                 </div>
 
-                <div className="booking-durations" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                  <div
-                    className={`booking-dur-item ${selectedDuration === '30' ? 'active' : ''}`}
-                    onClick={() => {
-                      setSelectedDuration('30');
-                    }}
-                  >
-                    <span style={{ fontSize: '14px' }}>⏱</span>
-                    <div>
-                      <small style={{ display: 'block', color: '#64748B', fontSize: '10px' }}>جلسة استشارة</small>
-                      <b>30 دقيقة</b>
-                    </div>
-                    <small>{Math.round(basePriceVal * 0.5) || 15} د.أ</small>
-                  </div>
-
-                  <div
-                    className={`booking-dur-item ${selectedDuration === '60' ? 'active' : ''}`}
-                    onClick={() => {
-                      setSelectedDuration('60');
-                    }}
-                  >
-                    <span style={{ fontSize: '14px' }}>⏱</span>
-                    <div>
-                      <small style={{ display: 'block', color: '#64748B', fontSize: '10px' }}>جلسة محادثة</small>
-                      <b>60 دقيقة</b>
-                    </div>
-                    <small>{basePriceVal || 30} د.أ</small>
-                  </div>
+                {/* Dynamic services & durations selector */}
+                <div
+                  className="booking-durations"
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: displayServices.length === 1 ? '1fr' : (displayServices.length === 2 ? '1fr 1fr' : 'repeat(auto-fit, minmax(130px, 1fr))'),
+                    gap: '8px',
+                    margin: '14px 0'
+                  }}
+                >
+                  {displayServices.map(srv => {
+                    const isSelected = (selectedService?.id === srv.id);
+                    return (
+                      <div
+                        key={srv.id}
+                        className={`booking-dur-item ${isSelected ? 'active' : ''}`}
+                        onClick={() => {
+                          setSelectedServiceId(srv.id);
+                          setSelectedDuration(String(srv.duration_minutes || 30));
+                          setSelectedTime(null);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <span style={{ fontSize: '14px' }}>⏱</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <small style={{ display: 'block', color: isSelected ? '#C2410C' : '#64748B', fontSize: '10px', fontWeight: '700', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {srv.name}
+                          </small>
+                          <b style={{ fontSize: '12px' }}>{srv.duration_minutes || 30} دقيقة</b>
+                        </div>
+                        <small style={{ fontWeight: '800', color: isSelected ? '#EA580C' : '#0B2E4B' }}>{srv.price} د.أ</small>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div className="booking-days-row">
@@ -849,7 +859,7 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
                   </button>
                   <button onClick={handleProceedToBookingRequest}
                     style={{ width:'100%',background:'#fff',color:'#0B2E4B',border:'1px solid #0B2E4B',borderRadius:'30px',padding:'12px',fontWeight:'800',fontSize:'12.5px',cursor:'pointer',fontFamily:'inherit',marginTop:'10px' }}>
-                    إرسال طلب الحجز • {selectedDuration === '30' ? (Math.round(basePriceVal * 0.5) || 15) : (basePriceVal || 30)} د.أ
+                    إرسال طلب الحجز • {selectedService?.price ?? basePriceVal} د.أ
                   </button>
                   <p style={{ fontSize:'11px',color:'#64748B',textAlign:'center',margin:'10px 0 0' }}>✓ إلغاء مجاني حتى 24 ساعة قبل الجلسة</p>
                 </div>

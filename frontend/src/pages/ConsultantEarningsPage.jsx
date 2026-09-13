@@ -72,15 +72,15 @@ export default function ConsultantEarningsPage({ navigate }) {
     loadData();
   }, [token]);
 
-  // Compute month's total earnings (completed sessions in the current calendar month)
+  // Compute month's total earnings (completed or confirmed sessions in the current calendar month)
   const getMonthTotal = () => {
-    if (!appointments) return 0;
+    if (!appointments || appointments.length === 0) return 0;
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
 
     const completedThisMonth = appointments.filter(appt => {
-      if (appt.status !== 'completed' || !appt.scheduled_at) return false;
+      if ((appt.status !== 'completed' && appt.status !== 'confirmed') || !appt.scheduled_at) return false;
       const apptDate = new Date(appt.scheduled_at);
       return apptDate.getFullYear() === currentYear && apptDate.getMonth() === currentMonth;
     });
@@ -88,8 +88,8 @@ export default function ConsultantEarningsPage({ navigate }) {
     return completedThisMonth.reduce((sum, appt) => sum + (parseFloat(appt.price) || 0), 0);
   };
 
-  // Filter completed appointments to show in the transactions table
-  const completedAppointments = appointments.filter(appt => appt.status === 'completed');
+  // Filter completed and confirmed appointments to show in the transactions table
+  const completedAppointments = appointments.filter(appt => appt.status === 'completed' || appt.status === 'confirmed');
 
   // Submit bank details
   const handleSaveBank = async (e) => {
@@ -181,12 +181,15 @@ export default function ConsultantEarningsPage({ navigate }) {
   const availableBal = parseFloat(wallet?.available_balance) || 0;
   const totalEarned = parseFloat(wallet?.total_earned) || 0;
   const totalWithdrawn = parseFloat(wallet?.total_withdrawn) || 0;
+  const monthEarned = wallet?.month_earned !== undefined && wallet?.month_earned !== null
+    ? parseFloat(wallet.month_earned)
+    : getMonthTotal();
   
   // Limit of 50 JOD for withdrawal request
   const isWithdrawalEnabled = availableBal >= 50 && wallet?.has_bank_account;
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', direction: 'rtl', textAlign: 'right', fontFamily: "'Tajawal', sans-serif" }}>
+    <div style={{ width: '100%', maxWidth: '1200px', margin: '0 auto', padding: '16px 20px 48px', direction: 'rtl', textAlign: 'right', fontFamily: "'Tajawal', sans-serif" }}>
       
       {/* Back Button */}
       <button 
@@ -220,8 +223,23 @@ export default function ConsultantEarningsPage({ navigate }) {
 
       <Toast {...toast} />
 
-      {/* 3 cards row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+      {/* 3 cards row - horizontal side-by-side */}
+      <style>{`
+        .consultant-earnings-cards-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 20px;
+          margin-bottom: 32px;
+          width: 100%;
+        }
+        @media (max-width: 860px) {
+          .consultant-earnings-cards-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+      
+      <div className="consultant-earnings-cards-grid">
         
         {/* Card 1: Available balance with action */}
         <div style={{ 
@@ -299,7 +317,7 @@ export default function ConsultantEarningsPage({ navigate }) {
             }}>↗</div>
           </div>
           <div style={{ fontSize: '32px', fontWeight: '800', color: '#0D3C5C', margin: '12px 0' }}>
-            {getMonthTotal().toFixed(2)} <span style={{ fontSize: '16px', fontWeight: '600' }}>{currencyStr}</span>
+            {monthEarned.toFixed(2)} <span style={{ fontSize: '16px', fontWeight: '600', color: '#64748B' }}>{currencyStr}</span>
           </div>
           <span style={{ fontSize: '12px', color: '#94A3B8' }}>قبل العمولة</span>
         </div>
@@ -331,7 +349,7 @@ export default function ConsultantEarningsPage({ navigate }) {
             }}>📥</div>
           </div>
           <div style={{ fontSize: '32px', fontWeight: '800', color: '#0D3C5C', margin: '12px 0' }}>
-            {totalWithdrawn.toFixed(2)} <span style={{ fontSize: '16px', fontWeight: '600' }}>{currencyStr}</span>
+            {totalWithdrawn.toFixed(2)} <span style={{ fontSize: '16px', fontWeight: '600', color: '#64748B' }}>{currencyStr}</span>
           </div>
           <span style={{ fontSize: '12px', color: '#94A3B8' }}>منذ بداية الحساب</span>
         </div>
@@ -361,6 +379,7 @@ export default function ConsultantEarningsPage({ navigate }) {
                   <th style={{ padding: '12px 8px' }}>التاريخ</th>
                   <th style={{ padding: '12px 8px' }}>العميل</th>
                   <th style={{ padding: '12px 8px' }}>الجلسة</th>
+                  <th style={{ padding: '12px 8px' }}>الحالة</th>
                   <th style={{ padding: '12px 8px' }}>القيمة</th>
                   <th style={{ padding: '12px 8px' }}>العمولة</th>
                   <th style={{ padding: '12px 8px', textAlign: 'left' }}>الصافي</th>
@@ -384,6 +403,18 @@ export default function ConsultantEarningsPage({ navigate }) {
                       </td>
                       <td style={{ padding: '12px 8px', color: '#005D9C' }}>
                         {getServiceName(appt.service_id)}
+                      </td>
+                      <td style={{ padding: '12px 8px' }}>
+                        <span style={{
+                          padding: '4px 10px',
+                          borderRadius: '20px',
+                          fontSize: '11px',
+                          fontWeight: '700',
+                          backgroundColor: appt.status === 'completed' ? '#DCFCE7' : '#FEF3C7',
+                          color: appt.status === 'completed' ? '#166534' : '#92400E'
+                        }}>
+                          {appt.status === 'completed' ? 'مكتملة' : 'مؤكدة'}
+                        </span>
                       </td>
                       <td style={{ padding: '12px 8px', fontWeight: '700', color: '#334155' }}>
                         {priceVal.toFixed(2)} {currencyStr}

@@ -134,7 +134,8 @@ export default function ConsultantProfilePage({ navigate }) {
       const el = document.getElementById(sec.id);
       if (el) {
         const elRect = el.getBoundingClientRect();
-        if (elRect.top <= containerRect.top + 80) {
+        // Check if top of section is within reasonable range from top of scroll container
+        if (elRect.top <= containerRect.top + 100) {
           current = sec.key;
         }
       }
