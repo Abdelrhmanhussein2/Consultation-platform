@@ -25,13 +25,7 @@ export function getAdminToken() {
   if (typeof window !== 'undefined') {
     if (window.__ADMIN_TOKEN__) return window.__ADMIN_TOKEN__;
     try {
-      const storedToken =
-        getCookie('token') ||
-        getCookie('admin_token') ||
-        localStorage.getItem('token') ||
-        sessionStorage.getItem('token') ||
-        localStorage.getItem('admin_token') ||
-        sessionStorage.getItem('admin_token');
+      const storedToken = getCookie('token') || getCookie('admin_token');
       if (storedToken) return storedToken;
     } catch {}
   }
@@ -163,6 +157,28 @@ export async function handleConsultantAction(userId, action, rejection_reason = 
   return adminRequest(`/super-admin/consultants/${userId}/action`, {
     method: 'POST',
     body: JSON.stringify({ action, rejection_reason })
+  });
+}
+
+export async function sendDirectUserMessage(userId, { title = 'رسالة من إدارة المنصة', message }) {
+  return adminRequest(`/super-admin/users/${userId}/message`, {
+    method: 'POST',
+    body: JSON.stringify({ title, message })
+  });
+}
+
+export async function getUserMessages(userId) {
+  return adminRequest(`/super-admin/users/${userId}/messages`);
+}
+
+export async function getAppointmentMessages(appointmentId, page = 1, limit = 50) {
+  return adminRequest(`/chat/${appointmentId}/messages?page=${page}&limit=${limit}`);
+}
+
+export async function sendAppointmentMessage(appointmentId, messageText) {
+  return adminRequest(`/chat/${appointmentId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({ message_text: messageText })
   });
 }
 

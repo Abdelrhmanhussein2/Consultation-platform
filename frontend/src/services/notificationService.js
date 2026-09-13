@@ -34,6 +34,14 @@ export const notificationService = {
     return await apiFetch(`/api/notifications/${id}`, {
       method: 'DELETE'
     }, token);
+  },
+
+  // Contact Admin
+  async contactAdmin(message, token) {
+    return await apiFetch('/api/notifications/contact-admin', {
+      method: 'POST',
+      body: JSON.stringify({ message })
+    }, token);
   }
 };
 

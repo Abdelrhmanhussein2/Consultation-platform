@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getPendingConsultants, handleConsultantAction } from '../../services/adminApi';
+import ModernSelect from '../../../components/ModernSelect';
+import FilterResetButton from '../../../components/FilterResetButton';
 import ConsultantCredentialModal from './ConsultantCredentialModal';
 import RejectConsultantModal from './RejectConsultantModal';
 
@@ -10,6 +12,8 @@ export default function ConsultantsTab() {
   const [actionMessage, setActionMessage] = useState('');
   const [selectedConsultant, setSelectedConsultant] = useState(null);
   const [rejectingConsultant, setRejectingConsultant] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchConsultants = async () => {
     setLoading(true);
@@ -59,10 +63,35 @@ export default function ConsultantsTab() {
     }
   };
 
+  const handleResetFilters = () => {
+    setStatusFilter('all');
+    setSearchQuery('');
+  };
+
+  const filteredConsultants = consultants.filter((c) => {
+    const st = (c.verification_status || c.status || 'قيد التوثيق').toLowerCase();
+    const matchStatus = statusFilter === 'all' || 
+      (statusFilter === 'pending' && (st.includes('توثيق') || st.includes('pending'))) ||
+      (statusFilter === 'approved' && (st.includes('موثق') || st.includes('approved') || st.includes('active'))) ||
+      (statusFilter === 'rejected' && (st.includes('مرفوض') || st.includes('rejected'))) ||
+      (statusFilter === 'renewal' && (st.includes('تجديد') || st.includes('renewal')));
+
+    const q = searchQuery.trim().toLowerCase();
+    const matchSearch = !q || [
+      c.name,
+      c.full_name,
+      c.email,
+      c.specialization,
+      c.license_number
+    ].filter(Boolean).join(' ').toLowerCase().includes(q);
+
+    return matchStatus && matchSearch;
+  });
+
   const kanbanLanes = ['قيد التوثيق', 'موثق', 'مرفوض', 'قيد التجديد'];
 
   const getConsultantsForLane = (lane) => {
-    return consultants.filter((c) => {
+    return filteredConsultants.filter((c) => {
       const st = (c.verification_status || c.status || 'قيد التوثيق').toLowerCase();
       if (lane === 'قيد التوثيق') return st.includes('توثيق') || st.includes('pending');
       if (lane === 'موثق') return st.includes('موثق') || st.includes('active') || st.includes('approved');
@@ -75,14 +104,40 @@ export default function ConsultantsTab() {
   return (
     <div>
       {/* Top Toolbar */}
-      <div className="cc-toolbar">
-        <div className="cc-toolbar-right">
-          <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800 }}>
+      <div className="cc-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
+        <div className="cc-toolbar-right" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0D3C5C' }}>
             إدارة اعتمادات وحالات المستشارين
           </h3>
+
+          <div style={{ width: '160px' }}>
+            <ModernSelect
+              options={[
+                { value: 'all', label: 'جميع الحالات' },
+                { value: 'pending', label: 'قيد التوثيق' },
+                { value: 'approved', label: 'موثّق ومعتمد' },
+                { value: 'rejected', label: 'مرفوض' },
+                { value: 'renewal', label: 'قيد التجديد' }
+              ]}
+              value={statusFilter}
+              onChange={setStatusFilter}
+              placeholder="جميع الحالات"
+            />
+          </div>
+
+          <FilterResetButton onClick={handleResetFilters} size={38} title="إعادة ضبط الفلاتر" />
         </div>
 
-        <div className="cc-toolbar-left">
+        <div className="cc-toolbar-left" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <input
+            type="text"
+            className="cc-input cc-search-input"
+            placeholder="بحث بالاسم، التخصص، الترخيص..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ width: '220px', height: '38px', borderRadius: '8px', border: '1px solid #CBD5E1', padding: '0 12px', fontSize: '12px', textAlign: 'right' }}
+          />
+
           <div className="cc-view-toggle">
             <button
               className={`cc-view-btn ${viewMode === 'kanban' ? 'active' : ''}`}

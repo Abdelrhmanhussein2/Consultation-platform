@@ -42,11 +42,13 @@
 .registry-page .filter-label{font-size:10.5px;color:#64748b}
 .registry-page .view-title{display:flex;align-items:center;justify-content:space-between;margin:3px 0 8px}
 .registry-page .view-title h3{font-size:13px;margin:0;font-weight:700;color:var(--primary-dark)}
-.registry-page .view-title span{font-size:10.5px;color:var(--muted)}
+.registry-page .view-title span{font-size:11px;color:var(--muted);font-weight:600}
 .registry-page .table-wrap{
   width: 100%;
   overflow-x: hidden;
-  border-radius: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #ffffff;
 }
 .registry-page table{
   width: 100%;
@@ -57,61 +59,67 @@
 }
 .registry-page thead th{
   background: var(--head);
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: 11.5px;
+  font-weight: 800;
   text-align: right;
-  padding: 8px 6px;
+  padding: 11px 10px;
   border-bottom: 1px solid var(--line);
   white-space: nowrap;
   color: #334155;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.registry-page tbody tr{transition:.12s background}
+.registry-page tbody tr{
+  transition: .15s background;
+  border-bottom: 1px solid #f1f5f9;
+}
+.registry-page tbody tr:last-child{border-bottom:none}
 .registry-page tbody tr:hover{background:#f8fafc}
 .registry-page tbody td{
-  font-size: 11px;
-  padding: 7px 6px;
-  border-bottom: 1px solid var(--line);
+  font-size: 11.5px;
+  padding: 10px 10px;
   vertical-align: middle;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .registry-page .record-name{
-  font-weight: 600;
+  font-weight: 700;
   color: #0f172a;
+  font-size: 12.5px;
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.35;
 }
 .registry-page .record-sub{
   display: block;
-  color: #94a3b8;
-  font-size: 9.5px;
-  margin-top: 1px;
+  color: #64748b;
+  font-size: 10.5px;
+  margin-top: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .registry-page .status{
   display: inline-flex;
-  min-width: 68px;
+  min-width: 72px;
   justify-content: center;
   align-items: center;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 9.5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 10.5px;
   font-weight: 700;
 }
 .s-green{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0}.s-orange{background:#fffbeb;color:#92400e;border:1px solid #fde68a}.s-pink{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}.s-slate{background:#f8fafc;color:#475569;border:1px solid #e2e8f0}.s-cyan{background:var(--primary-light);color:var(--primary);border:1px solid var(--primary-border)}
-.action-set{display:flex;gap:4px}
-.small{width:26px;height:26px}
-.small svg{width:12px;height:12px}
-.footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px;font-size:10.5px}
-.pagination{display:flex;gap:4px;align-items:center}
-.page-btn{min-width:28px;height:28px;border:1px solid #d9e0e7;background:#fff;border-radius:5px;cursor:pointer;color:#677480;padding:0 6px;font-size:10.5px}
+.action-set{display:flex;gap:5px;align-items:center;justify-content:center}
+.small{width:28px;height:28px;border-radius:6px}
+.small svg{width:13px;height:13px}
+.footer{display:flex;align-items:center;justify-content:space-between;margin-top:14px;font-size:11px;color:#64748b}
+.pagination{display:flex;gap:5px;align-items:center}
+.page-btn{min-width:30px;height:30px;border:1px solid #d9e0e7;background:#fff;border-radius:6px;cursor:pointer;color:#475569;padding:0 8px;font-size:11px;font-weight:600;transition:.15s}
+.page-btn:hover:not(:disabled){border-color:var(--primary-border);background:var(--primary-light);color:var(--primary)}
 .page-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 .page-btn:disabled{opacity:.45;cursor:not-allowed}
 

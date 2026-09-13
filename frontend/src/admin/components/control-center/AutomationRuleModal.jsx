@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createAutomationRule, updateAutomationRule } from '../../services/adminApi';
+import ModernSelect from '../../../components/ModernSelect';
 
 export default function AutomationRuleModal({ rule, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -91,51 +92,51 @@ export default function AutomationRuleModal({ rule, onClose, onSuccess }) {
           <div className="cc-form-row">
             <div className="cc-form-group">
               <label>حدث التشغيل (Trigger Event)</label>
-              <select
-                className="cc-select"
+              <ModernSelect
                 style={{ width: '100%' }}
                 value={formData.trigger_event}
-                onChange={(e) => setFormData({ ...formData, trigger_event: e.target.value })}
-              >
-                <option value="rating_submitted">إضافة تقييم جلسة (rating_submitted)</option>
-                <option value="appointment_cancelled">إلغاء موعد (appointment_cancelled)</option>
-                <option value="ticket_escalated">تصعيد تذكرة (ticket_escalated)</option>
-                <option value="consultant_registered">تسجيل مستشار جديد (consultant_registered)</option>
-                <option value="payout_requested">طلب سحب رصيد (payout_requested)</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, trigger_event: val })}
+                options={[
+                  { value: 'rating_submitted', label: 'إضافة تقييم جلسة (rating_submitted)' },
+                  { value: 'appointment_cancelled', label: 'إلغاء موعد (appointment_cancelled)' },
+                  { value: 'ticket_escalated', label: 'تصعيد تذكرة (ticket_escalated)' },
+                  { value: 'consultant_registered', label: 'تسجيل مستشار جديد (consultant_registered)' },
+                  { value: 'payout_requested', label: 'طلب سحب رصيد (payout_requested)' }
+                ]}
+              />
             </div>
 
             <div className="cc-form-group">
               <label>حقل الشرط (Condition Field)</label>
-              <select
-                className="cc-select"
+              <ModernSelect
                 style={{ width: '100%' }}
                 value={formData.condition_field}
-                onChange={(e) => setFormData({ ...formData, condition_field: e.target.value })}
-              >
-                <option value="rating">درجة التقييم (rating)</option>
-                <option value="amount">المبلغ / القيمة (amount)</option>
-                <option value="cancellation_count">عدد الإلغاءات (cancellation_count)</option>
-                <option value="status">الحالة (status)</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, condition_field: val })}
+                options={[
+                  { value: 'rating', label: 'درجة التقييم (rating)' },
+                  { value: 'amount', label: 'المبلغ / القيمة (amount)' },
+                  { value: 'cancellation_count', label: 'عدد الإلغاءات (cancellation_count)' },
+                  { value: 'status', label: 'الحالة (status)' }
+                ]}
+              />
             </div>
           </div>
 
           <div className="cc-form-row">
             <div className="cc-form-group">
               <label>المعامل الشرطي (Operator)</label>
-              <select
-                className="cc-select"
+              <ModernSelect
                 style={{ width: '100%' }}
                 value={formData.condition_op}
-                onChange={(e) => setFormData({ ...formData, condition_op: e.target.value })}
-              >
-                <option value="lte">أقل من أو يساوي (&le;)</option>
-                <option value="gte">أكبر من أو يساوي (&ge;)</option>
-                <option value="eq">يساوي (=)</option>
-                <option value="contains">يحتوي على (contains)</option>
-                <option value="always">دائماً بدون شرط (always)</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, condition_op: val })}
+                options={[
+                  { value: 'lte', label: 'أقل من أو يساوي (≤)' },
+                  { value: 'gte', label: 'أكبر من أو يساوي (≥)' },
+                  { value: 'eq', label: 'يساوي (=)' },
+                  { value: 'contains', label: 'يحتوي على (contains)' },
+                  { value: 'always', label: 'دائماً بدون شرط (always)' }
+                ]}
+              />
             </div>
 
             <div className="cc-form-group">
@@ -154,33 +155,33 @@ export default function AutomationRuleModal({ rule, onClose, onSuccess }) {
           <div className="cc-form-row">
             <div className="cc-form-group">
               <label>الإجراء التلقائي (Action Type)</label>
-              <select
-                className="cc-select"
+              <ModernSelect
                 style={{ width: '100%' }}
                 value={formData.action_type}
-                onChange={(e) => setFormData({ ...formData, action_type: e.target.value })}
-              >
-                <option value="notify_admin">إرسال إشعار فوري للأدمن (notify_admin)</option>
-                <option value="notify_consultant">إرسال تنبيه للمستشار (notify_consultant)</option>
-                <option value="escalate_ticket">تصعيد التذكرة تلقائياً (escalate_ticket)</option>
-                <option value="pause_consultant">تجميد حساب المستشار مؤقتاً (pause_consultant)</option>
-                <option value="flag_risk">وضع علامة مخاطر high_risk (flag_risk)</option>
-                <option value="send_email">إرسال بريد إلكتروني (send_email)</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, action_type: val })}
+                options={[
+                  { value: 'notify_admin', label: 'إرسال إشعار فوري للأدمن (notify_admin)' },
+                  { value: 'notify_consultant', label: 'إرسال تنبيه للمستشار (notify_consultant)' },
+                  { value: 'escalate_ticket', label: 'تصعيد التذكرة تلقائياً (escalate_ticket)' },
+                  { value: 'pause_consultant', label: 'تجميد حساب المستشار مؤقتاً (pause_consultant)' },
+                  { value: 'flag_risk', label: 'وضع علامة مخاطر high_risk (flag_risk)' },
+                  { value: 'send_email', label: 'إرسال بريد إلكتروني (send_email)' }
+                ]}
+              />
             </div>
 
             <div className="cc-form-group">
               <label>حالة القاعدة</label>
-              <select
-                className="cc-select"
+              <ModernSelect
                 style={{ width: '100%' }}
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              >
-                <option value="active">نشط (Active)</option>
-                <option value="paused">متوقف (Paused)</option>
-                <option value="needs_review">تحتاج مراجعة (Needs Review)</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, status: val })}
+                options={[
+                  { value: 'active', label: 'نشط (Active)' },
+                  { value: 'paused', label: 'متوقف (Paused)' },
+                  { value: 'needs_review', label: 'تحتاج مراجعة (Needs Review)' }
+                ]}
+              />
             </div>
           </div>
 

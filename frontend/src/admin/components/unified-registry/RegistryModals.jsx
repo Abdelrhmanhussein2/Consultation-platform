@@ -1,4 +1,5 @@
 import React from 'react';
+import ModernSelect from '../../../components/ModernSelect';
 
 export default function RegistryModals({
   activeModal,
@@ -32,17 +33,12 @@ export default function RegistryModals({
                 </div>
                 <div className="field">
                   <label>الحالة الجديدة</label>
-                  <select
+                  <ModernSelect
+                    style={{ width: '100%' }}
                     value={modalForm.status || 'نشط'}
-                    onChange={(e) => setModalForm({ ...modalForm, status: e.target.value })}
-                  >
-                    <option value="نشط">نشط</option>
-                    <option value="مؤكدة">مؤكدة</option>
-                    <option value="مكتملة">مكتملة</option>
-                    <option value="مفتوحة">مفتوحة</option>
-                    <option value="معلقة">معلقة</option>
-                    <option value="تحتاج متابعة">تحتاج متابعة</option>
-                  </select>
+                    onChange={(val) => setModalForm({ ...modalForm, status: val })}
+                    options={['نشط', 'مؤكدة', 'مكتملة', 'مفتوحة', 'معلقة', 'تحتاج متابعة']}
+                  />
                 </div>
               </div>
               <div className="field">
@@ -94,19 +90,21 @@ export default function RegistryModals({
               </div>
               <div className="field">
                 <label>نوع السجل المطلوب</label>
-                <select
+                <ModernSelect
+                  style={{ width: '100%' }}
                   value={selectedModule}
-                  onChange={(e) => setSelectedModule(e.target.value)}
-                >
-                  <option value="الكل">كل السجلات</option>
-                  <option value="مستخدم">المستخدمون</option>
-                  <option value="مستشار">المستشارون</option>
-                  <option value="استشارة">الاستشارات</option>
-                  <option value="تذكرة دعم">تذاكر الدعم</option>
-                  <option value="فاتورة">الفواتير</option>
-                  <option value="اعتماد">الاعتمادات</option>
-                  <option value="أتمتة">الأتمتة</option>
-                </select>
+                  onChange={(val) => setSelectedModule(val)}
+                  options={[
+                    { value: 'الكل', label: 'كل السجلات' },
+                    { value: 'مستخدم', label: 'المستخدمون' },
+                    { value: 'مستشار', label: 'المستشارون' },
+                    { value: 'استشارة', label: 'الاستشارات' },
+                    { value: 'تذكرة دعم', label: 'تذاكر الدعم' },
+                    { value: 'فاتورة', label: 'الفواتير' },
+                    { value: 'اعتماد', label: 'الاعتمادات' },
+                    { value: 'أتمتة', label: 'الأتمتة' }
+                  ]}
+                />
               </div>
             </div>
             <div className="modal-actions">

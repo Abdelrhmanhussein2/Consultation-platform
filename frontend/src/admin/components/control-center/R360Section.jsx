@@ -1,5 +1,7 @@
 import React from 'react';
 import { cls } from './utils/controlCenterHelpers';
+import ModernSelect from '../../../components/ModernSelect';
+import FilterResetButton from '../../../components/FilterResetButton';
 
 export default function R360Section({
   activeTab,
@@ -20,42 +22,54 @@ export default function R360Section({
 }) {
   if (activeTab !== 'r360') return null;
 
+  const isFiltered = (r360Type && r360Type !== 'الكل') || (r360Status && r360Status !== 'الكل');
+
+  const handleReset = () => {
+    setR360Type('الكل');
+    setR360Status('الكل');
+    setR360Page(1);
+  };
+
   return (
     <section className="section active">
-      <div className="filters">
-        <select
-          id="entityType"
-          className="filter-select"
+      <div className="filters" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <ModernSelect
+          style={{ width: '150px' }}
           value={r360Type}
-          onChange={(e) => {
-            setR360Type(e.target.value);
+          onChange={(val) => {
+            setR360Type(val);
             setR360Page(1);
           }}
-        >
-          <option value="الكل">كل السجلات</option>
-          <option value="مستخدم">مستخدم</option>
-          <option value="مستشار">مستشار</option>
-          <option value="مدير منصة">مدير منصة</option>
-          <option value="استشارة">استشارة</option>
-        </select>
+          options={[
+            { value: 'الكل', label: 'كل السجلات' },
+            { value: 'مستخدم', label: 'مستخدم' },
+            { value: 'مستشار', label: 'مستشار' },
+            { value: 'مدير منصة', label: 'مدير منصة' },
+            { value: 'استشارة', label: 'استشارة' }
+          ]}
+        />
 
-        <select
-          id="entityStatus"
-          className="filter-select"
+        <ModernSelect
+          style={{ width: '160px' }}
           value={r360Status}
-          onChange={(e) => {
-            setR360Status(e.target.value);
+          onChange={(val) => {
+            setR360Status(val);
             setR360Page(1);
           }}
-        >
-          <option value="الكل">كل الحالات</option>
-          <option value="نشط">نشط</option>
-          <option value="تحتاج متابعة">تحتاج متابعة</option>
-          <option value="قيد التوثيق">قيد التوثيق</option>
-          <option value="قيد التجديد">قيد التجديد</option>
-          <option value="مؤكدة">مؤكدة</option>
-          <option value="معلقة">معلقة</option>
-        </select>
+          options={[
+            { value: 'الكل', label: 'كل الحالات' },
+            { value: 'نشط', label: 'نشط' },
+            { value: 'تحتاج متابعة', label: 'تحتاج متابعة' },
+            { value: 'قيد التوثيق', label: 'قيد التوثيق' },
+            { value: 'قيد التجديد', label: 'قيد التجديد' },
+            { value: 'مؤكدة', label: 'مؤكدة' },
+            { value: 'معلقة', label: 'معلقة' }
+          ]}
+        />
+
+        {isFiltered && (
+          <FilterResetButton onClick={handleReset} title="إعادة ضبط الفلاتر" />
+        )}
 
         <div className="view-switch">
           <button

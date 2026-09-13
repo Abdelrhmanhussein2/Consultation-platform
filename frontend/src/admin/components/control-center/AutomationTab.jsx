@@ -7,6 +7,8 @@ import {
   getAutomationRuleEffects
 } from '../../services/adminApi';
 import AutomationRuleModal from './AutomationRuleModal';
+import ModernSelect from '../../../components/ModernSelect';
+import FilterResetButton from '../../../components/FilterResetButton';
 
 export default function AutomationTab() {
   const [rules, setRules] = useState([]);
@@ -77,21 +79,30 @@ export default function AutomationTab() {
     }
   };
 
+  const handleResetFilters = () => {
+    setStatusFilter('all');
+    setSearchQuery('');
+  };
+
   return (
     <div>
       {/* Controls & Toolbar Row */}
       <div className="cc-toolbar">
-        <div className="cc-toolbar-right">
-          <select
-            className="cc-select"
+        <div className="cc-toolbar-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ModernSelect
+            style={{ width: '180px' }}
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">جميع الحالات</option>
-            <option value="active">نشطة (Active)</option>
-            <option value="paused">متوقفة (Paused)</option>
-            <option value="needs_review">تحتاج مراجعة (Needs Review)</option>
-          </select>
+            onChange={(val) => setStatusFilter(val)}
+            options={[
+              { value: 'all', label: 'جميع الحالات' },
+              { value: 'active', label: 'نشطة (Active)' },
+              { value: 'paused', label: 'متوقفة (Paused)' },
+              { value: 'needs_review', label: 'تحتاج مراجعة' }
+            ]}
+          />
+          {(statusFilter !== 'all' || searchQuery.trim() !== '') && (
+            <FilterResetButton onClick={handleResetFilters} title="إعادة ضبط الفلاتر" />
+          )}
         </div>
 
         <div className="cc-toolbar-left">

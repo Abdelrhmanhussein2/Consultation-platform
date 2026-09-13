@@ -47,7 +47,7 @@ from schemes.schemes import (
     AdminUpdateUserRequest, AdminResetPasswordRequest, AccountRoleSchema, AccountRoleCreate,
 
     # Admin Broadcast Notification
-    AdminBroadcastNotification, BroadcastResultOut,
+    AdminBroadcastNotification, BroadcastResultOut, AdminDirectUserMessage,
 
     # Sessions (Admin)
     AdminSessionOut, AdminSessionJoinOut, AdminUpdateSessionStatus,

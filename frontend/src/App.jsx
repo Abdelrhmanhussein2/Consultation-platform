@@ -201,51 +201,56 @@ function MainApp() {
       return <UserSettingsPage navigate={navigate} />;
     }
 
-    // Consultant Portal Screens
-    if (pathname === '/consultant' || pathname === '/consultant/' || pathname === '/consultant/dashboard') {
-      return <ConsultantDashboard navigate={navigate} />;
-    }
-    if (pathname === '/consultant/services') {
-      return <ConsultantServicesPage navigate={navigate} />;
-    }
-    if (pathname === '/consultant/schedule') {
-      return <ConsultantSchedulePage navigate={navigate} />;
-    }
-    if (pathname === '/consultant/sessions') {
-      return <ConsultantSessionsPage navigate={navigate} />;
-    }
-    if (pathname === '/consultant/clients') {
-      return <ConsultantClientsPage navigate={navigate} />;
-    }
-    if (pathname === '/consultant/profile') {
-      return <ConsultantProfilePage navigate={navigate} />;
-    }
-    if (pathname === '/consultant/earnings') {
-      return <ConsultantEarningsPage navigate={navigate} />;
-    }
-    if (pathname === '/consultant/semantic-search') {
-      return <PlaceholderPage title="البحث الدلالي للمستشار" />;
-    }
-    if (pathname === '/consultant/document-analysis') {
-      return <DocumentAnalysisPage navigate={navigate} />;
-    }
-    if (pathname === '/consultant/colleagues') {
-      return <ConsultantsPage navigate={navigate} />;
-    }
-    if (pathname === '/consultant/subscriptions') {
-      return <ConsultantSubscriptionsPage navigate={navigate} />;
-    }
-    if (pathname === '/consultant/payments') {
-      return <ConsultantPaymentsPage navigate={navigate} />;
-    }
-    if (pathname === '/consultant/documents') {
-      return <ConsultantDocumentsPage />;
-    }
-    if (pathname === '/consultant/favorites') {
-      return <ConsultantFavoritesPage navigate={navigate} />;
-    }
-    if (pathname === '/consultant/templates') {
-      return <ConsultantTemplatesPage />;
+    // Consultant Portal Screens (Only for approved consultants)
+    if (pathname.startsWith('/consultant')) {
+      if (user?.role !== 'consultant' && user?.role !== 'platform_consultant') {
+        return <UserDashboard navigate={navigate} />;
+      }
+      if (pathname === '/consultant' || pathname === '/consultant/' || pathname === '/consultant/dashboard') {
+        return <ConsultantDashboard navigate={navigate} />;
+      }
+      if (pathname === '/consultant/services') {
+        return <ConsultantServicesPage navigate={navigate} />;
+      }
+      if (pathname === '/consultant/schedule') {
+        return <ConsultantSchedulePage navigate={navigate} />;
+      }
+      if (pathname === '/consultant/sessions') {
+        return <ConsultantSessionsPage navigate={navigate} />;
+      }
+      if (pathname === '/consultant/clients') {
+        return <ConsultantClientsPage navigate={navigate} />;
+      }
+      if (pathname === '/consultant/profile') {
+        return <ConsultantProfilePage navigate={navigate} />;
+      }
+      if (pathname === '/consultant/earnings') {
+        return <ConsultantEarningsPage navigate={navigate} />;
+      }
+      if (pathname === '/consultant/semantic-search') {
+        return <PlaceholderPage title="البحث الدلالي للمستشار" />;
+      }
+      if (pathname === '/consultant/document-analysis') {
+        return <DocumentAnalysisPage navigate={navigate} />;
+      }
+      if (pathname === '/consultant/colleagues') {
+        return <ConsultantsPage navigate={navigate} />;
+      }
+      if (pathname === '/consultant/subscriptions') {
+        return <ConsultantSubscriptionsPage navigate={navigate} />;
+      }
+      if (pathname === '/consultant/payments') {
+        return <ConsultantPaymentsPage navigate={navigate} />;
+      }
+      if (pathname === '/consultant/documents') {
+        return <ConsultantDocumentsPage />;
+      }
+      if (pathname === '/consultant/favorites') {
+        return <ConsultantFavoritesPage navigate={navigate} />;
+      }
+      if (pathname === '/consultant/templates') {
+        return <ConsultantTemplatesPage />;
+      }
     }
 
     // Default Portal page

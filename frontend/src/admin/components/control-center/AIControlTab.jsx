@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getAIControlConfig, updateAIControlConfig } from '../../services/adminApi';
+import ModernSelect from '../../../components/ModernSelect';
 
 export default function AIControlTab() {
   const [config, setConfig] = useState({
@@ -102,16 +103,16 @@ export default function AIControlTab() {
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
                   نموذج الذكاء الاصطناعي المعرفي
                 </label>
-                <select
-                  className="cc-select"
+                <ModernSelect
                   style={{ width: '100%' }}
                   value={config.default_model}
-                  onChange={(e) => setConfig({ ...config, default_model: e.target.value })}
-                >
-                  <option value="gpt-4-turbo">OpenAI GPT-4 Turbo (الموصى به للاستشارات الضريبية والقانونية)</option>
-                  <option value="claude-3-5-sonnet">Anthropic Claude 3.5 Sonnet (معدل تحليل المستندات والعقود)</option>
-                  <option value="custom-diwan-legal">Diwan Fine-Tuned Legal Model v2.4</option>
-                </select>
+                  onChange={(val) => setConfig({ ...config, default_model: val })}
+                  options={[
+                    { value: 'gpt-4-turbo', label: 'OpenAI GPT-4 Turbo (الموصى به للاستشارات الضريبية والقانونية)' },
+                    { value: 'claude-3-5-sonnet', label: 'Anthropic Claude 3.5 Sonnet (معدل تحليل المستندات والعقود)' },
+                    { value: 'custom-diwan-legal', label: 'Diwan Fine-Tuned Legal Model v2.4' }
+                  ]}
+                />
               </div>
 
               <div style={{ marginBottom: '16px' }}>

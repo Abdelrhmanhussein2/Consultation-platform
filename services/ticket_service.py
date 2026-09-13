@@ -237,23 +237,38 @@ class TicketService:
         db.refresh(reply)
         reply.message = raw_msg
 
-        # Notify Admin / Support team that user replied
+        # Notify Admin / Support team that user/consultant replied
         try:
             submitter = db.query(User).filter(User.id == author_id).first()
-            submitter_name = submitter.full_name if submitter else "المستخدم"
-            admins = db.query(User).filter(User.role.in_([UserRole.admin, UserRole.super_admin])).all()
-            for admin in admins:
+            is_consultant = submitter and str(submitter.role) in ['consultant', 'platform_consultant', UserRole.consultant.value]
+            role_label = "المستشار" if is_consultant else "المستخدم"
+            submitter_name = submitter.full_name if submitter else role_label
+
+            admins = db.query(User).filter(
+                or_(
+                    User.role == UserRole.admin,
+                    User.role == UserRole.super_admin,
+                    User.role == 'admin',
+                    User.role == 'super_admin'
+                )
+            ).all()
+
+            target_admin_ids = {a.id for a in admins}
+            if ticket.assigned_to:
+                target_admin_ids.add(ticket.assigned_to)
+
+            for admin_id in target_admin_ids:
                 NotificationService.send(
                     db=db,
-                    user_id=admin.id,
+                    user_id=admin_id,
                     notification_type=NotificationType.system_announcement,
-                    title="رد جديد من المستخدم على التذكرة",
-                    message=f"قام {submitter_name} بإضافة رد على تذكرة الدعم {ticket.ticket_number}: '{raw_msg[:60]}...'",
+                    title=f"رد جديد من {role_label} على التذكرة",
+                    message=f"قام {role_label} {submitter_name} بإضافة رد على تذكرة الدعم {ticket.ticket_number}: '{raw_msg[:70]}...'",
                     related_entity_type="support_ticket",
                     related_entity_id=ticket.id
                 )
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[TicketService] Error dispatching admin reply notification: {e}")
 
         return reply
 

@@ -61,6 +61,8 @@ export default function AdminChatManagementPage({ navigate }) {
   const [data, setData] = useState(EMPTY_DATA);
   const [chatMessages, setChatMessages] = useState({ ticket: {}, platform: {} });
   const [replyText, setReplyText] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const isSendingRef = useRef(false);
   const [systemUsers, setSystemUsers] = useState([]);
 
   // Modals & Overlays
@@ -312,8 +314,13 @@ export default function AdminChatManagementPage({ navigate }) {
   // SEND MESSAGE (PERSISTED TO POSTGRESQL)
   // ══════════════════════════════════════════════════════════════════════════
   const handleSendMessage = async () => {
-    if (!replyText.trim()) return;
+    if (isSendingRef.current || !replyText.trim()) return;
+    isSendingRef.current = true;
+    setIsSending(true);
+
     const currentMsgText = replyText.trim();
+    setReplyText('');
+
     const newMsg = {
       sender: 'out',
       name: 'إدارة المنصة',
@@ -330,25 +337,30 @@ export default function AdminChatManagementPage({ navigate }) {
       return copy;
     });
 
-    setReplyText('');
-
-    if (activePerson.realId) {
-      try {
+    try {
+      if (activePerson.realId) {
         await replyAdminTicket(activePerson.realId, {
           reply_text: currentMsgText,
           is_internal: false
         });
         showToast('تم إرسال الرد وحفظه في النظام بنجاح!', 'success');
-      } catch (e) {
-        console.error('Live reply sync error:', e);
-        showToast('فشل حفظ الرد في قاعدة البيانات', 'error');
+      } else {
+        showToast('تم إرسال الرد بنجاح!', 'success');
       }
-    } else {
-      showToast('تم إرسال الرد بنجاح!', 'success');
+    } catch (e) {
+      console.error('Live reply sync error:', e);
+      showToast('فشل حفظ الرد في قاعدة البيانات', 'error');
+    } finally {
+      isSendingRef.current = false;
+      setIsSending(false);
     }
   };
 
   const handleSendAndClose = async () => {
+    if (isSendingRef.current) return;
+    isSendingRef.current = true;
+    setIsSending(true);
+
     const currentMsgText = replyText.trim();
     if (currentMsgText) {
       const newMsg = {
@@ -376,8 +388,8 @@ export default function AdminChatManagementPage({ navigate }) {
       return copy;
     });
 
-    if (activePerson.realId) {
-      try {
+    try {
+      if (activePerson.realId) {
         if (currentMsgText) {
           await replyAdminTicket(activePerson.realId, {
             reply_text: currentMsgText,
@@ -386,12 +398,15 @@ export default function AdminChatManagementPage({ navigate }) {
         }
         await closeAdminTicket(activePerson.realId, 'تم الحل والإغلاق من قبل الإدارة');
         showToast('تم إرسال الرد وإغلاق التذكرة بنجاح في قاعدة البيانات!', 'success');
-      } catch (e) {
-        console.error('Live status update error:', e);
-        showToast('تم تحديث الحالة محلياً', 'warning');
+      } else {
+        showToast('تم إرسال الرد وإغلاق المحادثة بنجاح!', 'success');
       }
-    } else {
-      showToast('تم إرسال الرد وإغلاق المحادثة بنجاح!', 'success');
+    } catch (e) {
+      console.error('Live status update error:', e);
+      showToast('تم تحديث الحالة محلياً', 'warning');
+    } finally {
+      isSendingRef.current = false;
+      setIsSending(false);
     }
   };
 
@@ -788,7 +803,9 @@ export default function AdminChatManagementPage({ navigate }) {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
-                        handleSendMessage();
+                        if (!isSending) {
+                          handleSendMessage();
+                        }
                       }
                     }}
                   />
@@ -805,11 +822,23 @@ export default function AdminChatManagementPage({ navigate }) {
                   </div>
 
                   <div className="chat-send-actions">
-                    <button type="button" className="chat-send-btn" onClick={handleSendMessage}>
-                      إرسال ↵
+                    <button
+                      type="button"
+                      className="chat-send-btn"
+                      onClick={handleSendMessage}
+                      disabled={isSending || !replyText.trim()}
+                      style={{ opacity: (isSending || !replyText.trim()) ? 0.6 : 1 }}
+                    >
+                      {isSending ? 'جاري الإرسال...' : 'إرسال ↵'}
                     </button>
-                    <button type="button" className="chat-send-close-btn" onClick={handleSendAndClose}>
-                      إرسال وإغلاق المحادثة
+                    <button
+                      type="button"
+                      className="chat-send-close-btn"
+                      onClick={handleSendAndClose}
+                      disabled={isSending}
+                      style={{ opacity: isSending ? 0.6 : 1 }}
+                    >
+                      {isSending ? 'جاري الحفظ...' : 'إرسال وإغلاق المحادثة'}
                     </button>
                   </div>
                 </div>

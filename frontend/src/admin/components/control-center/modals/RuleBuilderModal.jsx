@@ -1,6 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { createAutomationRule, updateAutomationRule } from '../../../services/adminApi';
+import ModernSelect from '../../../../components/ModernSelect';
 
 export default function RuleBuilderModal({
   ruleBuilderOpen,
@@ -73,15 +74,12 @@ export default function RuleBuilderModal({
             </div>
             <div className="field">
               <label>النطاق</label>
-              <select
+              <ModernSelect
+                style={{ width: '100%' }}
                 value={ruleForm.scope}
-                onChange={(e) => setRuleForm({ ...ruleForm, scope: e.target.value })}
-              >
-                <option>تذاكر الدعم</option>
-                <option>المدفوعات</option>
-                <option>المستشارون</option>
-                <option>قاعدة المعرفة</option>
-              </select>
+                onChange={(val) => setRuleForm({ ...ruleForm, scope: val })}
+                options={['تذاكر الدعم', 'المدفوعات', 'المستشارون', 'قاعدة المعرفة']}
+              />
             </div>
           </div>
 
@@ -105,14 +103,12 @@ export default function RuleBuilderModal({
 
           <div className="field">
             <label>التصعيد عند الفشل</label>
-            <select
+            <ModernSelect
+              style={{ width: '100%' }}
               value={ruleForm.escalation}
-              onChange={(e) => setRuleForm({ ...ruleForm, escalation: e.target.value })}
-            >
-              <option>إرسال تنبيه</option>
-              <option>إنشاء مهمة</option>
-              <option>إيقاف القاعدة</option>
-            </select>
+              onChange={(val) => setRuleForm({ ...ruleForm, escalation: val })}
+              options={['إرسال تنبيه', 'إنشاء مهمة', 'إيقاف القاعدة']}
+            />
           </div>
         </div>
 

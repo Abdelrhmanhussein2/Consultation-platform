@@ -55,31 +55,46 @@ export default function LoginForm({ openPolicy, navigate }) {
       const data = await response.json();
 
       if (response.ok) {
-        // Log in via AuthContext which verifies identity with GET /api/users/me from backend DB
-        const userData = await authLogin(data.access_token, data.refresh_token);
+        // Step 1: Verify role from user profile BEFORE establishing session
+        const meRes = await fetch('/api/users/me', {
+          headers: {
+            'Authorization': `Bearer ${data.access_token}`,
+            'Accept': 'application/json'
+          }
+        });
 
-        if (!userData) {
+        if (!meRes.ok) {
           setError('فشل التثبت من صحة الحساب من قاعدة البيانات.');
           setLoading(false);
           return;
         }
 
+        const userData = await meRes.json();
         const role = userData.role;
 
-        // Perform role validation based on active tab
+        // Step 2: Strict Tab & Role Isolation
         if (activeTab === 'admin') {
+          // Admin tab: Only admin and super_admin allowed
           if (role !== 'admin' && role !== 'super_admin') {
-            setError('عذراً، هذا الحساب ليس له صلاحيات الإدارة.');
+            if (role === 'consultant' || role === 'platform_consultant') {
+              setError('عذراً، حسابات المستشارين تسجل الدخول من تبويب (المستخدمين والمستشارين).');
+            } else {
+              setError('عذراً، هذا الحساب مخصص للمستخدمين. يرجى تسجيل الدخول من تبويب (المستخدمين والمستشارين).');
+            }
             setLoading(false);
             return;
           }
         } else {
+          // User / Consultant tab: Admin/SuperAdmin accounts must use the Admin tab
           if (role === 'admin' || role === 'super_admin') {
-            setError('عذراً، هذا الحساب مخصص للمدراء فقط. يرجى تسجيل الدخول من تبويب المدراء.');
+            setError('عذراً، هذا الحساب يمتلك صلاحيات إدارية. يرجى تسجيل الدخول من تبويب (المدراء).');
             setLoading(false);
             return;
           }
         }
+
+        // Step 3: Role is verified and matches the active tab -> Establish session
+        await authLogin(data.access_token, data.refresh_token);
 
         // Successful login
         setSuccess('تم تسجيل الدخول بنجاح! جاري تحويلك...');
@@ -88,16 +103,16 @@ export default function LoginForm({ openPolicy, navigate }) {
         setEmail('');
         setPassword('');
 
-        // Instant clean redirect based on role
+        // Clean redirection based on verified role
         setTimeout(() => {
-          if (activeTab === 'admin' || role === 'admin' || role === 'super_admin') {
+          if (role === 'admin' || role === 'super_admin') {
             navigate('/admin/dashboard');
-          } else if (role === 'consultant') {
+          } else if (role === 'consultant' || role === 'platform_consultant') {
             navigate('/consultant/dashboard');
           } else {
             navigate('/dashboard');
           }
-        }, 400);
+        }, 350);
 
       } else {
         // Backend returned error

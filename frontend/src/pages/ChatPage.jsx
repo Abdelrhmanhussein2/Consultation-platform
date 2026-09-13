@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { consultantService } from '../services/consultantService';
 import { appointmentService } from '../services/appointmentService';
+import { notificationService } from '../services/notificationService';
 import { chatAiService } from '../services/chatAiService';
 import Toast, { useToast } from '../components/Toast/Toast';
 import ModernSelect from '../components/ModernSelect';
@@ -48,7 +49,9 @@ export default function ChatPage({ navigate }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [inputText, setInputText] = useState('');
-  const [pinnedApptIds, setPinnedApptIds] = useState([]);
+  const [pinnedApptIds, setPinnedApptIds] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('cp_pinned_chats') || '[]'); } catch { return []; }
+  });
   // Track unread count per appointment id
   const [unreadCounts, setUnreadCounts] = useState({});
   // Track last message time per appointment for sorting
@@ -167,18 +170,19 @@ export default function ChatPage({ navigate }) {
         let validChats = uniqueAppts.filter(appt =>
           appt.status !== 'cancelled' && !currentHidden.includes(String(appt.id))
         );
-        if (validChats.length === 0) {
-          validChats = [
-            {
-              id: '929fbe80-e910-43ee-b9d3-a835cc30e63a',
-              client_name: 'رانيا الخطيب',
-              consultant_name: 'عبدالرحمن حسين محمد حسين الأصفر',
-              service_name: 'جلسة فيديو 30 دقيقة',
-              status: 'confirmed',
-              scheduled_at: new Date().toISOString()
-            }
-          ];
-        }
+
+        const adminSupportRoom = {
+          id: 'admin_support',
+          is_admin_room: true,
+          client_name: 'إدارة المنصة والدعم المباشر',
+          consultant_name: 'إدارة المنصة والدعم المباشر',
+          service_name: 'قناة التواصل الإداري المباشر',
+          status: 'confirmed',
+          topic: 'المراسلات والتوجيهات الإدارية المباشرة من إدارة المنصة',
+          scheduled_at: new Date().toISOString()
+        };
+
+        validChats = [adminSupportRoom, ...validChats.filter(v => v.id !== 'admin_support')];
 
         setAppointments(validChats);
 
@@ -193,22 +197,26 @@ export default function ChatPage({ navigate }) {
         let targetChat = null;
 
         if (paramApptId) {
-          // If paramApptId is in hidden list, remove it
-          setHiddenChatIds(prev => prev.filter(id => id !== String(paramApptId)));
-          try {
-            const hidden = JSON.parse(localStorage.getItem('cp_hidden_chats') || '[]');
-            if (hidden.includes(String(paramApptId))) {
-              localStorage.setItem('cp_hidden_chats', JSON.stringify(hidden.filter(id => id !== String(paramApptId))));
-            }
-          } catch {}
+          if (paramApptId === 'admin_support') {
+            targetChat = adminSupportRoom;
+          } else {
+            // If paramApptId is in hidden list, remove it
+            setHiddenChatIds(prev => prev.filter(id => id !== String(paramApptId)));
+            try {
+              const hidden = JSON.parse(localStorage.getItem('cp_hidden_chats') || '[]');
+              if (hidden.includes(String(paramApptId))) {
+                localStorage.setItem('cp_hidden_chats', JSON.stringify(hidden.filter(id => id !== String(paramApptId))));
+              }
+            } catch {}
 
-          targetChat = validChats.find(a => String(a.id) === String(paramApptId));
-          if (!targetChat) {
-            const foundInAll = uniqueAppts.find(a => String(a.id) === String(paramApptId));
-            if (foundInAll) {
-              targetChat = foundInAll;
-              validChats = [targetChat, ...validChats.filter(v => v.id !== targetChat.id)];
-              setAppointments(validChats);
+            targetChat = validChats.find(a => String(a.id) === String(paramApptId));
+            if (!targetChat) {
+              const foundInAll = uniqueAppts.find(a => String(a.id) === String(paramApptId));
+              if (foundInAll) {
+                targetChat = foundInAll;
+                validChats = [targetChat, ...validChats.filter(v => v.id !== targetChat.id)];
+                setAppointments(validChats);
+              }
             }
           }
         }
@@ -229,7 +237,7 @@ export default function ChatPage({ navigate }) {
             targetChat = {
               id: `new-chat-${Date.now()}`,
               client_name: isConsultantRole ? paramUser : (user?.full_name || 'عميل الاستشارة'),
-              consultant_name: isConsultantRole ? (user?.full_name || 'عبدالرحمن حسين محمد حسين الأصفر') : paramUser,
+              consultant_name: isConsultantRole ? (user?.full_name || 'المستشار الضريبي') : paramUser,
               service_name: 'محادثة استشارية جديدة',
               status: 'confirmed',
               created_at: new Date().toISOString(),
@@ -313,6 +321,49 @@ export default function ChatPage({ navigate }) {
 
     const interval = setInterval(async () => {
       try {
+        if (activeAppt.id === 'admin_support' || activeAppt.is_admin_room) {
+          const notifRes = await notificationService.getMyNotifications(token).catch(() => []);
+          const rawNotifs = Array.isArray(notifRes) ? notifRes : (notifRes?.notifications || notifRes?.data || []);
+          const directNotifs = rawNotifs.filter(n => {
+            const t = (n.title || '').toLowerCase();
+            const msg = (n.message || '').toLowerCase();
+            const type = (n.type || n.notification_type || '').toLowerCase();
+
+            // Exclude system application approvals, verification, and credentials
+            if (type.includes('consultant_application') || type.includes('application') || type.includes('credential') || t.includes('قبول طلب') || t.includes('انضمام') || msg.includes('انضمامك كمستشار') || t.includes('اعتماد')) return false;
+            // Exclude ticket logs
+            if (t.includes('تذكرت') || msg.includes('تذكرت') || t.includes('تذكرة') || msg.includes('تذكرة') || type.includes('ticket')) return false;
+            // Exclude appointment booking alerts
+            if (t.includes('حجز موعد') || t.includes('جلسة استشارة جاهز') || t.includes('رابط جلسة') || type.includes('appointment') || type.includes('session')) return false;
+            // Exclude subscriptions & payments
+            if (t.includes('فاتورة') || t.includes('اشتراك') || type.includes('invoice') || type.includes('subscription') || type.includes('payout')) return false;
+
+            return true;
+          });
+
+          if (directNotifs.length > 0) {
+            const formatted = directNotifs.map(n => ({
+              id: n.id,
+              sender_id: 'admin',
+              sender_name: n.title || 'إدارة المنصة',
+              message_text: n.message,
+              created_at: n.created_at,
+              is_read: n.is_read
+            }));
+            formatted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            setMessages(prev => {
+              if (formatted.length !== prev.filter(m => m.sender_id === 'admin').length) {
+                const userSent = prev.filter(m => m.sender_id !== 'admin');
+                const combined = [...formatted, ...userSent];
+                combined.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+                return combined;
+              }
+              return prev;
+            });
+          }
+          return;
+        }
+
         const res = await fetch(`/api/chat/${activeAppt.id}/messages?limit=100`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -354,6 +405,55 @@ export default function ChatPage({ navigate }) {
       window.history.pushState({ apptId: appt.id }, '', newUrl);
     }
 
+    if (appt?.id === 'admin_support' || appt?.is_admin_room) {
+      try {
+        const notifRes = await notificationService.getMyNotifications(token).catch(() => []);
+        const rawNotifs = Array.isArray(notifRes) ? notifRes : (notifRes?.notifications || notifRes?.data || []);
+        const directNotifs = rawNotifs.filter(n => {
+          const t = (n.title || '').toLowerCase();
+          const msg = (n.message || '').toLowerCase();
+          const type = (n.type || n.notification_type || '').toLowerCase();
+
+          // Exclude system application approvals, verification, and credentials
+          if (type.includes('consultant_application') || type.includes('application') || type.includes('credential') || t.includes('قبول طلب') || t.includes('انضمام') || msg.includes('انضمامك كمستشار') || t.includes('اعتماد')) return false;
+          // Exclude ticket logs
+          if (t.includes('تذكرت') || msg.includes('تذكرت') || t.includes('تذكرة') || msg.includes('تذكرة') || type.includes('ticket')) return false;
+          // Exclude appointment booking alerts
+          if (t.includes('حجز موعد') || t.includes('جلسة استشارة جاهز') || t.includes('رابط جلسة') || type.includes('appointment') || type.includes('session')) return false;
+          // Exclude subscriptions & payments
+          if (t.includes('فاتورة') || t.includes('اشتراك') || type.includes('invoice') || type.includes('subscription') || type.includes('payout')) return false;
+
+          return true;
+        });
+
+        let formatted = directNotifs.map(n => ({
+          id: n.id,
+          sender_id: 'admin',
+          sender_name: n.title || 'إدارة المنصة',
+          message_text: n.message,
+          created_at: n.created_at,
+          is_read: n.is_read
+        }));
+
+        if (formatted.length === 0) {
+          formatted = [{
+            id: 'welcome-admin',
+            sender_id: 'admin',
+            sender_name: 'إدارة المنصة',
+            message_text: 'أهلاً بك في قناة التواصل المباشر مع إدارة المنصة. يمكنك إرسال أي استفسار أو طلب هنا مباشرة وسيقوم فريق العمل بالرد عليك.',
+            created_at: new Date().toISOString(),
+            is_read: true
+          }];
+        }
+
+        formatted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        setMessages(formatted);
+      } catch (err) {
+        console.error('Error fetching admin messages:', err);
+      }
+      return;
+    }
+
     try {
       const res = await fetch(`/api/chat/${appt.id}/messages?limit=100`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -390,6 +490,25 @@ export default function ChatPage({ navigate }) {
     // Update timestamp immediately to float active chat to the top of the sidebar list
     const nowIso = new Date().toISOString();
     setLastMsgTime(prev => ({ ...prev, [activeAppt.id]: nowIso }));
+
+    if (activeAppt?.id === 'admin_support' || activeAppt?.is_admin_room) {
+      try {
+        await notificationService.contactAdmin(textToSend, token);
+        const userMsg = {
+          id: `msg-${Date.now()}`,
+          sender_id: user?.id,
+          sender_name: user?.full_name || 'أنا',
+          message_text: textToSend,
+          created_at: nowIso,
+          is_read: true
+        };
+        setMessages(prev => [...prev, userMsg]);
+        showToast('تم إرسال الرسالة إلى إدارة المنصة بنجاح', 'success');
+      } catch (err) {
+        showToast('فشل إرسال الرسالة إلى الإدارة.', 'error');
+      }
+      return;
+    }
 
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
@@ -453,25 +572,45 @@ export default function ChatPage({ navigate }) {
   const togglePinChat = (apptId, e) => {
     if (e) e.stopPropagation();
     setPinnedApptIds(prev => {
+      let updated;
       if (prev.includes(apptId)) {
         showToast('تم إلغاء تثبيت المحادثة', 'info');
-        return prev.filter(id => id !== apptId);
+        updated = prev.filter(id => id !== apptId);
       } else {
         showToast('تم تثبيت المحادثة في الأعلى', 'success');
-        return [...prev, apptId];
+        updated = [...prev, apptId];
       }
+      try { localStorage.setItem('cp_pinned_chats', JSON.stringify(updated)); } catch {}
+      return updated;
     });
   };
 
   const handleDeleteChat = async (apptId, e) => {
     if (e) e.stopPropagation();
-    // Open custom confirm modal instead of window.confirm
     setConfirmModal({ open: true, apptId });
   };
 
   const handleConfirmDelete = async () => {
     const apptId = confirmModal.apptId;
     setConfirmModal({ open: false, apptId: null });
+    if (!apptId) return;
+
+    if (apptId === 'admin_support') {
+      try {
+        const notifs = await notificationService.getMyNotifications(token).catch(() => []);
+        const rawNotifs = Array.isArray(notifs) ? notifs : (notifs?.notifications || notifs?.data || []);
+        for (const n of rawNotifs) {
+          await notificationService.deleteNotification(n.id, token).catch(() => {});
+        }
+        setMessages([]);
+        showToast('تم مسح سجل المحادثة بنجاح', 'success');
+      } catch {
+        setMessages([]);
+        showToast('تم تفريغ المحادثة', 'success');
+      }
+      return;
+    }
+
     try {
       const res = await fetch(`/api/chat/${apptId}`, {
         method: 'DELETE',
@@ -489,6 +628,9 @@ export default function ChatPage({ navigate }) {
           }
           return updated;
         });
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        showToast(errData.detail || 'فشل حذف المحادثة من الخادم.', 'error');
       }
     } catch {
       showToast('فشل حذف المحادثة.', 'error');
@@ -655,15 +797,18 @@ export default function ChatPage({ navigate }) {
 
   const getPartnerName = (appt) => {
     if (!appt) return 'مستخدم';
+    if (appt.id === 'admin_support' || appt.is_admin_room) {
+      return 'إدارة المنصة والدعم المباشر';
+    }
     const isConsultantAppt = user?.role === 'consultant' ||
       (appt.consultant && String(appt.consultant.user_id) === String(user?.id)) ||
       (appt.consultant_id && user?.profile && String(appt.consultant_id) === String(user.profile.id)) ||
       (user?.email && (appt.consultant_name?.includes(user?.full_name) || appt.consultant?.user?.email === user?.email));
 
     if (isConsultantAppt) {
-      return appt.client_name || appt.user?.full_name || appt.user_name || appt.client?.full_name || 'رانيا الخطيب';
+      return appt.client_name || appt.user?.full_name || appt.user_name || appt.client?.full_name || 'عميل الاستشارة';
     }
-    return appt.consultant_name || appt.consultant?.user?.full_name || 'عبدالرحمن حسين محمد الأصفر';
+    return appt.consultant_name || appt.consultant?.user?.full_name || 'المستشار الضريبي';
   };
 
   const getPartnerInitial = (name) => {
@@ -1111,195 +1256,135 @@ export default function ChatPage({ navigate }) {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Rich Text Editor Footer Area or Client Waiting Notice */}
-              {(() => {
-                const isConsultantForAppt = user?.role === 'consultant' ||
-                  (activeAppt?.consultant && String(activeAppt.consultant.user_id) === String(user?.id)) ||
-                  (activeAppt?.consultant_id && user?.profile && String(activeAppt.consultant_id) === String(user.profile.id)) ||
-                  (user?.email && (activeAppt?.consultant_name?.includes(user?.full_name) || activeAppt?.consultant?.user?.email === user?.email));
+              {/* Rich Text Editor Footer Area - Always Open */}
+              <div className="chat-editor-container">
+                {/* Hidden File Input */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  style={{ display: 'none' }}
+                />
 
-                const isClientRole = !isConsultantForAppt;
-                const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
-                const isLastMsgFromClient = lastMsg ? (lastMsg.sender_id === user?.id || lastMsg.sender_id === 'me') : false;
-                // Lock chat ONLY if consultant has never replied at all (initial inquiry state)
-                // Once consultant replies even once, chat stays fully open permanently
-                const consultantHasEverReplied = messages.some(m => m.sender_id !== user?.id && m.sender_id !== 'me');
-                const isWaitingForConsultantReply = isClientRole && isLastMsgFromClient && !consultantHasEverReplied;
+                {/* Editor Top Toolbar */}
+                <div className="editor-toolbar">
+                  <button
+                    type="button"
+                    onClick={() => applyFormattingToSelection('bold')}
+                    className="editor-tool-btn"
+                    style={{
+                      background: isBold ? '#005D9C' : '#F8FAFC',
+                      color: isBold ? '#FFFFFF' : '#0D3C5C',
+                      borderColor: isBold ? '#005D9C' : '#BCCCDC',
+                      fontWeight: '800'
+                    }}
+                    title="عريض B"
+                  >
+                    B
+                  </button>
 
-                if (isWaitingForConsultantReply) {
-                  return (
-                    <div style={{
-                      background: 'linear-gradient(135deg, #F0FDF4 0%, #EFF6FF 100%)',
-                      border: '1.5px solid #BAE6FD',
-                      borderRadius: '16px',
-                      padding: '24px 20px',
-                      margin: '14px 16px 16px',
-                      textAlign: 'center',
-                      direction: 'rtl',
-                      boxShadow: '0 4px 16px rgba(13, 60, 92, 0.05)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      <div style={{
-                        width: '46px',
-                        height: '46px',
-                        borderRadius: '50%',
-                        background: '#0284C7',
-                        color: '#FFFFFF',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '22px',
-                        boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)'
-                      }}>
-                        ⏳
-                      </div>
-                      <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0369A1', margin: 0 }}>
-                        تم استلام استفسارك بنجاح
-                      </h3>
-                      <p style={{ fontSize: '13px', color: '#0C4A6E', margin: 0, lineHeight: '1.6', maxWidth: '480px' }}>
-                        تم إرسال استفسارك للمستشار وهو بصدد مراجعته والرد عليك. تم إغلاق خانة الرسائل مؤقتاً وبانتظار رد المستشار لتتمكن من المتابعة.
-                      </p>
-                      <span style={{ fontSize: '11.5px', color: '#64748B', fontWeight: '700', marginTop: '2px' }}>
-                        ✓ سيصلك إشعار وتُتاح خانة الكتابة تلقائياً فور رد المستشار.
-                      </span>
-                    </div>
-                  );
-                }
+                  <button
+                    type="button"
+                    onClick={() => applyFormattingToSelection('italic')}
+                    className="editor-tool-btn"
+                    style={{
+                      background: isItalic ? '#005D9C' : '#F8FAFC',
+                      color: isItalic ? '#FFFFFF' : '#0D3C5C',
+                      borderColor: isItalic ? '#005D9C' : '#BCCCDC',
+                      fontStyle: 'italic'
+                    }}
+                    title="مائل I"
+                  >
+                    I
+                  </button>
 
-                return (
-                  <div className="chat-editor-container">
-                    {/* Hidden File Input */}
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileUpload}
-                      style={{ display: 'none' }}
-                    />
+                  <button
+                    type="button"
+                    onClick={() => applyFormattingToSelection('underline')}
+                    className="editor-tool-btn"
+                    style={{
+                      background: isUnderline ? '#005D9C' : '#F8FAFC',
+                      color: isUnderline ? '#FFFFFF' : '#0D3C5C',
+                      borderColor: isUnderline ? '#005D9C' : '#BCCCDC',
+                      textDecoration: 'underline'
+                    }}
+                    title="تحته خط U"
+                  >
+                    U
+                  </button>
 
-                    {/* Editor Top Toolbar */}
-                    <div className="editor-toolbar">
+                  {user?.role === 'consultant' && (
+                    <>
                       <button
                         type="button"
-                        onClick={() => applyFormattingToSelection('bold')}
+                        onClick={() => setShowTemplatesModal(true)}
                         className="editor-tool-btn"
-                        style={{
-                          background: isBold ? '#005D9C' : '#F8FAFC',
-                          color: isBold ? '#FFFFFF' : '#0D3C5C',
-                          borderColor: isBold ? '#005D9C' : '#BCCCDC',
-                          fontWeight: '800'
-                        }}
-                        title="عريض B"
+                        title="القوالب الجاهزة"
                       >
-                        B
+                        القوالب الجاهزة
                       </button>
 
                       <button
                         type="button"
-                        onClick={() => applyFormattingToSelection('italic')}
+                        onClick={() => setShowAiModal(true)}
                         className="editor-tool-btn"
-                        style={{
-                          background: isItalic ? '#005D9C' : '#F8FAFC',
-                          color: isItalic ? '#FFFFFF' : '#0D3C5C',
-                          borderColor: isItalic ? '#005D9C' : '#BCCCDC',
-                          fontStyle: 'italic'
-                        }}
-                        title="مائل I"
+                        style={{ borderColor: '#005D9C', color: '#005D9C' }}
+                        title="توليد محتوى بالذكاء الاصطناعي"
                       >
-                        I
+                        توليد محتوى بالذكاء الاصطناعي
                       </button>
+                    </>
+                  )}
 
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="editor-tool-btn"
+                    title="إرفاق ملف"
+                  >
+                    إرفاق
+                  </button>
+                </div>
+
+                {/* Textarea Input */}
+                <textarea
+                  ref={textareaRef}
+                  value={inputText}
+                  onChange={e => setInputText(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  placeholder="اكتب رسالتك هنا..."
+                  className="editor-textarea"
+                />
+
+                {/* Bottom Bar Controls */}
+                <div className="editor-bottom-bar">
+                  <div className="editor-actions-left">
+                    {user?.role === 'consultant' && (
                       <button
                         type="button"
-                        onClick={() => applyFormattingToSelection('underline')}
-                        className="editor-tool-btn"
-                        style={{
-                          background: isUnderline ? '#005D9C' : '#F8FAFC',
-                          color: isUnderline ? '#FFFFFF' : '#0D3C5C',
-                          borderColor: isUnderline ? '#005D9C' : '#BCCCDC',
-                          textDecoration: 'underline'
-                        }}
-                        title="تحته خط U"
+                        onClick={(e) => handleSendMessage(e, true)}
+                        className="btn-send-close"
                       >
-                        U
+                        إرسال وإغلاق
                       </button>
-
-                      {user?.role === 'consultant' && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => setShowTemplatesModal(true)}
-                            className="editor-tool-btn"
-                            title="القوالب الجاهزة"
-                          >
-                            القوالب الجاهزة
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setShowAiModal(true)}
-                            className="editor-tool-btn"
-                            style={{ borderColor: '#005D9C', color: '#005D9C' }}
-                            title="توليد محتوى بالذكاء الاصطناعي"
-                          >
-                            توليد محتوى بالذكاء الاصطناعي
-                          </button>
-                        </>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="editor-tool-btn"
-                        title="إرفاق ملف"
-                      >
-                        إرفاق
-                      </button>
-                    </div>
-
-                    {/* Textarea Input */}
-                    <textarea
-                      ref={textareaRef}
-                      value={inputText}
-                      onChange={e => setInputText(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage();
-                        }
-                      }}
-                      placeholder="اكتب ردك هنا..."
-                      className="editor-textarea"
-                    />
-
-                    {/* Bottom Bar Controls */}
-                    <div className="editor-bottom-bar">
-                      <div className="editor-actions-left">
-                        {user?.role === 'consultant' && (
-                          <button
-                            type="button"
-                            onClick={(e) => handleSendMessage(e, true)}
-                            className="btn-send-close"
-                          >
-                            إرسال وإغلاق
-                          </button>
-                        )}
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handleSendMessage}
-                        disabled={!inputText.trim()}
-                        className="btn-send-main"
-                      >
-                        إرسال ↵
-                      </button>
-                    </div>
+                    )}
                   </div>
-                );
-              })()}
+
+                  <button
+                    type="button"
+                    onClick={handleSendMessage}
+                    disabled={!inputText.trim()}
+                    className="btn-send-main"
+                  >
+                    إرسال ↵
+                  </button>
+                </div>
+              </div>
             </>
           ) : (
             <div style={{
@@ -1337,123 +1422,188 @@ export default function ChatPage({ navigate }) {
           )}
         </div>
 
-        {/* 3. FAR LEFT in RTL: Consultation Details Pane */}
+        {/* 3. FAR LEFT in RTL: Consultation or Support Details Pane */}
         {activeAppt && isDetailsVisible && (
           <div className="chat-left-details-pane">
             <div className="details-top-bar">
-              <div className="details-pane-title">تفاصيل الاستشارة</div>
+              <div className="details-pane-title">
+                {(activeAppt.id === 'admin_support' || activeAppt.is_admin_room) ? 'بيانات التواصل الإداري' : 'تفاصيل الاستشارة'}
+              </div>
               <div className="details-window-controls">
                 <button onClick={() => setIsDetailsVisible(false)} className="window-btn" title="إغلاق اللوحة">✕</button>
               </div>
             </div>
 
-            {/* Collapsible Accordions for All Fields */}
-            <div className="accordion-section">
-              <div className="accordion-header" onClick={() => toggleSection('client')}>
-                <span>العميل</span>
-                <span>{expandedSections.client ? '−' : '+'}</span>
-              </div>
-              {expandedSections.client && (
-                <div className="accordion-body">
-                  <div className="info-value">
-                    {activeAppt.client_name || activeAppt.user?.full_name || 'عميل الاستشارة'}
+            {/* If Admin Support Room */}
+            {(activeAppt.id === 'admin_support' || activeAppt.is_admin_room) ? (
+              <>
+                <div className="accordion-section">
+                  <div className="accordion-header" onClick={() => toggleSection('client')}>
+                    <span>صاحب الحساب</span>
+                    <span>{expandedSections.client ? '−' : '+'}</span>
                   </div>
-                </div>
-              )}
-            </div>
-
-            <div className="accordion-section">
-              <div className="accordion-header" onClick={() => toggleSection('consultant')}>
-                <span>المستشار</span>
-                <span>{expandedSections.consultant ? '−' : '+'}</span>
-              </div>
-              {expandedSections.consultant && (
-                <div className="accordion-body">
-                  <div className="info-value">
-                    {activeAppt.consultant_name || activeAppt.consultant?.user?.full_name || 'د. مستشار المنصة'}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="accordion-section">
-              <div className="accordion-header" onClick={() => toggleSection('topic')}>
-                <span>موضوع الاستشارة</span>
-                <span>{expandedSections.topic ? '−' : '+'}</span>
-              </div>
-              {expandedSections.topic && (
-                <div className="accordion-body">
-                  <div className="info-value">
-                    {activeAppt.notes || activeAppt.service_name || 'استشارة تخصصية'}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="accordion-section">
-              <div className="accordion-header" onClick={() => toggleSection('status')}>
-                <span>حالة الاستشارة</span>
-                <span>{expandedSections.status ? '−' : '+'}</span>
-              </div>
-              {expandedSections.status && (
-                <div className="accordion-body">
-                  {user?.role === 'consultant' ? (
-                    <ModernSelect
-                      options={[
-                        { value: 'confirmed', label: 'تحدث ما قبل الجلسة (نشطة)' },
-                        { value: 'completed', label: 'متابعة ما بعد الجلسة (مكتملة)' },
-                        { value: 'cancelled_by_consultant', label: 'إلغاء الاستشارة' }
-                      ]}
-                      value={activeAppt.status || 'confirmed'}
-                      onChange={handleUpdateAppointmentStatus}
-                    />
-                  ) : (
-                    <div className="info-value">
-                      {getStatusLabel(activeAppt.status, activeAppt.scheduled_at)}
+                  {expandedSections.client && (
+                    <div className="accordion-body">
+                      <div className="info-value">
+                        {user?.full_name || 'المستخدم الحالي'}
+                      </div>
                     </div>
                   )}
                 </div>
-              )}
-            </div>
 
-            <div className="accordion-section">
-              <div className="accordion-header" onClick={() => toggleSection('schedule')}>
-                <span>موعد الجلسة</span>
-                <span>{expandedSections.schedule ? '−' : '+'}</span>
-              </div>
-              {expandedSections.schedule && (
-                <div className="accordion-body">
-                  <div className="info-value">
-                    {new Date(activeAppt.scheduled_at).toLocaleDateString('ar-EG', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
+                <div className="accordion-section">
+                  <div className="accordion-header" onClick={() => toggleSection('consultant')}>
+                    <span>الجهة المتصل بها</span>
+                    <span>{expandedSections.consultant ? '−' : '+'}</span>
                   </div>
+                  {expandedSections.consultant && (
+                    <div className="accordion-body">
+                      <div className="info-value">
+                        إدارة منصة ديوان والدعم الفني المباشر
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            <div className="accordion-section">
-              <div className="accordion-header" onClick={() => toggleSection('service_type')}>
-                <span>نوع الخدمة</span>
-                <span>{expandedSections.service_type ? '−' : '+'}</span>
-              </div>
-              {expandedSections.service_type && (
-                <div className="accordion-body">
-                  <div className="info-value">
-                    {activeAppt.session_type === 'video_call'
-                      ? 'استشارة فيديو'
-                      : activeAppt.session_type === 'audio_call'
-                        ? 'استشارة صوتية'
-                        : 'محادثة كتابية'}
+                <div className="accordion-section">
+                  <div className="accordion-header" onClick={() => toggleSection('topic')}>
+                    <span>طبيعة القناة</span>
+                    <span>{expandedSections.topic ? '−' : '+'}</span>
                   </div>
+                  {expandedSections.topic && (
+                    <div className="accordion-body">
+                      <div className="info-value">
+                        قناة مراسلة ومتابعة إدارية مباشرة
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+
+                <div className="accordion-section">
+                  <div className="accordion-header" onClick={() => toggleSection('status')}>
+                    <span>الحالة</span>
+                    <span>{expandedSections.status ? '−' : '+'}</span>
+                  </div>
+                  {expandedSections.status && (
+                    <div className="accordion-body">
+                      <div className="info-value">
+                        قناة نشطة ومباشرة (24/7)
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Standard Consultation Accordions */}
+                <div className="accordion-section">
+                  <div className="accordion-header" onClick={() => toggleSection('client')}>
+                    <span>العميل</span>
+                    <span>{expandedSections.client ? '−' : '+'}</span>
+                  </div>
+                  {expandedSections.client && (
+                    <div className="accordion-body">
+                      <div className="info-value">
+                        {activeAppt.client_name || activeAppt.user?.full_name || 'عميل الاستشارة'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="accordion-section">
+                  <div className="accordion-header" onClick={() => toggleSection('consultant')}>
+                    <span>المستشار</span>
+                    <span>{expandedSections.consultant ? '−' : '+'}</span>
+                  </div>
+                  {expandedSections.consultant && (
+                    <div className="accordion-body">
+                      <div className="info-value">
+                        {activeAppt.consultant_name || activeAppt.consultant?.user?.full_name || 'د. مستشار المنصة'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="accordion-section">
+                  <div className="accordion-header" onClick={() => toggleSection('topic')}>
+                    <span>موضوع الاستشارة</span>
+                    <span>{expandedSections.topic ? '−' : '+'}</span>
+                  </div>
+                  {expandedSections.topic && (
+                    <div className="accordion-body">
+                      <div className="info-value">
+                        {activeAppt.notes || activeAppt.service_name || 'استشارة تخصصية'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="accordion-section">
+                  <div className="accordion-header" onClick={() => toggleSection('status')}>
+                    <span>حالة الاستشارة</span>
+                    <span>{expandedSections.status ? '−' : '+'}</span>
+                  </div>
+                  {expandedSections.status && (
+                    <div className="accordion-body">
+                      {user?.role === 'consultant' ? (
+                        <ModernSelect
+                          options={[
+                            { value: 'confirmed', label: 'تحدث ما قبل الجلسة (نشطة)' },
+                            { value: 'completed', label: 'متابعة ما بعد الجلسة (مكتملة)' },
+                            { value: 'cancelled_by_consultant', label: 'إلغاء الاستشارة' }
+                          ]}
+                          value={activeAppt.status || 'confirmed'}
+                          onChange={handleUpdateAppointmentStatus}
+                        />
+                      ) : (
+                        <div className="info-value">
+                          {getStatusLabel(activeAppt.status, activeAppt.scheduled_at)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="accordion-section">
+                  <div className="accordion-header" onClick={() => toggleSection('schedule')}>
+                    <span>موعد الجلسة</span>
+                    <span>{expandedSections.schedule ? '−' : '+'}</span>
+                  </div>
+                  {expandedSections.schedule && (
+                    <div className="accordion-body">
+                      <div className="info-value">
+                        {new Date(activeAppt.scheduled_at).toLocaleDateString('ar-EG', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="accordion-section">
+                  <div className="accordion-header" onClick={() => toggleSection('service_type')}>
+                    <span>نوع الخدمة</span>
+                    <span>{expandedSections.service_type ? '−' : '+'}</span>
+                  </div>
+                  {expandedSections.service_type && (
+                    <div className="accordion-body">
+                      <div className="info-value">
+                        {activeAppt.session_type === 'video_call'
+                          ? 'استشارة فيديو'
+                          : activeAppt.session_type === 'audio_call'
+                            ? 'استشارة صوتية'
+                            : 'محادثة كتابية'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* Expandable Accordion Items */}
             <div className="accordion-section">

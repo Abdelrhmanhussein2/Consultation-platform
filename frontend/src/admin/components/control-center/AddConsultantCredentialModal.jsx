@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { adminAddUserDirect } from '../../services/adminApi';
+import ModernSelect from '../../../components/ModernSelect';
 
 export default function AddConsultantCredentialModal({ isOpen, onClose, onSuccess, showToastMsg }) {
   const [loading, setLoading] = useState(false);
@@ -142,17 +143,18 @@ export default function AddConsultantCredentialModal({ isOpen, onClose, onSucces
                 <label style={{ fontSize: '11px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
                   التخصص الرئيسي
                 </label>
-                <select
+                <ModernSelect
+                  style={{ width: '100%' }}
                   value={formData.specialization}
-                  onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px', background: '#fff' }}
-                >
-                  <option value="ضريبة المبيعات والدخل">ضريبة المبيعات والدخل</option>
-                  <option value="التدقيق والامتثال المالي">التدقيق والامتثال المالي</option>
-                  <option value="الاعتراضات واللجان الضريبية">الاعتراضات واللجان الضريبية</option>
-                  <option value="استشارات الشركات والدمج">استشارات الشركات والدمج</option>
-                  <option value="الفوترة الإلكترونية">الفوترة الإلكترونية</option>
-                </select>
+                  onChange={(val) => setFormData({ ...formData, specialization: val })}
+                  options={[
+                    'ضريبة المبيعات والدخل',
+                    'التدقيق والامتثال المالي',
+                    'الاعتراضات واللجان الضريبية',
+                    'استشارات الشركات والدمج',
+                    'الفوترة الإلكترونية'
+                  ]}
+                />
               </div>
             </div>
 
@@ -203,14 +205,15 @@ export default function AddConsultantCredentialModal({ isOpen, onClose, onSucces
               <label style={{ fontSize: '11px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
                 حالة الاعتماد الأولية
               </label>
-              <select
+              <ModernSelect
+                style={{ width: '100%' }}
                 value={formData.verificationStatus}
-                onChange={(e) => setFormData({ ...formData, verificationStatus: e.target.value })}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px', background: '#fff' }}
-              >
-                <option value="approved">موثق ومعتمد فورًا</option>
-                <option value="pending">قيد التوثيق والمراجعة</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, verificationStatus: val })}
+                options={[
+                  { value: 'approved', label: 'موثق ومعتمد فورًا' },
+                  { value: 'pending', label: 'قيد التوثيق والمراجعة' }
+                ]}
+              />
             </div>
           </div>
 

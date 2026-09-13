@@ -4,11 +4,12 @@ import { apiFetch } from '../services/api';
 import { CATEGORIES, STATUS_CONFIG, PRIORITY_CONFIG } from './supportFormConfig';
 
 export default function SupportTicketDetailPage({ ticketId, navigate }) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
   const [replyText, setReplyText] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
+  const isSendingRef = useRef(false);
   const [error, setError] = useState('');
   const chatEndRef = useRef(null);
 
@@ -27,7 +28,7 @@ export default function SupportTicketDetailPage({ ticketId, navigate }) {
 
   useEffect(() => {
     fetchTicketDetails();
-    const interval = setInterval(fetchTicketDetails, 30000);
+    const interval = setInterval(fetchTicketDetails, 15000);
     return () => clearInterval(interval);
   }, [token, ticketId]);
 
@@ -38,30 +39,35 @@ export default function SupportTicketDetailPage({ ticketId, navigate }) {
   }, [ticket?.replies]);
 
   const handleSendReply = async (e) => {
-    if (e) e.preventDefault();
-    if (!replyText.trim() || sendingReply) return;
+    if (e && e.preventDefault) e.preventDefault();
+    if (isSendingRef.current || !replyText.trim() || sendingReply) return;
 
+    isSendingRef.current = true;
     setSendingReply(true);
+    const msgToSend = replyText.trim();
+    setReplyText('');
+
     try {
       await apiFetch(`/api/tickets/${ticketId}/reply`, {
         method: 'POST',
-        body: { message: replyText.trim() }
+        body: { message: msgToSend }
       }, token);
 
-      setReplyText('');
       await fetchTicketDetails();
     } catch (e) {
       alert(e.message || 'خطأ في الاتصال بالخادم');
+      setReplyText(msgToSend);
     } finally {
+      isSendingRef.current = false;
       setSendingReply(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="py-20 text-center text-[#0e3b5e] flex items-center justify-center gap-2" dir="rtl" style={{ fontFamily: 'var(--font-main)' }}>
-        <i className="fa fa-spinner fa-spin text-2xl"></i>
-        <span className="font-bold text-sm">جاري تحميل تفاصيل التذكرة...</span>
+      <div className="py-24 text-center text-[#0D3C5C] flex flex-col items-center justify-center gap-3" dir="rtl" style={{ fontFamily: 'var(--font-main)' }}>
+        <div className="w-10 h-10 border-3 border-[#005D9C] border-t-transparent rounded-full animate-spin"></div>
+        <span className="font-bold text-sm text-[#0D3C5C]">جاري تحميل تفاصيل التذكرة والمحادثة...</span>
       </div>
     );
   }
@@ -69,11 +75,12 @@ export default function SupportTicketDetailPage({ ticketId, navigate }) {
   if (error || !ticket) {
     return (
       <div className="max-w-xl mx-auto py-20 text-center" dir="rtl" style={{ fontFamily: 'var(--font-main)' }}>
-        <span className="text-5xl">⚠️</span>
-        <h3 className="mt-4 font-bold text-red-600 text-base">{error || 'التذكرة غير موجودة'}</h3>
+        <div className="text-5xl mb-3">⚠️</div>
+        <h3 className="font-bold text-red-600 text-base mb-2">{error || 'التذكرة غير موجودة'}</h3>
+        <p className="text-xs text-gray-500 mb-6">يرجى التأكد من رقم التذكرة أو الرجوع لقائمة طلباتك.</p>
         <button
           onClick={() => navigate('/support/tickets')}
-          className="mt-6 btn-navy text-xs"
+          className="btn-navy text-xs px-6 py-2.5 rounded-xl font-bold"
         >
           العودة لطلبات الدعم
         </button>
@@ -81,158 +88,256 @@ export default function SupportTicketDetailPage({ ticketId, navigate }) {
     );
   }
 
-  const stat = STATUS_CONFIG[ticket.status] || { label: ticket.status, color: 'bg-gray-50 text-gray-500' };
-  
-  // Priority translation
-  const prioLabel = ticket.priority === 'high' ? 'عالية' : ticket.priority === 'low' ? 'منخفضة' : 'متوسطة';
-  const prio = PRIORITY_CONFIG[ticket.priority] || { label: prioLabel, color: 'bg-gray-50 text-gray-500' };
+  const stat = STATUS_CONFIG[ticket.status] || { label: ticket.status || 'مفتوحة', color: 'bg-blue-50 text-blue-700' };
+  const prioLabel = ticket.priority === 'high' || ticket.priority === 'urgent' ? 'عالية' : ticket.priority === 'low' ? 'منخفضة' : 'متوسطة';
+  const prio = PRIORITY_CONFIG[ticket.priority] || { label: prioLabel, color: 'bg-amber-50 text-amber-700' };
   
   const catConfig = CATEGORIES[ticket.category] || null;
   const subConfig = (ticket.category && ticket.sub_category && catConfig?.subs[ticket.sub_category])
     ? catConfig.subs[ticket.sub_category]
     : null;
   const fields = subConfig ? subConfig.fields : [];
-  const isClosed = ticket.status === 'closed';
+  const isClosed = ticket.status === 'closed' || ticket.status === 'resolved';
 
   const formattedDate = new Date(ticket.created_at).toLocaleDateString('ar-EG', {
     year: 'numeric',
-    month: 'long',
+    month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
   });
 
+  const submitterName = ticket.user_name || ticket.submitter_name || ticket.submitter?.full_name || user?.full_name || 'صاحب التذكرة';
+
   return (
-    <div className="fade-in max-w-5xl mx-auto p-4 md:p-6" dir="rtl" style={{ fontFamily: 'var(--font-main)' }}>
+    <div className="fade-in max-w-6xl mx-auto p-4 md:p-6" dir="rtl" style={{ fontFamily: 'var(--font-main)' }}>
       
-      {/* Header wrapper */}
-      <div className="flex items-center justify-between border-b border-gray-200 pb-4 mb-6">
+      {/* 1. Top Bar Header */}
+      <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/support/tickets')}
-            className="w-9 h-9 rounded-xl border border-gray-200 hover:bg-gray-50 flex items-center justify-center text-gray-500 transition duration-150"
-            title="العودة للقائمة"
+            className="w-10 h-10 rounded-xl border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-[#0D3C5C] transition duration-150 shrink-0 font-bold"
+            title="العودة لطلبات الدعم"
           >
-            <i className="fa fa-arrow-right"></i>
+            ←
           </button>
           <div>
-            <h2 className="text-lg md:text-xl font-extrabold text-[#0e3b5e]">{ticket.subject}</h2>
-            <p className="text-[10px] text-gray-400 mt-1">تاريخ الإنشاء: {formattedDate}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-mono text-xs font-extrabold bg-slate-100 text-[#005D9C] px-2.5 py-1 rounded-lg border border-slate-200">
+                {ticket.ticket_number || `#${ticket.id.slice(0, 8)}`}
+              </span>
+              <h1 className="text-base md:text-lg font-black text-[#0D3C5C] leading-snug">
+                {ticket.subject}
+              </h1>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-2">
+              <span>تاريخ الفتح: {formattedDate}</span>
+              <span>•</span>
+              <span>القسم: {catConfig?.label || ticket.category || 'الدعم الفني'}</span>
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className={`badge ${stat.color} text-[10px]`}>
-            <i className={`fa ${stat.icon} ml-1 text-[8px]`}></i>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`px-3 py-1.5 rounded-xl text-xs font-bold ${stat.color} border border-current/20`}>
             {stat.label}
+          </span>
+          <span className={`px-3 py-1.5 rounded-xl text-xs font-bold ${prio.color} border border-current/20`}>
+            أولوية {prio.label}
           </span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
-        {/* Left Side: Chat & replies */}
-        <div className="lg:col-span-2 space-y-5">
-          
-          {/* Main Info Card */}
-          <div className="card border border-gray-150">
-            <h3 className="font-bold text-[#0e3b5e] mb-4 text-sm">معلومات الطلب</h3>
-            <div className="grid grid-cols-2 gap-3 text-sm mb-4">
-              <div><span className="text-gray-500 text-xs">رقم الطلب:</span> <span className="font-mono font-bold text-[#0e3b5e] text-xs">{ticket.ticket_number || `#${ticket.id.slice(0, 8)}`}</span></div>
-              <div><span className="text-gray-500 text-xs">تاريخ الإنشاء:</span> <span className="font-semibold text-gray-700 text-xs">{formattedDate}</span></div>
-              <div><span className="text-gray-500 text-xs">القناة:</span> <span className="font-semibold text-gray-700 text-xs">مركز المساعدة</span></div>
-            </div>
+      {/* 2. Main Content Grid: Expanded Chat (Right/Main) & Info Sidebar (Left) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        {/* Main Chat Column (Spacious & Large) */}
+        <div className="lg:col-span-8 flex flex-col">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
             
-            <div className="border-t border-gray-100 pt-4">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-gray-500 text-xs">الفئة:</span> <span className="font-semibold text-gray-700 text-xs">{catConfig?.label || ticket.category}</span></div>
-                <div><span className="text-gray-500 text-xs">الفئة الفرعية:</span> <span className="font-semibold text-gray-700 text-xs">{ticket.sub_category || 'غير محددة'}</span></div>
-                <div><span className="text-gray-500 text-xs">الأولوية:</span> <span className={`badge ${prio.color} text-[10px]`}>{prio.label}</span></div>
-                <div><span className="text-gray-500 text-xs">الحالة:</span> <span className={`badge ${stat.color} text-[10px]`}>{stat.label}</span></div>
+            {/* Chat Room Header */}
+            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+                <h3 className="font-extrabold text-[#0D3C5C] text-sm md:text-base m-0">
+                  محادثة الدعم الفني المباشر
+                </h3>
               </div>
+              <span className="text-[11px] font-bold text-slate-500 bg-white px-3 py-1 rounded-lg border border-slate-200">
+                قناة تواصل آمنة وموثقة
+              </span>
             </div>
 
-            <div className="border-t border-gray-100 pt-4 mt-4 text-sm">
-              <div className="mb-1"><span className="text-gray-500 text-xs">الموضوع:</span> <span className="font-bold text-[#0e3b5e] text-xs">{ticket.subject}</span></div>
-              <div className="text-xs text-gray-600 leading-relaxed whitespace-pre-line bg-gray-50 p-4 rounded-xl border border-gray-100 mt-2">{ticket.description}</div>
-            </div>
-          </div>
-
-          {/* Chat replies list card */}
-          <div className="card">
-            <h3 className="font-bold text-[#0e3b5e] mb-4 text-sm">المحادثة</h3>
-            <div className="space-y-4 max-h-[350px] overflow-y-auto pl-2 pr-1">
+            {/* Chat Messages Timeline (Large & Roomy) */}
+            <div className="p-5 md:p-6 space-y-5 min-h-[440px] max-h-[580px] overflow-y-auto bg-slate-50/30">
               
+              {/* Message #0: The Original Ticket Inquiry / Description */}
+              <div className="flex flex-col gap-1.5 items-end">
+                <div className="flex items-center gap-2 text-[11px] text-slate-500 font-bold px-1">
+                  <span>{submitterName} (صاحب الطلب)</span>
+                  <span>•</span>
+                  <span>{formattedDate}</span>
+                </div>
+                <div className="max-w-[90%] md:max-w-[80%] bg-[#0D3C5C] text-white rounded-2xl rounded-tr-sm p-4 md:p-5 shadow-sm text-right">
+                  <div className="text-xs font-bold text-sky-200 mb-1.5 pb-1.5 border-b border-sky-400/20">
+                    موضوع التذكرة: {ticket.subject}
+                  </div>
+                  <div className="text-sm leading-relaxed whitespace-pre-line font-medium">
+                    {ticket.description}
+                  </div>
+                </div>
+              </div>
+
+              {/* Replies from Admin Support & User */}
               {ticket.replies && ticket.replies.map((m) => {
                 const isAdminReply = m.author_role === 'admin' || m.author_role === 'super_admin';
+                const replyDate = new Date(m.created_at).toLocaleDateString('ar-EG', {
+                  month: 'short',
+                  day: 'numeric'
+                });
+                const replyTime = new Date(m.created_at).toLocaleTimeString('ar-EG', {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+
                 return (
-                  <div key={m.id} className={`flex ${isAdminReply ? 'justify-start' : 'justify-end'}`}>
-                    <div className={`max-w-[85%] ${isAdminReply ? 'bg-gray-100 text-gray-800' : 'bg-[#0e3b5e] text-white'} rounded-2xl px-5 py-3 ${isAdminReply ? 'rounded-tl-sm' : 'rounded-tr-sm'}`}>
-                      <div className={`flex items-center gap-2 mb-1 ${isAdminReply ? 'text-[#0e7490]' : 'text-orange-300'} text-[10px]`}>
-                        <span className="font-bold">{isAdminReply ? 'الدعم الفني' : m.author_name}</span>
-                        <span className="opacity-70">| {isAdminReply ? 'مشرف' : 'المستفيد'}</span>
-                      </div>
-                      <div className="text-xs leading-relaxed whitespace-pre-line">{m.message}</div>
-                      <div className="text-[10px] opacity-60 mt-2 text-left">
-                        {new Date(m.created_at).toLocaleDateString('ar-EG')} {new Date(m.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                  <div
+                    key={m.id}
+                    className={`flex flex-col gap-1.5 ${isAdminReply ? 'items-start' : 'items-end'}`}
+                  >
+                    <div className="flex items-center gap-2 text-[11px] text-slate-500 font-bold px-1">
+                      {isAdminReply ? (
+                        <>
+                          <span className="text-[#005D9C] font-extrabold flex items-center gap-1">
+                            🛡️ فريق الدعم الفني والعمليات
+                          </span>
+                          <span>•</span>
+                          <span>{replyDate} {replyTime}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>{m.author_name || submitterName}</span>
+                          <span>•</span>
+                          <span>{replyDate} {replyTime}</span>
+                        </>
+                      )}
+                    </div>
+
+                    <div
+                      className={`max-w-[90%] md:max-w-[80%] rounded-2xl p-4 md:p-5 shadow-sm text-right ${
+                        isAdminReply
+                          ? 'bg-white text-slate-800 border-2 border-sky-100 rounded-tl-sm'
+                          : 'bg-[#005D9C] text-white rounded-tr-sm'
+                      }`}
+                    >
+                      <div className={`text-sm leading-relaxed whitespace-pre-line font-medium ${isAdminReply ? 'text-slate-800' : 'text-white'}`}>
+                        {m.message}
                       </div>
                     </div>
                   </div>
                 );
               })}
 
-              {(!ticket.replies || ticket.replies.length === 0) && (
-                <div className="text-center text-gray-400 py-8 text-xs">لا توجد رسائل إضافية في المحادثة حالياً.</div>
-              )}
+              <div ref={chatEndRef} />
             </div>
 
-            {/* Send Reply area */}
+            {/* Reply Composer Area */}
             {!isClosed ? (
-              <div className="mt-6 pt-4 border-t border-gray-100">
-                <div className="flex gap-3">
+              <div className="p-4 md:p-5 bg-white border-t border-slate-200">
+                <div className="flex flex-col gap-3">
                   <textarea
-                    placeholder="اكتب ردك هنا..."
+                    placeholder="اكتب ردك أو استفسارك الإضافي هنا..."
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
-                    className="input-field flex-1 text-sm"
-                    rows={2}
+                    rows={3}
+                    className="w-full p-3.5 text-sm text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#005D9C] focus:ring-2 focus:ring-[#005D9C]/10 outline-none transition duration-150 resize-none"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
-                        handleSendReply();
+                        handleSendReply(e);
                       }
                     }}
                   />
-                  <button
-                    onClick={handleSendReply}
-                    disabled={sendingReply || !replyText.trim()}
-                    className="btn-navy px-5 flex items-center justify-center disabled:opacity-50"
-                  >
-                    {sendingReply ? <i className="fa fa-spinner fa-spin"></i> : <i className="fa fa-paper-plane"></i>}
-                  </button>
+
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      💡 اضغط <kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 border border-slate-200">Enter</kbd> للإرسال • <kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 border border-slate-200">Shift+Enter</kbd> لسطر جديد
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={handleSendReply}
+                      disabled={sendingReply || !replyText.trim()}
+                      className="px-6 py-2.5 rounded-xl font-extrabold text-sm text-white bg-[#005D9C] hover:bg-[#0D3C5C] disabled:opacity-50 disabled:cursor-not-allowed transition duration-150 shadow-sm flex items-center gap-2 cursor-pointer"
+                    >
+                      {sendingReply ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>جاري الإرسال...</span>
+                        </>
+                      ) : (
+                        <span>إرسال الرد ↵</span>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
-              <div className="mt-6 pt-4 border-t border-gray-100 text-center text-gray-400 text-xs">
-                ⚠️ هذه التذكرة مغلقة. لا يمكنك إرسال ردود إضافية.
+              <div className="p-5 bg-slate-50 border-t border-slate-200 text-center text-slate-500 text-xs font-bold flex items-center justify-center gap-2">
+                <span>🔒 تم إغلاق هذه التذكرة. إذا كنت بحاجة لمساعدة جديدة يمكنك فتح تذكرة دعم جديدة.</span>
               </div>
             )}
+
           </div>
         </div>
 
-        {/* Right Side: Metadata / Info panel */}
-        <div className="space-y-5">
+        {/* Sidebar Info Column */}
+        <div className="lg:col-span-4 space-y-5">
           
-          {/* Custom extra fields details */}
+          {/* Card 1: Ticket Metadata */}
+          <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+            <h4 className="font-extrabold text-[#0D3C5C] text-xs uppercase tracking-wider pb-3 mb-3 border-b border-slate-100">
+              بيانات التذكرة
+            </h4>
+            <div className="space-y-3 text-xs">
+              <div className="flex justify-between items-center py-1 border-b border-slate-50">
+                <span className="text-slate-500 font-medium">رقم التذكرة:</span>
+                <span className="font-mono font-bold text-[#0D3C5C]">{ticket.ticket_number || `#${ticket.id.slice(0, 8)}`}</span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-slate-50">
+                <span className="text-slate-500 font-medium">القسم الرئيسي:</span>
+                <span className="font-bold text-slate-700">{catConfig?.label || ticket.category || 'عام'}</span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-slate-50">
+                <span className="text-slate-500 font-medium">الفئة الفرعية:</span>
+                <span className="font-bold text-slate-700">{ticket.sub_category || 'غير محددة'}</span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-slate-50">
+                <span className="text-slate-500 font-medium">حالة المعالجة:</span>
+                <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${stat.color}`}>{stat.label}</span>
+              </div>
+              <div className="flex justify-between items-center py-1">
+                <span className="text-slate-500 font-medium">مستوى الأولوية:</span>
+                <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${prio.color}`}>{prio.label}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Custom extra fields */}
           {ticket.extra_fields && Object.keys(ticket.extra_fields).length > 0 && (
-            <div className="card p-5 border border-gray-100">
-              <h4 className="font-bold text-[#0e3b5e] mb-3 text-xs uppercase tracking-wide">التفاصيل الإضافية</h4>
-              <div className="space-y-3 text-xs">
+            <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+              <h4 className="font-extrabold text-[#0D3C5C] text-xs uppercase tracking-wider pb-3 mb-3 border-b border-slate-100">
+                التفاصيل الإضافية
+              </h4>
+              <div className="space-y-2.5 text-xs">
                 {fields && fields.map((f) => {
                   const val = ticket.extra_fields[f.id];
                   if (!val) return null;
                   return (
-                    <div key={f.id} className="border-b border-gray-50 pb-2 last:border-0 last:pb-0 text-right">
-                      <div className="text-gray-400 font-medium mb-0.5">{f.label}</div>
-                      <div className="text-gray-700 font-bold">
+                    <div key={f.id} className="border-b border-slate-50 pb-2 last:border-0 last:pb-0 text-right">
+                      <div className="text-slate-400 font-medium mb-0.5 text-[11px]">{f.label}:</div>
+                      <div className="text-slate-700 font-bold">
                         {Array.isArray(val) ? val.join('، ') : val.toString()}
                       </div>
                     </div>
@@ -242,25 +347,27 @@ export default function SupportTicketDetailPage({ ticketId, navigate }) {
             </div>
           )}
 
-          {/* Attachments Card */}
-          <div className="card p-5 border border-gray-100">
-            <h4 className="font-bold text-[#0e3b5e] mb-3 text-xs uppercase tracking-wide">المرفقات</h4>
+          {/* Card 3: Attachments */}
+          <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+            <h4 className="font-extrabold text-[#0D3C5C] text-xs uppercase tracking-wider pb-3 mb-3 border-b border-slate-100">
+              المرفقات والمستندات
+            </h4>
             {ticket.attachments && ticket.attachments.length > 0 ? (
               <div className="space-y-2">
                 {ticket.attachments.map((a) => (
-                  <div key={a.id} className="flex items-center justify-between bg-gray-50 rounded-lg p-2.5 border border-gray-200">
+                  <div key={a.id} className="flex items-center justify-between bg-slate-50 rounded-xl p-3 border border-slate-200">
                     <div className="flex items-center gap-2 truncate max-w-[70%]">
-                      <i className="fa fa-file text-[#0e7490] text-sm shrink-0"></i>
+                      <span className="text-base shrink-0">📄</span>
                       <div className="truncate">
-                        <div className="text-[11px] font-semibold text-gray-700 truncate" title={a.filename}>{a.filename}</div>
-                        <div className="text-[9px] text-gray-400">{(a.file_size / 1024 / 1024).toFixed(2)} MB</div>
+                        <div className="text-xs font-bold text-slate-700 truncate" title={a.filename}>{a.filename}</div>
+                        <div className="text-[10px] text-slate-400">{(a.file_size / 1024 / 1024).toFixed(2)} MB</div>
                       </div>
                     </div>
                     <a
                       href={a.file_path}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[#0e7490] hover:text-orange-500 font-bold transition text-[10px]"
+                      className="text-[#005D9C] hover:text-[#0D3C5C] font-extrabold text-xs bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs"
                     >
                       تحميل
                     </a>
@@ -268,21 +375,25 @@ export default function SupportTicketDetailPage({ ticketId, navigate }) {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-400 text-xs text-center py-4">لا توجد ملفات مرفقة.</p>
+              <p className="text-slate-400 text-xs text-center py-3">لا توجد مستندات مرفقة مع هذا الطلب.</p>
             )}
           </div>
 
-          {/* Service Level Agreement */}
-          <div className="card p-5 border border-gray-100">
-            <h4 className="font-bold text-[#0e3b5e] mb-3 text-xs uppercase tracking-wide">SLA مستوى الخدمة</h4>
-            <div className="text-xs text-gray-600 mb-2">الرد الأول خلال ساعتين</div>
-            <div className="w-full bg-gray-200 rounded-full h-1.5">
-              <div className="bg-orange-400 h-1.5 rounded-full" style={{ width: '80%' }}></div>
-            </div>
-            <div className="text-[10px] text-gray-400 mt-1.5">تم الالتزام بمستوى الخدمة.</div>
+          {/* Card 4: SLA Note */}
+          <div className="bg-gradient-to-br from-slate-50 to-blue-50/40 rounded-2xl p-5 border border-slate-200 shadow-sm">
+            <h4 className="font-extrabold text-[#0D3C5C] text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <span>⏱️</span>
+              <span>مستوى الخدمة وسرعة الاستجابة</span>
+            </h4>
+            <p className="text-xs text-slate-600 leading-relaxed m-0">
+              يتم الرد على التذاكر ومتابعتها بواسطة فريق الدعم الفني المختص على مدار الساعة وفقاً لأولوية التذكرة.
+            </p>
           </div>
+
         </div>
+
       </div>
     </div>
   );
 }
+

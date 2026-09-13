@@ -2,16 +2,20 @@ from fastapi import APIRouter, Depends, status, Query, Body, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional, Any, Dict
 
+from datetime import datetime, timezone
 from helpers.database import get_db
 from helpers.enums import UserRole, EntityType, NotificationAudience, NotificationType, TicketCategory, TicketPriority, TicketStatus
-from models import User
+from helpers.encryption import encrypt_text, decrypt_text
+from models import User, Notification, SupportTicket, TicketReply
+from services.ticket_service import TicketService
+from services.notification_service import NotificationService
 from schemes import (
     UserOut, ConsultantProfileOut, ConsultantApplicationAction,
     ServiceExpansionRequestOut, ServiceExpansionReviewAction,
     CredentialOut, CredentialReview,
     UserStatsOut, AdminUserListOut, AdminAddUserRequest,
     AdminUpdateUserRequest, AdminResetPasswordRequest,
-    AdminBroadcastNotification, BroadcastResultOut,
+    AdminBroadcastNotification, BroadcastResultOut, AdminDirectUserMessage,
     AdminSessionOut, AdminSessionJoinOut, AdminUpdateSessionStatus,
     TicketOut, TicketReplyOut, AdminTicketCreate,
     AdminTicketReplyCreate, AdminTicketUpdate,
@@ -579,6 +583,166 @@ def broadcast_notification(
     Broadcasts a notification message to the chosen target audience (e.g. all, consultants, companies, etc.)
     """
     return SuperAdminController.broadcast_notification(db, broadcast_in)
+
+
+@router.post(
+    "/users/{user_id}/message",
+    summary="Send direct message from admin to user or consultant integrated directly into Support Ticket Chat",
+)
+def admin_send_direct_user_message(
+    user_id: str,
+    msg_in: AdminDirectUserMessage,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_send_notifications)
+):
+    """
+    Sends a direct message from admin to a user or consultant,
+    saving it directly into their Support Ticket chat thread in DB
+    and pushing an interactive notification in real-time.
+    """
+    import uuid
+    try:
+        u_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="معرف المستخدم غير صالح")
+
+    target_user = db.query(User).filter(User.id == u_uuid).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="المستخدم غير موجود")
+
+    raw_msg = (msg_in.message or "").strip()
+    if not raw_msg:
+        raise HTTPException(status_code=400, detail="لا يمكن إرسال رسالة فارغة")
+
+    # 1. Search for an existing open / in-progress support ticket for this user
+    open_ticket = db.query(SupportTicket).filter(
+        SupportTicket.submitted_by == u_uuid,
+        SupportTicket.status.in_([TicketStatus.new, TicketStatus.open, TicketStatus.in_progress, TicketStatus.pending_user, TicketStatus.received, TicketStatus.reviewing])
+    ).order_by(SupportTicket.updated_at.desc()).first()
+
+    if open_ticket:
+        # Add reply to the existing open ticket
+        reply = TicketService.reply_to_ticket_admin(
+            db=db,
+            ticket_id=open_ticket.id,
+            admin_id=current_admin.id,
+            message=raw_msg,
+            is_internal=False
+        )
+        return {
+            "success": True,
+            "ticket_id": str(open_ticket.id),
+            "ticket_number": open_ticket.ticket_number,
+            "sender": "إدارة المنصة",
+            "message": raw_msg,
+            "created_at": reply.created_at.isoformat() if reply.created_at else datetime.now(timezone.utc).isoformat()
+        }
+    else:
+        # Create a new platform ticket for communication
+        current_year = datetime.now(timezone.utc).year
+        year_start = datetime(current_year, 1, 1, tzinfo=timezone.utc)
+        count = db.query(SupportTicket).filter(SupportTicket.created_at >= year_start).count()
+        ticket_num = f"#{current_year}{str(count + 1).zfill(6)}"
+
+        encrypted_desc = encrypt_text(raw_msg)
+
+        new_ticket = SupportTicket(
+            submitted_by=u_uuid,
+            ticket_number=ticket_num,
+            subject=msg_in.title or "تواصل ومتابعة من إدارة المنصة",
+            description=encrypted_desc,
+            category=TicketCategory.other,
+            priority=TicketPriority.medium,
+            status=TicketStatus.in_progress,
+            assigned_to=current_admin.id
+        )
+        db.add(new_ticket)
+        db.commit()
+        db.refresh(new_ticket)
+
+        # Dispatch real-time notification to the user/consultant linking to the ticket
+        NotificationService.send(
+            db=db,
+            user_id=u_uuid,
+            notification_type=NotificationType.general,
+            title=msg_in.title or "رسالة جديدة من إدارة المنصة",
+            message=f"أرسلت لك إدارة المنصة رسالة جديدة في تذكرة الدعم {ticket_num}: '{raw_msg[:70]}...'",
+            related_entity_type="support_ticket",
+            related_entity_id=new_ticket.id
+        )
+
+        return {
+            "success": True,
+            "ticket_id": str(new_ticket.id),
+            "ticket_number": ticket_num,
+            "sender": "إدارة المنصة",
+            "message": raw_msg,
+            "created_at": new_ticket.created_at.isoformat() if new_ticket.created_at else datetime.now(timezone.utc).isoformat()
+        }
+
+
+@router.get(
+    "/users/{user_id}/messages",
+    summary="Get unified ticket chat communications for a specific user",
+)
+def admin_get_user_messages(
+    user_id: str,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_send_notifications)
+):
+    """
+    Returns unified ticket conversations and replies for a specific user.
+    """
+    import uuid
+    try:
+        u_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="معرف المستخدم غير صالح")
+
+    # 1. Fetch tickets submitted by this user
+    tickets = db.query(SupportTicket).filter(
+        SupportTicket.submitted_by == u_uuid
+    ).order_by(SupportTicket.created_at.desc()).limit(15).all()
+
+    chat_list = []
+    target_user = db.query(User).filter(User.id == u_uuid).first()
+    user_display_name = target_user.full_name if target_user else "المستخدم"
+
+    for t in tickets:
+        t_desc = decrypt_text(t.description)
+        if t_desc:
+            chat_list.append({
+                "id": f"ticket_init_{t.id}",
+                "sender": user_display_name,
+                "sender_name": user_display_name,
+                "title": f"تذكرة {t.ticket_number}: {t.subject}",
+                "message": t_desc,
+                "text": t_desc,
+                "created_at": t.created_at.isoformat() if t.created_at else None,
+                "ticket_id": str(t.id),
+                "ticket_number": t.ticket_number
+            })
+        for r in t.replies:
+            if not r.is_internal:
+                r_text = decrypt_text(r.message)
+                is_admin = r.author_id == current_admin.id or (r.author and r.author.role in [UserRole.admin, UserRole.super_admin, 'admin', 'super_admin'])
+                s_name = "إدارة المنصة" if is_admin else (r.author.full_name if r.author else user_display_name)
+                chat_list.append({
+                    "id": str(r.id),
+                    "sender": s_name,
+                    "sender_name": s_name,
+                    "title": s_name,
+                    "message": r_text,
+                    "text": r_text,
+                    "created_at": r.created_at.isoformat() if r.created_at else None,
+                    "ticket_id": str(t.id),
+                    "ticket_number": t.ticket_number
+                })
+
+    # Sort chat list chronologically (oldest to newest)
+    chat_list.sort(key=lambda x: x["created_at"] or "")
+
+    return chat_list
 
 
 # ─────────────────────────────────────────────────────────────────────

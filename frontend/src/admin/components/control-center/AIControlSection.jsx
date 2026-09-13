@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ModernSelect from '../../../components/ModernSelect';
 
 export default function AIControlSection({
   activeTab,
@@ -102,25 +103,27 @@ export default function AIControlSection({
                   حرك الماوس لقراءة القيم واضغط على أي نقطة للتفاصيل
                 </div>
               </div>
-              <div className="chart-controls">
-                <select value={tokenRange} onChange={(e) => setTokenRange(e.target.value)}>
-                  <option>آخر شهر</option>
-                  <option>آخر يوم</option>
-                  <option>آخر أسبوع</option>
-                  <option>آخر 3 شهور</option>
-                  <option>آخر 6 شهور</option>
-                  <option>آخر سنة</option>
-                </select>
-                <select value={tokenUser} onChange={(e) => setTokenUser(e.target.value)}>
-                  <option value="إجمالي المنصة">إجمالي المنصة</option>
-                  {r360Entities
-                    .filter((e) => e.type === 'مستخدم' || e.type === 'مستشار')
-                    .map((u) => (
-                      <option key={u.id} value={u.title}>
-                        {u.title} ({u.type})
-                      </option>
-                    ))}
-                </select>
+              <div className="chart-controls" style={{ display: 'flex', gap: '8px' }}>
+                <ModernSelect
+                  style={{ width: '120px' }}
+                  value={tokenRange}
+                  onChange={(val) => setTokenRange(val)}
+                  options={['آخر شهر', 'آخر يوم', 'آخر أسبوع', 'آخر 3 شهور', 'آخر 6 شهور', 'آخر سنة']}
+                />
+                <ModernSelect
+                  style={{ width: '150px' }}
+                  value={tokenUser}
+                  onChange={(val) => setTokenUser(val)}
+                  options={[
+                    { value: 'إجمالي المنصة', label: 'إجمالي المنصة' },
+                    ...r360Entities
+                      .filter((e) => e.type === 'مستخدم' || e.type === 'مستشار')
+                      .map((u) => ({
+                        value: u.title,
+                        label: `${u.title} (${u.type})`
+                      }))
+                  ]}
+                />
               </div>
             </div>
             <div className="panel-body">
@@ -147,13 +150,12 @@ export default function AIControlSection({
                 </div>
               </div>
               <div className="chart-controls">
-                <select value={qualityRange} onChange={(e) => setQualityRange(e.target.value)}>
-                  <option>آخر شهر</option>
-                  <option>آخر يوم</option>
-                  <option>آخر أسبوع</option>
-                  <option>آخر 3 شهور</option>
-                  <option>آخر 6 شهور</option>
-                </select>
+                <ModernSelect
+                  style={{ width: '120px' }}
+                  value={qualityRange}
+                  onChange={(val) => setQualityRange(val)}
+                  options={['آخر شهر', 'آخر يوم', 'آخر أسبوع', 'آخر 3 شهور', 'آخر 6 شهور']}
+                />
               </div>
             </div>
             <div className="panel-body">
@@ -283,14 +285,12 @@ export default function AIControlSection({
                 </div>
               </div>
               <div className="chart-controls">
-                <select value={topicsRange} onChange={(e) => setTopicsRange(e.target.value)}>
-                  <option>آخر شهر</option>
-                  <option>آخر يوم</option>
-                  <option>آخر أسبوع</option>
-                  <option>آخر 3 شهور</option>
-                  <option>آخر 6 شهور</option>
-                  <option>آخر سنة</option>
-                </select>
+                <ModernSelect
+                  style={{ width: '120px' }}
+                  value={topicsRange}
+                  onChange={(val) => setTopicsRange(val)}
+                  options={['آخر شهر', 'آخر يوم', 'آخر أسبوع', 'آخر 3 شهور', 'آخر 6 شهور', 'آخر سنة']}
+                />
               </div>
             </div>
             <div className="panel-body" style={{ padding: '12px' }}>

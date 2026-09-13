@@ -947,13 +947,28 @@ export default function AdminNotificationsPage({ navigate }) {
                 {previewModalOpen.created_at ? new Date(previewModalOpen.created_at).toLocaleString('ar-EG') : (previewModalOpen.sentAt || 'الآن')}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setPreviewModalOpen(null)}
-              style={{ width: '100%', background: '#0e3b5e', color: '#FFFFFF', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer' }}
-            >
-              إغلاق
-            </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {(previewModalOpen.related_entity_type === 'support_ticket' || previewModalOpen.title?.includes('تذكرة') || previewModalOpen.message?.includes('تذكرة')) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const tId = previewModalOpen.related_entity_id;
+                    setPreviewModalOpen(null);
+                    navigate('/admin/tickets' + (tId ? `?id=${tId}` : ''));
+                  }}
+                  style={{ flex: 1.5, background: '#005D9C', color: '#FFFFFF', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                >
+                  <span>الانتقال للتذكرة والمحادثة ↵</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setPreviewModalOpen(null)}
+                style={{ flex: 1, background: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1', padding: '10px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer' }}
+              >
+                إغلاق
+              </button>
+            </div>
           </div>
         </div>
       )}

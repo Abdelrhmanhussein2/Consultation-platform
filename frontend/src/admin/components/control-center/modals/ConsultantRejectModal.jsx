@@ -1,5 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
+import ModernSelect from '../../../../components/ModernSelect';
 
 export default function ConsultantRejectModal({
   rejectModalOpen,
@@ -65,32 +66,29 @@ export default function ConsultantRejectModal({
           <div className="reject-grid-v15">
             <div className="field">
               <label>سبب الرفض</label>
-              <select
+              <ModernSelect
+                style={{ width: '100%' }}
                 value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-              >
-                <option value="ملف غير مكتمل">ملف غير مكتمل</option>
-                <option value="وثائق ناقصة">وثائق ناقصة</option>
-                <option value="وثائق منتهية أو غير صالحة">وثائق منتهية أو غير صالحة</option>
-                <option value="خبرة غير كافية">خبرة غير كافية</option>
-                <option value="تخصص غير مطابق">تخصص غير مطابق لاحتياج المنصة</option>
-                <option value="أخرى">سبب آخر</option>
-              </select>
+                onChange={(val) => setRejectReason(val)}
+                options={[
+                  { value: 'ملف غير مكتمل', label: 'ملف غير مكتمل' },
+                  { value: 'وثائق ناقصة', label: 'وثائق ناقصة' },
+                  { value: 'وثائق منتهية أو غير صالحة', label: 'وثائق منتهية أو غير صالحة' },
+                  { value: 'خبرة غير كافية', label: 'خبرة غير كافية' },
+                  { value: 'تخصص غير مطابق', label: 'تخصص غير مطابق لاحتياج المنصة' },
+                  { value: 'أخرى', label: 'سبب آخر' }
+                ]}
+              />
             </div>
 
             <div className="field">
               <label>مهلة الاستكمال</label>
-              <select
+              <ModernSelect
+                style={{ width: '100%' }}
                 value={rejectDeadline}
-                disabled={rejectMode === 'نهائي'}
-                onChange={(e) => setRejectDeadline(e.target.value)}
-              >
-                <option value="3 أيام">3 أيام</option>
-                <option value="7 أيام">7 أيام</option>
-                <option value="14 يومًا">14 يومًا</option>
-                <option value="30 يومًا">30 يومًا</option>
-                <option value="لا توجد مهلة">لا توجد مهلة</option>
-              </select>
+                onChange={(val) => setRejectDeadline(val)}
+                options={['3 أيام', '7 أيام', '14 يومًا', '30 يومًا', 'لا توجد مهلة']}
+              />
             </div>
           </div>
 

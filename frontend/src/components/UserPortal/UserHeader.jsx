@@ -130,14 +130,38 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
       return;
     }
 
-    // 2. Chat / Direct Messages SECOND (e.g. "رسالة جديدة من محمد مسعد")
+    // 1.5. Support Tickets
+    if (
+      type.includes('ticket') ||
+      notif.related_entity_type === 'support_ticket' ||
+      title.includes('تذكرة') ||
+      msg.includes('تذكرتك') ||
+      title.includes('الدعم الفني')
+    ) {
+      const ticketId = notif.related_entity_id;
+      if (ticketId) {
+        navigate(`/support/tickets/${ticketId}`);
+      } else {
+        navigate('/support/tickets');
+      }
+      return;
+    }
+
+    // 2. Chat / Direct Messages & Admin Communications (e.g. "رسالة من إدارة المنصة")
     if (
       type.includes('chat') ||
       type.includes('message') ||
       title.includes('رسالة') ||
       title.includes('محادثة') ||
-      msg.includes('رسالة جديدة')
+      msg.includes('رسالة') ||
+      title.includes('إدارة') ||
+      msg.includes('إدارة')
     ) {
+      if (title.includes('إدارة المنصة') || msg.includes('إدارة المنصة') || title.includes('المنصة')) {
+        navigate('/chat?apptId=admin_support');
+        return;
+      }
+
       let senderName = '';
       if (rawTitle.includes('من ')) {
         senderName = rawTitle.split('من ')[1]?.trim() || '';

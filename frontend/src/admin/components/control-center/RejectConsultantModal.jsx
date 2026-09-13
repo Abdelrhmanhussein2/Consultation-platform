@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ModernSelect from '../../../components/ModernSelect';
 
 export default function RejectConsultantModal({ consultant, onClose, onConfirm }) {
   const [rejectMode, setRejectMode] = useState('completion'); // 'completion' | 'final'
@@ -69,35 +70,29 @@ export default function RejectConsultantModal({ consultant, onClose, onConfirm }
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>سبب القرار</label>
-              <select
-                className="cc-select"
+              <ModernSelect
                 style={{ width: '100%' }}
                 value={reason}
-                onChange={(e) => setReason(e.target.value)}
-              >
-                <option value="ملف غير مكتمل">ملف غير مكتمل</option>
-                <option value="وثائق ناقصة">وثائق ناقصة</option>
-                <option value="وثائق منتهية أو غير صالحة">وثائق منتهية أو غير صالحة</option>
-                <option value="خبرة غير كافية">خبرة غير كافية</option>
-                <option value="تخصص غير مطابق">تخصص غير مطابق لاحتياج المنصة</option>
-                <option value="أخرى">سبب آخر</option>
-              </select>
+                onChange={(val) => setReason(val)}
+                options={[
+                  { value: 'ملف غير مكتمل', label: 'ملف غير مكتمل' },
+                  { value: 'وثائق ناقصة', label: 'وثائق ناقصة' },
+                  { value: 'وثائق منتهية أو غير صالحة', label: 'وثائق منتهية أو غير صالحة' },
+                  { value: 'خبرة غير كافية', label: 'خبرة غير كافية' },
+                  { value: 'تخصص غير مطابق', label: 'تخصص غير مطابق لاحتياج المنصة' },
+                  { value: 'أخرى', label: 'سبب آخر' }
+                ]}
+              />
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>مهلة الاستكمال</label>
-              <select
-                className="cc-select"
+              <ModernSelect
                 style={{ width: '100%' }}
                 value={deadline}
-                disabled={rejectMode === 'final'}
-                onChange={(e) => setDeadline(e.target.value)}
-              >
-                <option value="3 أيام">3 أيام</option>
-                <option value="7 أيام">7 أيام</option>
-                <option value="14 يومًا">14 يومًا</option>
-                <option value="30 يومًا">30 يومًا</option>
-              </select>
+                onChange={(val) => setDeadline(val)}
+                options={['3 أيام', '7 أيام', '14 يومًا', '30 يومًا']}
+              />
             </div>
           </div>
 

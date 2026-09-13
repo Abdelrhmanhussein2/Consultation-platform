@@ -1,6 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { cls } from '../utils/controlCenterHelpers';
+import { sendDirectUserMessage } from '../../../services/adminApi';
 
 export default function Profile360Modal({
   modalOpen,
@@ -1120,44 +1121,74 @@ export default function Profile360Modal({
                         </div>
                         <div className="chat-compose">
                           <input
-                            placeholder="اكتب رسالة مباشرة..."
+                            placeholder="اكتب رسالة مباشرة... (اضغط Enter للإرسال)"
                             value={chatInput}
                             onChange={(e) => setChatInput(e.target.value)}
-                            onKeyDown={(e) => {
+                            onKeyDown={async (e) => {
                               if (e.key === 'Enter' && chatInput.trim()) {
+                                const textToSend = chatInput.trim();
+                                const targetId = selectedEntity.rawId || (selectedEntity.id && selectedEntity.id.includes('-') && selectedEntity.id.length > 20 ? selectedEntity.id : null);
                                 setChatMessages([
                                   ...chatMessages,
                                   {
                                     sender: 'me',
                                     sender_name: 'إدارة المنصة',
-                                    text: chatInput.trim(),
-                                    time: 'الآن'
+                                    text: textToSend,
+                                    time: new Date().toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' })
                                   }
                                 ]);
                                 setChatInput('');
-                                showToastMsg('تم إرسال الرسالة');
+                                if (targetId) {
+                                  try {
+                                    await sendDirectUserMessage(targetId, {
+                                      title: 'رسالة من إدارة المنصة',
+                                      message: textToSend
+                                    });
+                                    showToastMsg('تم إرسال الرسالة إلى تذكرة الدعم بنجاح');
+                                  } catch (err) {
+                                    console.warn('Error sending message:', err);
+                                    showToastMsg('تم إرسال الرسالة');
+                                  }
+                                } else {
+                                  showToastMsg('تم إرسال الرسالة');
+                                }
                               }
                             }}
                           />
                           <button
                             className="btn green"
-                            onClick={() => {
+                            onClick={async () => {
                               if (chatInput.trim()) {
+                                const textToSend = chatInput.trim();
+                                const targetId = selectedEntity.rawId || (selectedEntity.id && selectedEntity.id.includes('-') && selectedEntity.id.length > 20 ? selectedEntity.id : null);
                                 setChatMessages([
                                   ...chatMessages,
                                   {
                                     sender: 'me',
                                     sender_name: 'إدارة المنصة',
-                                    text: chatInput.trim(),
-                                    time: 'الآن'
+                                    text: textToSend,
+                                    time: new Date().toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' })
                                   }
                                 ]);
                                 setChatInput('');
-                                showToastMsg('تم إرسال الرسالة');
+                                if (targetId) {
+                                  try {
+                                    await sendDirectUserMessage(targetId, {
+                                      title: 'رسالة من إدارة المنصة',
+                                      message: textToSend
+                                    });
+                                    showToastMsg('تم إرسال الرسالة إلى تذكرة الدعم بنجاح');
+                                  } catch (err) {
+                                    console.warn('Error sending message:', err);
+                                    showToastMsg('تم إرسال الرسالة');
+                                  }
+                                } else {
+                                  showToastMsg('تم إرسال الرسالة');
+                                }
                               }
                             }}
                           >
-                            إرسال
+                            إرسال ↵
                           </button>
                         </div>
                       </div>

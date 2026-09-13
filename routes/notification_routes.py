@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, status, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, Query, status, WebSocket, WebSocketDisconnect, Body, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import json
@@ -103,6 +103,42 @@ def delete_notification(
     Deletes a single notification for the logged-in user.
     """
     return NotificationController.delete_notification(db, current_user, notification_id)
+
+
+@router.post(
+    "/contact-admin",
+    summary="Send direct message from user to platform administration",
+)
+def user_contact_admin(
+    msg_in: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Sends a message from user/consultant to the platform admin team.
+    """
+    text = msg_in.get("message", "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="نص الرسالة مطلوب")
+
+    from services.notification_service import NotificationService
+    from helpers.enums import NotificationType
+    from models import UserRole
+
+    admins = db.query(User).filter(User.role.in_([UserRole.super_admin, UserRole.admin])).all()
+    for admin in admins:
+        NotificationService.send(
+            db=db,
+            user_id=admin.id,
+            notification_type=NotificationType.general,
+            title=f"رسالة جديدة من {current_user.full_name}",
+            message=text,
+            related_entity_type="user",
+            related_entity_id=current_user.id
+        )
+    return {"success": True, "message": "تم إرسال الرسالة إلى إدارة المنصة"}
+
+
 @router.websocket("/ws")
 async def websocket_notifications_endpoint(
     websocket: WebSocket,

@@ -95,6 +95,8 @@ export default function AdminTicketsPage({ navigate }) {
   const [toastMsg, setToastMsg] = useState('');
   const [replyInternal, setReplyInternal] = useState(false);
   const [replyText, setReplyText] = useState('');
+  const [isSendingReply, setIsSendingReply] = useState(false);
+  const isSendingReplyRef = useRef(false);
   const [attachedFiles, setAttachedFiles] = useState([]);
   const [showTemplatesDropdown, setShowTemplatesDropdown] = useState(false);
   const [showAiDropdown, setShowAiDropdown] = useState(false);
@@ -432,9 +434,14 @@ export default function AdminTicketsPage({ navigate }) {
   };
 
   const handleSendReply = async (ticketId, andClose = false) => {
+    if (isSendingReplyRef.current) return;
     if (!replyText.trim() && attachedFiles.length === 0) return;
+
+    isSendingReplyRef.current = true;
+    setIsSendingReply(true);
+
     const now = new Date();
-    const dateStr = '20/08/2026';
+    const dateStr = now.toLocaleDateString('ar-EG');
     const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
 
     let finalMsg = replyText.trim();
@@ -442,16 +449,22 @@ export default function AdminTicketsPage({ navigate }) {
       finalMsg += `\n📎 [المرفقات: ${attachedFiles.map(f => f.name).join(', ')}]`;
     }
 
+    const sentText = finalMsg;
+    setReplyText('');
+    setAttachedFiles([]);
+    setShowTemplatesDropdown(false);
+    setShowAiDropdown(false);
+
     // 1. Optimistic State Update
     setTickets(prev => prev.map(t => {
       if (t.id !== ticketId) return t;
       const newMsg = {
         from: 'agent',
-        name: 'سارة خالد',
+        name: 'إدارة المنصة',
         role: replyInternal ? 'ملاحظة داخلية' : 'موظف الدعم',
         date: dateStr,
         time: timeStr,
-        text: finalMsg,
+        text: sentText,
         internal: replyInternal
       };
       const actionText = andClose
@@ -461,7 +474,7 @@ export default function AdminTicketsPage({ navigate }) {
         ...t,
         status: andClose ? 'تم الحل' : t.status,
         messages: [...t.messages, newMsg],
-        timeline: [{ action: actionText, date: `${timeStr} - ${dateStr}`, by: 'بواسطة سارة خالد' }, ...t.timeline],
+        timeline: [{ action: actionText, date: `${timeStr} - ${dateStr}`, by: 'بواسطة إدارة المنصة' }, ...t.timeline],
         updated: dateStr
       };
     }));
@@ -470,11 +483,6 @@ export default function AdminTicketsPage({ navigate }) {
       ? 'تم إرسال الرد للمستخدم وإغلاق المحادثة بنجاح.'
       : (replyInternal ? 'تمت إضافة الملاحظة الداخلية بنجاح (للإدارة فقط).' : 'تم إرسال الرد للمستخدم بنجاح.')
     );
-    const sentText = finalMsg;
-    setReplyText('');
-    setAttachedFiles([]);
-    setShowTemplatesDropdown(false);
-    setShowAiDropdown(false);
 
     // 2. Persist to Backend API
     try {
@@ -492,6 +500,9 @@ export default function AdminTicketsPage({ navigate }) {
       }
     } catch (err) {
       console.warn('Backend ticket reply fallback:', err);
+    } finally {
+      isSendingReplyRef.current = false;
+      setIsSendingReply(false);
     }
   };
 
@@ -955,9 +966,17 @@ export default function AdminTicketsPage({ navigate }) {
                     {/* Editor Textarea */}
                     <textarea
                       ref={textareaRef}
-                      placeholder={replyInternal ? 'اكتب ملاحظة داخلية (للإدارة فقط)...' : 'اكتب ردك هنا...'}
+                      placeholder={replyInternal ? 'اكتب ملاحظة داخلية (للإدارة فقط)...' : 'اكتب ردك هنا... (اضغط Enter للإرسال)'}
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          if (selectedTicket && !isSendingReplyRef.current) {
+                            handleSendReply(selectedTicket.id, false);
+                          }
+                        }
+                      }}
                       rows={3}
                       style={{
                         width: '100%',
@@ -1032,6 +1051,7 @@ export default function AdminTicketsPage({ navigate }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <button
                         type="button"
+                        disabled={isSendingReply}
                         onClick={() => handleSendReply(selectedTicket.id, true)}
                         style={{
                           background: '#FFFFFF',
@@ -1041,17 +1061,19 @@ export default function AdminTicketsPage({ navigate }) {
                           borderRadius: '10px',
                           fontSize: '12.5px',
                           fontWeight: '800',
-                          cursor: 'pointer',
+                          cursor: isSendingReply ? 'not-allowed' : 'pointer',
+                          opacity: isSendingReply ? 0.6 : 1,
                           transition: 'all 0.18s ease'
                         }}
                         onMouseEnter={(e) => { e.currentTarget.style.background = '#F0F9FF'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; }}
                       >
-                        إرسال وإغلاق المحادثة
+                        {isSendingReply ? 'جاري الحفظ...' : 'إرسال وإغلاق المحادثة'}
                       </button>
 
                       <button
                         type="button"
+                        disabled={isSendingReply || (!replyText.trim() && attachedFiles.length === 0)}
                         onClick={() => handleSendReply(selectedTicket.id, false)}
                         style={{
                           background: '#0e3b5e',
@@ -1061,14 +1083,15 @@ export default function AdminTicketsPage({ navigate }) {
                           borderRadius: '10px',
                           fontSize: '13px',
                           fontWeight: '800',
-                          cursor: 'pointer',
+                          cursor: (isSendingReply || (!replyText.trim() && attachedFiles.length === 0)) ? 'not-allowed' : 'pointer',
+                          opacity: (isSendingReply || (!replyText.trim() && attachedFiles.length === 0)) ? 0.6 : 1,
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px',
                           boxShadow: '0 2px 4px rgba(14, 59, 94, 0.2)'
                         }}
                       >
-                        <span>إرسال</span>
+                        <span>{isSendingReply ? 'جاري الإرسال...' : 'إرسال'}</span>
                         <span style={{ fontSize: '11px' }}>↵</span>
                       </button>
                     </div>

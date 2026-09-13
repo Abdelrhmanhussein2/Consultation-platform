@@ -35,7 +35,11 @@ class ChatService:
         elif user_id == consultant_user_id:
             receiver_id = client_user_id
         else:
-            raise PermissionError("ليس لديك صلاحية للوصول إلى محادثة هذا الموعد")
+            req_user = db.query(User).filter(User.id == user_id).first()
+            if req_user and req_user.role in [UserRole.admin, UserRole.super_admin]:
+                receiver_id = client_user_id
+            else:
+                raise PermissionError("ليس لديك صلاحية للوصول إلى محادثة هذا الموعد")
 
         return appointment, receiver_id
 

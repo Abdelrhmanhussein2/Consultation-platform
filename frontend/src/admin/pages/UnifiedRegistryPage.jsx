@@ -7,7 +7,17 @@ import {
   getAllInvoices,
   getAutomationRules,
   getPendingConsultants,
-  updateAdminSessionStatus
+  updateAdminSessionStatus,
+  updateAdminTicketStatus,
+  handleUserAction,
+  updateAutomationRule,
+  reviewCredential,
+  sendDirectUserMessage,
+  getUserMessages,
+  getAppointmentMessages,
+  sendAppointmentMessage,
+  replyAdminTicket,
+  getAdminTicketDetail
 } from '../services/adminApi';
 
 import RegistrySummaryStrip from '../components/unified-registry/RegistrySummaryStrip';
@@ -391,10 +401,47 @@ export default function UnifiedRegistryPage({ navigate }) {
   };
 
   // ─── OPEN RECORD DRAWER ───
-  const openRecord = (rec, tab = 'overview') => {
+  const openRecord = async (rec, tab = 'overview') => {
     setCurrentRecord(rec);
     setCurrentDrawerTab(tab);
     setDrawerOpen(true);
+
+    // Fetch live conversation / message history from DB
+    try {
+      if (rec.type === 'استشارة' && rec.rawId) {
+        const msgs = await getAppointmentMessages(rec.rawId);
+        if (Array.isArray(msgs) && msgs.length > 0) {
+          const formatted = msgs.map(m => [
+            m.sender_name || 'مستخدم',
+            m.message_text || 'مرفق',
+            m.created_at ? new Date(m.created_at).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) : '—'
+          ]);
+          setConversationsState(prev => ({ ...prev, [rec.id]: formatted }));
+        }
+      } else if (rec.type === 'تذكرة دعم' && rec.rawId) {
+        const tDetail = await getAdminTicketDetail(rec.rawId);
+        if (tDetail?.replies && Array.isArray(tDetail.replies) && tDetail.replies.length > 0) {
+          const formatted = tDetail.replies.map(r => [
+            r.author_name || 'فريق الدعم',
+            r.reply_text,
+            r.created_at ? new Date(r.created_at).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) : '—'
+          ]);
+          setConversationsState(prev => ({ ...prev, [rec.id]: formatted }));
+        }
+      } else if ((rec.type === 'مستخدم' || rec.type === 'مستشار' || rec.type === 'مدير منصة') && rec.rawId) {
+        const notifs = await getUserMessages(rec.rawId);
+        if (Array.isArray(notifs) && notifs.length > 0) {
+          const formatted = notifs.map(n => [
+            n.sender || n.sender_name || n.title || 'إدارة المنصة',
+            n.text || n.message,
+            n.created_at ? new Date(n.created_at).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) : '—'
+          ]);
+          setConversationsState(prev => ({ ...prev, [rec.id]: formatted }));
+        }
+      }
+    } catch (err) {
+      console.warn('Could not pre-fetch record messages:', err);
+    }
   };
 
   const closeDrawer = () => {
@@ -415,28 +462,64 @@ export default function UnifiedRegistryPage({ navigate }) {
   };
 
   // ─── SEND MESSAGE IN CHAT TAB ───
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!chatInput.trim() || !currentRecord) return;
+    const text = chatInput.trim();
     const nowTime = new Date().toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' });
     const currentMsgs = conversationsState[currentRecord.id] || [];
+    
+    // 1. Optimistic UI update
     setConversationsState({
       ...conversationsState,
-      [currentRecord.id]: [...currentMsgs, ['إدارة المنصة', chatInput.trim(), nowTime]]
+      [currentRecord.id]: [...currentMsgs, ['إدارة المنصة', text, nowTime]]
     });
     setChatInput('');
-    showToastMsg('تم إرسال الرسالة وتسجيلها في السجل');
+
+    // 2. Persist to live Database & trigger notifications/websockets
+    try {
+      if (currentRecord.type === 'استشارة' && currentRecord.rawId) {
+        await sendAppointmentMessage(currentRecord.rawId, text);
+        showToastMsg('تم إرسال الرسالة إلى جلسة الاستشارة والمشاركين');
+      } else if (currentRecord.type === 'تذكرة دعم' && currentRecord.rawId) {
+        await replyAdminTicket(currentRecord.rawId, { reply_text: text, is_internal: false });
+        showToastMsg('تم إرسال الرد على تذكرة الدعم وحفظه في قاعدة البيانات');
+      } else if ((currentRecord.type === 'مستخدم' || currentRecord.type === 'مستشار' || currentRecord.type === 'مدير منصة') && currentRecord.rawId) {
+        await sendDirectUserMessage(currentRecord.rawId, {
+          title: 'رسالة من إدارة المنصة',
+          message: text
+        });
+        showToastMsg('تم إرسال الرسالة للمستخدم وحفظها وتنبيهه فورياً');
+      } else {
+        showToastMsg('تم إرسال الرسالة وتسجيلها في السجل');
+      }
+    } catch (err) {
+      console.warn('Error persisting message:', err);
+      showToastMsg('تم تسجيل الرسالة محلياً');
+    }
   };
 
   // ─── SAVE NOTE IN NOTES TAB ───
-  const handleSaveNote = () => {
+  const handleSaveNote = async () => {
     if (!noteInput.trim() || !currentRecord) return;
+    const noteText = noteInput.trim();
     const dateStr = new Date().toLocaleDateString('ar-JO');
     const existing = notesState[currentRecord.id] || [];
+    
     setNotesState({
       ...notesState,
-      [currentRecord.id]: [{ text: noteInput.trim(), date: dateStr, author: 'مدير المنصة' }, ...existing]
+      [currentRecord.id]: [{ text: noteText, date: dateStr, author: 'مدير المنصة' }, ...existing]
     });
     setNoteInput('');
+
+    // If ticket, persist internal note to DB
+    if (currentRecord.type === 'تذكرة دعم' && currentRecord.rawId) {
+      try {
+        await replyAdminTicket(currentRecord.rawId, { reply_text: noteText, is_internal: true });
+      } catch (err) {
+        console.warn('Could not persist ticket internal note:', err);
+      }
+    }
+
     showToastMsg('تم حفظ الملاحظة بنجاح');
   };
 
@@ -447,11 +530,38 @@ export default function UnifiedRegistryPage({ navigate }) {
       return;
     }
     const newSt = modalForm.status;
+    const reason = modalForm.reason.trim();
     setStatusesState(prev => ({ ...prev, [currentRecord.id]: newSt }));
     
-    // If it's an appointment or session, update in database
-    if (currentRecord.type === 'استشارة' && currentRecord.rawId) {
-      updateAdminSessionStatus(currentRecord.rawId, newSt).catch(() => {});
+    try {
+      if (currentRecord.type === 'استشارة' && currentRecord.rawId) {
+        await updateAdminSessionStatus(currentRecord.rawId, newSt);
+      } else if (currentRecord.type === 'تذكرة دعم' && currentRecord.rawId) {
+        const ticketStatusMap = {
+          'مكتملة': 'closed',
+          'مفتوحة': 'open',
+          'تحتاج متابعة': 'in_progress',
+          'معلقة': 'pending'
+        };
+        await updateAdminTicketStatus(currentRecord.rawId, {
+          status: ticketStatusMap[newSt] || 'open',
+          internal_note: reason
+        });
+      } else if ((currentRecord.type === 'مستخدم' || currentRecord.type === 'مستشار' || currentRecord.type === 'مدير منصة') && currentRecord.rawId) {
+        const userAction = newSt === 'نشط' ? 'approve' : 'block';
+        await handleUserAction(currentRecord.rawId, userAction, reason);
+      } else if (currentRecord.type === 'أتمتة' && currentRecord.rawId) {
+        await updateAutomationRule(currentRecord.rawId, {
+          status: newSt === 'نشط' ? 'active' : 'inactive'
+        });
+      } else if (currentRecord.type === 'اعتماد' && currentRecord.rawId) {
+        await reviewCredential(currentRecord.rawId, {
+          action: newSt === 'نشط' || newSt === 'مكتملة' ? 'approve' : 'reject',
+          rejection_reason: reason
+        });
+      }
+    } catch (err) {
+      console.warn('Backend status update error:', err);
     }
 
     setActiveModal(null);

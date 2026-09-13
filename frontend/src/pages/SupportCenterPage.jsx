@@ -42,7 +42,7 @@ export default function SupportCenterPage({ navigate }) {
         <div className="flex justify-center mt-6">
           <button
             onClick={() => navigate('/support/new-ticket')}
-            className="flex items-center gap-2 bg-[#0e3b5e] hover:bg-[#082a44] text-white font-bold text-sm px-6 py-3 rounded-xl transition duration-200 shadow-md shadow-[#0e3b5e]/10"
+            className="flex items-center gap-2 bg-[#0e3b5e] hover:bg-[#082a44] text-white font-bold text-sm px-6 py-3 rounded-xl transition duration-200 shadow-md shadow-[#0e3b5e]/10 cursor-pointer"
           >
             <i className="fa fa-plus"></i>
             تقديم طلب دعم جديد

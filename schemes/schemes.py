@@ -946,6 +946,11 @@ class AdminBroadcastNotification(BaseModel):
 class BroadcastResultOut(BaseModel):
     sent_to: int
 
+class AdminDirectUserMessage(BaseModel):
+    title: Optional[str] = "رسالة من إدارة المنصة"
+    message: str = Field(..., min_length=1)
+
+
 # =====================================================================
 # SESSIONS (ADMIN)
 # =====================================================================

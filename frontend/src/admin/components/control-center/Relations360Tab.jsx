@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { search360Entities } from '../../services/adminApi';
+import ModernSelect from '../../../components/ModernSelect';
+import FilterResetButton from '../../../components/FilterResetButton';
 import Entity360Modal from './Entity360Modal';
 
 export default function Relations360Tab() {
@@ -31,6 +33,14 @@ export default function Relations360Tab() {
     }, 300);
     return () => clearTimeout(timer);
   }, [query, entityType]);
+
+  const handleResetFilters = () => {
+    setQuery('');
+    setEntityType('all');
+    setStatusFilter('all');
+    setEntriesPerPage(10);
+    setPage(1);
+  };
 
   const filteredEntities = entities.filter((item) => {
     if (statusFilter === 'all') return true;
@@ -74,54 +84,65 @@ export default function Relations360Tab() {
 
   return (
     <div>
-      {/* Controls & Toolbar Row (Matching prototype order exactly) */}
-      <div className="cc-toolbar">
-        <div className="cc-toolbar-right">
-          <select
-            className="cc-select"
-            value={entriesPerPage}
-            onChange={(e) => {
-              setEntriesPerPage(Number(e.target.value));
-              setPage(1);
-            }}
-          >
-            <option value={10}>10 سجلات</option>
-            <option value={15}>15 سجل</option>
-            <option value={25}>25 سجل</option>
-            <option value={50}>50 سجل</option>
-          </select>
+      {/* Controls & Toolbar Row with ModernSelect and FilterResetButton */}
+      <div className="cc-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
+        <div className="cc-toolbar-right" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ width: '120px' }}>
+            <ModernSelect
+              options={[
+                { value: 10, label: '10 سجلات' },
+                { value: 15, label: '15 سجل' },
+                { value: 25, label: '25 سجل' },
+                { value: 50, label: '50 سجل' }
+              ]}
+              value={entriesPerPage}
+              onChange={(val) => {
+                setEntriesPerPage(Number(val));
+                setPage(1);
+              }}
+              placeholder="10 سجلات"
+            />
+          </div>
 
-          <select
-            className="cc-select"
-            value={entityType}
-            onChange={(e) => {
-              setEntityType(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="all">كل السجلات (العملاء والمستشارون والجلسات)</option>
-            <option value="user">المستخدمون والشركات</option>
-            <option value="consultant">المستشارون المعتمدون</option>
-            <option value="session">الجلسات والاستشارات</option>
-          </select>
+          <div style={{ width: '220px' }}>
+            <ModernSelect
+              options={[
+                { value: 'all', label: 'كل السجلات الموحدة' },
+                { value: 'user', label: 'المستخدمون والشركات' },
+                { value: 'consultant', label: 'المستشارون المعتمدون' },
+                { value: 'session', label: 'الجلسات والاستشارات' }
+              ]}
+              value={entityType}
+              onChange={(val) => {
+                setEntityType(val);
+                setPage(1);
+              }}
+              placeholder="نوع السجل"
+            />
+          </div>
 
-          <select
-            className="cc-select"
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="all">كل الحالات</option>
-            <option value="نشط">نشط / مؤكد</option>
-            <option value="متابعة">تحتاج متابعة</option>
-            <option value="قيد التوثيق">قيد التوثيق</option>
-            <option value="قيد التجديد">قيد التجديد</option>
-          </select>
+          <div style={{ width: '140px' }}>
+            <ModernSelect
+              options={[
+                { value: 'all', label: 'كل الحالات' },
+                { value: 'نشط', label: 'نشط / مؤكد' },
+                { value: 'متابعة', label: 'تحتاج متابعة' },
+                { value: 'قيد التوثيق', label: 'قيد التوثيق' },
+                { value: 'قيد التجديد', label: 'قيد التجديد' }
+              ]}
+              value={statusFilter}
+              onChange={(val) => {
+                setStatusFilter(val);
+                setPage(1);
+              }}
+              placeholder="كل الحالات"
+            />
+          </div>
+
+          <FilterResetButton onClick={handleResetFilters} size={38} title="إعادة تعيين الفلاتر" />
         </div>
 
-        <div className="cc-toolbar-left">
+        <div className="cc-toolbar-left" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <input
             type="text"
             className="cc-input cc-search-input"
@@ -131,6 +152,7 @@ export default function Relations360Tab() {
               setQuery(e.target.value);
               setPage(1);
             }}
+            style={{ width: '240px', height: '38px', borderRadius: '8px', border: '1px solid #CBD5E1', padding: '0 12px', fontSize: '12px', textAlign: 'right' }}
           />
 
           <div className="cc-view-toggle">
