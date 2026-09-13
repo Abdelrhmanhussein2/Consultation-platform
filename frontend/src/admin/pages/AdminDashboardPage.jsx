@@ -87,11 +87,11 @@ export default function AdminDashboardPage({ navigate }) {
           recent_tickets: stats.recent_tickets || [],
           recent_ratings: stats.recent_ratings || [],
           recent_policies: stats.recent_policies || [],
-          recent_logs: stats.recent_logs || [],
-          recent_payouts: stats.recent_payouts || [],
-          recent_appointments: stats.recent_appointments || [],
-          recent_subscriptions: stats.recent_subscriptions || [],
-          recent_templates: stats.recent_templates || []
+          system_audit_logs: stats.system_audit_logs || [],
+          security_logs: stats.security_logs || [],
+          ops_audit_logs: stats.ops_audit_logs || [],
+          ai_alerts: stats.ai_alerts || [],
+          system_alerts: stats.system_alerts || []
         });
       }
     } catch (err) {
@@ -226,7 +226,7 @@ ${dashboardData.cities.map(c => ` - ${c[0]}: ${c[1]} مستخدم (${c[2]})`).jo
 
         <div className="db-filters">
           <button className="db-filter-btn" type="button" onClick={handleExportReport}>
-            <svg viewBox="0 0 24 24">
+            <svg width="15" height="15" viewBox="0 0 24 24" style={{ width: 15, height: 15 }}>
               <path d="m8 10 4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.8" />
             </svg>
             <span>تصدير التقرير</span>
@@ -241,11 +241,11 @@ ${dashboardData.cities.map(c => ` - ${c[0]}: ${c[1]} مستخدم (${c[2]})`).jo
                 setDatePopOpen(prev => !prev);
               }}
             >
-              <svg viewBox="0 0 24 24">
+              <svg width="15" height="15" viewBox="0 0 24 24" style={{ width: 15, height: 15 }}>
                 <path d="m8 10 4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.8" />
               </svg>
               <span>{dateRangeText}</span>
-              <svg viewBox="0 0 24 24">
+              <svg width="15" height="15" viewBox="0 0 24 24" style={{ width: 15, height: 15 }}>
                 <rect x="4" y="5" width="16" height="15" rx="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
                 <path d="M8 3v4M16 3v4M4 9h16" fill="none" stroke="currentColor" strokeWidth="1.8" />
               </svg>

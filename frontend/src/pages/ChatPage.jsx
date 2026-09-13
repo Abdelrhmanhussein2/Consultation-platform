@@ -208,7 +208,7 @@ export default function ChatPage({ navigate }) {
             if (hidden.includes(String(paramApptId))) {
               localStorage.setItem('cp_hidden_chats', JSON.stringify(hidden.filter(id => id !== String(paramApptId))));
             }
-          } catch {}
+          } catch { }
 
           targetChat = validChats.find(a => String(a.id) === String(paramApptId));
           if (!targetChat) {
@@ -471,7 +471,7 @@ export default function ChatPage({ navigate }) {
         showToast('تم تثبيت المحادثة في الأعلى', 'success');
         updated = [...prev, apptId];
       }
-      try { localStorage.setItem('cp_pinned_chats', JSON.stringify(updated)); } catch {}
+      try { localStorage.setItem('cp_pinned_chats', JSON.stringify(updated)); } catch { }
       return updated;
     });
   };
@@ -491,7 +491,7 @@ export default function ChatPage({ navigate }) {
         const notifs = await notificationService.getMyNotifications(token).catch(() => []);
         const rawNotifs = Array.isArray(notifs) ? notifs : (notifs?.notifications || notifs?.data || []);
         for (const n of rawNotifs) {
-          await notificationService.deleteNotification(n.id, token).catch(() => {});
+          await notificationService.deleteNotification(n.id, token).catch(() => { });
         }
         setMessages([]);
         showToast('تم مسح سجل المحادثة بنجاح', 'success');
@@ -1327,111 +1327,111 @@ export default function ChatPage({ navigate }) {
 
             {/* Standard Consultation Accordions */}
             <div className="accordion-section">
-                  <div className="accordion-header" onClick={() => toggleSection('client')}>
-                    <span>العميل</span>
-                    <span>{expandedSections.client ? '−' : '+'}</span>
+              <div className="accordion-header" onClick={() => toggleSection('client')}>
+                <span>العميل</span>
+                <span>{expandedSections.client ? '−' : '+'}</span>
+              </div>
+              {expandedSections.client && (
+                <div className="accordion-body">
+                  <div className="info-value">
+                    {activeAppt.client_name || activeAppt.user?.full_name || 'عميل الاستشارة'}
                   </div>
-                  {expandedSections.client && (
-                    <div className="accordion-body">
-                      <div className="info-value">
-                        {activeAppt.client_name || activeAppt.user?.full_name || 'عميل الاستشارة'}
-                      </div>
-                    </div>
-                  )}
                 </div>
+              )}
+            </div>
 
-                <div className="accordion-section">
-                  <div className="accordion-header" onClick={() => toggleSection('consultant')}>
-                    <span>المستشار</span>
-                    <span>{expandedSections.consultant ? '−' : '+'}</span>
+            <div className="accordion-section">
+              <div className="accordion-header" onClick={() => toggleSection('consultant')}>
+                <span>المستشار</span>
+                <span>{expandedSections.consultant ? '−' : '+'}</span>
+              </div>
+              {expandedSections.consultant && (
+                <div className="accordion-body">
+                  <div className="info-value">
+                    {activeAppt.consultant_name || activeAppt.consultant?.user?.full_name || 'د. مستشار المنصة'}
                   </div>
-                  {expandedSections.consultant && (
-                    <div className="accordion-body">
-                      <div className="info-value">
-                        {activeAppt.consultant_name || activeAppt.consultant?.user?.full_name || 'د. مستشار المنصة'}
-                      </div>
-                    </div>
-                  )}
                 </div>
+              )}
+            </div>
 
-                <div className="accordion-section">
-                  <div className="accordion-header" onClick={() => toggleSection('topic')}>
-                    <span>موضوع الاستشارة</span>
-                    <span>{expandedSections.topic ? '−' : '+'}</span>
+            <div className="accordion-section">
+              <div className="accordion-header" onClick={() => toggleSection('topic')}>
+                <span>موضوع الاستشارة</span>
+                <span>{expandedSections.topic ? '−' : '+'}</span>
+              </div>
+              {expandedSections.topic && (
+                <div className="accordion-body">
+                  <div className="info-value">
+                    {activeAppt.notes || activeAppt.service_name || 'استشارة تخصصية'}
                   </div>
-                  {expandedSections.topic && (
-                    <div className="accordion-body">
-                      <div className="info-value">
-                        {activeAppt.notes || activeAppt.service_name || 'استشارة تخصصية'}
-                      </div>
-                    </div>
-                  )}
                 </div>
+              )}
+            </div>
 
-                <div className="accordion-section">
-                  <div className="accordion-header" onClick={() => toggleSection('status')}>
-                    <span>حالة الاستشارة</span>
-                    <span>{expandedSections.status ? '−' : '+'}</span>
-                  </div>
-                  {expandedSections.status && (
-                    <div className="accordion-body">
-                      {user?.role === 'consultant' ? (
-                        <ModernSelect
-                          options={[
-                            { value: 'confirmed', label: 'تحدث ما قبل الجلسة (نشطة)' },
-                            { value: 'completed', label: 'متابعة ما بعد الجلسة (مكتملة)' },
-                            { value: 'cancelled_by_consultant', label: 'إلغاء الاستشارة' }
-                          ]}
-                          value={activeAppt.status || 'confirmed'}
-                          onChange={handleUpdateAppointmentStatus}
-                        />
-                      ) : (
-                        <div className="info-value">
-                          {getStatusLabel(activeAppt.status, activeAppt.scheduled_at)}
-                        </div>
-                      )}
+            <div className="accordion-section">
+              <div className="accordion-header" onClick={() => toggleSection('status')}>
+                <span>حالة الاستشارة</span>
+                <span>{expandedSections.status ? '−' : '+'}</span>
+              </div>
+              {expandedSections.status && (
+                <div className="accordion-body">
+                  {user?.role === 'consultant' ? (
+                    <ModernSelect
+                      options={[
+                        { value: 'confirmed', label: 'تحدث ما قبل الجلسة (نشطة)' },
+                        { value: 'completed', label: 'متابعة ما بعد الجلسة (مكتملة)' },
+                        { value: 'cancelled_by_consultant', label: 'إلغاء الاستشارة' }
+                      ]}
+                      value={activeAppt.status || 'confirmed'}
+                      onChange={handleUpdateAppointmentStatus}
+                    />
+                  ) : (
+                    <div className="info-value">
+                      {getStatusLabel(activeAppt.status, activeAppt.scheduled_at)}
                     </div>
                   )}
                 </div>
+              )}
+            </div>
 
-                <div className="accordion-section">
-                  <div className="accordion-header" onClick={() => toggleSection('schedule')}>
-                    <span>موعد الجلسة</span>
-                    <span>{expandedSections.schedule ? '−' : '+'}</span>
+            <div className="accordion-section">
+              <div className="accordion-header" onClick={() => toggleSection('schedule')}>
+                <span>موعد الجلسة</span>
+                <span>{expandedSections.schedule ? '−' : '+'}</span>
+              </div>
+              {expandedSections.schedule && (
+                <div className="accordion-body">
+                  <div className="info-value">
+                    {new Date(activeAppt.scheduled_at).toLocaleDateString('ar-EG', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
                   </div>
-                  {expandedSections.schedule && (
-                    <div className="accordion-body">
-                      <div className="info-value">
-                        {new Date(activeAppt.scheduled_at).toLocaleDateString('ar-EG', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </div>
-                    </div>
-                  )}
                 </div>
+              )}
+            </div>
 
-                <div className="accordion-section">
-                  <div className="accordion-header" onClick={() => toggleSection('service_type')}>
-                    <span>نوع الخدمة</span>
-                    <span>{expandedSections.service_type ? '−' : '+'}</span>
+            <div className="accordion-section">
+              <div className="accordion-header" onClick={() => toggleSection('service_type')}>
+                <span>نوع الخدمة</span>
+                <span>{expandedSections.service_type ? '−' : '+'}</span>
+              </div>
+              {expandedSections.service_type && (
+                <div className="accordion-body">
+                  <div className="info-value">
+                    {activeAppt.session_type === 'video_call'
+                      ? 'استشارة فيديو'
+                      : activeAppt.session_type === 'audio_call'
+                        ? 'استشارة صوتية'
+                        : 'محادثة كتابية'}
                   </div>
-                  {expandedSections.service_type && (
-                    <div className="accordion-body">
-                      <div className="info-value">
-                        {activeAppt.session_type === 'video_call'
-                          ? 'استشارة فيديو'
-                          : activeAppt.session_type === 'audio_call'
-                            ? 'استشارة صوتية'
-                            : 'محادثة كتابية'}
-                      </div>
-                    </div>
-                  )}
                 </div>
+              )}
+            </div>
 
             {/* Expandable Accordion Items */}
             <div className="accordion-section">

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   DIWAN TAX PLATFORM - ADMIN DASHBOARD (PREMIUM MODERN COMMAND CENTER)
+   DIWAN PLATFORM - ADMIN DASHBOARD (MAIN LAYOUT & CHARTS)
    ========================================================================== */
 
 :root {
@@ -24,9 +24,9 @@
   --purple: #7c3aed;
   --purple-light: #f5f3ff;
   --card: #ffffff;
-  --shadow-sm: 0 2px 8px -1px rgba(12, 44, 72, 0.04), 0 1px 3px -1px rgba(12, 44, 72, 0.02);
-  --shadow-md: 0 6px 20px -2px rgba(12, 44, 72, 0.06), 0 2px 6px -1px rgba(12, 44, 72, 0.03);
-  --shadow-lg: 0 14px 32px -4px rgba(12, 44, 72, 0.09), 0 4px 12px -2px rgba(12, 44, 72, 0.04);
+  --shadow-sm: 0 2px 8px -1px rgba(12, 44, 72, 0.04);
+  --shadow-md: 0 6px 20px -2px rgba(12, 44, 72, 0.06);
+  --shadow-lg: 0 14px 32px -4px rgba(12, 44, 72, 0.09);
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -36,16 +36,13 @@
 .db-content {
   padding: 20px 26px 36px;
   direction: rtl;
-  font-family: var(--font-main);
+  font-family: var(--font-main, 'Tajawal', sans-serif);
   color: var(--ink);
   min-width: 0;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   HEADER ROW & GLOBAL CONTROLS
-   ══════════════════════════════════════════════════════════════════════ */
+/* HEADER ROW & CONTROLS */
 .db-header-row {
   display: flex;
   align-items: flex-end;
@@ -97,7 +94,7 @@
   white-space: nowrap;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s ease;
 }
 
 .db-filter-btn:hover {
@@ -108,11 +105,15 @@
 }
 
 .db-filter-btn svg {
-  width: 15px;
-  height: 15px;
+  width: 15px !important;
+  max-width: 15px !important;
+  height: 15px !important;
+  max-height: 15px !important;
   stroke: currentColor;
   fill: none;
   stroke-width: 1.8;
+  display: inline-block !important;
+  flex-shrink: 0 !important;
 }
 
 .db-date-range-btn {
@@ -120,7 +121,6 @@
   justify-content: space-between;
 }
 
-/* Period Selector Tabs - Soft Pill Style */
 .db-period {
   direction: rtl;
   display: flex;
@@ -131,7 +131,6 @@
   border-radius: var(--radius-md);
   padding: 3px;
   gap: 2px;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .db-period button {
@@ -160,9 +159,7 @@
   font-weight: 800;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   KPIS GRID (6 CARDS) - SOFT & BALANCED
-   ══════════════════════════════════════════════════════════════════════ */
+/* KPIS GRID */
 .db-kpis {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -180,7 +177,7 @@
   box-shadow: var(--shadow-sm);
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.2s ease;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.2s ease;
 }
 
 .db-kpi:hover {
@@ -206,7 +203,6 @@
   font-weight: 800;
   color: #1e4566;
   line-height: 1.35;
-  word-break: break-word;
 }
 
 .db-kpi-value {
@@ -224,29 +220,33 @@
   font-weight: 700;
   margin-top: 3px;
   color: #71889a;
-  letter-spacing: normal;
 }
 
 .db-kpi-icon {
-  width: 44px;
-  height: 44px;
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
   border-radius: 13px;
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  transition: transform 0.2s ease;
-}
-
-.db-kpi:hover .db-kpi-icon {
-  transform: scale(1.05);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 44px !important;
+  overflow: hidden !important;
 }
 
 .db-kpi-icon svg {
-  width: 21px;
-  height: 21px;
+  width: 21px !important;
+  max-width: 21px !important;
+  height: 21px !important;
+  max-height: 21px !important;
   stroke: currentColor;
   fill: none;
   stroke-width: 1.8;
+  display: block !important;
+  flex-shrink: 0 !important;
 }
 
 .db-kpi-foot {
@@ -262,17 +262,6 @@
   font-weight: 600;
 }
 
-.db-up {
-  color: #10b981;
-  font-weight: 800;
-}
-
-.db-down {
-  color: #ef4444;
-  font-weight: 800;
-}
-
-/* Icon Palette */
 .ico-income { background: #fff8eb; color: #f59e0b; }
 .ico-ticket { background: #eff6ff; color: #2563eb; }
 .ico-cplus  { background: #f5f3ff; color: #7c3aed; }
@@ -280,9 +269,7 @@
 .ico-consult { background: #f0fdf4; color: #059669; }
 .ico-users  { background: #eef2ff; color: #4f46e5; }
 
-/* ══════════════════════════════════════════════════════════════════════
-   LARGE CHARTS TOP GRID (3 CARDS)
-   ══════════════════════════════════════════════════════════════════════ */
+/* CHARTS GRID */
 .db-top-grid {
   display: grid;
   grid-template-columns: 1.35fr 1.05fr 0.95fr;
@@ -345,13 +332,6 @@
   justify-content: center;
   gap: 5px;
   cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.db-small-select:hover {
-  background: #ffffff;
-  border-color: #cbdbe6;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .db-small-select .v {
@@ -389,7 +369,6 @@
   padding: 7px 10px;
   border-radius: 7px;
   cursor: pointer;
-  transition: all 0.15s ease;
 }
 
 .db-chart-period-menu button:hover {
@@ -403,9 +382,7 @@
   font-weight: 800;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   CHART 1: CITIES BAR DISTRIBUTION
-   ══════════════════════════════════════════════════════════════════════ */
+/* Chart 1: Cities */
 .db-city-area {
   height: 202px;
   position: relative;
@@ -459,7 +436,6 @@
   align-items: center;
   min-width: 0;
   position: relative;
-  overflow: visible;
 }
 
 .db-bar-value {
@@ -475,14 +451,12 @@
   min-width: 14px;
   border-radius: 5px 5px 0 0;
   background: linear-gradient(180deg, #10629b, #073a5f);
-  transition: height 0.45s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease;
+  transition: height 0.45s ease;
   cursor: pointer;
 }
 
 .db-bar:hover {
   filter: brightness(1.2);
-  transform: scaleY(1.02);
-  transform-origin: bottom;
 }
 
 .db-bar-label-wrap {
@@ -510,9 +484,7 @@
   white-space: nowrap;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   CHART 2: AI USAGE CURVE
-   ══════════════════════════════════════════════════════════════════════ */
+/* Chart 2: AI Curve */
 .db-chart-summary {
   font-size: 9.5px;
   color: #728a9c;
@@ -567,7 +539,7 @@
   stroke: #1066a3;
   stroke-width: 2.5;
   cursor: pointer;
-  transition: r 0.2s cubic-bezier(0.16, 1, 0.3, 1), stroke-width 0.2s ease;
+  transition: r 0.2s ease;
 }
 
 .db-pt:hover {
@@ -592,9 +564,7 @@
   font-weight: 700;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   CHART 3: INCOME BY SOURCE (DONUT)
-   ══════════════════════════════════════════════════════════════════════ */
+/* Chart 3: Income Donut */
 .db-donut-flex {
   display: flex;
   align-items: center;
@@ -732,236 +702,7 @@
   white-space: nowrap;
 }
 
-.db-leg-amt {
-  font-size: 9px;
-  color: #7990a1;
-  margin-top: 1px;
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   LIST SUMMARY CARDS (2 ROWS OF 5 CARDS = 10 TOTAL)
-   ══════════════════════════════════════════════════════════════════════ */
-.db-list-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 13px;
-  margin-bottom: 14px;
-}
-
-.db-list-card {
-  min-height: 200px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  position: relative;
-}
-
-.db-bottom-card {
-  min-height: 200px;
-}
-
-.db-list-head {
-  padding: 10px 12px 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  border-bottom: 1px solid var(--line-light);
-  min-width: 0;
-}
-
-.db-list-head .title {
-  font-size: 11.5px;
-  font-weight: 800;
-  color: #083c63;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1;
-  min-width: 0;
-}
-
-.db-view-all {
-  border: 0;
-  background: #f1f6fa;
-  color: #0d5f99;
-  font-size: 9.5px;
-  font-weight: 800;
-  padding: 3px 8px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.db-view-all:hover {
-  background: #083f64;
-  color: #ffffff;
-}
-
-.db-rows {
-  padding: 6px 8px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.db-row {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 7px 9px;
-  border-radius: var(--radius-sm);
-  transition: all 0.15s ease;
-  cursor: pointer;
-}
-
-.db-row:hover {
-  background: #f4f8fb;
-  transform: translateX(-2px);
-}
-
-.db-row-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: #eef6ff;
-  color: #1d68d1;
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-}
-
-.db-row-icon svg {
-  width: 14px;
-  height: 14px;
-}
-
-.db-row-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.db-row-title {
-  font-size: 11px;
-  font-weight: 700;
-  color: #173d5d;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.db-row-sub {
-  font-size: 9.5px;
-  color: #7990a1;
-  margin-top: 1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.db-ticket-id {
-  font-size: 10px;
-  font-weight: 800;
-  color: #0b4977;
-}
-
-.db-row-time {
-  font-size: 9px;
-  color: #8fa2b1;
-  white-space: nowrap;
-  font-weight: 600;
-}
-
-.db-stars {
-  color: #f59e0b;
-  font-size: 9px;
-  letter-spacing: 1px;
-  margin-top: 1px;
-}
-
-.db-face {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #e6eef5;
-  color: #7b94a6;
-  font-size: 8px;
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-}
-
-/* Badges - Modern Pills */
-.db-badge {
-  font-size: 9.5px;
-  font-weight: 800;
-  padding: 2px 8px;
-  border-radius: var(--radius-pill);
-  white-space: nowrap;
-}
-
-.db-badge.green {
-  background: var(--green-light);
-  color: #059669;
-}
-
-.db-badge.red {
-  background: var(--red-light);
-  color: #dc2626;
-}
-
-.db-badge.orange {
-  background: var(--orange-light);
-  color: #d97706;
-}
-
-.db-badge.blue {
-  background: var(--blue-light);
-  color: #2563eb;
-}
-
-.db-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex: 0 0 auto;
-}
-
-.db-dot.red { background: #ef4444; }
-.db-dot.orange { background: #f59e0b; }
-.db-dot.green { background: #10b981; }
-
-.db-alert-ico {
-  width: 24px;
-  height: 24px;
-  border-radius: 7px;
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-}
-
-.db-alert-ico.orange {
-  background: #fffbeb;
-  color: #d97706;
-}
-
-.db-alert-ico.blue {
-  background: #eff6ff;
-  color: #2563eb;
-}
-
-.db-alert-ico svg {
-  width: 14px;
-  height: 14px;
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   DATE RANGE POPOVER & MODAL
-   ══════════════════════════════════════════════════════════════════════ */
+/* Date popover */
 .db-date-popover {
   position: absolute;
   top: 44px;
@@ -1009,10 +750,6 @@
   outline: none;
 }
 
-.db-date-fields input:focus {
-  border-color: #0d5f99;
-}
-
 .db-date-actions {
   display: flex;
   justify-content: flex-end;
@@ -1043,9 +780,7 @@
   cursor: pointer;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   GLOBAL INTERACTIVE TOOLTIP & TOAST
-   ══════════════════════════════════════════════════════════════════════ */
+/* Tooltip & Toast */
 .db-tooltip {
   position: fixed;
   pointer-events: none;
@@ -1060,7 +795,6 @@
   transform: translate(-50%, -130%);
   transition: opacity 0.15s ease;
   white-space: nowrap;
-  backdrop-filter: blur(4px);
 }
 
 .db-toast {
@@ -1078,8 +812,7 @@
   opacity: 0;
   transform: translateY(20px);
   pointer-events: none;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.25s ease;
 }
 
 .db-toast.show {
@@ -1087,90 +820,18 @@
   transform: translateY(0);
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   RESPONSIVE BREAKPOINTS
-   ══════════════════════════════════════════════════════════════════════ */
+/* Responsive */
 @media (max-width: 1400px) {
-  .db-kpis {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .db-top-grid {
-    grid-template-columns: 1fr;
-    height: auto;
-  }
-  .db-chart-card {
-    height: 280px;
-  }
-  .db-list-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+  .db-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .db-top-grid { grid-template-columns: 1fr; }
+  .db-chart-card { height: 280px; }
 }
 
 @media (max-width: 900px) {
-  .db-kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .db-list-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .db-header-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .db-filters {
-    direction: rtl;
-    flex-wrap: wrap;
-  }
+  .db-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .db-header-row { flex-direction: column; align-items: stretch; }
 }
 
 @media (max-width: 600px) {
-  .db-kpis {
-    grid-template-columns: 1fr;
-  }
-  .db-list-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   EMPTY STATE & LIVE BADGES FOR 100% REAL DATA
-   ══════════════════════════════════════════════════════════════════════ */
-.db-empty-state-card {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 110px;
-  padding: 16px;
-  text-align: center;
-}
-
-.db-empty-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #cbd5e1;
-  flex-shrink: 0;
-}
-
-.db-empty-msg {
-  font-size: 11px;
-  font-weight: 600;
-  color: #94a3b8;
-}
-
-.db-live-badge {
-  font-size: 10px;
-  font-weight: 800;
-  color: #0284c7;
-  background: #f0f9ff;
-  border: 1px solid #e0f2fe;
-  padding: 2px 7px;
-  border-radius: 6px;
-}
-
-.db-live-tag {
-  font-size: 9.5px;
-  font-weight: 700;
-  color: #0369a1;
+  .db-kpis { grid-template-columns: 1fr; }
 }

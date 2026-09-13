@@ -97,31 +97,31 @@ export function profileForRange(days) {
 // 10 Real Summary Cards (Row 1 & Row 2)
 export const row1Cards = [
   {
-    t: 'آخر التشريعات',
+    t: 'آخر التشريعات المضافة',
     kind: 'laws',
     path: '/admin/knowledge',
     rows: []
   },
   {
-    t: 'أحدث التقييمات',
+    t: 'آخر التقييمات للمراجعة',
     kind: 'ratings',
     path: '/admin/consultants',
     rows: []
   },
   {
-    t: 'التذاكر المفتوحة',
+    t: 'آخر التذاكر المفتوحة',
     kind: 'tickets',
     path: '/admin/tickets',
     rows: []
   },
   {
-    t: 'انضمام المستشارين',
+    t: 'طلبات انضمام المستشارين',
     kind: 'consults',
     path: '/admin/consultants',
     rows: []
   },
   {
-    t: 'انضمام المستخدمين',
+    t: 'طلبات انضمام المستخدمين',
     kind: 'users',
     path: '/admin/users?tab=pending',
     rows: []
@@ -130,33 +130,33 @@ export const row1Cards = [
 
 export const row2Cards = [
   {
-    t: 'سجلات الإجراءات',
-    kind: 'audit',
+    t: 'سجلات تدقيق النظام',
+    kind: 'system_audit',
     path: '/admin/audit-logs',
     rows: []
   },
   {
-    t: 'حجوزات الاستشارات',
-    kind: 'appointments',
-    path: '/admin/bookings',
+    t: 'آخر السجلات الأمنية',
+    kind: 'security_logs',
+    path: '/admin/audit-logs?tab=security',
     rows: []
   },
   {
-    t: 'طلبات السحب',
-    kind: 'payouts',
-    path: '/admin/payments',
+    t: 'سجلات تدقيق العمليات',
+    kind: 'ops_audit',
+    path: '/admin/audit-logs?tab=operations',
     rows: []
   },
   {
-    t: 'الاشتراكات المفعلة',
-    kind: 'subscriptions',
-    path: '/admin/finance',
+    t: 'تنبيهات الذكاء الاصطناعي',
+    kind: 'ai_alerts',
+    path: '/admin/control-center',
     rows: []
   },
   {
-    t: 'النماذج الرسمية',
-    kind: 'templates',
-    path: '/admin/templates',
+    t: 'آخر التنبيهات والتحذيرات',
+    kind: 'system_alerts',
+    path: '/admin/notifications',
     rows: []
   }
 ];

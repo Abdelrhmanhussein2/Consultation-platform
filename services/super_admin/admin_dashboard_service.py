@@ -5,11 +5,11 @@ from sqlalchemy import func
 from models import (
     User, ConsultantProfile, SupportTicket, Invoice, ChatMessage,
     Rating, SystemPolicy, AdminActionLog, PayoutRequest, Appointment,
-    UserSubscription, OfficialTemplate
+    RefreshToken, Notification
 )
 from helpers.enums import (
     UserRole, VerificationStatus, TicketStatus, TicketPriority,
-    InvoiceStatus, InvoiceType, EntityType
+    InvoiceStatus, InvoiceType, NotificationType
 )
 
 
@@ -17,8 +17,8 @@ class AdminDashboardService:
     @staticmethod
     def get_dashboard_stats(db: Session, period: str = "week") -> dict:
         """
-        Calculates live dynamic dashboard metrics and aggregates across database tables
-        for the Admin Central Command dashboard (100% real database records, zero fake data).
+        Calculates live dynamic dashboard metrics directly from real database tables
+        with ZERO fake fallback/mockup records.
         """
         def format_time_ago(dt) -> str:
             if not dt:
@@ -36,6 +36,25 @@ class AdminDashboardService:
             else:
                 return f"منذ {diff // 86400} يوم"
 
+        def clean_device_info(raw_info: str) -> str:
+            if not raw_info:
+                return "متصفح الويب"
+            lower = raw_info.lower()
+            browser = "متصفح الويب"
+            if "edg" in lower:
+                browser = "Microsoft Edge"
+            elif "chrome" in lower:
+                browser = "Google Chrome"
+            elif "firefox" in lower:
+                browser = "Mozilla Firefox"
+            elif "safari" in lower:
+                browser = "Apple Safari"
+            
+            os_name = "Windows" if "windows" in lower else ("Mac" if "mac" in lower else ("Linux" if "linux" in lower else ("Android" if "android" in lower else ("iOS" if "iphone" in lower or "ipad" in lower else ""))))
+            if os_name:
+                return f"{browser} ({os_name})"
+            return browser
+
         now = datetime.now(timezone.utc)
         period_deltas = {
             "day": timedelta(days=1),
@@ -49,22 +68,26 @@ class AdminDashboardService:
         period_start = now - delta
 
         # 1. Real KPI counts directly from PostgreSQL
-        total_users = db.query(User).filter(User.role == UserRole.user).count()
+        total_users = db.query(User).filter(User.role == UserRole.user, ~User.email.like("deleted_%")).count()
         total_consultants = db.query(User).filter(
-            User.role.in_([UserRole.consultant, UserRole.platform_consultant])
+            User.role.in_([UserRole.consultant, UserRole.platform_consultant]),
+            ~User.email.like("deleted_%")
         ).count()
         pending_consultants = db.query(ConsultantProfile).filter(
             ConsultantProfile.verification_status == VerificationStatus.pending
         ).count()
         
-        # Pending users waiting for verification/activation
         pending_users = db.query(User).filter(
             User.role == UserRole.user,
-            User.verification_status == VerificationStatus.pending
+            User.verification_status == VerificationStatus.pending,
+            ~User.email.like("deleted_%")
         ).count()
         
         open_tickets = db.query(SupportTicket).filter(
-            SupportTicket.status.in_([TicketStatus.new, TicketStatus.open, TicketStatus.in_progress])
+            SupportTicket.status.in_([
+                TicketStatus.new, TicketStatus.open, TicketStatus.in_progress,
+                TicketStatus.reviewing, TicketStatus.waiting_user, TicketStatus.received
+            ])
         ).count()
 
         # Real Revenue from paid invoices
@@ -76,126 +99,139 @@ class AdminDashboardService:
         # Real AI Chat messages count
         total_ai = db.query(ChatMessage).count()
 
-        # 2. Real Lists directly from database tables
-        # Users
-        recent_users_q = db.query(User).filter(User.role == UserRole.user).order_by(User.created_at.desc()).limit(5).all()
-        recent_users = [
-            [u.full_name or u.email, format_time_ago(u.created_at)]
-            for u in recent_users_q
+        # 2. Real Lists directly from PostgreSQL (NO fake fallback data)
+
+        # 1. Recent Legislation / Policies (آخر التشريعات المضافة)
+        recent_policies_q = db.query(SystemPolicy).filter(
+            SystemPolicy.is_active == True
+        ).order_by(SystemPolicy.created_at.desc()).limit(5).all()
+        recent_policies = [
+            [p.title[:36], p.policy_type or "تشريع", format_time_ago(p.created_at)]
+            for p in recent_policies_q
         ]
 
-        # Consultants
-        recent_consults_q = db.query(ConsultantProfile).join(User, ConsultantProfile.user_id == User.id).order_by(ConsultantProfile.created_at.desc()).limit(5).all()
-        recent_consultants = [
-            [cp.user.full_name if cp.user and cp.user.full_name else (cp.user.email if cp.user else "مستشار"), format_time_ago(cp.created_at)]
-            for cp in recent_consults_q
+        # 2. Recent Ratings Pending Review (آخر التقييمات بانتظار المراجعة)
+        recent_ratings_q = db.query(Rating).order_by(Rating.created_at.desc()).limit(5).all()
+        recent_ratings = [
+            [
+                r.user.full_name if (r.user and r.user.full_name) else (r.user.email if r.user else "مستخدم"),
+                "★" * (r.stars or 5),
+                format_time_ago(r.created_at)
+            ]
+            for r in recent_ratings_q
         ]
 
-        # Support Tickets
-        recent_tickets_q = db.query(SupportTicket).order_by(SupportTicket.created_at.desc()).limit(5).all()
+        # 3. Recent Open Support Tickets (آخر التذاكر المفتوحة)
+        recent_tickets_q = db.query(SupportTicket).filter(
+            SupportTicket.status.in_([
+                TicketStatus.new, TicketStatus.open, TicketStatus.in_progress,
+                TicketStatus.reviewing, TicketStatus.waiting_user, TicketStatus.received
+            ])
+        ).order_by(SupportTicket.created_at.desc()).limit(5).all()
         recent_tickets = []
         for t in recent_tickets_q:
             prio_label = "عالية" if t.priority == TicketPriority.high else ("متوسطة" if t.priority == TicketPriority.medium else "منخفضة")
             recent_tickets.append([
-                t.ticket_number or f"#{str(t.id)[:6]}",
+                t.ticket_number or f"#{str(t.id)[:6].upper()}",
                 t.subject[:28] if t.subject else "تذكرة دعم",
                 prio_label,
                 format_time_ago(t.created_at)
             ])
 
-        # Ratings
-        recent_ratings_q = db.query(Rating).order_by(Rating.created_at.desc()).limit(5).all()
-        recent_ratings = [
-            [r.user.full_name if r.user else "مستخدم", "★" * (r.stars or 5), format_time_ago(r.created_at)]
-            for r in recent_ratings_q
-        ]
-
-        # Legislation / Policies
-        recent_policies_q = db.query(SystemPolicy).order_by(SystemPolicy.created_at.desc()).limit(5).all()
-        recent_policies = [
-            [p.title[:30], "ساري", format_time_ago(p.created_at)]
-            for p in recent_policies_q
-        ]
-
-        # Admin Action Logs
-        action_names = {
-            "admin_password_reset": "إعادة تعيين كلمة مرور",
-            "update_user_profile": "تعديل ملف مستخدم",
-            "UPDATE_USER_ROLE": "تعديل صلاحية مستخدم",
-            "UPDATE_SETTINGS": "تحديث إعدادات النظام",
-            "LOGIN": "تسجيل دخول إداري",
-            "CREATE_USER": "إنشاء مستخدم جديد",
-            "DELETE_USER": "حذف حساب"
-        }
-        recent_logs_q = db.query(AdminActionLog).order_by(AdminActionLog.created_at.desc()).limit(5).all()
-        recent_logs = [
+        # 4. Recent Consultant Applications (آخر طلبات الانضمام - مستشارين)
+        recent_consults_q = db.query(ConsultantProfile).join(User, ConsultantProfile.user_id == User.id).order_by(ConsultantProfile.created_at.desc()).limit(5).all()
+        recent_consultants = [
             [
-                action_names.get(l.action_type, l.action_type or "إجراء إداري"), 
-                (l.details[:35] if l.details else "بواسطة الإدارة"), 
+                cp.user.full_name if (cp.user and cp.user.full_name) else (cp.user.email if cp.user else "مستشار"),
+                format_time_ago(cp.created_at)
+            ]
+            for cp in recent_consults_q
+        ]
+
+        # 5. Recent User Registrations (آخر طلبات الانضمام - مستخدمين)
+        recent_users_q = db.query(User).filter(
+            User.role == UserRole.user,
+            ~User.email.like("deleted_%")
+        ).order_by(User.created_at.desc()).limit(5).all()
+        recent_users = [
+            [u.full_name or u.email or "مستخدم", format_time_ago(u.created_at)]
+            for u in recent_users_q
+        ]
+
+        # 6. System Audit Logs (آخر سجلات تدقيق النظام)
+        recent_sys_logs_q = db.query(AdminActionLog).order_by(AdminActionLog.created_at.desc()).limit(5).all()
+        action_names_ar = {
+            "delete_user": "حذف حساب مستخدم",
+            "update_user": "تعديل بيانات مستخدم",
+            "create_user": "إنشاء حساب مستخدم",
+            "change_role": "تعديل صلاحيات الإدارة",
+            "approve_consultant": "اعتماد طلب مستشار",
+            "reject_consultant": "رفض طلب مستشار",
+            "update_settings": "تعديل إعدادات المنصة",
+            "create_policy": "نشر سياسة تشريعية",
+            "update_policy": "تعديل سياسة تشريعية",
+            "resolve_ticket": "إغلاق تذكرة دعم",
+            "create_template": "إنشاء نموذج رسمي",
+            "update_payout": "تحديث طلب سحب",
+            "cancel_appointment": "إلغاء جلسة استشارة"
+        }
+        system_audit_logs = [
+            [
+                action_names_ar.get(l.action_type, l.action_type or "إجراء إداري"),
+                l.admin.email if (l.admin and l.admin.email) else (l.admin.full_name if (l.admin and l.admin.full_name) else "مشرف المنصة"),
                 format_time_ago(l.created_at)
             ]
-            for l in recent_logs_q
+            for l in recent_sys_logs_q
         ]
 
-        # Payout Requests
-        payout_status_map = {
-            "pending": "معلق",
-            "approved": "معتمد",
-            "completed": "مكتمل",
-            "rejected": "مرفوض"
-        }
-        recent_payouts_q = db.query(PayoutRequest).order_by(PayoutRequest.requested_at.desc()).limit(5).all()
-        recent_payouts = [
-            [
-                f"طلب سحب {p.amount} د.أ", 
-                payout_status_map.get(getattr(p.status, 'value', str(p.status)), str(p.status)), 
-                format_time_ago(p.requested_at)
-            ]
-            for p in recent_payouts_q
-        ]
+        # 7. Security Logs (آخر السجلات الأمنية الحية من الجلسات وتوثيق الدخول)
+        tokens_q = db.query(RefreshToken).join(User, RefreshToken.user_id == User.id).filter(
+            ~User.email.like("deleted_%")
+        ).order_by(RefreshToken.created_at.desc()).limit(5).all()
+        security_logs = []
+        for token in tokens_q:
+            status_dot = "red" if token.is_revoked else "green"
+            status_desc = "جلسة ملغاة" if token.is_revoked else "تسجيل دخول نشط"
+            security_logs.append([
+                f"{status_desc}: {token.user.full_name or token.user.email}",
+                clean_device_info(token.device_info),
+                status_dot,
+                format_time_ago(token.created_at)
+            ])
 
-        # Appointments
-        appt_status_map = {
-            "scheduled": "مجدول",
-            "pending_approval": "قيد المراجعة",
-            "confirmed": "مؤكد",
-            "completed": "مكتمل",
-            "cancelled": "ملغي",
-            "rescheduled": "مؤجل"
-        }
-        recent_appts_q = db.query(Appointment).order_by(Appointment.scheduled_at.desc()).limit(5).all()
-        recent_appointments = [
-            [
-                f"استشارة #{str(a.id)[:5]}", 
-                appt_status_map.get(getattr(a.status, 'value', str(a.status)), str(a.status)), 
-                format_time_ago(a.scheduled_at)
-            ]
-            for a in recent_appts_q
-        ]
+        # 8. Operations Audit Logs (آخر سجلات تدقيق العمليات - الفواتير والعمليات المالية)
+        recent_invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).limit(5).all()
+        ops_audit_logs = []
+        for inv in recent_invoices:
+            type_name = "استشارة فردية" if inv.type == InvoiceType.client_invoice else ("سحب مستحقات" if inv.type == InvoiceType.consultant_payout else "اشتراك منصة")
+            status_name = "مسددة" if inv.status == InvoiceStatus.paid else ("ملغاة" if inv.status == InvoiceStatus.cancelled else "قيد الانتظار")
+            ops_audit_logs.append([
+                f"فاتورة {type_name} #{inv.invoice_number or str(inv.id)[:6]}",
+                f"{inv.customer_name or 'عميل المنصة'} ({int(inv.amount or 0)} د.أ - {status_name})",
+                format_time_ago(inv.created_at)
+            ])
 
-        # User Subscriptions
-        sub_status_map = {
-            "active": "نشط",
-            "expiring": "ينتهي قريباً",
-            "expired": "منتهي",
-            "cancelled": "ملغي"
-        }
-        recent_subs_q = db.query(UserSubscription).order_by(UserSubscription.start_date.desc()).limit(5).all()
-        recent_subscriptions = [
-            [
-                (s.plan.name if hasattr(s, 'plan') and s.plan and s.plan.name else f"اشتراك #{str(s.id)[:5]}"), 
-                sub_status_map.get(getattr(s.status, 'value', str(s.status)), str(s.status)), 
-                format_time_ago(s.start_date)
-            ]
-            for s in recent_subs_q
-        ]
+        # 9. AI Management Alerts (تنبيهات واستشارات الذكاء الاصطناعي الحية)
+        ai_msgs_q = db.query(ChatMessage).order_by(ChatMessage.created_at.desc()).limit(5).all()
+        ai_alerts = []
+        for msg in ai_msgs_q:
+            ai_alerts.append([
+                f"محادثة ذكاء اصطناعي #{str(msg.id)[:6]}",
+                (msg.message_text[:35] + "...") if msg.message_text else "استشارة مسجلة",
+                "info",
+                format_time_ago(msg.created_at)
+            ])
 
-        # Official Templates
-        recent_tmpls_q = db.query(OfficialTemplate).order_by(OfficialTemplate.created_at.desc()).limit(5).all()
-        recent_templates = [
-            [t.title[:30], "نموذج رسمي", format_time_ago(t.created_at)]
-            for t in recent_tmpls_q
-        ]
+        # 10. System Alerts & Warnings (آخر التنبيهات وإشعارات النظام الحية)
+        recent_notifs = db.query(Notification).order_by(Notification.created_at.desc()).limit(5).all()
+        system_alerts = []
+        for n in recent_notifs:
+            system_alerts.append([
+                n.title or "إشعار نظام",
+                n.message[:35] if n.message else "تنبيه إداري",
+                "warning",
+                format_time_ago(n.created_at)
+            ])
 
         # 3. Real user distribution calculated from active PostgreSQL users addresses
         cities_keys = ["مادبا", "البلقاء", "العقبة", "الزرقاء", "إربد", "عمان"]
@@ -249,7 +285,6 @@ class AdminDashboardService:
         # 5. Real AI line chart points (actual message volume over 7 intervals)
         ai_points = [0, 0, 0, 0, 0, 0, 0]
         if total_ai > 0:
-            # Query messages in current period
             ai_period_count = db.query(ChatMessage).filter(ChatMessage.created_at >= period_start).count()
             ai_points = [0, 0, 0, 0, 0, 0, ai_period_count]
 
@@ -265,15 +300,14 @@ class AdminDashboardService:
             "ai_points": ai_points,
             "cities": cities_data,
             "income": income_data,
-            "recent_users": recent_users,
-            "recent_consultants": recent_consultants,
-            "recent_tickets": recent_tickets,
-            "recent_ratings": recent_ratings,
             "recent_policies": recent_policies,
-            "recent_logs": recent_logs,
-            "recent_payouts": recent_payouts,
-            "recent_appointments": recent_appointments,
-            "recent_subscriptions": recent_subscriptions,
-            "recent_templates": recent_templates
+            "recent_ratings": recent_ratings,
+            "recent_tickets": recent_tickets,
+            "recent_consultants": recent_consultants,
+            "recent_users": recent_users,
+            "system_audit_logs": system_audit_logs,
+            "security_logs": security_logs,
+            "ops_audit_logs": ops_audit_logs,
+            "ai_alerts": ai_alerts,
+            "system_alerts": system_alerts
         }
-
