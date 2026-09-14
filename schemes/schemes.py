@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 import uuid
-from typing import Optional, Literal, List, Union, Any
+from typing import Optional, Literal, List, Union, Any, Dict
 from datetime import datetime, timezone
 from decimal import Decimal
 from helpers.enums import (
@@ -99,15 +99,20 @@ class UserProfileUpdate(BaseModel):
     avatar_url: Optional[str] = Field(None, max_length=500)
     url_slug: Optional[str] = Field(None, max_length=100)
     entity_type: Optional[EntityType] = None
+    legal_form: Optional[LegalForm] = None
     company_name: Optional[str] = Field(None, max_length=200)
     tax_number: Optional[str] = Field(None, max_length=50)
     sector: Optional[BusinessSector] = None
+    address: Optional[str] = Field(None, max_length=200)
     language: Optional[str] = Field(None, pattern="^(ar|en)$")
+    timezone: Optional[str] = Field(None, max_length=100)
+    currency: Optional[str] = Field(None, max_length=50)
+    date_format: Optional[str] = Field(None, max_length=50)
     email_notifications: Optional[bool] = None
     appointment_reminders: Optional[bool] = None
 
 class ChangePasswordRequest(BaseModel):
-    current_password: str
+    current_password: Optional[str] = None
     new_password: str = Field(..., min_length=8)
     confirm_password: Optional[str] = None
 
@@ -133,6 +138,9 @@ class ChangePasswordRequest(BaseModel):
             raise ValueError('تأكيد كلمة المرور غير متطابق مع كلمة المرور الجديدة')
         return self
 
+class AccountDeleteRequest(BaseModel):
+    reason: Optional[str] = None
+
 class EmailChangeRequest(BaseModel):
     new_email: EmailStr
     current_password: Optional[str] = None
@@ -142,10 +150,10 @@ class EmailChangeVerify(BaseModel):
     otp_code: str = Field(..., min_length=6, max_length=6, pattern=r"^[0-9]{6}$", description="6-digit verification code")
 
 class PhoneChangeRequest(BaseModel):
-    new_phone: str = Field(..., min_length=8, max_length=30)
+    new_phone: Optional[str] = None
 
 class PhoneChangeVerify(BaseModel):
-    new_phone: str
+    new_phone: Optional[str] = None
     otp_code: str = Field(..., min_length=6, max_length=6, pattern=r"^[0-9]{6}$", description="6-digit verification code")
 
 class RequestPasswordOtpRequest(BaseModel):
@@ -255,9 +263,12 @@ class UserOut(BaseModel):
     title: Optional[str] = None
     address: Optional[str] = None
     language: str = "ar"
+    timezone: Optional[str] = "Asia/Amman"
+    currency: Optional[str] = "JOD"
+    date_format: Optional[str] = "DD/MM/YYYY"
     email_notifications: bool = True
     appointment_reminders: bool = True
-    permissions: List[str] = []
+    permissions: Union[List[Any], Dict[str, Any], Any] = []
     is_active: bool
     verification_status: VerificationStatus
     policy_agreements: List[UserPolicyAgreementOut] = []

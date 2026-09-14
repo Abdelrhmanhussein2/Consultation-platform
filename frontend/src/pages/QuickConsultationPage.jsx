@@ -779,7 +779,12 @@ export default function QuickConsultationPage({ navigate }) {
                 </div>
                 <div>
                   <span style={{ display: 'block', fontSize: '12px', color: '#64748B', marginBottom: '2px' }}>تقييم العملاء:</span>
-                  <span style={{ fontSize: '14px', fontWeight: '700', color: '#F5A52A' }}>⭐ {activeModalConsultant.average_rating} ({activeModalConsultant.ratings_count || 0} تقييم)</span>
+                  <span style={{ fontSize: '14px', fontWeight: '800', color: '#D97706', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#F59E0B" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                    <span>{activeModalConsultant.average_rating} ({activeModalConsultant.ratings_count || 0} تقييم)</span>
+                  </span>
                 </div>
               </div>
 

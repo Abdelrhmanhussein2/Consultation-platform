@@ -98,6 +98,20 @@ DEFAULT_SMTP_SETTINGS = {
 }
 
 DEFAULT_GATEWAYS_SETTINGS = {
+    "online_gateway": {
+        "is_enabled": True,
+        "provider": "hyperpay",
+        "mode": "live",
+        "merchant_id": "MERCHANT-DIWAN-2026",
+        "entity_id": "8a8294174d0595bb014d05d829e701d1",
+        "api_key": "",
+        "supported_methods": {
+            "visa_mastercard": True,
+            "apple_pay": True,
+            "efawateercom": True,
+            "mada": False
+        }
+    },
     "bank_transfer": {
         "is_enabled": True,
         "bank_name": "البنك العربي - Arab Bank",
@@ -114,20 +128,6 @@ DEFAULT_GATEWAYS_SETTINGS = {
         "recipient_name": "منصة ديوان للاستشارات الضريبية",
         "bank_name": "البنك العربي",
         "instructions_ar": "يرجى التحويل المباشر عبر CliQ إلى المعرف الرسمي وإرفاق رقم العملية لتأكيد الحجز فوراً."
-    },
-    "paypal": {
-        "is_enabled": False,
-        "mode": "sandbox",
-        "client_id": "PAYPAL_SANDBOX_CLIENT_ID",
-        "secret_key": "PAYPAL_SECRET_KEY_SAMPLE",
-        "webhook_id": "WEBHOOK_ID_SAMPLE"
-    },
-    "stripe": {
-        "is_enabled": False,
-        "mode": "test",
-        "publishable_key": "pk_test_sample123456",
-        "secret_key": "sk_test_sample123456",
-        "webhook_secret": "whsec_sample123456"
     }
 }
 
@@ -176,6 +176,7 @@ class PlatformSettingsService:
     def get_section(db: Session, section_key: str) -> dict:
         """
         Retrieves a settings section by key from DB, returning defaults if not found.
+        Automatically decrypts sensitive secrets if encrypted.
         """
         setting = db.query(PlatformSetting).filter(PlatformSetting.key == section_key).first()
         default_val = DEFAULTS_MAP.get(section_key, {})
@@ -184,6 +185,17 @@ class PlatformSettingsService:
 
         try:
             stored_val = json.loads(setting.value_json)
+            # Decrypt sensitive fields if present
+            if isinstance(stored_val, dict):
+                if section_key == "smtp" and stored_val.get("mail_password"):
+                    stored_val["mail_password"] = decrypt_text(stored_val["mail_password"]) or stored_val["mail_password"]
+                elif section_key == "gateways" and stored_val.get("online_gateway", {}).get("api_key"):
+                    stored_val["online_gateway"]["api_key"] = decrypt_text(stored_val["online_gateway"]["api_key"]) or stored_val["online_gateway"]["api_key"]
+                elif section_key == "ai" and stored_val.get("api_key"):
+                    stored_val["api_key"] = decrypt_text(stored_val["api_key"]) or stored_val["api_key"]
+                elif section_key == "sms" and stored_val.get("api_key"):
+                    stored_val["api_key"] = decrypt_text(stored_val["api_key"]) or stored_val["api_key"]
+
             # Merge with defaults to ensure all keys exist
             if isinstance(default_val, dict) and isinstance(stored_val, dict):
                 merged = default_val.copy()
@@ -202,38 +214,51 @@ class PlatformSettingsService:
     ) -> dict:
         """
         Updates or inserts a settings section into DB.
-        Preserves existing secrets if incoming value is masked or empty.
+        Preserves existing secrets if incoming value is masked or empty,
+        and encrypts sensitive secrets with AES-256 before writing to DB.
         """
         if section_key not in DEFAULTS_MAP:
             raise ValueError(f"قسم الإعدادات غير مدعوم: {section_key}")
 
         current_val = PlatformSettingsService.get_section(db, section_key)
+        data_to_store = json.loads(json.dumps(data))  # Deep copy
 
         # Handle secret preservation for SMTP
         if section_key == "smtp":
-            incoming_pass = data.get("mail_password")
+            incoming_pass = data_to_store.get("mail_password")
             if not incoming_pass or "****" in incoming_pass or "••" in incoming_pass:
-                data["mail_password"] = current_val.get("mail_password", "")
+                data_to_store["mail_password"] = current_val.get("mail_password", "")
+            if data_to_store.get("mail_password"):
+                data_to_store["mail_password"] = encrypt_text(data_to_store["mail_password"])
 
         # Handle secret preservation for Gateways
         if section_key == "gateways":
-            if "paypal" in data and "secret_key" in data["paypal"]:
-                inc_sec = data["paypal"]["secret_key"]
+            if "online_gateway" in data_to_store and isinstance(data_to_store["online_gateway"], dict):
+                inc_sec = data_to_store["online_gateway"].get("api_key")
                 if not inc_sec or "****" in inc_sec or "••" in inc_sec:
-                    data["paypal"]["secret_key"] = current_val.get("paypal", {}).get("secret_key", "")
-            if "stripe" in data:
-                if "secret_key" in data["stripe"]:
-                    inc_sec = data["stripe"]["secret_key"]
-                    if not inc_sec or "****" in inc_sec or "••" in inc_sec:
-                        data["stripe"]["secret_key"] = current_val.get("stripe", {}).get("secret_key", "")
-                if "webhook_secret" in data["stripe"]:
-                    inc_wh = data["stripe"]["webhook_secret"]
-                    if not inc_wh or "****" in inc_wh or "••" in inc_wh:
-                        data["stripe"]["webhook_secret"] = current_val.get("stripe", {}).get("webhook_secret", "")
+                    data_to_store["online_gateway"]["api_key"] = current_val.get("online_gateway", {}).get("api_key", "")
+                if data_to_store["online_gateway"].get("api_key"):
+                    data_to_store["online_gateway"]["api_key"] = encrypt_text(data_to_store["online_gateway"]["api_key"])
+
+        # Handle secret preservation for AI Engine
+        if section_key == "ai":
+            inc_ai = data_to_store.get("api_key")
+            if not inc_ai or "****" in inc_ai or "••" in inc_ai:
+                data_to_store["api_key"] = current_val.get("api_key", "")
+            if data_to_store.get("api_key"):
+                data_to_store["api_key"] = encrypt_text(data_to_store["api_key"])
+
+        # Handle secret preservation for Local SMS
+        if section_key == "sms":
+            inc_sms = data_to_store.get("api_key")
+            if not inc_sms or "****" in inc_sms or "••" in inc_sms:
+                data_to_store["api_key"] = current_val.get("api_key", "")
+            if data_to_store.get("api_key"):
+                data_to_store["api_key"] = encrypt_text(data_to_store["api_key"])
 
         setting = db.query(PlatformSetting).filter(PlatformSetting.key == section_key).first()
         now_utc = datetime.now(timezone.utc)
-        serialized = json.dumps(data, ensure_ascii=False)
+        serialized = json.dumps(data_to_store, ensure_ascii=False)
 
         if setting:
             setting.value_json = serialized
@@ -250,7 +275,7 @@ class PlatformSettingsService:
 
         db.commit()
         db.refresh(setting)
-        return json.loads(setting.value_json)
+        return PlatformSettingsService.get_section(db, section_key)
 
     @staticmethod
     def format_price(
@@ -309,18 +334,12 @@ class PlatformSettingsService:
         if masked_ai.get("api_key"):
             masked_ai["api_key"] = mask_string(masked_ai["api_key"], visible_suffix=4)
 
-        masked_gateways = {
-            "bank_transfer": gateways.get("bank_transfer", DEFAULT_GATEWAYS_SETTINGS["bank_transfer"]),
-            "cliq": gateways.get("cliq", DEFAULT_GATEWAYS_SETTINGS["cliq"]),
-            "paypal": gateways.get("paypal", DEFAULT_GATEWAYS_SETTINGS["paypal"]).copy(),
-            "stripe": gateways.get("stripe", DEFAULT_GATEWAYS_SETTINGS["stripe"]).copy()
-        }
-        if masked_gateways["paypal"].get("secret_key"):
-            masked_gateways["paypal"]["secret_key"] = mask_string(masked_gateways["paypal"]["secret_key"], visible_suffix=3)
-        if masked_gateways["stripe"].get("secret_key"):
-            masked_gateways["stripe"]["secret_key"] = mask_string(masked_gateways["stripe"]["secret_key"], visible_suffix=3)
-        if masked_gateways["stripe"].get("webhook_secret"):
-            masked_gateways["stripe"]["webhook_secret"] = mask_string(masked_gateways["stripe"]["webhook_secret"], visible_suffix=3)
+        masked_gateways = gateways.copy() if isinstance(gateways, dict) else {}
+        if "online_gateway" in masked_gateways and isinstance(masked_gateways["online_gateway"], dict):
+            og = masked_gateways["online_gateway"].copy()
+            if og.get("api_key"):
+                og["api_key"] = mask_string(og["api_key"], visible_suffix=4)
+            masked_gateways["online_gateway"] = og
 
         # Generate live preview examples
         sample_price = PlatformSettingsService.format_price(Decimal("125.50"), system.get("default_currency_symbol", "د.أ"), system)

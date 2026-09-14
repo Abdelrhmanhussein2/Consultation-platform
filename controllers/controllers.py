@@ -164,6 +164,15 @@ class UserController:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     @staticmethod
+    def request_account_deletion(db: Session, current_user: User, req_in=None):
+        """Creates a high-priority support ticket to initiate permanent account deletion."""
+        try:
+            reason = req_in.reason if req_in else None
+            return UserService.request_account_deletion(db, current_user, reason)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    @staticmethod
     def request_my_password_otp(db: Session, current_user: User, redis_client, background_tasks=None):
         """Sends a password reset OTP to the currently logged in user's email."""
         try:

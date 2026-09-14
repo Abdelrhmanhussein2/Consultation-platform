@@ -109,12 +109,16 @@ class UserService:
                 user.url_slug = slug
         if update_in.entity_type is not None:
             user.entity_type = update_in.entity_type
+        if getattr(update_in, "legal_form", None) is not None:
+            user.legal_form = update_in.legal_form
         if update_in.company_name is not None:
             user.company_name = update_in.company_name
         if update_in.tax_number is not None:
             user.tax_number = update_in.tax_number
         if update_in.sector is not None:
             user.sector = update_in.sector
+        if getattr(update_in, "address", None) is not None:
+            user.address = update_in.address
         if update_in.language is not None:
             user.language = update_in.language
         if update_in.email_notifications is not None:
@@ -122,21 +126,59 @@ class UserService:
         if update_in.appointment_reminders is not None:
             user.appointment_reminders = update_in.appointment_reminders
 
+        # Store extended preferences (timezone, currency, date_format) in JSON permissions/settings
+        pref_dict = dict(user.permissions) if isinstance(user.permissions, dict) else {}
+        if getattr(update_in, "timezone", None) is not None:
+            pref_dict["timezone"] = update_in.timezone
+        if getattr(update_in, "currency", None) is not None:
+            pref_dict["currency"] = update_in.currency
+        if getattr(update_in, "date_format", None) is not None:
+            pref_dict["date_format"] = update_in.date_format
+        if pref_dict:
+            user.permissions = pref_dict
+
         db.commit()
         db.refresh(user)
         return user
 
     @staticmethod
-    def change_password(db: Session, user: User, current_password: str, new_password: str) -> dict:
-        if not verify_password(current_password, user.password_hash):
-            raise ValueError("كلمة المرور الحالية غير صحيحة")
+    def change_password(db: Session, user: User, current_password: str = None, new_password: str = None) -> dict:
+        if current_password:
+            if not verify_password(current_password, user.password_hash):
+                raise ValueError("كلمة المرور الحالية غير صحيحة")
+            if current_password == new_password:
+                raise ValueError("كلمة المرور الجديدة يجب أن تكون مختلفة عن كلمة المرور الحالية")
 
-        if current_password == new_password:
-            raise ValueError("كلمة المرور الجديدة يجب أن تكون مختلفة عن كلمة المرور الحالية")
+        if not new_password:
+            raise ValueError("كلمة المرور الجديدة مطلوبة")
 
         user.password_hash = hash_password(new_password)
+        # Revoke all other active refresh tokens for security
+        db.query(RefreshToken).filter(RefreshToken.user_id == user.id).delete()
         db.commit()
-        return {"message": "تم تغيير كلمة المرور بنجاح"}
+        return {"message": "تم تحديث وتشفير كلمة المرور بنجاح وإنهاء الجلسات القديمة"}
+
+    @staticmethod
+    def request_account_deletion(db: Session, user: User, reason: str = None) -> dict:
+        from models.support_ticket import SupportTicket
+        from helpers.enums import TicketCategory, TicketPriority, TicketStatus
+
+        ticket_number = f"DEL-{random.randint(10000, 99999)}"
+        ticket = SupportTicket(
+            submitted_by=user.id,
+            ticket_number=ticket_number,
+            subject=f"طلب حذف الحساب النهائي للمستخدم: {user.full_name} ({user.email})",
+            description=f"قام المستخدم بطلب حذف حسابه نهائياً من إعدادات الأمان.\nالسبب: {reason or 'لم يحدد المستخدم سبباً'}\nالبريد الإلكتروني: {user.email}\nالهاتف: {user.phone or 'غير مسجل'}",
+            category=TicketCategory.other,
+            priority=TicketPriority.high,
+            status=TicketStatus.open
+        )
+        db.add(ticket)
+        db.commit()
+        return {
+            "message": "تم إرسال طلب حذف الحساب بنجاح، وسيتواصل معك فريق الدعم لتأكيد الإجراء.",
+            "ticket_number": ticket_number
+        }
 
     @staticmethod
     def reset_password_by_id(db: Session, user_id: uuid.UUID, new_password: str) -> dict:
@@ -223,42 +265,45 @@ class UserService:
 
     @staticmethod
     def request_phone_change(
-        db: Session, user: User, new_phone: str, redis_client = None, background_tasks = None
+        db: Session, user: User, new_phone: str = None, redis_client = None, background_tasks = None
     ) -> dict:
-        new_phone = str(new_phone).strip()
-        if not new_phone:
-            raise ValueError("رقم الهاتف الجديد مطلوب")
+        phone_target = str(new_phone).strip() if new_phone else (user.phone or "").strip()
+        if not phone_target:
+            raise ValueError("رقم الهاتف مطلوب لإرسال رمز التحقق")
 
-        existing = db.query(User).filter(User.phone == new_phone, User.id != user.id).first()
+        existing = db.query(User).filter(User.phone == phone_target, User.id != user.id).first()
         if existing:
-            raise ValueError("رقم الهاتف الجديد مستخدم بالفعل من قبل حساب آخر")
+            raise ValueError("رقم الهاتف مستخدم بالفعل من قبل حساب آخر")
 
         otp_code = f"{random.randint(100000, 999999)}"
-        redis_key = f"phone_change_otp:{user.id}:{new_phone}"
+        redis_key = f"phone_change_otp:{user.id}:{phone_target}"
         if redis_client:
             redis_client.setex(redis_key, 900, otp_code)
 
         return {
-            "message": "تم إرسال رمز التحقق إلى رقم هاتفك الجديد بنجاح",
-            "new_phone": new_phone
+            "message": f"تم إرسال رمز التحقق OTP إلى رقم الهاتف: {phone_target}",
+            "new_phone": phone_target
         }
 
     @staticmethod
     def verify_phone_change(
-        db: Session, user: User, new_phone: str, otp_code: str, redis_client = None
+        db: Session, user: User, new_phone: str = None, otp_code: str = None, redis_client = None
     ) -> dict:
-        new_phone = str(new_phone).strip()
-        redis_key = f"phone_change_otp:{user.id}:{new_phone}"
+        phone_target = str(new_phone).strip() if new_phone else (user.phone or "").strip()
+        if not phone_target:
+            raise ValueError("رقم الهاتف مطلوب")
+
+        redis_key = f"phone_change_otp:{user.id}:{phone_target}"
         saved_otp = None
         if redis_client:
             saved_otp = redis_client.get(redis_key)
             if isinstance(saved_otp, bytes):
                 saved_otp = saved_otp.decode("utf-8")
 
-        if saved_otp and saved_otp.strip() != otp_code.strip():
+        if saved_otp and saved_otp.strip() != str(otp_code or "").strip():
             raise ValueError("رمز التحقق غير صحيح أو انتهت صلاحيته")
 
-        user.phone = new_phone
+        user.phone = phone_target
         db.commit()
         db.refresh(user)
 
@@ -266,7 +311,7 @@ class UserService:
             redis_client.delete(redis_key)
 
         return {
-            "message": "تم تحديث رقم الهاتف وتأكيده بنجاح",
+            "message": "تم توثيق وتأكيد رقم الهاتف بنجاح في قاعدة البيانات",
             "phone": user.phone
         }
 

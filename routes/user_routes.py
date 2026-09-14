@@ -7,7 +7,7 @@ from models import User
 from schemes import (
     UserOut, UserProfileUpdate, ChangePasswordRequest,
     EmailChangeRequest, EmailChangeVerify, PhoneChangeRequest, PhoneChangeVerify,
-    VerifyMyPasswordOtpAndResetRequest
+    VerifyMyPasswordOtpAndResetRequest, AccountDeleteRequest
 )
 from controllers import UserController
 from routes.deps import get_current_active_user
@@ -177,4 +177,20 @@ async def upload_avatar(
         file_bytes=file_bytes,
         filename=file.filename,
         content_type=file.content_type
+    )
+
+@router.post("/me/delete-request", status_code=status.HTTP_200_OK, summary="Request permanent account deletion")
+@router.post("/me/delete-account-request", status_code=status.HTTP_200_OK, summary="Request permanent account deletion (Alias)")
+def request_account_deletion(
+    req_in: AccountDeleteRequest = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Submits a high-priority ticket and notifies support to proceed with permanent account deletion.
+    """
+    return UserController.request_account_deletion(
+        db=db,
+        current_user=current_user,
+        req_in=req_in
     )

@@ -240,9 +240,14 @@ export default function InvoicesPage() {
           </table>
         </div>
       ) : (
-        <div style={{ background: '#FFFFFF', padding: '48px', borderRadius: '20px', textAlign: 'center', border: '1px solid #E2E8F0', color: '#64748B' }}>
-          <span style={{ fontSize: '48px' }}>💵</span>
-          <h3 style={{ color: '#1E293B', marginBottom: '8px' }}>لا توجد فواتير صادرة حتى الآن</h3>
+        <div style={{ background: '#FFFFFF', padding: '48px', borderRadius: '18px', textAlign: 'center', border: '1px solid #E2E8F0', color: '#64748B' }}>
+          <div style={{ width: '60px', height: '60px', background: '#E5EFF5', color: '#134B70', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect width="20" height="14" x="2" y="5" rx="2" />
+              <line x1="2" x2="22" y1="10" y2="10" />
+            </svg>
+          </div>
+          <h3 style={{ color: '#1E293B', marginBottom: '8px', fontWeight: '800' }}>لا توجد فواتير صادرة حتى الآن</h3>
           <p style={{ fontSize: '13px', margin: 0 }}>ستظهر فواتيرك هنا بمجرد حجز ودفع أي استشارة ضريبية.</p>
         </div>
       )}
@@ -432,19 +437,28 @@ export default function InvoicesPage() {
               <button
                 onClick={handlePrint}
                 style={{
-                  background: '#FFFFFF',
-                  border: '1.5px solid #E2E8F0',
-                  borderRadius: '6px',
-                  padding: '6px 20px',
-                  fontSize: '12px',
-                  fontWeight: '700',
-                  color: '#475569',
+                  background: '#134B70',
+                  border: 'none',
+                  borderRadius: '12px',
+                  padding: '10px 24px',
+                  fontSize: '13px',
+                  fontWeight: '800',
+                  color: '#FFFFFF',
                   cursor: 'pointer',
                   fontFamily: 'Tajawal, sans-serif',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                  boxShadow: '0 4px 12px rgba(19, 75, 112, 0.25)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s'
                 }}
               >
-                طباعة
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 6 2 18 2 18 9" />
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                  <rect width="12" height="8" x="6" y="14" />
+                </svg>
+                <span>طباعة الفاتورة</span>
               </button>
             </div>
 

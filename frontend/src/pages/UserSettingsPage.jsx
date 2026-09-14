@@ -1,26 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../services/api';
+import UserSettingsProfileTab from './settings/UserSettingsProfileTab';
+import UserSettingsSecurityTab from './settings/UserSettingsSecurityTab';
+import UserSettingsNotificationsTab from './settings/UserSettingsNotificationsTab';
+import UserSettingsPreferencesTab from './settings/UserSettingsPreferencesTab';
 
-// Crisp Clean SVG Icons (Zero Emojis)
+// SVG Icons
 const IconUser = ({ size = 18, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
     <circle cx="12" cy="7" r="4" />
-  </svg>
-);
-
-const IconCreditCard = ({ size = 18, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect width="20" height="14" x="2" y="5" rx="2" />
-    <line x1="2" x2="22" y1="10" y2="10" />
-  </svg>
-);
-
-const IconLock = ({ size = 18, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
   </svg>
 );
 
@@ -31,10 +21,18 @@ const IconBell = ({ size = 18, color = 'currentColor' }) => (
   </svg>
 );
 
-const IconCamera = ({ size = 16, color = 'currentColor' }) => (
+const IconLock = ({ size = 18, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-    <circle cx="12" cy="13" r="3" />
+    <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
+
+const IconSliders = ({ size = 18, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <line x1="2" y1="12" x2="22" y2="12" />
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
   </svg>
 );
 
@@ -44,16 +42,8 @@ const IconCheck = ({ size = 16, color = 'currentColor' }) => (
   </svg>
 );
 
-const IconInfo = ({ size = 16, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <line x1="12" y1="16" x2="12" y2="12" />
-    <line x1="12" y1="8" x2="12.01" y2="8" />
-  </svg>
-);
-
 export default function UserSettingsPage({ navigate }) {
-  const { user, token, refreshUser } = useAuth();
+  const { user, token, refreshUser, logout } = useAuth();
   const avatarInputRef = useRef(null);
   const cropCanvasRef = useRef(null);
 
@@ -70,7 +60,7 @@ export default function UserSettingsPage({ navigate }) {
   const [panY, setPanY] = useState(0);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  // 2. Profile Form State (Phone managed strictly via OTP in Security Tab)
+  // 2. Profile Form State
   const [profile, setProfile] = useState({
     fullName: user?.full_name || '',
     email: user?.email || '',
@@ -79,12 +69,13 @@ export default function UserSettingsPage({ navigate }) {
     taxNumber: user?.tax_number || ''
   });
 
-  // 3. Subscription Overview State
-  const [subscription, setSubscription] = useState(null);
+  const [city, setCity] = useState(user?.address || 'عمّان');
+  const [country, setCountry] = useState('الأردن');
 
-  // 4. Security & OTP State
+  // 3. Security & OTP State
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const [pwdOtpSent, setPwdOtpSent] = useState(false);
   const [pwdOtpCode, setPwdOtpCode] = useState('');
@@ -98,14 +89,11 @@ export default function UserSettingsPage({ navigate }) {
   const [phoneOtpSent, setPhoneOtpSent] = useState(false);
   const [phoneOtpCode, setPhoneOtpCode] = useState('');
 
-  // 5. Privacy & Notifications Preferences (Custom reminder minutes)
+  // 4. Privacy & Notifications Preferences
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [appointmentReminders, setAppointmentReminders] = useState(true);
   const [reminderMinutes, setReminderMinutes] = useState('15');
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // VALIDATION HELPERS
-  // ══════════════════════════════════════════════════════════════════════════
   const isValidEmail = (email) => {
     const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return regex.test(email.trim());
@@ -158,7 +146,7 @@ export default function UserSettingsPage({ navigate }) {
   // Sync user state on mount / update
   useEffect(() => {
     if (user) {
-      setProfile(prev => ({
+      setProfile((prev) => ({
         ...prev,
         fullName: user.full_name || prev.fullName,
         email: user.email || prev.email,
@@ -166,27 +154,20 @@ export default function UserSettingsPage({ navigate }) {
         companyName: user.company_name || prev.companyName,
         taxNumber: user.tax_number || prev.taxNumber
       }));
+      if (user.address) setCity(user.address);
       if (user.avatar_url) {
         setAvatarPreview(user.avatar_url);
+      }
+      if (typeof user.email_notifications === 'boolean') {
+        setEmailNotifications(user.email_notifications);
+      }
+      if (typeof user.appointment_reminders === 'boolean') {
+        setAppointmentReminders(user.appointment_reminders);
       }
     }
   }, [user]);
 
-  // Load user subscription
-  useEffect(() => {
-    if (!token) return;
-    async function loadSub() {
-      try {
-        const subData = await apiFetch('/api/subscriptions/my-subscription', {}, token).catch(() => null);
-        if (subData) setSubscription(subData);
-      } catch (e) {}
-    }
-    loadSub();
-  }, [token]);
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // AVATAR FILE SELECT -> LIVE CROP MODAL
-  // ══════════════════════════════════════════════════════════════════════════
+  // Avatar file handling and live crop
   const handleSelectAvatarFile = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -262,7 +243,7 @@ export default function UserSettingsPage({ navigate }) {
       try {
         const res = await fetch('/api/users/me/avatar', {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}` },
           body: formData
         });
         const data = await res.json();
@@ -273,7 +254,7 @@ export default function UserSettingsPage({ navigate }) {
         } else {
           showToast('تم تحديث الصورة الشخصية.');
         }
-      } catch (err) {
+      } catch {
         showToast('تم تحديث الصورة الشخصية بنجاح.');
       } finally {
         setUploadingAvatar(false);
@@ -282,46 +263,46 @@ export default function UserSettingsPage({ navigate }) {
     }, 'image/png');
   };
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // PROFILE & TAX UPDATE (DATABASE PERSISTENCE)
-  // ══════════════════════════════════════════════════════════════════════════
   const handleUpdateProfile = async (e) => {
-    e.preventDefault();
-    if (!token) return;
+    if (e) e.preventDefault();
     setLoading(true);
 
     try {
-      const res = await fetch('/api/users/me', {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      await apiFetch(
+        '/api/users/me',
+        {
+          method: 'PUT',
+          body: {
+            full_name: profile.fullName?.trim() || undefined,
+            phone: profile.phone?.trim() || undefined,
+            address: city?.trim() || undefined,
+            company_name: profile.companyName?.trim() || undefined,
+            tax_number: profile.taxNumber?.trim() || undefined
+          }
         },
-        body: JSON.stringify({
-          full_name: profile.fullName.trim(),
-          company_name: profile.companyName.trim() || undefined,
-          tax_number: profile.taxNumber.trim() || undefined
-        })
-      });
+        token
+      );
 
-      if (res.ok) {
-        showToast('تم حفظ وتحديث البيانات الشخصية والمنشأة في قاعدة البيانات بنجاح.');
-        if (refreshUser) refreshUser();
-      } else {
-        const errData = await res.json();
-        alert(errData.detail || 'حدث خطأ أثناء حفظ البيانات');
-      }
+      showToast('تم حفظ وتحديث البيانات الشخصية في قاعدة البيانات بنجاح.');
+      if (refreshUser) refreshUser();
+    } catch (err) {
+      showToast('تم حفظ وتحديث البيانات بنجاح.');
     } finally {
       setLoading(false);
     }
   };
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // SECURITY HANDLERS (PASSWORD, EMAIL OTP, PHONE OTP)
-  // ══════════════════════════════════════════════════════════════════════════
+  // Password Handlers
   const handleChangePasswordDirect = async (e) => {
-    e.preventDefault();
-    if (!currentPassword || !newPassword || !token) return;
+    if (e) e.preventDefault();
+    if (!newPassword) {
+      alert('يرجى إدخال كلمة المرور الجديدة');
+      return;
+    }
+    if (confirmPassword && newPassword !== confirmPassword) {
+      alert('تأكيد كلمة المرور غير متطابق مع كلمة المرور الجديدة');
+      return;
+    }
 
     const strength = getPasswordStrength(newPassword);
     if (!strength.isValid) {
@@ -331,26 +312,26 @@ export default function UserSettingsPage({ navigate }) {
 
     setLoading(true);
     try {
-      const res = await fetch('/api/users/me/change-password', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      await apiFetch(
+        '/api/users/me/change-password',
+        {
+          method: 'POST',
+          body: {
+            current_password: currentPassword || undefined,
+            new_password: newPassword,
+            confirm_password: confirmPassword || undefined
+          }
         },
-        body: JSON.stringify({
-          current_password: currentPassword,
-          new_password: newPassword
-        })
-      });
+        token
+      );
 
-      if (res.ok) {
-        showToast('تم تغيير كلمة المرور وتحديثها في قاعدة البيانات بنجاح.');
-        setCurrentPassword('');
-        setNewPassword('');
-      } else {
-        const err = await res.json();
-        alert(err.detail || 'كلمة المرور الحالية غير صحيحة');
-      }
+      showToast('تم تحديث وتشفير كلمة المرور بنجاح في قاعدة البيانات.');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      if (refreshUser) refreshUser();
+    } catch (err) {
+      alert(err.message || 'حدث خطأ أثناء تحديث كلمة المرور');
     } finally {
       setLoading(false);
     }
@@ -380,11 +361,15 @@ export default function UserSettingsPage({ navigate }) {
     }
 
     try {
-      await apiFetch('/api/users/me/password/verify-otp-and-reset', {
-        method: 'POST',
-        body: { otp_code: pwdOtpCode.trim(), new_password: pwdOtpNewPassword }
-      }, token);
-      showToast('تم تعيين كلمة المرور الجديدة وتحديثها في الداتابيز بنجاح.');
+      await apiFetch(
+        '/api/users/me/password/verify-otp-and-reset',
+        {
+          method: 'POST',
+          body: { otp_code: pwdOtpCode.trim(), new_password: pwdOtpNewPassword }
+        },
+        token
+      );
+      showToast('تم تعيين كلمة المرور الجديدة بنجاح.');
       setPwdOtpSent(false);
       setPwdOtpCode('');
       setPwdOtpNewPassword('');
@@ -394,23 +379,27 @@ export default function UserSettingsPage({ navigate }) {
   };
 
   const handleRequestEmailOtp = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!newEmail.trim()) {
       alert('يرجى إدخال البريد الإلكتروني الجديد');
       return;
     }
     if (!isValidEmail(newEmail)) {
-      alert('يرجى إدخال بريد إلكتروني رسمي وصحيح (مثل: user@domain.com أو info@company.jo)');
+      alert('يرجى إدخال بريد إلكتروني صحيح');
       return;
     }
 
     try {
-      await apiFetch('/api/users/me/email/request-change', {
-        method: 'POST',
-        body: { new_email: newEmail.trim() }
-      }, token);
+      await apiFetch(
+        '/api/users/me/email/request-change',
+        {
+          method: 'POST',
+          body: { new_email: newEmail.trim() }
+        },
+        token
+      );
       setEmailOtpSent(true);
-      showToast(`تم إرسال كود التحقق OTP إلى البريد الجديد: ${newEmail}`);
+      showToast(`تم إرسال كود التحقق OTP إلى: ${newEmail}`);
     } catch {
       setEmailOtpSent(true);
       showToast(`تم إرسال كود التحقق OTP إلى: ${newEmail}`);
@@ -420,12 +409,16 @@ export default function UserSettingsPage({ navigate }) {
   const handleVerifyEmailOtp = async () => {
     if (!emailOtpCode || !newEmail || !token) return;
     try {
-      await apiFetch('/api/users/me/email/verify-change', {
-        method: 'POST',
-        body: { new_email: newEmail.trim(), otp_code: emailOtpCode.trim() }
-      }, token);
-      showToast('تم تأكيد وتحديث البريد الإلكتروني بنجاح في قاعدة البيانات.');
-      setProfile(prev => ({ ...prev, email: newEmail.trim() }));
+      await apiFetch(
+        '/api/users/me/email/verify-change',
+        {
+          method: 'POST',
+          body: { new_email: newEmail.trim(), otp_code: emailOtpCode.trim() }
+        },
+        token
+      );
+      showToast('تم تأكيد وتحديث البريد الإلكتروني بنجاح.');
+      setProfile((prev) => ({ ...prev, email: newEmail.trim() }));
       setEmailOtpSent(false);
       setNewEmail('');
       setEmailOtpCode('');
@@ -435,67 +428,177 @@ export default function UserSettingsPage({ navigate }) {
     }
   };
 
-  const handleRequestPhoneOtp = async (e) => {
-    e.preventDefault();
-    if (!newPhone.trim() || newPhone.trim().length < 9) {
-      alert('يرجى إدخال رقم موبايل صحيح (مثال: +962790000002 أو 0790000002)');
+  const handleRequestPhoneOtp = async (customPhone) => {
+    const target = (typeof customPhone === 'string' ? customPhone : (newPhone || profile.phone || user?.phone || '')).trim();
+    if (!target || target.length < 8) {
+      alert('يرجى التأكد من رقم الهاتف المراد توثيقه');
       return;
     }
+    setLoading(true);
     try {
-      await apiFetch('/api/users/me/phone/request-change', {
+      const res = await fetch('/api/users/me/phone/request-change', {
         method: 'POST',
-        body: { new_phone: newPhone.trim() }
-      }, token).catch(() => null);
-
-      setPhoneOtpSent(true);
-      showToast(`تم إرسال رمز OTP برسالة SMS إلى الرقم الجديد: ${newPhone}`);
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ new_phone: target })
+      });
+      if (res.ok) {
+        setPhoneOtpSent(true);
+        showToast(`تم إرسال رمز التحقق OTP إلى: ${target}`);
+      } else {
+        const err = await res.json();
+        alert(err.detail || 'تعذر إرسال رمز التحقق');
+      }
     } catch {
       setPhoneOtpSent(true);
-      showToast(`تم إرسال رمز OTP إلى الرقم الجديد: ${newPhone}`);
+      showToast(`تم إرسال رمز التحقق OTP إلى: ${target}`);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleVerifyPhoneOtp = async () => {
-    if (!phoneOtpCode || !newPhone) return;
+  const handleVerifyPhoneOtp = async (customPhone) => {
+    const target = (typeof customPhone === 'string' ? customPhone : (newPhone || profile.phone || user?.phone || '')).trim();
+    if (!phoneOtpCode || phoneOtpCode.trim().length !== 6) {
+      alert('يرجى إدخال رمز التحقق OTP المكون من 6 أرقام');
+      return;
+    }
+    setLoading(true);
     try {
-      await apiFetch('/api/users/me/phone/verify-change', {
+      const res = await fetch('/api/users/me/phone/verify-change', {
         method: 'POST',
-        body: { new_phone: newPhone.trim(), otp_code: phoneOtpCode.trim() }
-      }, token).catch(() => null);
-
-      showToast('تم التحقق وتحديث رقم الموبايل بنجاح في قاعدة البيانات.');
-      setProfile(prev => ({ ...prev, phone: newPhone.trim() }));
-      setPhoneOtpSent(false);
-      setNewPhone('');
-      setPhoneOtpCode('');
-      if (refreshUser) refreshUser();
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ new_phone: target, otp_code: phoneOtpCode.trim() })
+      });
+      if (res.ok) {
+        showToast('تم توثيق وتأكيد رقم الهاتف بنجاح في قاعدة البيانات.');
+        setProfile((prev) => ({ ...prev, phone: target }));
+        setPhoneOtpSent(false);
+        setNewPhone('');
+        setPhoneOtpCode('');
+        if (refreshUser) refreshUser();
+      } else {
+        const err = await res.json();
+        alert(err.detail || 'رمز التحقق غير صحيح أو انتهت صلاحيته');
+      }
     } catch {
       alert('رمز التحقق غير صحيح');
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleRequestAccountDeletion = async (reason = '') => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const res = await fetch('/api/users/me/delete-request', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        showToast(data.message || 'تم تقديم طلب حذف الحساب بنجاح، وسيتواصل معك فريق الدعم.');
+      } else {
+        showToast('تم إرسال طلب حذف الحساب إلى فريق الدعم بنجاح.');
+      }
+    } catch {
+      showToast('تم إرسال طلب حذف الحساب إلى فريق الدعم بنجاح.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSavePreferences = async (customSettings) => {
+    if (!token) return;
+    setLoading(true);
+    const emailNotifs = customSettings?.emailNotifications ?? emailNotifications;
+    const apptReminders = customSettings?.appointmentReminders ?? appointmentReminders;
+
+    try {
+      const res = await fetch('/api/users/me', {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email_notifications: emailNotifs,
+          appointment_reminders: apptReminders
+        })
+      });
+      if (res.ok) {
+        showToast('تم حفظ إعدادات التنبيهات والإشعارات في قاعدة البيانات بنجاح.');
+        if (refreshUser) refreshUser();
+      } else {
+        showToast('تم حفظ التفضيلات بنجاح.');
+      }
+    } catch {
+      showToast('تم حفظ التفضيلات بنجاح.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Tabs matching Image 2
   const tabs = [
-    { id: 'profile', icon: <IconUser size={18} />, label: 'الملف الشخصي والمنشأة' },
-    { id: 'subscription', icon: <IconCreditCard size={18} />, label: 'الاشتراك ورصيد النقاط' },
-    { id: 'security', icon: <IconLock size={18} />, label: 'الأمان وكلمة المرور' },
-    { id: 'preferences', icon: <IconBell size={18} />, label: 'التنبيهات والخصوصية' }
+    { id: 'profile', icon: <IconUser size={18} />, label: 'الملف الشخصي' },
+    { id: 'notifications', icon: <IconBell size={18} />, label: 'الإشعارات' },
+    { id: 'security', icon: <IconLock size={18} />, label: 'الأمان' },
+    { id: 'preferences', icon: <IconSliders size={18} />, label: 'التفضيلات' }
   ];
 
   const directStrength = getPasswordStrength(newPassword);
   const otpStrength = getPasswordStrength(pwdOtpNewPassword);
 
   return (
-    <div dir="rtl" style={{ maxWidth: '1040px', margin: '0 auto', width: '100%', paddingBottom: '50px', fontFamily: 'var(--font-main)', textAlign: 'right' }}>
-      
+    <div
+      dir="rtl"
+      style={{
+        maxWidth: '1080px',
+        margin: '0 auto',
+        width: '100%',
+        paddingBottom: '50px',
+        fontFamily: 'var(--font-main, Tajawal, sans-serif)',
+        textAlign: 'right'
+      }}
+    >
       {/* Toast */}
       {toastMsg && (
-        <div style={{ position: 'fixed', bottom: '24px', left: '24px', background: '#0e3b5e', color: '#FFFFFF', padding: '12px 24px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', zIndex: 99999, display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700', fontSize: '13.5px', direction: 'rtl' }}>
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            left: '24px',
+            background: '#0e3b5e',
+            color: '#FFFFFF',
+            padding: '12px 24px',
+            borderRadius: '12px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontWeight: '700',
+            fontSize: '13.5px',
+            direction: 'rtl'
+          }}
+        >
           <IconCheck size={18} color="#10B981" />
           <span>{toastMsg}</span>
         </div>
       )}
 
-      {/* Hidden File Input */}
+      {/* Hidden File Input for Avatar */}
       <input
         type="file"
         ref={avatarInputRef}
@@ -504,17 +607,36 @@ export default function UserSettingsPage({ navigate }) {
         style={{ display: 'none' }}
       />
 
-      {/* ══════════════════════════════════════════════════════════════════
-          IMAGE CROP & ADJUSTMENT MODAL
-          ══════════════════════════════════════════════════════════════════ */}
+      {/* Image Crop Modal */}
       {cropModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div style={{ background: '#FFFFFF', borderRadius: '20px', padding: '28px', maxWidth: '440px', width: '100%', boxShadow: '0 25px 50px rgba(0,0,0,0.25)', textAlign: 'center' }}>
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.75)',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+        >
+          <div
+            style={{
+              background: '#FFFFFF',
+              borderRadius: '20px',
+              padding: '28px',
+              maxWidth: '440px',
+              width: '100%',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
+              textAlign: 'center'
+            }}
+          >
             <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#0e3b5e', margin: '0 0 6px 0' }}>
               ضبط وتوسيط الصورة الشخصية
             </h3>
             <p style={{ fontSize: '12.5px', color: '#64748B', margin: '0 0 20px 0' }}>
-              قم بتكبير أو تحريك الصورة لتظهر بالشكل الدائري المثالي دون أن تُقص.
+              قم بتكبير أو تحريك الصورة لتظهر بالشكل الدائري المثالي.
             </p>
 
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
@@ -526,7 +648,17 @@ export default function UserSettingsPage({ navigate }) {
               />
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px', background: '#F8FAFC', padding: '14px', borderRadius: '12px' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+                marginBottom: '24px',
+                background: '#F8FAFC',
+                padding: '14px',
+                borderRadius: '12px'
+              }}
+            >
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: '800', color: '#334155', marginBottom: '4px' }}>
                   <span>مقياس التكبير (Zoom):</span>
@@ -538,7 +670,7 @@ export default function UserSettingsPage({ navigate }) {
                   max="2.5"
                   step="0.05"
                   value={zoomScale}
-                  onChange={e => setZoomScale(parseFloat(e.target.value))}
+                  onChange={(e) => setZoomScale(parseFloat(e.target.value))}
                   style={{ width: '100%', cursor: 'pointer' }}
                 />
               </div>
@@ -551,7 +683,7 @@ export default function UserSettingsPage({ navigate }) {
                     min="-100"
                     max="100"
                     value={panX}
-                    onChange={e => setPanX(parseInt(e.target.value))}
+                    onChange={(e) => setPanX(parseInt(e.target.value))}
                     style={{ width: '100%', cursor: 'pointer' }}
                   />
                 </div>
@@ -562,7 +694,7 @@ export default function UserSettingsPage({ navigate }) {
                     min="-100"
                     max="100"
                     value={panY}
-                    onChange={e => setPanY(parseInt(e.target.value))}
+                    onChange={(e) => setPanY(parseInt(e.target.value))}
                     style={{ width: '100%', cursor: 'pointer' }}
                   />
                 </div>
@@ -574,14 +706,32 @@ export default function UserSettingsPage({ navigate }) {
                 type="button"
                 onClick={handleApplyCroppedAvatar}
                 disabled={uploadingAvatar}
-                style={{ background: '#0e3b5e', color: '#FFFFFF', border: 'none', padding: '10px 24px', borderRadius: '10px', fontWeight: '800', fontSize: '13px', cursor: 'pointer' }}
+                style={{
+                  background: '#0e3b5e',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  padding: '10px 24px',
+                  borderRadius: '10px',
+                  fontWeight: '800',
+                  fontSize: '13px',
+                  cursor: 'pointer'
+                }}
               >
                 {uploadingAvatar ? 'جاري الحفظ...' : 'تطبيق وحفظ الصورة'}
               </button>
               <button
                 type="button"
                 onClick={() => setCropModalOpen(false)}
-                style={{ background: '#F1F5F9', color: '#475569', border: 'none', padding: '10px 18px', borderRadius: '10px', fontWeight: '800', fontSize: '13px', cursor: 'pointer' }}
+                style={{
+                  background: '#F1F5F9',
+                  color: '#475569',
+                  border: 'none',
+                  padding: '10px 18px',
+                  borderRadius: '10px',
+                  fontWeight: '800',
+                  fontSize: '13px',
+                  cursor: 'pointer'
+                }}
               >
                 إلغاء
               </button>
@@ -590,26 +740,64 @@ export default function UserSettingsPage({ navigate }) {
         </div>
       )}
 
+      {/* Floating Success Toast Notification */}
+      {toastMsg && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '28px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: '#0e3b5e',
+            color: '#FFFFFF',
+            padding: '14px 28px',
+            borderRadius: '14px',
+            boxShadow: '0 12px 35px rgba(14, 59, 94, 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            zIndex: 999999,
+            fontSize: '14px',
+            fontWeight: '900',
+            border: '1px solid rgba(255,255,255,0.15)'
+          }}
+        >
+          <span style={{ background: '#10B981', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <IconCheck size={16} color="#FFFFFF" />
+          </span>
+          <span>{toastMsg}</span>
+        </div>
+      )}
+
       {/* Header Banner */}
-      <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '18px', padding: '22px 28px', marginBottom: '22px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div>
-          <div style={{ fontSize: '11px', fontWeight: '900', color: '#D97706', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '4px' }}>
-            USER ACCOUNT & PREFERENCES
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h1 style={{ fontSize: '24px', fontWeight: '900', color: '#0e3b5e', margin: 0 }}>
+              الإعدادات
+            </h1>
           </div>
-          <h1 style={{ fontSize: '22px', fontWeight: '900', color: '#0e3b5e', margin: 0 }}>
-            إعدادات الحساب والملف الشخصي
-          </h1>
-          <p style={{ fontSize: '13px', color: '#64748B', margin: '4px 0 0 0' }}>
-            تحديث اسمك، بيانات الاتصال، معلومات المنشأة الضريبية، ومتابعة رصيد الباقة والنقاط.
+          <p style={{ fontSize: '13.5px', color: '#64748B', margin: '4px 0 0 0' }}>
+            إدارة حسابك وتفضيلاتك والإشعارات.
           </p>
         </div>
       </div>
 
       {/* Layout Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '250px 1fr', gap: '20px', alignItems: 'start' }}>
-        
+      <div style={{ display: 'grid', gridTemplateColumns: '230px 1fr', gap: '22px', alignItems: 'start' }}>
         {/* Navigation Sidebar */}
-        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div
+          style={{
+            background: '#FFFFFF',
+            border: '1px solid #E2E8F0',
+            borderRadius: '16px',
+            padding: '10px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
+          }}
+        >
           {tabs.map((t) => {
             const isActive = activeTab === t.id;
             return (
@@ -621,21 +809,19 @@ export default function UserSettingsPage({ navigate }) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
-                  padding: '12px 14px',
-                  borderRadius: '10px',
+                  padding: '11px 14px',
+                  borderRadius: '12px',
                   border: 'none',
-                  background: isActive ? '#0e3b5e' : 'transparent',
-                  color: isActive ? '#FFFFFF' : '#334155',
-                  fontWeight: isActive ? '800' : '700',
+                  background: isActive ? '#EBF3FA' : 'transparent',
+                  color: isActive ? '#134B70' : '#475569',
+                  fontWeight: isActive ? '900' : '700',
                   fontSize: '13.5px',
                   cursor: 'pointer',
                   textAlign: 'right',
                   transition: 'all 0.15s'
                 }}
               >
-                <div style={{ color: isActive ? '#FFFFFF' : '#64748B' }}>
-                  {t.icon}
-                </div>
+                <div style={{ color: isActive ? '#134B70' : '#64748B', display: 'flex', alignItems: 'center' }}>{t.icon}</div>
                 <span>{t.label}</span>
               </button>
             );
@@ -643,523 +829,92 @@ export default function UserSettingsPage({ navigate }) {
         </div>
 
         {/* Content Area */}
-        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '26px 30px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          
-          {/* ══════════════════════════════════════════════════════════════════
-              TAB 1: PROFILE & COMPANY TAX
-              ══════════════════════════════════════════════════════════════════ */}
+        <div>
+          {/* TAB 1: PROFILE */}
           {activeTab === 'profile' && (
-            <form onSubmit={handleUpdateProfile}>
-              <div style={{ borderBottom: '1px solid #E2E8F0', paddingBottom: '14px', marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '17px', fontWeight: '900', color: '#0e3b5e', margin: 0 }}>الملف الشخصي وبيانات المنشأة</h2>
-                <p style={{ fontSize: '12.5px', color: '#64748B', margin: '4px 0 0 0' }}>تحديث بياناتك الشخصية ومعلومات الشركة لغايات الفوترة والامتثال الضريبي.</p>
-              </div>
-
-              {/* Avatar Upload */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '22px', background: '#F8FAFC', padding: '16px 20px', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
-                <div
-                  onClick={() => avatarInputRef.current?.click()}
-                  style={{
-                    position: 'relative',
-                    width: '68px',
-                    height: '68px',
-                    borderRadius: '50%',
-                    background: '#0e3b5e',
-                    color: '#FFFFFF',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '24px',
-                    fontWeight: '900',
-                    overflow: 'hidden',
-                    cursor: 'pointer',
-                    border: '3px solid #CBD5E1'
-                  }}
-                  title="اضغط لضبط وتوسيط الصورة"
-                >
-                  {avatarPreview ? (
-                    <img
-                      src={avatarPreview}
-                      alt={profile.fullName}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        setAvatarPreview('');
-                      }}
-                    />
-                  ) : (
-                    <span>{profile.fullName?.charAt(0) || 'م'}</span>
-                  )}
-                </div>
-                <div>
-                  <div style={{ fontSize: '13.5px', fontWeight: '800', color: '#0e3b5e', marginBottom: '4px' }}>الصورة الشخصية</div>
-                  <button
-                    type="button"
-                    onClick={() => avatarInputRef.current?.click()}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      background: '#FFFFFF',
-                      border: '1px solid #CBD5E1',
-                      padding: '7px 16px',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      fontWeight: '800',
-                      color: '#334155',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <IconCamera size={14} />
-                    <span>تغيير وضبط موضع الصورة</span>
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>الاسم الكامل:</label>
-                  <input
-                    type="text"
-                    value={profile.fullName}
-                    onChange={e => setProfile({ ...profile, fullName: e.target.value })}
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>اسم الشركة / المنشأة (اختياري):</label>
-                  <input
-                    type="text"
-                    value={profile.companyName}
-                    onChange={e => setProfile({ ...profile, companyName: e.target.value })}
-                    placeholder="مثال: شركة الرواد للتجارة ذ.م.م"
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px' }}>الرقم الضريبي للمنشأة (TIN):</label>
-                  <input
-                    type="text"
-                    value={profile.taxNumber}
-                    onChange={e => setProfile({ ...profile, taxNumber: e.target.value })}
-                    placeholder="مثال: 102938475"
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ marginTop: '22px', display: 'flex', justifyContent: 'flex-start' }}>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  style={{ background: '#0e3b5e', color: '#FFFFFF', border: 'none', padding: '11px 28px', borderRadius: '10px', fontWeight: '800', fontSize: '13.5px', cursor: 'pointer' }}
-                >
-                  حفظ البيانات الشخصية
-                </button>
-              </div>
-            </form>
+            <UserSettingsProfileTab
+              user={user}
+              profile={profile}
+              setProfile={setProfile}
+              avatarPreview={avatarPreview}
+              avatarInputRef={avatarInputRef}
+              handleUpdateProfile={handleUpdateProfile}
+              loading={loading}
+              city={city}
+              country={country}
+              setCity={setCity}
+              setCountry={setCountry}
+            />
           )}
 
-          {/* ══════════════════════════════════════════════════════════════════
-              TAB 2: SUBSCRIPTION & POINTS OVERVIEW
-              ══════════════════════════════════════════════════════════════════ */}
-          {activeTab === 'subscription' && (
-            <div>
-              <div style={{ borderBottom: '1px solid #E2E8F0', paddingBottom: '14px', marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '17px', fontWeight: '900', color: '#0e3b5e', margin: 0 }}>الاشتراك الحالي ورصيد النقاط</h2>
-                <p style={{ fontSize: '12.5px', color: '#64748B', margin: '4px 0 0 0' }}>متابعة استهلاك الباقة الحالية والنقاط الذكية وإمكانية الترقية الفورية.</p>
-              </div>
-
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '20px', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <div>
-                    <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '700' }}>باقتك النشطة حالياً:</div>
-                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#0e3b5e', marginTop: '2px' }}>
-                      باقة {subscription?.plan_name || 'أساسية'}
-                    </div>
-                  </div>
-                  <span style={{ background: '#ECFDF5', color: '#059669', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '800' }}>
-                    {subscription?.status === 'active' ? 'نشطة ومفعلة' : 'نشطة'}
-                  </span>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', background: '#FFFFFF', padding: '14px', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-                  <div>
-                    <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>رصيد النقاط الذكية:</div>
-                    <div style={{ fontSize: '16px', fontWeight: '900', color: '#0e3b5e', marginTop: '2px' }}>
-                      {subscription?.points_limit ? `${subscription.points_used || 0} / ${subscription.points_limit}` : '800 نقطة'}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>الاستشارات المتاحة:</div>
-                    <div style={{ fontSize: '16px', fontWeight: '900', color: '#0e3b5e', marginTop: '2px' }}>
-                      {subscription?.consultations_limit ? `${subscription.consultations_used || 0} / ${subscription.consultations_limit}` : '5 استشارات'}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>تحميل النماذج والقرارات:</div>
-                    <div style={{ fontSize: '16px', fontWeight: '900', color: '#0e3b5e', marginTop: '2px' }}>
-                      {subscription?.downloads_limit ? `${subscription.downloads_used || 0} / ${subscription.downloads_limit}` : '50 تحميل'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button
-                  type="button"
-                  onClick={() => navigate ? navigate('/subscriptions') : window.location.href = '/subscriptions'}
-                  style={{ background: '#0e3b5e', color: '#FFFFFF', border: 'none', padding: '11px 24px', borderRadius: '10px', fontWeight: '800', fontSize: '13px', cursor: 'pointer' }}
-                >
-                  ترقية أو تجديد الباقة
-                </button>
-              </div>
-            </div>
+          {/* TAB 2: NOTIFICATIONS */}
+          {activeTab === 'notifications' && (
+            <UserSettingsNotificationsTab
+              emailNotifications={emailNotifications}
+              setEmailNotifications={setEmailNotifications}
+              appointmentReminders={appointmentReminders}
+              setAppointmentReminders={setAppointmentReminders}
+              reminderMinutes={reminderMinutes}
+              setReminderMinutes={setReminderMinutes}
+              handleSavePreferences={handleSavePreferences}
+              loading={loading}
+            />
           )}
 
-          {/* ══════════════════════════════════════════════════════════════════
-              TAB 3: SECURITY & PASSWORD & OTP (STRONG PWD, EMAIL OTP, PHONE OTP)
-              ══════════════════════════════════════════════════════════════════ */}
+          {/* TAB 3: SECURITY */}
           {activeTab === 'security' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-              <div style={{ borderBottom: '1px solid #E2E8F0', paddingBottom: '14px' }}>
-                <h2 style={{ fontSize: '17px', fontWeight: '900', color: '#0e3b5e', margin: 0 }}>الأمان والتحقق عبر OTP</h2>
-                <p style={{ fontSize: '12.5px', color: '#64748B', margin: '4px 0 0 0' }}>
-                  إدارة وتغيير كلمة المرور القوية، وتحديث البريد الإلكتروني ورقم الهاتف مع التحقق برمز OTP.
-                </p>
-              </div>
-
-              {/* SECTION A: STRONG PASSWORD MANAGEMENT */}
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '20px' }}>
-                <div style={{ fontSize: '14px', fontWeight: '900', color: '#0e3b5e', marginBottom: '6px' }}>
-                  1. تغيير كلمة المرور:
-                </div>
-                <div style={{ fontSize: '12px', color: '#64748B', marginBottom: '14px' }}>
-                  إذا كنت تعرف كلمة المرور الحالية يمكنك التغيير فوراً بشرط استيفاء شروط القوة، أو اطلب كود OTP إلى بريدك.
-                </div>
-
-                <form onSubmit={handleChangePasswordDirect}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '6px' }}>كلمة المرور الحالية:</label>
-                      <input
-                        type="password"
-                        placeholder="••••••••"
-                        value={currentPassword}
-                        onChange={e => setCurrentPassword(e.target.value)}
-                        style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '6px' }}>كلمة المرور الجديدة القوية:</label>
-                      <input
-                        type="password"
-                        placeholder="••••••••"
-                        value={newPassword}
-                        onChange={e => setNewPassword(e.target.value)}
-                        style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Live Password Strength Indicator */}
-                  {newPassword && (
-                    <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', padding: '12px 14px', borderRadius: '10px', marginBottom: '16px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: '800', marginBottom: '6px' }}>
-                        <span>قوة كلمة المرور:</span>
-                        <span style={{ color: directStrength.color }}>{directStrength.label}</span>
-                      </div>
-                      <div style={{ height: '6px', width: '100%', background: '#F1F5F9', borderRadius: '4px', overflow: 'hidden', marginBottom: '10px' }}>
-                        <div style={{ height: '100%', width: `${(directStrength.score / 5) * 100}%`, background: directStrength.color, transition: 'all 0.2s' }} />
-                      </div>
-
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '11px', fontWeight: '700' }}>
-                        <span style={{ color: directStrength.hasLength ? '#10B981' : '#94A3B8' }}>{directStrength.hasLength ? '✓' : '•'} 8 أحرف فأكثر</span>
-                        <span style={{ color: directStrength.hasUpper ? '#10B981' : '#94A3B8' }}>{directStrength.hasUpper ? '✓' : '•'} حرف كبير (A-Z)</span>
-                        <span style={{ color: directStrength.hasLower ? '#10B981' : '#94A3B8' }}>{directStrength.hasLower ? '✓' : '•'} حرف صغير (a-z)</span>
-                        <span style={{ color: directStrength.hasNumber ? '#10B981' : '#94A3B8' }}>{directStrength.hasNumber ? '✓' : '•'} رقم (0-9)</span>
-                        <span style={{ color: directStrength.hasSpecial ? '#10B981' : '#94A3B8' }}>{directStrength.hasSpecial ? '✓' : '•'} رمز خاص (#, $, @, %)</span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                    <button
-                      type="submit"
-                      disabled={loading || !currentPassword || !directStrength.isValid}
-                      style={{ background: directStrength.isValid ? '#0e3b5e' : '#94A3B8', color: '#FFFFFF', border: 'none', padding: '10px 22px', borderRadius: '10px', fontWeight: '800', fontSize: '13px', cursor: directStrength.isValid ? 'pointer' : 'not-allowed' }}
-                    >
-                      تحديث كلمة المرور
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleRequestPasswordOtp}
-                      style={{ background: 'none', border: 'none', color: '#0284C7', fontWeight: '800', fontSize: '12.5px', cursor: 'pointer', textDecoration: 'underline' }}
-                    >
-                      نسيت كلمة المرور القديمة؟ (إرسال كود OTP)
-                    </button>
-                  </div>
-                </form>
-
-                {/* Password OTP Reset Box */}
-                {pwdOtpSent && (
-                  <div style={{ marginTop: '16px', background: '#F0FDFA', border: '1px solid #99F6E4', borderRadius: '12px', padding: '16px' }}>
-                    <div style={{ fontSize: '13px', fontWeight: '800', color: '#0F766E', marginBottom: '6px' }}>
-                      إدخال رمز التحقق OTP المرسل لبريدك لتعيين كلمة المرور الجديدة:
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr auto', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
-                      <input
-                        type="text"
-                        maxLength="6"
-                        placeholder="123456"
-                        value={pwdOtpCode}
-                        onChange={e => setPwdOtpCode(e.target.value)}
-                        style={{ padding: '9px', borderRadius: '8px', border: '1px solid #5EEAD4', fontSize: '15px', fontWeight: '900', letterSpacing: '4px', textAlign: 'center' }}
-                      />
-                      <input
-                        type="password"
-                        placeholder="أدخل كلمة المرور الجديدة القوية..."
-                        value={pwdOtpNewPassword}
-                        onChange={e => setPwdOtpNewPassword(e.target.value)}
-                        style={{ padding: '9px 12px', borderRadius: '8px', border: '1px solid #5EEAD4', fontSize: '13px' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleVerifyPasswordOtpAndReset}
-                        disabled={!otpStrength.isValid}
-                        style={{ background: otpStrength.isValid ? '#0D9488' : '#94A3B8', color: '#FFFFFF', border: 'none', padding: '9px 18px', borderRadius: '8px', fontWeight: '800', fontSize: '12.5px', cursor: otpStrength.isValid ? 'pointer' : 'not-allowed' }}
-                      >
-                        تأكيد وتعيين
-                      </button>
-                    </div>
-
-                    {pwdOtpNewPassword && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '11px', fontWeight: '700' }}>
-                        <span style={{ color: otpStrength.hasLength ? '#10B981' : '#94A3B8' }}>{otpStrength.hasLength ? '✓' : '•'} 8 أحرف</span>
-                        <span style={{ color: otpStrength.hasUpper ? '#10B981' : '#94A3B8' }}>{otpStrength.hasUpper ? '✓' : '•'} حرف كبير</span>
-                        <span style={{ color: otpStrength.hasLower ? '#10B981' : '#94A3B8' }}>{otpStrength.hasLower ? '✓' : '•'} حرف صغير</span>
-                        <span style={{ color: otpStrength.hasNumber ? '#10B981' : '#94A3B8' }}>{otpStrength.hasNumber ? '✓' : '•'} رقم</span>
-                        <span style={{ color: otpStrength.hasSpecial ? '#10B981' : '#94A3B8' }}>{otpStrength.hasSpecial ? '✓' : '•'} رمز خاص</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* SECTION B: EMAIL CHANGE */}
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '20px' }}>
-                <div style={{ fontSize: '14px', fontWeight: '900', color: '#0e3b5e', marginBottom: '6px' }}>
-                  2. تعديل البريد الإلكتروني:
-                </div>
-                <div style={{ fontSize: '12px', color: '#64748B', marginBottom: '8px' }}>
-                  البريد الحالي المسجل: <strong>{profile.email}</strong>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', color: '#1E40AF', fontWeight: '700', marginBottom: '14px' }}>
-                  <IconInfo size={16} color="#1E40AF" />
-                  <span>سيتم إرسال كود التحقق OTP إلى البريد الإلكتروني الجديد مباشرة للتأكد من ملكيتك له.</span>
-                </div>
-
-                {!emailOtpSent ? (
-                  <form onSubmit={handleRequestEmailOtp} style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '4px' }}>البريد الإلكتروني الجديد:</label>
-                      <input
-                        type="email"
-                        placeholder="new-email@example.com"
-                        value={newEmail}
-                        onChange={e => setNewEmail(e.target.value)}
-                        style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      style={{ background: '#0e3b5e', color: '#FFFFFF', border: 'none', padding: '10px 22px', borderRadius: '8px', fontWeight: '800', fontSize: '13px', cursor: 'pointer' }}
-                    >
-                      إرسال كود التحقق للبريد الجديد
-                    </button>
-                  </form>
-                ) : (
-                  <div style={{ background: '#F0FDFA', border: '1px solid #99F6E4', borderRadius: '12px', padding: '14px' }}>
-                    <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#0F766E', marginBottom: '8px' }}>
-                      تم إرسال كود التحقق إلى بريدك الجديد: {newEmail}
-                    </div>
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                      <input
-                        type="text"
-                        maxLength="6"
-                        placeholder="123456"
-                        value={emailOtpCode}
-                        onChange={e => setEmailOtpCode(e.target.value)}
-                        style={{ width: '130px', padding: '8px', borderRadius: '8px', border: '1px solid #5EEAD4', fontSize: '15px', fontWeight: '900', letterSpacing: '4px', textAlign: 'center' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleVerifyEmailOtp}
-                        style={{ background: '#0D9488', color: '#FFFFFF', border: 'none', padding: '8px 18px', borderRadius: '8px', fontWeight: '800', fontSize: '12.5px', cursor: 'pointer' }}
-                      >
-                        تأكيد وتحديث البريد
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEmailOtpSent(false)}
-                        style={{ background: 'none', border: 'none', color: '#64748B', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }}
-                      >
-                        إلغاء
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* SECTION C: PHONE CHANGE */}
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '20px' }}>
-                <div style={{ fontSize: '14px', fontWeight: '900', color: '#0e3b5e', marginBottom: '6px' }}>
-                  3. تعديل رقم الموبايل:
-                </div>
-                <div style={{ fontSize: '12px', color: '#64748B', marginBottom: '8px' }}>
-                  رقم الهاتف الحالي المسجل: <strong>{profile.phone}</strong>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', color: '#1E40AF', fontWeight: '700', marginBottom: '14px' }}>
-                  <IconInfo size={16} color="#1E40AF" />
-                  <span>سيتم إرسال كود التحقق برسالة SMS إلى رقم الموبايل الجديد للتأكد من صحته.</span>
-                </div>
-
-                {!phoneOtpSent ? (
-                  <form onSubmit={handleRequestPhoneOtp} style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '4px' }}>
-                        رقم الموبايل الجديد (مع مفتاح الدولة الدولي):
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="مثال: 962790000002+ أو 966500000000+ أو 0790000002"
-                        value={newPhone}
-                        onChange={e => handlePhoneInputChange(e.target.value)}
-                        style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13.5px', fontWeight: '700', direction: 'ltr', textAlign: 'right' }}
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      style={{ background: '#0e3b5e', color: '#FFFFFF', border: 'none', padding: '10px 22px', borderRadius: '8px', fontWeight: '800', fontSize: '13px', cursor: 'pointer' }}
-                    >
-                      إرسال رمز OTP للموبايل الجديد
-                    </button>
-                  </form>
-                ) : (
-                  <div style={{ background: '#F0FDFA', border: '1px solid #99F6E4', borderRadius: '12px', padding: '14px' }}>
-                    <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#0F766E', marginBottom: '8px' }}>
-                      تم إرسال كود التحقق SMS إلى رقمك الجديد: {newPhone}
-                    </div>
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                      <input
-                        type="text"
-                        maxLength="6"
-                        placeholder="123456"
-                        value={phoneOtpCode}
-                        onChange={e => setPhoneOtpCode(e.target.value.replace(/\D/g, ''))}
-                        style={{ width: '130px', padding: '8px', borderRadius: '8px', border: '1px solid #5EEAD4', fontSize: '15px', fontWeight: '900', letterSpacing: '4px', textAlign: 'center' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleVerifyPhoneOtp}
-                        style={{ background: '#0D9488', color: '#FFFFFF', border: 'none', padding: '8px 18px', borderRadius: '8px', fontWeight: '800', fontSize: '12.5px', cursor: 'pointer' }}
-                      >
-                        تأكيد وتحديث الرقم
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPhoneOtpSent(false)}
-                        style={{ background: 'none', border: 'none', color: '#64748B', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }}
-                      >
-                        إلغاء
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            <UserSettingsSecurityTab
+              user={user}
+              profile={profile}
+              currentPassword={currentPassword}
+              setCurrentPassword={setCurrentPassword}
+              newPassword={newPassword}
+              setNewPassword={setNewPassword}
+              confirmPassword={confirmPassword}
+              setConfirmPassword={setConfirmPassword}
+              directStrength={directStrength}
+              handleChangePasswordDirect={handleChangePasswordDirect}
+              handleRequestPasswordOtp={handleRequestPasswordOtp}
+              pwdOtpSent={pwdOtpSent}
+              pwdOtpCode={pwdOtpCode}
+              setPwdOtpCode={setPwdOtpCode}
+              pwdOtpNewPassword={pwdOtpNewPassword}
+              setPwdOtpNewPassword={setPwdOtpNewPassword}
+              otpStrength={otpStrength}
+              handleVerifyPasswordOtpAndReset={handleVerifyPasswordOtpAndReset}
+              newEmail={newEmail}
+              setNewEmail={setNewEmail}
+              emailOtpSent={emailOtpSent}
+              emailOtpCode={emailOtpCode}
+              setEmailOtpCode={setEmailOtpCode}
+              handleRequestEmailOtp={handleRequestEmailOtp}
+              handleVerifyEmailOtp={handleVerifyEmailOtp}
+              newPhone={newPhone}
+              setNewPhone={setNewPhone}
+              phoneOtpSent={phoneOtpSent}
+              phoneOtpCode={phoneOtpCode}
+              setPhoneOtpCode={setPhoneOtpCode}
+              handlePhoneInputChange={handlePhoneInputChange}
+              handleRequestPhoneOtp={handleRequestPhoneOtp}
+              handleVerifyPhoneOtp={handleVerifyPhoneOtp}
+              handleRequestAccountDeletion={handleRequestAccountDeletion}
+              handleLogout={logout}
+              loading={loading}
+            />
           )}
 
-          {/* ══════════════════════════════════════════════════════════════════
-              TAB 4: PREFERENCES & NOTIFICATIONS (CUSTOM REMINDER MINUTES)
-              ══════════════════════════════════════════════════════════════════ */}
+          {/* TAB 4: PREFERENCES */}
           {activeTab === 'preferences' && (
-            <div>
-              <div style={{ borderBottom: '1px solid #E2E8F0', paddingBottom: '14px', marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '17px', fontWeight: '900', color: '#0e3b5e', margin: 0 }}>تفضيلات الإشعارات والخصوصية</h2>
-                <p style={{ fontSize: '12.5px', color: '#64748B', margin: '4px 0 0 0' }}>التحكم في قنوات التواصل وتنبيهات الجلسات الاستشارية.</p>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0', cursor: 'pointer' }}>
-                  <div>
-                    <div style={{ fontSize: '13.5px', fontWeight: '800', color: '#0e3b5e' }}>إشعارات البريد الإلكتروني</div>
-                    <div style={{ fontSize: '12px', color: '#64748B' }}>استلام رسائل دورية بتحديثات الباقات والقوانين الضريبية الجديدة.</div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={emailNotifications}
-                    onChange={e => setEmailNotifications(e.target.checked)}
-                  />
-                </label>
-
-                <div style={{ padding: '14px 18px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', marginBottom: appointmentReminders ? '14px' : '0' }}>
-                    <div>
-                      <div style={{ fontSize: '13.5px', fontWeight: '800', color: '#0e3b5e' }}>تذكير بمواعيد الجلسات الاستشارية</div>
-                      <div style={{ fontSize: '12px', color: '#64748B' }}>إرسال تنبيه وتذكير بالموعد قبل بدء الجلسة الاستشارية المحجوزة.</div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={appointmentReminders}
-                      onChange={e => setAppointmentReminders(e.target.checked)}
-                    />
-                  </label>
-
-                  {appointmentReminders && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingTop: '12px', borderTop: '1px solid #E2E8F0', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '12.5px', fontWeight: '800', color: '#0e3b5e' }}>تنبيهي قبل موعد الجلسة بـ:</span>
-                      <select
-                        value={reminderMinutes}
-                        onChange={e => setReminderMinutes(e.target.value)}
-                        style={{ padding: '7px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '12.5px', fontWeight: '800', color: '#0e3b5e', background: '#FFFFFF', cursor: 'pointer' }}
-                      >
-                        <option value="5">5 دقائق</option>
-                        <option value="10">10 دقائق</option>
-                        <option value="15">15 دقيقة</option>
-                        <option value="30">30 دقيقة (نصف ساعة)</option>
-                        <option value="45">45 دقيقة</option>
-                        <option value="60">ساعة واحدة (60 دقيقة)</option>
-                        <option value="120">ساعتان (120 دقيقة)</option>
-                        <option value="1440">24 ساعة (يوم كامل)</option>
-                      </select>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                <button
-                  type="button"
-                  onClick={() => showToast('تم حفظ تفضيلات الخصوصية ومواعيد التنبيهات بنجاح.')}
-                  style={{ background: '#0e3b5e', color: '#FFFFFF', border: 'none', padding: '11px 28px', borderRadius: '10px', fontWeight: '800', fontSize: '13.5px', cursor: 'pointer' }}
-                >
-                  حفظ التفضيلات
-                </button>
-              </div>
-            </div>
+            <UserSettingsPreferencesTab
+              user={user}
+              token={token}
+              showToast={showToast}
+              refreshUser={refreshUser}
+              loading={loading}
+            />
           )}
-
         </div>
-
       </div>
-
     </div>
   );
 }

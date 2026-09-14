@@ -276,8 +276,8 @@
 }
 
 .sub-action-btn {
-  padding: 12px 24px;
-  border-radius: 10px;
+  padding: 11px 26px;
+  border-radius: 12px;
   font-size: 13.5px;
   font-weight: 800;
   cursor: pointer;
@@ -286,13 +286,14 @@
 }
 
 .sub-action-btn.primary {
-  background: #005D9C;
+  background: #134B70;
   color: #FFFFFF;
-  box-shadow: 0 4px 12px rgba(0, 93, 156, 0.2);
+  box-shadow: 0 4px 12px rgba(19, 75, 112, 0.25);
 }
 
 .sub-action-btn.primary:hover {
   background: #0D3C5C;
+  transform: translateY(-1px);
 }
 
 .sub-action-btn.secondary {
@@ -527,35 +528,39 @@
 
 .plan-request-btn {
   width: 100%;
-  padding: 13px;
+  padding: 12px 20px;
   border-radius: 12px;
   font-size: 13.5px;
   font-weight: 800;
+  border: none;
   cursor: pointer;
   transition: all 0.2s;
-  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .plan-request-btn.recommended-btn {
-  background: #10B981;
+  background: #134B70;
   color: #FFFFFF;
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(19, 75, 112, 0.25);
 }
 
 .plan-request-btn.recommended-btn:hover {
-  background: #059669;
-  transform: translateY(-2px);
+  background: #0D3C5C;
+  transform: translateY(-1px);
 }
 
 .plan-request-btn.standard-btn {
-  background: #005D9C;
+  background: #134B70;
   color: #FFFFFF;
-  box-shadow: 0 4px 14px rgba(0, 93, 156, 0.2);
+  box-shadow: 0 4px 12px rgba(19, 75, 112, 0.25);
 }
 
 .plan-request-btn.standard-btn:hover {
   background: #0D3C5C;
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .badge-pill.pending-badge-pill {
@@ -598,16 +603,18 @@
   max-width: 95vw;
   background: #FFFFFF;
   border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
   overflow: hidden;
+  border: 1px solid #CBD5E1;
 }
 
 .subs-modal-head {
-  padding: 18px 24px;
+  padding: 20px 24px;
   border-bottom: 1px solid #E2E8F0;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: #F8FAFC;
 }
 
 .subs-modal-head h3 {
@@ -618,9 +625,9 @@
 }
 
 .subs-modal-close {
-  border: none;
   background: transparent;
-  font-size: 26px;
+  border: none;
+  font-size: 18px;
   color: #94A3B8;
   cursor: pointer;
 }
@@ -650,8 +657,9 @@
 }
 
 .summary-price {
-  color: #005D9C;
+  color: #134B70;
   font-size: 15px;
+  font-weight: 800;
 }
 
 .modal-field label {
@@ -686,21 +694,28 @@
 }
 
 .modal-submit-btn {
-  background: #005D9C;
+  background: #134B70;
   color: #FFFFFF;
   border: none;
-  border-radius: 10px;
-  padding: 11px 22px;
-  font-size: 13px;
+  border-radius: 12px;
+  padding: 11px 24px;
+  font-size: 13.5px;
   font-weight: 800;
   cursor: pointer;
+  box-shadow: 0 4px 12px rgba(19, 75, 112, 0.25);
+  transition: all 0.2s;
+}
+
+.modal-submit-btn:hover {
+  background: #0D3C5C;
+  transform: translateY(-1px);
 }
 
 .modal-cancel-btn {
   background: #E2E8F0;
   color: #475569;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 11px 18px;
   font-size: 13px;
   font-weight: 700;

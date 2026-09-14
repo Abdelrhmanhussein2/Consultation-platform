@@ -201,18 +201,22 @@ export default function MyAppointmentsPage({ navigate }) {
           <button
             onClick={() => navigate('/consultants')}
             style={{
-              background: 'linear-gradient(135deg, #F5A52A, #E0921B)',
+              background: '#134B70',
               color: '#FFFFFF',
               border: 'none',
-              padding: '10px 20px',
-              borderRadius: '20px',
-              fontWeight: '700',
-              fontSize: '13px',
+              padding: '11px 24px',
+              borderRadius: '12px',
+              fontWeight: '800',
+              fontSize: '13.5px',
               cursor: 'pointer',
-              boxShadow: '0 4px 10px rgba(245, 165, 42, 0.25)'
+              boxShadow: '0 4px 12px rgba(19, 75, 112, 0.25)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s'
             }}
           >
-            + طلب استشارة جديدة
+            <span>+ طلب استشارة جديدة</span>
           </button>
 
           <button
@@ -220,19 +224,23 @@ export default function MyAppointmentsPage({ navigate }) {
             style={{
               background: '#FFFFFF',
               border: '1px solid #CBD5E1',
-              color: '#64748B',
-              padding: '10px 20px',
-              borderRadius: '20px',
-              fontWeight: '700',
+              color: '#475569',
+              padding: '11px 20px',
+              borderRadius: '12px',
+              fontWeight: '800',
               fontSize: '13px',
               cursor: 'pointer',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px'
+              gap: '8px',
+              transition: 'all 0.2s'
             }}
           >
-            <span>⚙️</span>
-            <span>تجربة غرفة الفيديو الآن</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="23 7 16 12 23 17 23 7" />
+              <rect width="14" height="12" x="2" y="6" rx="2" ry="2" />
+            </svg>
+            <span>تجربة غرفة الفيديو</span>
           </button>
         </div>
       </div>
@@ -371,11 +379,16 @@ export default function MyAppointmentsPage({ navigate }) {
 
       {/* Tab content list */}
       {filteredAppointments.length === 0 ? (
-        <div style={{ background: '#FFFFFF', padding: '48px', borderRadius: '20px', textAlign: 'center', border: '1px solid #E2E8F0', color: '#64748B' }}>
-          <div style={{ width: '60px', height: '60px', background: '#E5EFF5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto' }}>
-            📥
+        <div style={{ background: '#FFFFFF', padding: '48px', borderRadius: '18px', textAlign: 'center', border: '1px solid #E2E8F0', color: '#64748B' }}>
+          <div style={{ width: '60px', height: '60px', background: '#E5EFF5', color: '#134B70', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+              <line x1="16" x2="16" y1="2" y2="6" />
+              <line x1="8" x2="8" y1="2" y2="6" />
+              <line x1="3" x2="21" y1="10" y2="10" />
+            </svg>
           </div>
-          <h3 style={{ color: '#1E293B', marginBottom: '8px' }}>لا توجد استشارات في هذا التبويب</h3>
+          <h3 style={{ color: '#1E293B', marginBottom: '8px', fontWeight: '800' }}>لا توجد استشارات في هذا التبويب</h3>
           <p style={{ fontSize: '13px', margin: 0 }}>يمكنك حجز موعد جديد من دليل المستشارين.</p>
         </div>
       ) : (
@@ -435,17 +448,18 @@ export default function MyAppointmentsPage({ navigate }) {
                     <button
                       onClick={() => handleJoinVideoRoom(appt)}
                       style={{
-                        backgroundColor: '#F5A52A',
+                        backgroundColor: '#134B70',
                         color: '#FFFFFF',
                         border: 'none',
-                        padding: '10px 20px',
-                        borderRadius: '20px',
-                        fontWeight: '700',
+                        padding: '10px 22px',
+                        borderRadius: '12px',
+                        fontWeight: '800',
                         fontSize: '13px',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '6px'
+                        gap: '6px',
+                        boxShadow: '0 4px 12px rgba(19, 75, 112, 0.25)'
                       }}
                     >
                       <span>دخول الغرفة</span>
@@ -456,15 +470,15 @@ export default function MyAppointmentsPage({ navigate }) {
                     <button
                       onClick={() => setPayingAppt(appt)}
                       style={{
-                        backgroundColor: '#10B981',
+                        backgroundColor: '#134B70',
                         color: '#FFFFFF',
                         border: 'none',
-                        padding: '10px 20px',
-                        borderRadius: '20px',
-                        fontWeight: '700',
+                        padding: '10px 22px',
+                        borderRadius: '12px',
+                        fontWeight: '800',
                         fontSize: '13px',
                         cursor: 'pointer',
-                        boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)'
+                        boxShadow: '0 4px 12px rgba(19, 75, 112, 0.25)'
                       }}
                     >
                       دفع {appt.amount || appt.price || 50} د.أ
@@ -472,7 +486,7 @@ export default function MyAppointmentsPage({ navigate }) {
                   )}
 
                   {isPendingPayment && (user?.role === 'consultant' || user?.role === 'platform_consultant') && (
-                    <span style={{ fontSize: '12px', color: '#D97706', backgroundColor: '#FFFBEB', padding: '6px 14px', borderRadius: '20px', border: '1px solid #FDE68A', fontWeight: '700' }}>
+                    <span style={{ fontSize: '12px', color: '#D97706', backgroundColor: '#FFFBEB', padding: '6px 14px', borderRadius: '12px', border: '1px solid #FDE68A', fontWeight: '800' }}>
                       بانتظار سداد العميل
                     </span>
                   )}
@@ -483,10 +497,10 @@ export default function MyAppointmentsPage({ navigate }) {
                       style={{
                         backgroundColor: '#FFFFFF',
                         border: '1px solid #CBD5E1',
-                        color: '#64748B',
+                        color: '#475569',
                         padding: '10px 18px',
-                        borderRadius: '20px',
-                        fontWeight: '700',
+                        borderRadius: '12px',
+                        fontWeight: '800',
                         fontSize: '13px',
                         cursor: 'pointer',
                         display: 'flex',
@@ -506,8 +520,8 @@ export default function MyAppointmentsPage({ navigate }) {
                         color: '#EF4444',
                         border: '1px solid #FCA5A5',
                         padding: '10px 18px',
-                        borderRadius: '20px',
-                        fontWeight: '700',
+                        borderRadius: '12px',
+                        fontWeight: '800',
                         fontSize: '13px',
                         cursor: 'pointer'
                       }}

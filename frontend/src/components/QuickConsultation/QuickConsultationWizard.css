@@ -260,9 +260,9 @@
   background: #ffffff;
   border: 1px solid #cbd5e1;
   color: #475569;
-  padding: 12px 28px;
-  border-radius: 25px;
-  font-weight: 700;
+  padding: 11px 24px;
+  border-radius: 12px;
+  font-weight: 800;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -273,18 +273,19 @@
 }
 
 .wizard-btn-next {
-  background: linear-gradient(135deg, #005d9c, #0d3c5c);
+  background: #134B70;
   border: none;
   color: #ffffff;
-  padding: 12px 32px;
-  border-radius: 25px;
-  font-weight: 700;
+  padding: 11px 28px;
+  border-radius: 12px;
+  font-weight: 800;
   cursor: pointer;
+  box-shadow: 0 4px 12px rgba(19, 75, 112, 0.25);
   transition: all 0.2s ease;
 }
 
 .wizard-btn-next:hover {
-  opacity: 0.95;
+  background: #0D3C5C;
   transform: translateY(-1px);
 }
 
@@ -293,6 +294,7 @@
   color: #94a3b8;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 /* Monthly Calendar layout */
