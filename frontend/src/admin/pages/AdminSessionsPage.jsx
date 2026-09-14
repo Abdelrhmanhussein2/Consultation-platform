@@ -386,44 +386,46 @@ export default function AdminSessionsPage({ navigate }) {
         <div style={{ display: 'flex', background: '#F1F5F9', borderRadius: '8px', padding: '3px', gap: '2px' }}>
           <button
             type="button"
+            title="لوحة كانبان"
             style={{
-              padding: '6px 12px',
+              padding: '6px 10px',
               borderRadius: '6px',
               border: 'none',
               background: viewMode === 'kanban' ? '#0A3C64' : 'transparent',
               color: viewMode === 'kanban' ? '#FFFFFF' : '#64748B',
-              fontSize: '13px',
+              fontSize: '15px',
               fontWeight: '700',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px'
+              justifyContent: 'center',
+              minWidth: '32px'
             }}
             onClick={() => setViewMode('kanban')}
           >
             <span>☷</span>
-            <span>لوحة كانبان</span>
           </button>
 
           <button
             type="button"
+            title="جدول الجلسات"
             style={{
-              padding: '6px 12px',
+              padding: '6px 10px',
               borderRadius: '6px',
               border: 'none',
               background: viewMode === 'table' ? '#0A3C64' : 'transparent',
               color: viewMode === 'table' ? '#FFFFFF' : '#64748B',
-              fontSize: '13px',
+              fontSize: '15px',
               fontWeight: '700',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px'
+              justifyContent: 'center',
+              minWidth: '32px'
             }}
             onClick={() => setViewMode('table')}
           >
             <span>☰</span>
-            <span>جدول الجلسات</span>
           </button>
         </div>
 
