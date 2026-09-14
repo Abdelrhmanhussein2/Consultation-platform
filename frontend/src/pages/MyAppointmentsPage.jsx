@@ -14,6 +14,13 @@ export default function MyAppointmentsPage({ navigate }) {
   const [activeVideoApptId, setActiveVideoApptId] = useState(null);
   const [payingAppt, setPayingAppt] = useState(null);
 
+  // Rating & No-Show Complaint States
+  const [ratingModalAppt, setRatingModalAppt] = useState(null);
+  const [ratingStars, setRatingStars] = useState(5);
+  const [ratingComment, setRatingComment] = useState('');
+  const [ratingReason, setRatingReason] = useState('');
+  const [submittingRating, setSubmittingRating] = useState(false);
+
   const fetchAppointments = async () => {
     if (!token) return;
     setLoading(true);
@@ -89,6 +96,60 @@ export default function MyAppointmentsPage({ navigate }) {
     }
   };
 
+  // Open Rating / Complaint Modal
+  const handleOpenRatingModal = (appt, isNoShow = false) => {
+    setRatingModalAppt(appt);
+    setRatingStars(isNoShow ? 1 : 5);
+    setRatingReason(isNoShow ? 'المستشار لم يحضر الجلسة وفتح الغرفة في الموعد المحدد' : '');
+    setRatingComment(isNoShow ? 'المستشار لم يحضر الجلسة في الموعد المحدد ولم يقم بفتح الغرفة.' : '');
+  };
+
+  // Submit Rating / Complaint
+  const handleRatingSubmit = async () => {
+    if (!token || !ratingModalAppt) return;
+    if (ratingStars < 2 && !ratingReason.trim() && !ratingComment.trim()) {
+      alert('يرجى اختيار أو كتابة سبب التقييم المنخفض أو تفاصيل المشكلة');
+      return;
+    }
+    setSubmittingRating(true);
+    try {
+      // If appointment was not yet marked no_show and user is reporting consultant absence
+      const isConsultantAbsent = ratingModalAppt.attendance_status === 'consultant_no_show' || ratingModalAppt.no_show_party === 'consultant' || ratingStars <= 2;
+      if (isConsultantAbsent && ratingModalAppt.status !== 'no_show') {
+        await appointmentService.markNoShow(ratingModalAppt.id, token).catch(() => {});
+      }
+
+      await appointmentService.rateAppointment(
+        ratingModalAppt.id,
+        {
+          stars: ratingStars,
+          comment: ratingComment.trim(),
+          low_rating_reason: ratingReason.trim() || (ratingStars < 2 ? ratingComment.trim() || 'عدم حضور المستشار' : undefined)
+        },
+        token
+      );
+
+      alert('تم إرسال تقييمك وبلاغك بنجاح! شكراً لمساعدتنا في تحسين جودة المنصة ومحاسبة أي تقصير.');
+      setRatingModalAppt(null);
+      fetchAppointments();
+    } catch (err) {
+      alert(err.message || 'تعذر إرسال التقييم');
+    } finally {
+      setSubmittingRating(false);
+    }
+  };
+
+  // Helper to check if consultant is overdue to open room
+  const isOverdueConsultant = (appt) => {
+    if (!appt.scheduled_at) return false;
+    if (appt.room_opened_at) return false;
+    if (['completed', 'cancelled', 'cancelled_by_user', 'cancelled_by_consultant', 'rejected', 'no_show'].includes(appt.status)) return false;
+    const now = new Date();
+    const sessionTime = new Date(appt.scheduled_at);
+    // 10 minutes grace period
+    return now.getTime() > (sessionTime.getTime() + 10 * 60 * 1000);
+  };
+
   // Video Room Join Time Protection
   const handleJoinVideoRoom = (appt) => {
     if (!appt.scheduled_at) {
@@ -113,7 +174,7 @@ export default function MyAppointmentsPage({ navigate }) {
   // Stats Calculations
   const activeCount = appointments.filter(a => ['accepted', 'confirmed', 'pending_payment', 'pending_approval', 'scheduled'].includes(a.status)).length;
   const completedCount = appointments.filter(a => a.status === 'completed').length;
-  const cancelledCount = appointments.filter(a => ['cancelled', 'cancelled_by_user', 'cancelled_by_consultant', 'rejected'].includes(a.status)).length;
+  const cancelledCount = appointments.filter(a => ['cancelled', 'cancelled_by_user', 'cancelled_by_consultant', 'rejected', 'no_show'].includes(a.status) || a.attendance_status === 'consultant_no_show' || a.attendance_status === 'user_no_show').length;
 
   // Filter Appointments by Tab
   const getFilteredAppointments = () => {
@@ -127,16 +188,32 @@ export default function MyAppointmentsPage({ navigate }) {
       case 'completed':
         return appointments.filter(a => a.status === 'completed');
       case 'cancelled':
-        return appointments.filter(a => ['cancelled', 'cancelled_by_user', 'cancelled_by_consultant', 'rejected'].includes(a.status));
+        return appointments.filter(a => ['cancelled', 'cancelled_by_user', 'cancelled_by_consultant', 'rejected', 'no_show'].includes(a.status) || a.attendance_status === 'consultant_no_show' || a.attendance_status === 'user_no_show');
       case 'all':
       default:
         return appointments;
     }
   };
 
-  // Get status badge UI
-  const getStatusBadge = (status) => {
-    switch (status) {
+  // Get status badge UI with attendance support
+  const getStatusBadge = (status, appt = null) => {
+    if (appt) {
+      if (appt.attendance_status === 'consultant_no_show' || appt.no_show_party === 'consultant') {
+        return <span style={{ background: '#FEE2E2', color: '#991B1B', border: '1px solid #F87171', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '800' }}>⚠️ غياب المستشار (المشكلة من المستشار)</span>;
+      }
+      if (appt.attendance_status === 'user_no_show' || appt.no_show_party === 'user') {
+        return <span style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FCD34D', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '800' }}>⚠️ غياب العميل (لم يحضر الجلسة)</span>;
+      }
+      if (appt.attendance_status === 'both_attended') {
+        return <span style={{ background: '#ECFDF5', color: '#065F46', border: '1px solid #6EE7B7', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '800' }}>✓ حضر الطرفان</span>;
+      }
+      if (appt.room_opened_at && appt.status === 'confirmed' && !appt.user_joined_at) {
+        return <span style={{ background: '#D1FAE5', color: '#047857', border: '1px solid #34D399', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '800' }}>🟢 المستشار داخل الغرفة</span>;
+      }
+    }
+
+    const s = (typeof status === 'object' && status !== null) ? status.status : status;
+    switch (s) {
       case 'confirmed':
         return <span style={{ background: '#D1FAE5', color: '#065F46', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>مؤكدة (تم الدفع)</span>;
       case 'accepted':
@@ -146,6 +223,8 @@ export default function MyAppointmentsPage({ navigate }) {
         return <span style={{ background: '#FEF3C7', color: '#D97706', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>معلقة (بانتظار موافقة المستشار)</span>;
       case 'completed':
         return <span style={{ background: '#E0E7FF', color: '#3730A3', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>مكتملة</span>;
+      case 'no_show':
+        return <span style={{ background: '#FEE2E2', color: '#991B1B', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>غياب / لم يحضر</span>;
       case 'cancelled':
       case 'cancelled_by_user':
       case 'cancelled_by_consultant':
@@ -298,17 +377,44 @@ export default function MyAppointmentsPage({ navigate }) {
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  {getStatusBadge(appt.status)}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  {getStatusBadge(appt.status, appt)}
                   {(() => {
                     const isConfirmed = appt.status === 'confirmed';
+                    const isConsultantNoShow = appt.attendance_status === 'consultant_no_show' || appt.no_show_party === 'consultant' || isOverdueConsultant(appt);
+                    const isClient = user?.role !== 'consultant';
+
+                    if (isConsultantNoShow && isClient) {
+                      return (
+                        <button
+                          onClick={() => handleOpenRatingModal(appt, true)}
+                          style={{
+                            backgroundColor: '#DC2626',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '10px',
+                            fontSize: '12px',
+                            fontWeight: '800',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: '0 2px 8px rgba(220, 38, 38, 0.25)'
+                          }}
+                        >
+                          <span>⭐ بلاغ غياب وتقييم المستشار</span>
+                        </button>
+                      );
+                    }
+
                     return (
                       <button
                         onClick={() => isConfirmed && handleJoinVideoRoom(appt)}
                         disabled={!isConfirmed}
                         title={!isConfirmed ? 'في انتظار إتمام الدفع لتفعيل دخول الغرفة' : 'دخول غرفة الجلسة'}
                         style={{
-                          backgroundColor: isConfirmed ? '#F5A52A' : '#CBD5E1',
+                          backgroundColor: isConfirmed ? (appt.room_opened_at ? '#059669' : '#134B70') : '#CBD5E1',
                           color: '#FFFFFF',
                           border: 'none',
                           padding: '8px 18px',
@@ -322,7 +428,8 @@ export default function MyAppointmentsPage({ navigate }) {
                           opacity: isConfirmed ? 1 : 0.7
                         }}
                       >
-                        <span>دخول الغرفة</span>
+                        {appt.room_opened_at && <span>🟢</span>}
+                        <span>{appt.room_opened_at ? 'دخول الغرفة (المستشار بانتظارك)' : 'دخول الغرفة'}</span>
                       </button>
                     );
                   })()}
@@ -350,7 +457,7 @@ export default function MyAppointmentsPage({ navigate }) {
           { id: 'pending_approval', label: 'بانتظار موافقة المستشار' },
           { id: 'pending_payment', label: 'بانتظار الدفع' },
           { id: 'completed', label: 'المكتملة' },
-          { id: 'cancelled', label: 'الملغاة/المرفوضة' }
+          { id: 'cancelled', label: 'الملغاة / الغياب' }
         ].map(tab => {
           const isActive = activeTab === tab.id;
           return (
@@ -418,7 +525,7 @@ export default function MyAppointmentsPage({ navigate }) {
                 {/* Details Section */}
                 <div style={{ flex: 1, minWidth: '280px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                    {getStatusBadge(appt.status)}
+                    {getStatusBadge(appt.status, appt)}
                     <span style={{ fontSize: '11px', color: '#94A3B8' }}>رقم المعاملة: #{appt.id.substring(0, 8)}</span>
                   </div>
 
@@ -439,16 +546,59 @@ export default function MyAppointmentsPage({ navigate }) {
                       `الموعد المفضل: ${formatDateStr(appt.scheduled_at)}`
                     )}
                   </p>
+
+                  {/* Live attendance hint alerts */}
+                  {appt.room_opened_at && !appt.user_joined_at && isConfirmed && (
+                    <div style={{ marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#D1FAE5', color: '#047857', border: '1px solid #A7F3D0', padding: '4px 10px', borderRadius: '8px', fontSize: '11.5px', fontWeight: '700' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }}></span>
+                      <span>المستشار قام بفتح الغرفة وهو بانتظارك الآن</span>
+                    </div>
+                  )}
+
+                  {(appt.attendance_status === 'consultant_no_show' || appt.no_show_party === 'consultant' || (isConfirmed && isOverdueConsultant(appt))) && (
+                    <div style={{ marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', padding: '4px 10px', borderRadius: '8px', fontSize: '11.5px', fontWeight: '700' }}>
+                      <span>⚠️ لم يحضر المستشار في الموعد المحدد (المشكلة من جانب المستشار)</span>
+                    </div>
+                  )}
+
+                  {(appt.attendance_status === 'user_no_show' || appt.no_show_party === 'user') && (
+                    <div style={{ marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#FEF3C7', color: '#92400E', border: '1px solid #FCD34D', padding: '4px 10px', borderRadius: '8px', fontSize: '11.5px', fontWeight: '700' }}>
+                      <span>⚠️ لم يحضر العميل الجلسة في الموعد المحدد (المشكلة من جانب العميل)</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions Button */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
 
-                  {isConfirmed && (
+                  {/* Rating / Report action for client if consultant failed to show */}
+                  {(user?.role !== 'consultant') && (appt.attendance_status === 'consultant_no_show' || appt.no_show_party === 'consultant' || (isConfirmed && isOverdueConsultant(appt))) && (
+                    <button
+                      onClick={() => handleOpenRatingModal(appt, true)}
+                      style={{
+                        backgroundColor: '#DC2626',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        padding: '10px 18px',
+                        borderRadius: '12px',
+                        fontWeight: '800',
+                        fontSize: '12.5px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: '0 4px 12px rgba(220, 38, 38, 0.25)'
+                      }}
+                    >
+                      <span>⭐ تقييم المستشار / بلاغ غياب</span>
+                    </button>
+                  )}
+
+                  {isConfirmed && !(appt.attendance_status === 'consultant_no_show' || appt.no_show_party === 'consultant') && (
                     <button
                       onClick={() => handleJoinVideoRoom(appt)}
                       style={{
-                        backgroundColor: '#134B70',
+                        backgroundColor: appt.room_opened_at ? '#059669' : '#134B70',
                         color: '#FFFFFF',
                         border: 'none',
                         padding: '10px 22px',
@@ -462,8 +612,38 @@ export default function MyAppointmentsPage({ navigate }) {
                         boxShadow: '0 4px 12px rgba(19, 75, 112, 0.25)'
                       }}
                     >
-                      <span>دخول الغرفة</span>
+                      {appt.room_opened_at && <span>🟢</span>}
+                      <span>{appt.room_opened_at ? 'دخول الغرفة (المستشار بانتظارك)' : 'دخول الغرفة'}</span>
                     </button>
+                  )}
+
+                  {/* Rating action for completed sessions */}
+                  {(user?.role !== 'consultant') && appt.status === 'completed' && (
+                    !appt.rating ? (
+                      <button
+                        onClick={() => handleOpenRatingModal(appt, false)}
+                        style={{
+                          backgroundColor: '#F59E0B',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          padding: '10px 18px',
+                          borderRadius: '12px',
+                          fontWeight: '800',
+                          fontSize: '12.5px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          boxShadow: '0 4px 12px rgba(245, 158, 11, 0.25)'
+                        }}
+                      >
+                        <span>⭐ تقييم الجلسة</span>
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: '12px', color: '#059669', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '6px 14px', borderRadius: '12px', fontWeight: '800' }}>
+                        ✓ تم التقييم ({appt.rating?.stars || '★'})
+                      </span>
+                    )
                   )}
 
                   {isPendingPayment && (user?.role === 'user' || user?.role === 'client' || String(appt.user_id) === String(user?.id)) && (
@@ -512,7 +692,7 @@ export default function MyAppointmentsPage({ navigate }) {
                     </button>
                   )}
 
-                  {appt.status !== 'cancelled' && appt.status !== 'completed' && appt.status !== 'cancelled_by_user' && appt.status !== 'cancelled_by_consultant' && (
+                  {appt.status !== 'cancelled' && appt.status !== 'completed' && appt.status !== 'cancelled_by_user' && appt.status !== 'cancelled_by_consultant' && appt.status !== 'no_show' && (
                     <button
                       onClick={() => handleOpenCancelModal(appt.id)}
                       style={{
@@ -544,6 +724,12 @@ export default function MyAppointmentsPage({ navigate }) {
         isOpen={!!activeVideoApptId}
         onClose={() => setActiveVideoApptId(null)}
         onSessionEnd={fetchAppointments}
+        onRequestRating={(apptId) => {
+          const found = appointments.find(a => String(a.id) === String(apptId));
+          if (found) {
+            handleOpenRatingModal(found, true);
+          }
+        }}
       />
 
       {/* Payment Modal for Pending Payment Appointments */}
@@ -624,6 +810,166 @@ export default function MyAppointmentsPage({ navigate }) {
                   disabled={cancellingLoading}
                 >
                   {cancellingLoading ? 'جاري...' : 'تأكيد الإلغاء'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CUSTOM STYLED RATING & NO-SHOW COMPLAINT MODAL */}
+      {ratingModalAppt && (
+        <div className="consultantModalBackdrop open" onClick={() => setRatingModalAppt(null)}>
+          <div className="consultantModalShell" style={{ maxWidth: '540px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="consultantModalHeader">
+              <div>
+                <span className="consultantModalEyebrow" style={{ color: ratingStars < 3 ? '#DC2626' : '#F59E0B' }}>
+                  {ratingStars < 3 ? 'بلاغ وتقييم عدم حضور' : 'تقييم جلسة الاستشارة'}
+                </span>
+                <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#123d57', margin: '4px 0' }}>
+                  {ratingModalAppt.attendance_status === 'consultant_no_show' || ratingStars < 3
+                    ? 'توثيق غياب المستشار وتقييمه'
+                    : 'تقييم المستشار والجلسة'}
+                </h2>
+                <p style={{ fontSize: '12px', color: '#607987', margin: 0 }}>
+                  المستشار: {getPartnerName(ratingModalAppt)} | الجلسة #{ratingModalAppt.id.substring(0, 8)}
+                </p>
+              </div>
+              <button className="consultantModalClose" onClick={() => setRatingModalAppt(null)}>×</button>
+            </div>
+
+            <div className="consultantModalBody" style={{ padding: '20px' }}>
+              {/* Star Rating Picker */}
+              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>
+                  حدد تقييمك:
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', direction: 'ltr' }}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRatingStars(star)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        fontSize: '32px',
+                        cursor: 'pointer',
+                        color: star <= ratingStars ? '#F59E0B' : '#CBD5E1',
+                        transition: 'transform 0.1s'
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.2)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1.0)')}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+                <span style={{ fontSize: '12px', color: ratingStars <= 2 ? '#DC2626' : '#059669', fontWeight: '700', marginTop: '4px', display: 'block' }}>
+                  {ratingStars === 1 ? 'نجمة واحدة (سيء جداً - لم يحضر)' :
+                   ratingStars === 2 ? 'نجمتان (غير مرضي)' :
+                   ratingStars === 3 ? '3 نجوم (متوسط)' :
+                   ratingStars === 4 ? '4 نجوم (جيد جداً)' : '5 نجوم (ممتاز)'}
+                </span>
+              </div>
+
+              {/* Low rating reasons pills */}
+              {ratingStars < 3 && (
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#0F172A', marginBottom: '8px' }}>
+                    سبب الشكوى أو المشكلة:
+                  </label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {[
+                      'المستشار لم يحضر الجلسة وفتح الغرفة',
+                      'تأخر المستشار كثيراً عن الموعد المحدد',
+                      'المستشار أنهى الجلسة قبل موعدها',
+                      'مشكلة تقنية من طرف المستشار'
+                    ].map((reasonText) => (
+                      <button
+                        key={reasonText}
+                        type="button"
+                        onClick={() => {
+                          setRatingReason(reasonText);
+                          if (!ratingComment) setRatingComment(reasonText);
+                        }}
+                        style={{
+                          background: ratingReason === reasonText ? '#FEE2E2' : '#F1F5F9',
+                          color: ratingReason === reasonText ? '#991B1B' : '#475569',
+                          border: ratingReason === reasonText ? '1px solid #F87171' : '1px solid #E2E8F0',
+                          borderRadius: '8px',
+                          padding: '6px 10px',
+                          fontSize: '11.5px',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          fontFamily: 'inherit'
+                        }}
+                      >
+                        {reasonText}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Comment text */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', color: '#0F172A', marginBottom: '6px' }}>
+                  {ratingStars < 3 ? 'تفاصيل البلاغ أو الملاحظات:' : 'رأيك في الجلسة (اختياري):'}
+                </label>
+                <textarea
+                  style={{
+                    width: '100%',
+                    minHeight: '90px',
+                    padding: '12px 14px',
+                    borderRadius: '12px',
+                    border: '1px solid #dce5ea',
+                    fontFamily: 'inherit',
+                    fontSize: '13px',
+                    outline: 'none',
+                    resize: 'vertical',
+                    boxSizing: 'border-box'
+                  }}
+                  placeholder={ratingStars < 3 ? 'اكتب تفاصيل ما حدث وتأكيد عدم حضور المستشار...' : 'اكتب تجربتك مع المستشار...'}
+                  value={ratingComment}
+                  onChange={(e) => setRatingComment(e.target.value)}
+                />
+              </div>
+
+              {/* Footer buttons */}
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  style={{
+                    padding: '9px 18px',
+                    borderRadius: '9px',
+                    border: '1px solid #dce5ea',
+                    background: '#fff',
+                    color: '#475569',
+                    cursor: 'pointer',
+                    fontWeight: '700',
+                    fontSize: '12px'
+                  }}
+                  onClick={() => setRatingModalAppt(null)}
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="button"
+                  style={{
+                    padding: '9px 24px',
+                    borderRadius: '9px',
+                    border: 'none',
+                    background: ratingStars < 3 ? '#DC2626' : '#0A3254',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontWeight: '800',
+                    fontSize: '12px'
+                  }}
+                  onClick={handleRatingSubmit}
+                  disabled={submittingRating}
+                >
+                  {submittingRating ? 'جاري الإرسال...' : (ratingStars < 3 ? 'إرسال البلاغ والتقييم' : 'تأكيد التقييم')}
                 </button>
               </div>
             </div>

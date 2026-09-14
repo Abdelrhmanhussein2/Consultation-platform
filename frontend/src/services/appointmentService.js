@@ -39,11 +39,26 @@ export const appointmentService = {
     }, token);
   },
 
-  // Rate completed appointment
-  async rateAppointment(id, rating, feedback, token) {
+  // Rate completed appointment or consultant no-show
+  async rateAppointment(id, data, token) {
+    let payload = {};
+    if (typeof data === 'object' && data !== null) {
+      payload = {
+        stars: Number(data.stars || data.rating || 5),
+        comment: data.comment || data.feedback || '',
+        low_rating_reason: data.low_rating_reason || ((Number(data.stars || data.rating) < 2) ? (data.comment || data.feedback || 'المستشار لم يحضر الجلسة في الموعد المحدد') : undefined)
+      };
+    } else {
+      const starsNum = Number(data || 5);
+      payload = {
+        stars: starsNum,
+        comment: '',
+        low_rating_reason: starsNum < 2 ? 'المستشار لم يحضر الجلسة في الموعد المحدد' : undefined
+      };
+    }
     return await apiFetch(`/api/appointments/${id}/rate`, {
       method: 'POST',
-      body: { rating, feedback }
+      body: payload
     }, token);
   },
 
@@ -58,6 +73,27 @@ export const appointmentService = {
   // Join video meeting room token
   async joinVideoSession(appointmentId, token) {
     return await apiFetch(`/api/sessions/${appointmentId}/join`, {
+      method: 'POST'
+    }, token);
+  },
+
+  // Consultant explicitly opens the video meeting room
+  async openVideoSession(appointmentId, token) {
+    return await apiFetch(`/api/sessions/${appointmentId}/open`, {
+      method: 'POST'
+    }, token);
+  },
+
+  // Get live session attendance info (who entered, who is absent, no-show status)
+  async getSessionAttendance(appointmentId, token) {
+    return await apiFetch(`/api/sessions/${appointmentId}/attendance`, {
+      method: 'GET'
+    }, token);
+  },
+
+  // Confirm and mark no-show
+  async markNoShow(appointmentId, token) {
+    return await apiFetch(`/api/sessions/${appointmentId}/mark-no-show`, {
       method: 'POST'
     }, token);
   }

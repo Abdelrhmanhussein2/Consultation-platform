@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { consultantService } from '../services/consultantService';
+import { appointmentService } from '../services/appointmentService';
 import Toast, { useToast } from '../components/Toast/Toast';
 import VideoSessionModal from '../components/VideoSession/VideoSessionModal';
 import ModernSelect from '../components/ModernSelect';
@@ -42,6 +43,125 @@ const CalendarIcon = ({ size = 13, color = '#64748B' }) => (
     <line x1="3" y1="10" x2="21" y2="10" />
   </svg>
 );
+
+const DateFilterInput = ({ placeholder, value, onChange }) => {
+  const ref = useRef(null);
+
+  const triggerPicker = () => {
+    if (ref.current) {
+      ref.current.focus();
+      try {
+        if (typeof ref.current.showPicker === 'function') {
+          ref.current.showPicker();
+        }
+      } catch {}
+    }
+  };
+
+  return (
+    <div
+      onClick={triggerPicker}
+      style={{
+        position: 'relative',
+        width: '135px',
+        height: '40px',
+        flexShrink: 0,
+        cursor: 'pointer'
+      }}
+    >
+      <style>{`
+        .clean-date-input::-webkit-calendar-picker-indicator {
+          display: none !important;
+          -webkit-appearance: none !important;
+          opacity: 0 !important;
+        }
+        .clean-date-input::-webkit-inner-spin-button {
+          display: none !important;
+        }
+      `}</style>
+      <input
+        ref={ref}
+        type="date"
+        className="clean-date-input"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onClick={(e) => {
+          e.stopPropagation();
+          try {
+            if (typeof e.target.showPicker === 'function') {
+              e.target.showPicker();
+            }
+          } catch {}
+        }}
+        style={{
+          width: '100%',
+          height: '100%',
+          backgroundColor: '#F8FAFC',
+          border: '1.5px solid #E2E8F0',
+          borderRadius: '10px',
+          padding: '0 30px 0 8px',
+          fontSize: '12.5px',
+          fontWeight: '700',
+          textAlign: 'center',
+          outline: 'none',
+          fontFamily: "'Tajawal', sans-serif",
+          color: value ? '#0e3b5e' : 'transparent',
+          boxSizing: 'border-box',
+          cursor: 'pointer',
+          transition: 'border-color 0.15s, background-color 0.15s'
+        }}
+        onFocus={(e) => {
+          e.target.style.borderColor = '#0A3254';
+          e.target.style.backgroundColor = '#FFFFFF';
+          try {
+            if (typeof e.target.showPicker === 'function') {
+              e.target.showPicker();
+            }
+          } catch {}
+        }}
+        onBlur={(e) => {
+          e.target.style.borderColor = '#E2E8F0';
+          e.target.style.backgroundColor = '#F8FAFC';
+        }}
+      />
+
+      {/* Placeholder text centered when no date is selected */}
+      {!value && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: '0 28px 0 6px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            color: '#94A3B8',
+            fontSize: '12.5px',
+            fontWeight: '600',
+            fontFamily: "'Tajawal', sans-serif"
+          }}
+        >
+          <span>{placeholder}</span>
+        </div>
+      )}
+
+      {/* Exactly ONE clean calendar icon on the right side */}
+      <div
+        style={{
+          position: 'absolute',
+          right: '10px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          pointerEvents: 'none',
+          display: 'flex',
+          alignItems: 'center'
+        }}
+      >
+        <CalendarIcon size={14} color={value ? '#0A3254' : '#64748B'} />
+      </div>
+    </div>
+  );
+};
 
 const ChevronDownIcon = ({ size = 12, color = '#64748B' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -470,10 +590,10 @@ export default function ConsultantSessionsPage({ navigate }) {
 
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'list'
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterType, setFilterType] = useState('all');
-  const [filterUser, setFilterUser] = useState('all');
-  const [filterPeriod, setFilterPeriod] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterType, setFilterType] = useState('');
+  const [filterUser, setFilterUser] = useState('');
+  const [filterPeriod, setFilterPeriod] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
@@ -488,6 +608,17 @@ export default function ConsultantSessionsPage({ navigate }) {
   const [newTime, setNewTime] = useState('09:00 AM');
   const [rescheduleReason, setRescheduleReason] = useState('');
   const [newPaymentStatus, setNewPaymentStatus] = useState('غير مدفوعة');
+
+  const handleOpenVideoRoom = async (sessionId) => {
+    try {
+      if (token && sessionId) {
+        await appointmentService.openVideoSession(sessionId, token).catch(() => {});
+      }
+    } catch (err) {
+      console.warn('Failed to register room opening:', err);
+    }
+    setActiveVideoApptId(sessionId);
+  };
 
   const handleOpenEdit = (session) => {
     setEditingSession(session);
@@ -509,29 +640,27 @@ export default function ConsultantSessionsPage({ navigate }) {
   const parseDateTimeToISO = (dStr, tStr) => {
     try {
       let day = 20, month = 8, year = 2026;
-      if (dStr && dStr.includes('/')) {
-        const parts = dStr.split('/');
-        month = parseInt(parts[0], 10) || 8;
-        day = parseInt(parts[1], 10) || 20;
-        year = parseInt(parts[2], 10) || 2026;
-      } else if (dStr && dStr.includes('-')) {
+      if (dStr && dStr.includes('-')) {
         const parts = dStr.split('-');
-        day = parseInt(parts[0], 10) || 20;
-        month = parseInt(parts[1], 10) || 8;
-        year = parseInt(parts[2], 10) || 2026;
+        day = parseInt(parts[0], 10);
+        month = parseInt(parts[1], 10);
+        year = parseInt(parts[2], 10);
+      } else if (dStr && dStr.includes('/')) {
+        const parts = dStr.split('/');
+        day = parseInt(parts[0], 10);
+        month = parseInt(parts[1], 10);
+        year = parseInt(parts[2], 10);
       }
-
       let hours = 9, minutes = 0;
       if (tStr) {
-        const clean = tStr.replace(/AM|PM/i, '').trim();
-        const [h, m] = clean.split(':');
-        hours = parseInt(h, 10) || 0;
-        minutes = parseInt(m, 10) || 0;
-        if (/PM/i.test(tStr) && hours < 12) hours += 12;
-        if (/AM/i.test(tStr) && hours === 12) hours = 0;
+        const cleanT = tStr.replace(/(AM|PM|ص|م)/gi, '').trim();
+        const tParts = cleanT.split(':');
+        hours = parseInt(tParts[0], 10);
+        minutes = parseInt(tParts[1] || '0', 10);
+        if (/PM|م/i.test(tStr) && hours < 12) hours += 12;
+        if (/AM|ص/i.test(tStr) && hours === 12) hours = 0;
       }
-      const dt = new Date(year, month - 1, day, hours, minutes);
-      return dt.toISOString();
+      return new Date(Date.UTC(year, month - 1, day, hours, minutes)).toISOString();
     } catch {
       return new Date().toISOString();
     }
@@ -561,7 +690,7 @@ export default function ConsultantSessionsPage({ navigate }) {
             if (st === 'confirmed' || st === 'scheduled' || st === 'rescheduled') col = 'confirmed';
             else if (st === 'in_progress') col = 'in_progress';
             else if (st === 'completed') col = 'completed';
-            else if (st.includes('cancel') || st === 'rejected') col = 'cancelled';
+            else if (st.includes('cancel') || st === 'rejected' || st === 'no_show') col = 'cancelled';
             else col = 'pending';
 
             const dObj = item.scheduled_at ? new Date(item.scheduled_at) : new Date();
@@ -591,6 +720,12 @@ export default function ConsultantSessionsPage({ navigate }) {
               time: tStr,
               duration_and_price: `${item.duration_minutes || 60} دقيقه • ${item.price || 45} د.أ`,
               payment_status: pStatus,
+              room_opened_at: item.room_opened_at,
+              consultant_joined_at: item.consultant_joined_at,
+              user_joined_at: item.user_joined_at,
+              attendance_status: item.attendance_status,
+              no_show_party: item.no_show_party,
+              no_show_detected_at: item.no_show_detected_at,
               rawBackend: item
             };
           });
@@ -629,13 +764,13 @@ export default function ConsultantSessionsPage({ navigate }) {
   // Filter logic
   const filteredSessions = useMemo(() => {
     return sessions.filter((s) => {
-      if (filterStatus !== 'all' && s.status !== filterStatus) return false;
-      if (filterType !== 'all') {
+      if (filterStatus && s.status !== filterStatus) return false;
+      if (filterType) {
         if (filterType === 'video' && s.type_kind !== 'video') return false;
         if (filterType === 'chat' && s.type_kind !== 'chat') return false;
         if (filterType === 'report' && s.type_kind !== 'report') return false;
       }
-      if (filterUser !== 'all') {
+      if (filterUser) {
         if (filterUser === 'companies' && !s.client_type.includes('شركة') && !s.client_type.includes('مؤسسة')) return false;
         if (filterUser === 'individuals' && !s.client_type.includes('أفراد')) return false;
         if (filterUser === 'consultants' && !s.client_type.includes('مستشار')) return false;
@@ -647,16 +782,31 @@ export default function ConsultantSessionsPage({ navigate }) {
         const matchRef = s.ref_id.toLowerCase().includes(q);
         if (!matchTitle && !matchClient && !matchRef) return false;
       }
+      if (startDate || endDate) {
+        const parseToComp = (d) => {
+          if (!d) return '';
+          const p = d.split(/[-/]/);
+          if (p.length === 3) {
+            return p[0].length === 4
+              ? `${p[0]}-${p[1].padStart(2, '0')}-${p[2].padStart(2, '0')}`
+              : `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}`;
+          }
+          return d;
+        };
+        const sessionDate = parseToComp(s.date);
+        if (startDate && sessionDate && sessionDate < startDate) return false;
+        if (endDate && sessionDate && sessionDate > endDate) return false;
+      }
       return true;
     });
-  }, [sessions, filterStatus, filterType, filterUser, searchQuery]);
+  }, [sessions, filterStatus, filterType, filterUser, startDate, endDate, searchQuery]);
 
   const handleClearFilters = () => {
     setSearchQuery('');
-    setFilterStatus('all');
-    setFilterType('all');
-    setFilterUser('all');
-    setFilterPeriod('all');
+    setFilterStatus('');
+    setFilterType('');
+    setFilterUser('');
+    setFilterPeriod('');
     setStartDate('');
     setEndDate('');
     showToast('تمت إعادة تعيين الفلاتر', 'info');
@@ -966,39 +1116,47 @@ export default function ConsultantSessionsPage({ navigate }) {
       <div
         style={{
           backgroundColor: '#FFFFFF',
-          borderRadius: '14px',
+          borderRadius: '16px',
           border: '1px solid #E2E8F0',
-          boxShadow: '0 1px 6px rgba(10, 50, 84, 0.02)',
-          padding: '16px 20px',
+          boxShadow: '0 2px 12px rgba(10, 50, 84, 0.04)',
+          padding: '14px 18px',
           marginBottom: '24px',
           position: 'relative',
           zIndex: 50,
           overflow: 'visible'
         }}
       >
-        {/* Row 1: All Filter Controls & View Buttons (RTL layout) */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
             flexWrap: 'wrap',
-            width: '100%'
+            width: '100%',
+            direction: 'rtl'
           }}
         >
-          {/* View Mode Buttons (Far Right in RTL) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-            {/* Grid / Kanban View Toggle Button */}
+          {/* View Mode Buttons (Kanban / List) */}
+          <div
+            style={{
+              display: 'inline-flex',
+              background: '#F1F5F9',
+              borderRadius: '10px',
+              padding: '3px',
+              gap: '3px',
+              flexShrink: 0
+            }}
+          >
             <button
               type="button"
               onClick={() => setViewMode('kanban')}
               title="عرض الأعمدة (Kanban)"
               style={{
-                width: '38px',
-                height: '38px',
+                width: '34px',
+                height: '34px',
                 borderRadius: '8px',
-                border: viewMode === 'kanban' ? 'none' : '1px solid #CBD5E1',
-                backgroundColor: viewMode === 'kanban' ? '#0A3254' : '#FFFFFF',
+                border: 'none',
+                backgroundColor: viewMode === 'kanban' ? '#0A3254' : 'transparent',
                 color: viewMode === 'kanban' ? '#FFFFFF' : '#64748B',
                 display: 'flex',
                 alignItems: 'center',
@@ -1007,20 +1165,19 @@ export default function ConsultantSessionsPage({ navigate }) {
                 transition: 'all 0.15s ease'
               }}
             >
-              <KanbanGridIcon size={18} color={viewMode === 'kanban' ? '#FFFFFF' : '#64748B'} />
+              <KanbanGridIcon size={16} color={viewMode === 'kanban' ? '#FFFFFF' : '#64748B'} />
             </button>
 
-            {/* List / Table View Toggle Button */}
             <button
               type="button"
               onClick={() => setViewMode('list')}
               title="عرض الجدول القائمة"
               style={{
-                width: '38px',
-                height: '38px',
+                width: '34px',
+                height: '34px',
                 borderRadius: '8px',
-                border: viewMode === 'list' ? 'none' : '1px solid #CBD5E1',
-                backgroundColor: viewMode === 'list' ? '#0A3254' : '#FFFFFF',
+                border: 'none',
+                backgroundColor: viewMode === 'list' ? '#0A3254' : 'transparent',
                 color: viewMode === 'list' ? '#FFFFFF' : '#64748B',
                 display: 'flex',
                 alignItems: 'center',
@@ -1029,35 +1186,36 @@ export default function ConsultantSessionsPage({ navigate }) {
                 transition: 'all 0.15s ease'
               }}
             >
-              <ListTableIcon size={18} color={viewMode === 'list' ? '#FFFFFF' : '#64748B'} />
+              <ListTableIcon size={16} color={viewMode === 'list' ? '#FFFFFF' : '#64748B'} />
             </button>
           </div>
 
           {/* Clear Filters Button */}
-          <FilterResetButton onClick={handleClearFilters} size={38} />
+          <FilterResetButton onClick={handleClearFilters} size={40} />
 
           {/* Status Dropdown: جميع الحالات */}
-          <div style={{ width: '138px', flexShrink: 0 }}>
+          <div style={{ minWidth: '145px', flexShrink: 0 }}>
             <ModernSelect
               options={[
-                { value: 'all', label: 'جميع الحالات' },
-                { value: 'completed', label: 'مكتمله' },
+                { value: '', label: 'جميع الحالات' },
+                { value: 'completed', label: 'مكتملة' },
                 { value: 'in_progress', label: 'قيد التنفيذ' },
                 { value: 'confirmed', label: 'مؤكدة' },
-                { value: 'pending', label: 'معلقه' },
+                { value: 'pending', label: 'معلقة' },
                 { value: 'cancelled', label: 'ملغاة' }
               ]}
               value={filterStatus}
               onChange={setFilterStatus}
               placeholder="جميع الحالات"
+              dropdownWidth="150px"
             />
           </div>
 
           {/* Booking Type Dropdown: جميع الحجوزات */}
-          <div style={{ width: '138px', flexShrink: 0 }}>
+          <div style={{ minWidth: '155px', flexShrink: 0 }}>
             <ModernSelect
               options={[
-                { value: 'all', label: 'جميع الحجوزات' },
+                { value: '', label: 'جميع الحجوزات' },
                 { value: 'video', label: 'جلسات فيديو' },
                 { value: 'chat', label: 'جلسات محادثة' },
                 { value: 'report', label: 'تقارير مكتوبة' }
@@ -1065,14 +1223,15 @@ export default function ConsultantSessionsPage({ navigate }) {
               value={filterType}
               onChange={setFilterType}
               placeholder="جميع الحجوزات"
+              dropdownWidth="160px"
             />
           </div>
 
           {/* Client Type Dropdown: جميع المستخدمين */}
-          <div style={{ width: '138px', flexShrink: 0 }}>
+          <div style={{ minWidth: '165px', flexShrink: 0 }}>
             <ModernSelect
               options={[
-                { value: 'all', label: 'جميع المستخدمين' },
+                { value: '', label: 'جميع المستخدمين' },
                 { value: 'companies', label: 'شركات ومؤسسات' },
                 { value: 'individuals', label: 'أفراد' },
                 { value: 'consultants', label: 'مستشارون' }
@@ -1080,14 +1239,15 @@ export default function ConsultantSessionsPage({ navigate }) {
               value={filterUser}
               onChange={setFilterUser}
               placeholder="جميع المستخدمين"
+              dropdownWidth="175px"
             />
           </div>
 
           {/* Period Dropdown: الفترة الزمنية */}
-          <div style={{ width: '138px', flexShrink: 0 }}>
+          <div style={{ minWidth: '145px', flexShrink: 0 }}>
             <ModernSelect
               options={[
-                { value: 'all', label: 'الفترة الزمنية' },
+                { value: '', label: 'الفترة الزمنية' },
                 { value: 'today', label: 'اليوم' },
                 { value: 'this_week', label: 'هذا الأسبوع' },
                 { value: 'this_month', label: 'هذا الشهر' }
@@ -1095,120 +1255,91 @@ export default function ConsultantSessionsPage({ navigate }) {
               value={filterPeriod}
               onChange={setFilterPeriod}
               placeholder="الفترة الزمنية"
+              dropdownWidth="150px"
             />
           </div>
 
           {/* Date Picker Start */}
-          <div style={{ position: 'relative', width: '130px', flexShrink: 0 }}>
-            <input
-              type="text"
-              placeholder="mm/dd/yyyy"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              style={{
-                width: '100%',
-                height: '38px',
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #CBD5E1',
-                borderRadius: '8px',
-                padding: '0 30px 0 10px',
-                fontSize: '12.5px',
-                textAlign: 'center',
-                outline: 'none',
-                fontFamily: "'Tajawal', sans-serif",
-                boxSizing: 'border-box'
-              }}
-            />
-            <div style={{ position: 'absolute', right: '10px', top: '12px', pointerEvents: 'none' }}>
-              <CalendarIcon size={14} color="#64748B" />
-            </div>
-          </div>
+          <DateFilterInput
+            placeholder="من تاريخ"
+            value={startDate}
+            onChange={setStartDate}
+          />
 
           <span style={{ fontSize: '13px', color: '#64748B', fontWeight: '700', flexShrink: 0 }}>
             إلى
           </span>
 
           {/* Date Picker End */}
-          <div style={{ position: 'relative', width: '130px', flexShrink: 0 }}>
-            <input
-              type="text"
-              placeholder="mm/dd/yyyy"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              style={{
-                width: '100%',
-                height: '38px',
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #CBD5E1',
-                borderRadius: '8px',
-                padding: '0 30px 0 10px',
-                fontSize: '12.5px',
-                textAlign: 'center',
-                outline: 'none',
-                fontFamily: "'Tajawal', sans-serif",
-                boxSizing: 'border-box'
-              }}
-            />
-            <div style={{ position: 'absolute', right: '10px', top: '12px', pointerEvents: 'none' }}>
-              <CalendarIcon size={14} color="#64748B" />
-            </div>
-          </div>
+          <DateFilterInput
+            placeholder="إلى تاريخ"
+            value={endDate}
+            onChange={setEndDate}
+          />
 
-          {/* Text Search Input (Far Left in Row 1) */}
-          <div style={{ position: 'relative', flex: '1', minWidth: '160px' }}>
+          {/* Text Search Input */}
+          <div style={{ position: 'relative', flex: '1', minWidth: '180px' }}>
+            <span style={{ position: 'absolute', top: '50%', right: '12px', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#94A3B8', fontSize: '14px' }}>
+              🔍
+            </span>
             <input
               type="text"
-              placeholder="البحث في المواعيد"
+              placeholder="البحث في المواعيد..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
                 width: '100%',
-                height: '38px',
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #CBD5E1',
-                borderRadius: '8px',
-                padding: '0 12px',
-                fontSize: '12.5px',
+                height: '40px',
+                backgroundColor: '#F8FAFC',
+                border: '1.5px solid #E2E8F0',
+                borderRadius: '10px',
+                padding: '0 36px 0 12px',
+                fontSize: '13px',
                 outline: 'none',
                 fontFamily: "'Tajawal', sans-serif",
+                color: '#0e3b5e',
                 textAlign: 'right',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                transition: 'border-color 0.15s, background-color 0.15s'
               }}
+              onFocus={(e) => { e.target.style.borderColor = '#0A3254'; e.target.style.backgroundColor = '#FFFFFF'; }}
+              onBlur={(e) => { e.target.style.borderColor = '#E2E8F0'; e.target.style.backgroundColor = '#F8FAFC'; }}
             />
           </div>
-        </div>
 
-        {/* Row 2: Search Button on Far Right in RTL */}
-        <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '14px' }}>
+          {/* Search Button (Integrated inline) */}
           <button
             type="button"
             style={{
               backgroundColor: '#0A3254',
               color: '#FFFFFF',
               border: 'none',
-              borderRadius: '8px',
-              height: '38px',
-              padding: '0 28px',
-              fontSize: '14px',
+              borderRadius: '10px',
+              height: '40px',
+              padding: '0 22px',
+              fontSize: '13.5px',
               fontWeight: '800',
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 2px 8px rgba(10, 50, 84, 0.25)',
+              gap: '6px',
+              boxShadow: '0 2px 8px rgba(10, 50, 84, 0.2)',
               fontFamily: "'Tajawal', sans-serif",
-              transition: 'background-color 0.15s ease'
+              transition: 'all 0.15s ease',
+              flexShrink: 0
             }}
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#07243D')}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#0A3254')}
           >
-            <span>البحث</span>
             <SearchIcon size={14} color="#FFFFFF" />
+            <span>بحث</span>
           </button>
         </div>
       </div>
 
       {/* ── 4. Main Content: 5-Column Kanban Board ────────────────── */}
+
+
       {viewMode === 'kanban' ? (
         <div
           style={{
@@ -1420,8 +1551,31 @@ export default function ConsultantSessionsPage({ navigate }) {
                             {session.payment_status}
                           </div>
 
-                          {/* Action Icons on Left: Eye, Pencil, Trash */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          {/* Action Icons on Left: Video, Eye, Pencil, Trash */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {/* Video Call Button for Confirmed/In-Progress Video Sessions */}
+                            {session.type_kind === 'video' && (session.status === 'confirmed' || session.status === 'in_progress') && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenVideoRoom(session.id)}
+                                title={session.room_opened_at ? 'الغرفة مفتوحة - انضمام' : 'بدء الجلسة وفتح الغرفة'}
+                                style={{
+                                  border: 'none',
+                                  background: session.room_opened_at ? '#059669' : '#0A3254',
+                                  color: '#FFFFFF',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                  padding: '4px 6px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  boxShadow: session.room_opened_at ? '0 0 8px rgba(5, 150, 105, 0.4)' : 'none'
+                                }}
+                              >
+                                <VideoCameraIcon size={12} color="#FFFFFF" />
+                              </button>
+                            )}
+
                             {/* Eye (View) */}
                             <button
                               type="button"
@@ -1477,6 +1631,28 @@ export default function ConsultantSessionsPage({ navigate }) {
                             </button>
                           </div>
                         </div>
+
+                        {/* Attendance status indicators on card */}
+                        {(session.attendance_status === 'user_no_show' || session.no_show_party === 'user') && (
+                          <div style={{ fontSize: '11px', fontWeight: '800', color: '#DC2626', backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', padding: '3px 8px', borderRadius: '6px', marginTop: '8px', textAlign: 'center' }}>
+                            ⚠️ غياب العميل (المشكلة من العميل)
+                          </div>
+                        )}
+                        {(session.attendance_status === 'consultant_no_show' || session.no_show_party === 'consultant') && (
+                          <div style={{ fontSize: '11px', fontWeight: '800', color: '#991B1B', backgroundColor: '#FEE2E2', border: '1px solid #F87171', padding: '3px 8px', borderRadius: '6px', marginTop: '8px', textAlign: 'center' }}>
+                            ⚠️ غياب المستشار
+                          </div>
+                        )}
+                        {session.attendance_status === 'both_attended' && (
+                          <div style={{ fontSize: '11px', fontWeight: '800', color: '#059669', backgroundColor: '#D1FAE5', border: '1px solid #A7F3D0', padding: '3px 8px', borderRadius: '6px', marginTop: '8px', textAlign: 'center' }}>
+                            ✓ حضر الطرفان
+                          </div>
+                        )}
+                        {session.room_opened_at && !session.user_joined_at && (session.status === 'confirmed' || session.status === 'in_progress') && (
+                          <div style={{ fontSize: '11px', fontWeight: '800', color: '#0284C7', backgroundColor: '#E0F2FE', border: '1px solid #BAE6FD', padding: '3px 8px', borderRadius: '6px', marginTop: '8px', textAlign: 'center' }}>
+                            📹 الغرفة مفتوحة بانتظار العميل
+                          </div>
+                        )}
                       </div>
                     ))
                   )}
@@ -1571,6 +1747,26 @@ export default function ConsultantSessionsPage({ navigate }) {
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                        {s.type_kind === 'video' && (s.status === 'confirmed' || s.status === 'in_progress') && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenVideoRoom(s.id)}
+                            title={s.room_opened_at ? 'الغرفة مفتوحة - انضمام' : 'بدء ودخول غرفة الفيديو'}
+                            style={{
+                              border: 'none',
+                              background: s.room_opened_at ? '#059669' : '#0A3254',
+                              color: '#FFFFFF',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              padding: '3px 6px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            <VideoCameraIcon size={13} color="#FFFFFF" />
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => setSelectedSession(s)}
@@ -1854,6 +2050,72 @@ export default function ConsultantSessionsPage({ navigate }) {
                   </div>
                 </div>
               </div>
+
+              {/* Row 6: Attendance & Room Audit Record */}
+              <div
+                style={{
+                  backgroundColor: '#F8FAFC',
+                  border: '1.5px solid #E2E8F0',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12.5px', color: '#0A3254', fontWeight: '800' }}>
+                    📋 توثيق الحضور وغرفة الفيديو:
+                  </span>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    backgroundColor:
+                      selectedSession.attendance_status === 'both_attended'
+                        ? '#D1FAE5'
+                        : (selectedSession.attendance_status === 'user_no_show' || selectedSession.no_show_party === 'user')
+                        ? '#FEE2E2'
+                        : selectedSession.room_opened_at
+                        ? '#E0F2FE'
+                        : '#F1F5F9',
+                    color:
+                      selectedSession.attendance_status === 'both_attended'
+                        ? '#059669'
+                        : (selectedSession.attendance_status === 'user_no_show' || selectedSession.no_show_party === 'user')
+                        ? '#DC2626'
+                        : selectedSession.room_opened_at
+                        ? '#0284C7'
+                        : '#64748B'
+                  }}>
+                    {selectedSession.attendance_status === 'both_attended'
+                      ? 'حضر الطرفان ✓'
+                      : (selectedSession.attendance_status === 'user_no_show' || selectedSession.no_show_party === 'user')
+                      ? 'غياب العميل (خطأ العميل)'
+                      : (selectedSession.attendance_status === 'consultant_no_show' || selectedSession.no_show_party === 'consultant')
+                      ? 'غياب المستشار'
+                      : selectedSession.room_opened_at
+                      ? 'الغرفة مفتوحة بانتظار العميل'
+                      : 'بانتظار بدء المستشار للجلسة'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', fontSize: '11.5px', color: '#475569', paddingTop: '6px', borderTop: '1px solid #E2E8F0' }}>
+                  <div>
+                    <span style={{ display: 'block', color: '#94A3B8', fontWeight: '600' }}>وقت فتح الغرفة:</span>
+                    <strong style={{ color: '#0A3254' }}>{selectedSession.room_opened_at ? new Date(selectedSession.room_opened_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : 'لم تُفتح'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ display: 'block', color: '#94A3B8', fontWeight: '600' }}>دخول المستشار:</span>
+                    <strong style={{ color: '#0A3254' }}>{selectedSession.consultant_joined_at ? new Date(selectedSession.consultant_joined_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : 'غير مسجل'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ display: 'block', color: '#94A3B8', fontWeight: '600' }}>دخول العميل:</span>
+                    <strong style={{ color: '#0A3254' }}>{selectedSession.user_joined_at ? new Date(selectedSession.user_joined_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : 'لم ينضم بعد'}</strong>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Footer: Action Buttons */}
@@ -1863,11 +2125,11 @@ export default function ConsultantSessionsPage({ navigate }) {
                   <button
                     type="button"
                     onClick={() => {
-                      setActiveVideoApptId(selectedSession.id);
+                      handleOpenVideoRoom(selectedSession.id);
                       setSelectedSession(null);
                     }}
                     style={{
-                      backgroundColor: '#0A3254',
+                      backgroundColor: selectedSession.room_opened_at ? '#059669' : '#0A3254',
                       color: '#FFFFFF',
                       border: 'none',
                       borderRadius: '8px',
@@ -1881,7 +2143,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                       gap: '6px'
                     }}
                   >
-                    <span>انضمام لجلسة الفيديو</span>
+                    <span>{selectedSession.room_opened_at ? 'متابعة جلسة الفيديو' : 'بدء الجلسة وفتح الغرفة'}</span>
                     <VideoCameraIcon size={14} color="#FFFFFF" />
                   </button>
                 )}
@@ -2285,6 +2547,7 @@ export default function ConsultantSessionsPage({ navigate }) {
         appointmentId={activeVideoApptId}
         isOpen={!!activeVideoApptId}
         onClose={() => setActiveVideoApptId(null)}
+        onSessionEnd={fetchBackendAppointments}
       />
     </div>
   );

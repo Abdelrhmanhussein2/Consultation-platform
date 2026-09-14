@@ -798,10 +798,11 @@ export default function ConsultantsPage({ navigate }) {
       const consultantId = isUuid(pData?.consultant_id) ? pData.consultant_id : 'c2264e0d-7229-481a-9718-8657077c42fe';
 
       await appointmentService.bookAppointment({
-        consultant_id: consultantId,
-        service_id:    isUuid(pData?.service_id) ? pData.service_id : null,
-        scheduled_at:  pData?.scheduled_at || new Date().toISOString(),
-        notes:         pData?.serviceName || 'طلب حجز استشارة'
+        consultant_id:    consultantId,
+        service_id:       isUuid(pData?.service_id) ? pData.service_id : null,
+        scheduled_at:     pData?.scheduled_at || new Date().toISOString(),
+        duration_minutes: pData?.duration_minutes || 60,
+        notes:            pData?.serviceName || 'طلب حجز استشارة'
       }, activeToken);
 
       setToast('');

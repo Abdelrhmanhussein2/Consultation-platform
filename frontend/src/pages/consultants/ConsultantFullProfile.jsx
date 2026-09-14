@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { consultantService } from '../../services/consultantService';
 import { appointmentService } from '../../services/appointmentService';
 import Toast, { useToast } from '../../components/Toast/Toast';
-import { cleanServiceDescription } from '../../utils/serviceUtils';
+import { cleanServiceDescription, parseServiceMeta } from '../../utils/serviceUtils';
 
 /* ── Helpers ─────────────────────────────────────────────────────── */
 function getWeekTitle(offset) {
@@ -91,6 +91,7 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
   const [activeTab, setActiveTab]               = useState('about');
   const [selectedServiceId, setSelectedServiceId] = useState(null);
   const [selectedDuration, setSelectedDuration] = useState('30');
+  const [selectedTierDuration, setSelectedTierDuration] = useState(null); // for services with multiple durations
   const [weekOffset, setWeekOffset]             = useState(0);
   const [selectedDayIdx, setSelectedDayIdx]     = useState(0);
   const [selectedTime, setSelectedTime]         = useState(null);
@@ -151,6 +152,7 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
           setSelectedDuration(String(profData.services[0].duration_minutes || 30));
         }
 
+        // Initial slots fetch with default 30 min – will be refreshed by the duration-aware effect below
         const startDate = new Date().toISOString().split('T')[0];
         const endDate   = new Date(Date.now() + 14*24*60*60*1000).toISOString().split('T')[0];
         const slotsData = await consultantService.getAvailableSlots(profileId, startDate, endDate, 30, token).catch(() => []);
@@ -164,6 +166,22 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
     };
     fetchBackendData();
   }, [profileId, consultant, token]);
+
+  // Re-fetch available slots whenever the effective duration or service changes (keeps booked slots excluded)
+  useEffect(() => {
+    if (!profileId || profileId === 'mock-raafat-1') return;
+    const fetchSlots = async () => {
+      try {
+        const startDate = new Date().toISOString().split('T')[0];
+        const endDate   = new Date(Date.now() + 14*24*60*60*1000).toISOString().split('T')[0];
+        // Use selectedTierDuration if set, else selectedDuration, else 30
+        const dur = selectedTierDuration || parseInt(selectedDuration) || 30;
+        const slotsData = await consultantService.getAvailableSlots(profileId, startDate, endDate, dur, token).catch(() => []);
+        if (Array.isArray(slotsData)) setLiveSlots(slotsData);
+      } catch (e) { console.warn('Slots refresh error:', e); }
+    };
+    fetchSlots();
+  }, [profileId, token, selectedTierDuration, selectedDuration, selectedServiceId]);
 
   const checkPendingInquiryStatus = useCallback(async () => {
     if (!token || !user || !profileId) return;
@@ -265,6 +283,15 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
     ? Math.round(Number(activeProfile.price_per_hour))
     : (liveServices.length > 0 ? Math.round(Number(liveServices[0].price)) : 30);
 
+  // Parse tiers (multiple durations) from service description meta
+  const parseServiceTiers = (s) => {
+    const { meta } = parseServiceMeta(s);
+    if (meta && Array.isArray(meta.tiers) && meta.tiers.length > 1) {
+      return meta.tiers.map(t => ({ duration: Number(t.duration) || 30, price: Number(t.price) || Math.round(Number(s.price)) }));
+    }
+    return null; // single duration, no tier selector needed
+  };
+
   const displayServices = (Array.isArray(liveServices) && liveServices.length > 0)
     ? liveServices.map(s => ({
         id: s.id,
@@ -272,14 +299,23 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
         description: cleanServiceDescription(s.description, s.name),
         duration_minutes: s.duration_minutes || 30,
         price: Math.round(Number(s.price)) || basePriceVal,
-        is_active: s.is_active
+        is_active: s.is_active,
+        tiers: parseServiceTiers(s) // array of {duration, price} or null
       }))
     : [
-        { id: 'dur-30-min', name: 'جلسة استشارة 30 دقيقة', duration_minutes: 30, price: Math.round(basePriceVal * 0.5) || 15 },
-        { id: 'dur-60-min', name: 'جلسة محادثة ساعة واحدة', duration_minutes: 60, price: basePriceVal || 30 }
+        { id: 'dur-30-min', name: 'جلسة استشارة 30 دقيقة', duration_minutes: 30, price: Math.round(basePriceVal * 0.5) || 15, tiers: null },
+        { id: 'dur-60-min', name: 'جلسة محادثة ساعة واحدة', duration_minutes: 60, price: basePriceVal || 30, tiers: null }
       ];
 
   const selectedService = displayServices.find(s => s.id === selectedServiceId) || displayServices[0];
+  // Effective duration: if service has tiers and user picked one, use that; else use service's duration_minutes
+  const activeTiers = selectedService?.tiers;
+  const effectiveDuration = activeTiers
+    ? (selectedTierDuration || activeTiers[0]?.duration || selectedService?.duration_minutes || 30)
+    : (selectedService?.duration_minutes || 30);
+  const effectivePrice = activeTiers
+    ? (activeTiers.find(t => t.duration === effectiveDuration)?.price || selectedService?.price)
+    : selectedService?.price;
 
   const hasRatingVal    = activeProfile.average_rating !== null && activeProfile.average_rating !== undefined && Number(activeProfile.average_rating) > 0;
   const ratingVal       = hasRatingVal ? parseFloat(activeProfile.average_rating) : 0.0;
@@ -305,7 +341,7 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
     if (!Array.isArray(activeProfile?.availabilities)) return null;
     const avails = activeProfile.availabilities.filter(a => a && a.day_of_week === pythonDow && a.is_active !== false);
     if (avails.length === 0) return [];
-    const slotDuration = parseInt(selectedService?.duration_minutes || 30, 10);
+    const slotDuration = parseInt(effectiveDuration, 10);
     const slots = [];
     for (const av of avails) {
       const [startH, startM] = (av.start_time || '09:00').split(':').map(Number);
@@ -348,7 +384,8 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
       if (typeof onBookRequest === 'function') {
         onBookRequest({
           consultantName: name, serviceName: serviceTitle,
-          price: selectedService?.price || 42.50,
+          price: effectivePrice || selectedService?.price || 42.50,
+          duration_minutes: effectiveDuration,
           consultant_id: profileId, service_id: selectedService?.id,
           scheduled_at: localDt.toISOString()
         });
@@ -619,7 +656,7 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
                   {displayServices.map(s => {
                     const isSelected = selectedServiceId === s.id;
                     return (
-                      <div key={s.id} onClick={() => { setSelectedServiceId(s.id); setSelectedDuration(String(s.duration_minutes)); }}
+                      <div key={s.id} onClick={() => { setSelectedServiceId(s.id); setSelectedDuration(String(s.duration_minutes)); setSelectedTierDuration(s.tiers ? s.tiers[0]?.duration : null); setSelectedTime(null); }}
                         style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                           background: isSelected ? '#FFF9F0' : '#F8FAFC', padding: '16px 20px', borderRadius: '16px',
                           border: isSelected ? '2px solid #F59A23' : '1px solid #E2E8F0', cursor: 'pointer', transition: 'all .18s' }}>
@@ -631,7 +668,12 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
                             </p>
                           )}
                           <small style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#64748B', fontSize: '12px' }}>
-                            ⏱ <strong>{s.duration_minutes} دقيقة</strong>
+                            ⏱ <strong>
+                              {s.tiers
+                                ? `${s.tiers[0]?.duration} – ${s.tiers[s.tiers.length - 1]?.duration} دقيقة`
+                                : `${s.duration_minutes} دقيقة`}
+                            </strong>
+                            {s.tiers && <span style={{ marginRight: '6px', background: '#F0FDF4', color: '#166534', fontSize: '10px', fontWeight: '800', padding: '2px 6px', borderRadius: '8px', border: '1px solid #BBF7D0' }}>خيارات متعددة</span>}
                           </small>
                         </div>
                         <div style={{ textAlign: 'left', flexShrink: 0 }}>
@@ -783,41 +825,52 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
                   </div>
                 </div>
 
-                {/* Dynamic services & durations selector */}
-                <div
-                  className="booking-durations"
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: displayServices.length === 1 ? '1fr' : (displayServices.length === 2 ? '1fr 1fr' : 'repeat(auto-fit, minmax(130px, 1fr))'),
-                    gap: '8px',
-                    margin: '14px 0'
-                  }}
-                >
-                  {displayServices.map(srv => {
-                    const isSelected = (selectedService?.id === srv.id);
-                    return (
-                      <div
-                        key={srv.id}
-                        className={`booking-dur-item ${isSelected ? 'active' : ''}`}
-                        onClick={() => {
-                          setSelectedServiceId(srv.id);
-                          setSelectedDuration(String(srv.duration_minutes || 30));
-                          setSelectedTime(null);
-                        }}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <span style={{ fontSize: '14px' }}>⏱</span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <small style={{ display: 'block', color: isSelected ? '#C2410C' : '#64748B', fontSize: '10px', fontWeight: '700', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {srv.name}
-                          </small>
-                          <b style={{ fontSize: '12px' }}>{srv.duration_minutes || 30} دقيقة</b>
-                        </div>
-                        <small style={{ fontWeight: '800', color: isSelected ? '#EA580C' : '#0B2E4B' }}>{srv.price} د.أ</small>
+
+                {/* Duration buttons – 1 button if single duration, multiple if tiers exist */}
+                {(() => {
+                  const durationOptions = activeTiers && activeTiers.length > 0
+                    ? activeTiers
+                    : [{ duration: selectedService?.duration_minutes || 30, price: selectedService?.price || basePriceVal }];
+                  const cols = durationOptions.length === 1 ? '1fr' : durationOptions.length === 2 ? '1fr 1fr' : 'repeat(auto-fit, minmax(90px, 1fr))';
+                  return (
+                    <div style={{ margin: '14px 0' }}>
+                      {selectedService && (
+                        <small style={{ display: 'block', color: '#64748B', fontSize: '11px', fontWeight: '700', marginBottom: '8px' }}>
+                          {selectedService.name} — اختر مدة الجلسة:
+                        </small>
+                      )}
+                      <div style={{ display: 'grid', gridTemplateColumns: cols, gap: '8px' }}>
+                        {durationOptions.map(opt => {
+                          const isActive = effectiveDuration === opt.duration;
+                          return (
+                            <button
+                              key={opt.duration}
+                              onClick={() => { setSelectedTierDuration(opt.duration); setSelectedTime(null); }}
+                              style={{
+                                border: isActive ? '2px solid #F59A23' : '1px solid #CBD5E1',
+                                borderRadius: '12px',
+                                padding: '10px 8px',
+                                background: isActive ? '#FFF9F0' : '#F8FAFC',
+                                cursor: 'pointer',
+                                fontFamily: 'inherit',
+                                transition: 'all .15s',
+                                textAlign: 'center'
+                              }}
+                            >
+                              <b style={{ display: 'block', fontSize: '14px', color: isActive ? '#C2410C' : '#0B2E4B' }}>
+                                {opt.duration} دقيقة
+                              </b>
+                              <small style={{ color: isActive ? '#EA580C' : '#64748B', fontWeight: '700', fontSize: '12px' }}>
+                                {opt.price} د.أ
+                              </small>
+                            </button>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })()}
+
 
                 <div className="booking-days-row">
                   {days.map((d, i) => (
@@ -859,7 +912,7 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
                   </button>
                   <button onClick={handleProceedToBookingRequest}
                     style={{ width:'100%',background:'#fff',color:'#0B2E4B',border:'1px solid #0B2E4B',borderRadius:'30px',padding:'12px',fontWeight:'800',fontSize:'12.5px',cursor:'pointer',fontFamily:'inherit',marginTop:'10px' }}>
-                    إرسال طلب الحجز • {selectedService?.price ?? basePriceVal} د.أ
+                    إرسال طلب الحجز • {effectivePrice ?? basePriceVal} د.أ • {effectiveDuration} دقيقة
                   </button>
                   <p style={{ fontSize:'11px',color:'#64748B',textAlign:'center',margin:'10px 0 0' }}>✓ إلغاء مجاني حتى 24 ساعة قبل الجلسة</p>
                 </div>

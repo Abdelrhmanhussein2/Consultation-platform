@@ -585,6 +585,15 @@ class AppointmentOut(BaseModel):
     price: Optional[Decimal]
     session_type: Optional[SessionType] = SessionType.video_call
     notes: Optional[str]
+    session_room_url: Optional[str] = None
+    session_room_name: Optional[str] = None
+    session_started_at: Optional[datetime] = None
+    room_opened_at: Optional[datetime] = None
+    consultant_joined_at: Optional[datetime] = None
+    user_joined_at: Optional[datetime] = None
+    attendance_status: Optional[str] = None
+    no_show_party: Optional[str] = None
+    no_show_detected_at: Optional[datetime] = None
     created_at: datetime
     consultant_name: Optional[str] = None
     client_name: Optional[str] = None

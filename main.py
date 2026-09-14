@@ -79,6 +79,12 @@ try:
         _conn.execute(text("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS session_room_name VARCHAR(100)"))
         _conn.execute(text("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS session_room_url VARCHAR(300)"))
         _conn.execute(text("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS session_started_at TIMESTAMP WITH TIME ZONE"))
+        _conn.execute(text("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS room_opened_at TIMESTAMP WITH TIME ZONE"))
+        _conn.execute(text("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS consultant_joined_at TIMESTAMP WITH TIME ZONE"))
+        _conn.execute(text("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS user_joined_at TIMESTAMP WITH TIME ZONE"))
+        _conn.execute(text("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS attendance_status VARCHAR(50) DEFAULT 'scheduled'"))
+        _conn.execute(text("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS no_show_party VARCHAR(20)"))
+        _conn.execute(text("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS no_show_detected_at TIMESTAMP WITH TIME ZONE"))
         
         # Ensure Google OAuth columns exist on consultant_profiles
         _conn.execute(text("ALTER TABLE consultant_profiles ADD COLUMN IF NOT EXISTS google_access_token VARCHAR(500)"))
