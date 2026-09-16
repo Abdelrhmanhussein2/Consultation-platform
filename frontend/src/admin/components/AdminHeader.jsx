@@ -1,33 +1,45 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { notificationService } from '../../services/notificationService';
+import NotificationDropdown from '../../components/UserPortal/NotificationDropdown';
 import {
   IconSearch,
   IconSparkles,
-  IconBookmark,
-  IconCalendar,
-  IconMessage,
-  IconNotifications
+  IconNotifications,
+  SidebarToggleIcon
 } from './AdminIcons';
 
-export default function AdminHeader({ navigate, onOpenAiModal }) {
-  const { token } = useAuth();
+export default function AdminHeader({ navigate, onOpenAiModal, isSidebarCollapsed, toggleSidebar }) {
+  const { token, user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const notifRef = useRef(null);
 
   useEffect(() => {
-    const fetchUnread = async () => {
+    if (!token) return;
+
+    const fetchNotifs = async () => {
       try {
-        const res = await notificationService.getUnreadCount(token);
-        if (res && typeof res.unread_count === 'number') {
-          setUnreadCount(res.unread_count);
+        const [cntData, notifData] = await Promise.all([
+          notificationService.getUnreadCount(token),
+          notificationService.getMyNotifications(token)
+        ]);
+
+        if (cntData && typeof cntData.unread_count === 'number') {
+          setUnreadCount(cntData.unread_count);
+        }
+        if (Array.isArray(notifData)) {
+          setNotifications(notifData);
         }
       } catch (e) {}
     };
 
-    fetchUnread();
-    const interval = setInterval(fetchUnread, 3000);
-    const onFocus = () => fetchUnread();
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 3000);
+    const onFocus = () => fetchNotifs();
     window.addEventListener('focus', onFocus);
     return () => {
       clearInterval(interval);
@@ -35,35 +47,71 @@ export default function AdminHeader({ navigate, onOpenAiModal }) {
     };
   }, [token]);
 
+  // Click outside handler for notification dropdown
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleMarkAllRead = async (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    setUnreadCount(0);
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    try {
+      if (token) {
+        await notificationService.markAllAsRead(token);
+      }
+    } catch (err) {}
+  };
+
+  const handleNotificationClick = async (notif) => {
+    if (!notif) return;
+    if (!notif.is_read) {
+      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      if (token) {
+        try {
+          await notificationService.markAsRead(notif.id, token);
+        } catch (err) {}
+      }
+    }
+    setShowNotifications(false);
+    navigate('/admin/notifications');
+  };
+
+  const firstLetter = user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'م';
+
   return (
     <header className="admin-topbar">
-      {/* 
-        In RTL layout:
-        flex-direction is row (Right side is start, Left side is end).
-        Right side: Profile Avatar, Badges, Icons, Search Bar.
-        Left side: 'اسأل ديوان AI' Button & Exit/Back Arrow.
-      */}
       <div className="admin-topbar-right-group">
+        {/* Sidebar Toggle Button - Immediately next to sidebar */}
+        {toggleSidebar && (
+          <button
+            className="sidebar-toggle-btn-header"
+            onClick={toggleSidebar}
+            title={isSidebarCollapsed ? 'توسيع القائمة الجانبية' : 'طي القائمة الجانبية'}
+          >
+            <SidebarToggleIcon size={20} color="#005D9C" />
+          </button>
+        )}
+
         {/* Profile Avatar & Name */}
         <button 
           className="admin-profile-dropdown-btn"
           onClick={() => navigate('/admin/settings')}
         >
           <div className="admin-avatar-circle">
-            م
+            {firstLetter}
           </div>
           <div className="admin-profile-info">
-            <div className="admin-profile-name">مدير المنصة</div>
+            <div className="admin-profile-name">{user?.full_name || 'مدير المنصة'}</div>
             <div className="admin-profile-sub">حسابك الشخصي</div>
           </div>
-        </button>
-
-        {/* Window icon */}
-        <button className="admin-icon-btn-minimal" title="توسيع العرض">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect width="18" height="18" x="3" y="3" rx="2" />
-            <path d="M9 3v18" />
-          </svg>
         </button>
 
         {/* Role Pill Badge */}
@@ -71,28 +119,31 @@ export default function AdminHeader({ navigate, onOpenAiModal }) {
           مدير المنصة
         </div>
 
-        {/* Notification Bell with Dynamic Unread Badge */}
-        <button className="admin-icon-btn-minimal" title="الإشعارات" onClick={() => navigate('/admin/notifications')}>
-          <IconNotifications size={16} />
-          {unreadCount > 0 && <span className="admin-bell-badge">{unreadCount}</span>}
-        </button>
+        {/* Notification Bell Dropdown Container */}
+        <div className="notification-container" ref={notifRef} style={{ position: 'relative' }}>
+          <button 
+            className="admin-icon-btn-minimal" 
+            title="الإشعارات والتنبيهات" 
+            onClick={() => setShowNotifications(!showNotifications)}
+          >
+            <IconNotifications size={16} />
+            {unreadCount > 0 && <span className="admin-bell-badge">{unreadCount}</span>}
+          </button>
 
-        {/* Messages */}
-        <button className="admin-icon-btn-minimal" title="المحادثات" onClick={() => navigate('/admin/chats')}>
-          <IconMessage size={16} />
-        </button>
-
-        {/* Calendar */}
-        <button className="admin-icon-btn-minimal" title="المواعيد والتقويم" onClick={() => navigate('/admin/sessions')}>
-          <IconCalendar size={16} />
-        </button>
-
-        {/* Heart / Bookmark */}
-        <button className="admin-icon-btn-minimal" title="المفضلة">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-          </svg>
-        </button>
+          {showNotifications && (
+            <NotificationDropdown
+              notifications={notifications}
+              unreadCount={unreadCount}
+              onMarkAllRead={handleMarkAllRead}
+              onItemClick={handleNotificationClick}
+              onViewAll={() => {
+                setShowNotifications(false);
+                navigate('/admin/notifications');
+              }}
+              onClose={() => setShowNotifications(false)}
+            />
+          )}
+        </div>
 
         {/* Search Bar with ⌘K badge */}
         <div className="admin-search-wrapper">

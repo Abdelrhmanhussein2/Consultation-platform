@@ -375,6 +375,8 @@ class ConsultantProfileOut(BaseModel):
     years_of_experience: Optional[int] = None
     certificates_licenses: Optional[str] = None
     price_per_hour: Optional[Decimal] = None
+    cover_image_url: Optional[str] = None
+    profile_image_url: Optional[str] = None
 
     class Config:
         from_attributes = True

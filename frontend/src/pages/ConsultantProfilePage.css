@@ -67,6 +67,55 @@
     linear-gradient(135deg, rgba(255, 255, 255, 0.045) 25%, transparent 25%) -12px 0/28px 28px,
     linear-gradient(135deg, transparent 75%, rgba(255, 255, 255, 0.045) 75%) -12px 0/28px 28px,
     linear-gradient(115deg, var(--admin-navy2) 0%, var(--admin-navy) 58%, var(--admin-navy3) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Cover Image Edit Button */
+.consultant-profile-shell .profile-cover-edit-btn {
+  position: absolute;
+  bottom: 12px;
+  left: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+
+.consultant-profile-shell .profile-cover-edit-btn:hover {
+  background: rgba(0, 0, 0, 0.65);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: translateY(-1px);
+}
+
+/* Avatar Hover Camera Overlay */
+.consultant-profile-shell .profile-avatar-editable {
+  cursor: pointer;
+}
+
+.consultant-profile-shell .profile-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.consultant-profile-shell .profile-avatar-editable:hover .profile-avatar-overlay {
+  opacity: 1;
 }
 
 .consultant-profile-shell .profile-top-info {

@@ -4,7 +4,7 @@ import { apiFetch } from '../../services/api';
 import { notificationService } from '../../services/notificationService';
 import NotificationDropdown from './NotificationDropdown';
 import UserProfileDropdown from './UserProfileDropdown';
-import { SearchIcon, BellIcon, AiIcon, SidebarToggleIcon } from './Icons';
+import { BellIcon, SidebarToggleIcon } from './Icons';
 import './UserHeader.css';
 
 export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar }) {
@@ -13,7 +13,7 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
+
   const [activeSub, setActiveSub] = useState(null);
 
   const notifRef = useRef(null);
@@ -211,12 +211,7 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
     }
   };
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/regulations?query=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
+
 
   const getEntityLabel = (type) => {
     switch (type) {
@@ -230,7 +225,8 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
 
   return (
     <header className="portal-header">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: '0 1 480px' }}>
+      {/* Right group: Sidebar Toggle + Profile + Notifications */}
+      <div className="portal-header-right-group">
         {/* Clean Sidebar Toggle Button [||] */}
         <button
           className="sidebar-toggle-btn-header"
@@ -239,61 +235,6 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
         >
           <SidebarToggleIcon size={20} color="#005D9C" />
         </button>
-
-        {/* Search Bar */}
-        <form className="header-search" onSubmit={handleSearchSubmit} style={{ flex: 1 }}>
-          <div className="search-input-wrapper">
-            <span className="search-icon">
-              <SearchIcon size={16} color="#94A3B8" />
-            </span>
-            <input
-              type="text"
-              placeholder="ابحث في التشريعات أو اسأل المساعد الذكي..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </form>
-      </div>
-
-      {/* Action Buttons & User Badge */}
-      <div className="header-actions">
-
-        {/* Subscription Pill */}
-        {activeSub && activeSub.has_subscription && (
-          <div 
-            className={`sub-pill ${activeSub.remaining_days <= 7 ? 'expiring' : ''}`}
-            onClick={() => navigate('/subscriptions')}
-            style={{ cursor: 'pointer' }}
-            title="تفاصيل الاشتراك"
-          >
-            <span>{activeSub.plan_name}</span>
-            <span style={{ opacity: 0.6 }}>•</span>
-            <span>{activeSub.remaining_days} يوم متبقي</span>
-          </div>
-        )}
-
-        {/* Notifications */}
-        <div className="notification-container" ref={notifRef}>
-          <button
-            className="notification-bell-btn"
-            onClick={() => setShowNotifications(!showNotifications)}
-            title="الإشعارات"
-          >
-            <BellIcon size={19} color="#475569" />
-            {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
-          </button>
-
-          {showNotifications && (
-            <NotificationDropdown
-              notifications={notifications}
-              unreadCount={unreadCount}
-              onMarkAllRead={handleMarkAllRead}
-              onItemClick={handleNotificationClick}
-              onClose={() => setShowNotifications(false)}
-            />
-          )}
-        </div>
 
         {/* Profile Menu Badge */}
         <div className="user-profile-menu-container" ref={userMenuRef}>
@@ -327,7 +268,45 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
             />
           )}
         </div>
+
+        {/* Notifications */}
+        <div className="notification-container" ref={notifRef}>
+          <button
+            className="notification-bell-btn"
+            onClick={() => setShowNotifications(!showNotifications)}
+            title="الإشعارات"
+          >
+            <BellIcon size={19} color="#475569" />
+            {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
+          </button>
+
+          {showNotifications && (
+            <NotificationDropdown
+              notifications={notifications}
+              unreadCount={unreadCount}
+              onMarkAllRead={handleMarkAllRead}
+              onItemClick={handleNotificationClick}
+              onClose={() => setShowNotifications(false)}
+            />
+          )}
+        </div>
       </div>
+
+      {/* Left group: Subscription pill only */}
+      {activeSub && activeSub.has_subscription && (
+        <div className="portal-header-left-group">
+          <div 
+            className={`sub-pill ${activeSub.remaining_days <= 7 ? 'expiring' : ''}`}
+            onClick={() => navigate('/subscriptions')}
+            style={{ cursor: 'pointer' }}
+            title="تفاصيل الاشتراك"
+          >
+            <span>{activeSub.plan_name}</span>
+            <span style={{ opacity: 0.6 }}>•</span>
+            <span>{activeSub.remaining_days} يوم متبقي</span>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

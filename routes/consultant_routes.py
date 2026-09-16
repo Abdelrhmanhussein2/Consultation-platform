@@ -484,6 +484,61 @@ async def upload_proof_document(
     }
 
 
+@router.post(
+    "/me/cover-image",
+    status_code=status.HTTP_200_OK,
+    summary="Upload consultant cover/header image",
+)
+async def upload_cover_image(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_consultant),
+):
+    """
+    Uploads a cover/header background image for the consultant's profile page.
+    Accepts JPEG, PNG, WEBP up to 8MB. Stores in static/covers/ and updates
+    the consultant profile record with the new cover_image_url.
+    """
+    allowed_types = ["image/jpeg", "image/png", "image/webp", "image/jpg"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="الملف يجب أن يكون صورة (JPEG, PNG, WEBP)"
+        )
+
+    file_bytes = await file.read()
+    if len(file_bytes) > 8 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="حجم الصورة يجب أن لا يتجاوز 8 ميجابايت"
+        )
+
+    _, ext = os.path.splitext(file.filename or "")
+    if not ext:
+        ext = ".jpg"
+    ext = ext.lower()
+
+    os.makedirs(os.path.join("static", "covers"), exist_ok=True)
+    new_filename = f"cover_{uuid.uuid4().hex}{ext}"
+    filepath = os.path.join("static", "covers", new_filename)
+
+    with open(filepath, "wb") as f:
+        f.write(file_bytes)
+
+    cover_url = f"/static/covers/{new_filename}"
+
+    # Update consultant profile with new cover image URL
+    from models import ConsultantProfile
+    profile = db.query(ConsultantProfile).filter(
+        ConsultantProfile.user_id == current_user.id
+    ).first()
+    if profile:
+        profile.cover_image_url = cover_url
+        db.commit()
+
+    return {"cover_image_url": cover_url}
+
+
 # ─────────────────────────────────────────────────────────────────────
 # BANK ACCOUNTS, WALLET & PAYOUTS (PHASE 2)
 # ─────────────────────────────────────────────────────────────────────

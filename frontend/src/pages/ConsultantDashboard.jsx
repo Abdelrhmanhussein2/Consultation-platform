@@ -497,28 +497,18 @@ export default function ConsultantDashboard({ navigate }) {
     <div className="consultantDashboardRoot">
       <Toast {...toast} />
 
-      {/* 1. WELCOME BANNER */}
-      <div className="consultantWelcomeBanner">
-        <div className="welcomeBrandBlock">
-          <div className="welcomeIconBadge">i</div>
-          <div className="welcomeTextGroup">
-            <span className="eyebrow">Professional Consultant Hub</span>
-            <h1>لوحة المستشار — المعرفة الضريبية الأردنية في مكان واحد</h1>
-            <p>إدارة يومك المهني، طلبات الاستشارة، التقويم، التوفر، وتدقيق التشريعات الضريبية بسهولة.</p>
-          </div>
-        </div>
-
-        <div className="welcomeActionBlock">
-          <span className="badgeCertified">مستشار معتمد</span>
-          <button className="btnActionPrimary" onClick={() => handleNavigate('/consultant/sessions')}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-            جدول الجلسات والتوفر
-          </button>
+      {/* 1. WELCOME HEADER (MATCHING REFERENCE HTML & CLEAN DESIGN) */}
+      <div className="welcome" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '18px' }}>
+        <div>
+          <span className="eyebrow" style={{ color: '#F5A52A', fontSize: '13px', fontWeight: '800', display: 'block', marginBottom: '6px' }}>
+            لوحة المستشار
+          </span>
+          <h1 style={{ fontSize: '28px', lineHeight: '1.35', margin: 0, fontWeight: '800', color: '#0D3C5C', letterSpacing: '-0.5px' }}>
+            المعرفة الضريبية الأردنية في مكان واحد
+          </h1>
+          <p style={{ margin: '6px 0 0', color: '#64748B', fontSize: '13.5px' }}>
+            إدارة يومك المهني، طلبات الاستشارة، التقويم، التوفر، وتدقيق التشريعات الضريبية بسهولة.
+          </p>
         </div>
       </div>
 

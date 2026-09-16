@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function NotificationDropdown({ notifications, unreadCount, onMarkAllRead, onItemClick, onClose }) {
+export default function NotificationDropdown({ notifications, unreadCount, onMarkAllRead, onItemClick, onViewAll, onClose }) {
   return (
     <div className="notif-dropdown">
       <div className="notif-header">
@@ -19,7 +19,7 @@ export default function NotificationDropdown({ notifications, unreadCount, onMar
         )}
       </div>
       <div className="notif-list">
-        {notifications.length > 0 ? (
+        {notifications && notifications.length > 0 ? (
           notifications.slice(0, 8).map((item) => (
             <div
               key={item.id}
@@ -52,6 +52,32 @@ export default function NotificationDropdown({ notifications, unreadCount, onMar
           <div className="notif-empty">لا توجد إشعارات حالياً</div>
         )}
       </div>
+      {onViewAll && (
+        <div style={{
+          padding: '10px 16px',
+          textAlign: 'center',
+          borderTop: '1px solid #E2E8F0',
+          background: '#F8FAFC'
+        }}>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewAll();
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#005D9C',
+              fontWeight: '700',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}
+          >
+            عرض جميع الإشعارات ←
+          </button>
+        </div>
+      )}
     </div>
   );
 }

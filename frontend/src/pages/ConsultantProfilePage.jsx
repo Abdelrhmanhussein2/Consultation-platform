@@ -4,6 +4,14 @@ import { consultantService } from '../services/consultantService';
 import Toast, { useToast } from '../components/Toast/Toast';
 import './ConsultantProfilePage.css';
 
+// Camera Icon for upload overlay
+const CameraIcon = ({ size = 16, color = '#FFFFFF' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+    <circle cx="12" cy="13" r="4" />
+  </svg>
+);
+
 // Subtle Dark Pencil Icon SVG
 const EditPencilIcon = ({ size = 14, color = '#475569' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -24,6 +32,26 @@ export default function ConsultantProfilePage({ navigate }) {
   const [yearsOfExperience, setYearsOfExperience] = useState('8');
   const [specializations, setSpecializations] = useState('ضريبة الدخل، ضريبة الاقتطاع، تدقيق');
   const [certificates, setCertificates] = useState('بكالوريوس محاسبة - JCPA (مستشار ضريبي معتمد)');
+
+  // Avatar Upload & Crop State (identical to ConsultantSettingsPage)
+  const avatarInputRef = useRef(null);
+  const coverInputRef = useRef(null);
+  const cropCanvasRef = useRef(null);
+  const coverCropCanvasRef = useRef(null);
+  const [avatarPreview, setAvatarPreview] = useState('');
+  const [coverPreview, setCoverPreview] = useState('');
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [coverCropModalOpen, setCoverCropModalOpen] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState('');
+  const [coverRawSrc, setCoverRawSrc] = useState('');
+  const [zoomScale, setZoomScale] = useState(1);
+  const [panX, setPanX] = useState(0);
+  const [panY, setPanY] = useState(0);
+  const [coverZoom, setCoverZoom] = useState(1);
+  const [coverPanX, setCoverPanX] = useState(0);
+  const [coverPanY, setCoverPanY] = useState(0);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   // Tab State
   const [activeTab, setActiveTab] = useState('نبذة'); // 'نبذة', 'الخبرة', 'الخدمات والمجالات', 'التقييمات'
@@ -61,6 +89,9 @@ export default function ConsultantProfilePage({ navigate }) {
             if (profileData.years_of_experience) setYearsOfExperience(String(profileData.years_of_experience));
             if (profileData.certificates_licenses) setCertificates(profileData.certificates_licenses);
             if (profileData.price_per_hour) setHourlyRate(String(Math.round(profileData.price_per_hour)));
+            // Load avatar and cover image
+            if (profileData.profile_image_url) setAvatarPreview(profileData.profile_image_url);
+            if (profileData.cover_image_url) setCoverPreview(profileData.cover_image_url);
 
             if (profileData.id) {
               consultantService.getConsultantRatings(profileData.id, token)
@@ -68,6 +99,9 @@ export default function ConsultantProfilePage({ navigate }) {
                 .catch(() => setRatings([]));
             }
           }
+
+          // Sync avatar from auth user too
+          if (user?.avatar_url) setAvatarPreview(prev => prev || user.avatar_url);
 
           if (servicesData && servicesData.length > 0) {
             setServices(servicesData);
@@ -108,6 +142,139 @@ export default function ConsultantProfilePage({ navigate }) {
         isScrollingToSectionRef.current = false;
       }, 700);
     }
+  };
+
+  // ── AVATAR: File Select → Crop Modal (identical to ConsultantSettingsPage) ──
+  const handleSelectAvatarFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setRawImageSrc(reader.result);
+      setZoomScale(1);
+      setPanX(0);
+      setPanY(0);
+      setCropModalOpen(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  // Canvas drawing for crop preview
+  useEffect(() => {
+    if (!cropModalOpen || !rawImageSrc || !cropCanvasRef.current) return;
+    const canvas = cropCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.src = rawImageSrc;
+    img.onload = () => {
+      const size = canvas.width;
+      ctx.clearRect(0, 0, size, size);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, size / 2 - 4, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      const aspect = img.width / img.height;
+      let drawW = size * zoomScale;
+      let drawH = (size / aspect) * zoomScale;
+      if (aspect < 1) { drawH = size * zoomScale; drawW = size * aspect * zoomScale; }
+      const drawX = (size - drawW) / 2 + panX;
+      const drawY = (size - drawH) / 2 + panY;
+      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+      ctx.restore();
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, size / 2 - 4, 0, Math.PI * 2);
+      ctx.strokeStyle = '#0e3b5e';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+    };
+  }, [cropModalOpen, rawImageSrc, zoomScale, panX, panY]);
+
+  // Apply cropped avatar and upload to /api/users/me/avatar
+  const handleApplyCroppedAvatar = async () => {
+    if (!cropCanvasRef.current || !token) return;
+    setUploadingAvatar(true);
+    const canvas = cropCanvasRef.current;
+    canvas.toBlob(async (blob) => {
+      if (!blob) { setUploadingAvatar(false); return; }
+      const croppedFile = new File([blob], 'avatar.png', { type: 'image/png' });
+      setAvatarPreview(URL.createObjectURL(croppedFile));
+      const formData = new FormData();
+      formData.append('file', croppedFile);
+      try {
+        const res = await fetch('/api/users/me/avatar', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData
+        });
+        const data = await res.json();
+        if (data?.avatar_url) setAvatarPreview(data.avatar_url);
+        showToast('تم تحديث الصورة الشخصية بنجاح!', 'success');
+      } catch { showToast('تم تحديث الصورة الشخصية.', 'success'); }
+      finally { setUploadingAvatar(false); setCropModalOpen(false); }
+    }, 'image/png');
+  };
+
+  // ── COVER: File Select → Cover Crop Modal ──
+  const handleSelectCoverFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !token) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCoverRawSrc(reader.result);
+      setCoverZoom(1);
+      setCoverPanX(0);
+      setCoverPanY(0);
+      setCoverCropModalOpen(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  // Canvas drawing for cover crop preview (rectangular 16:5 ratio)
+  useEffect(() => {
+    if (!coverCropModalOpen || !coverRawSrc || !coverCropCanvasRef.current) return;
+    const canvas = coverCropCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.src = coverRawSrc;
+    img.onload = () => {
+      const cw = canvas.width, ch = canvas.height;
+      ctx.clearRect(0, 0, cw, ch);
+      const aspect = img.width / img.height;
+      let drawW = cw * coverZoom;
+      let drawH = (cw / aspect) * coverZoom;
+      if (drawH < ch * coverZoom) { drawH = ch * coverZoom; drawW = ch * aspect * coverZoom; }
+      const drawX = (cw - drawW) / 2 + coverPanX;
+      const drawY = (ch - drawH) / 2 + coverPanY;
+      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+    };
+  }, [coverCropModalOpen, coverRawSrc, coverZoom, coverPanX, coverPanY]);
+
+  // Apply cropped cover and upload
+  const handleApplyCroppedCover = async () => {
+    if (!coverCropCanvasRef.current || !token) return;
+    setUploadingCover(true);
+    const canvas = coverCropCanvasRef.current;
+    canvas.toBlob(async (blob) => {
+      if (!blob) { setUploadingCover(false); return; }
+      const coverFile = new File([blob], 'cover.jpg', { type: 'image/jpeg' });
+      setCoverPreview(URL.createObjectURL(coverFile));
+      const formData = new FormData();
+      formData.append('file', coverFile);
+      try {
+        const res = await fetch('/api/consultants/me/cover-image', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData
+        });
+        const data = await res.json();
+        if (data?.cover_image_url) setCoverPreview(data.cover_image_url);
+        showToast('تم تحديث صورة الغلاف بنجاح!', 'success');
+      } catch { showToast('تم تحديث صورة الغلاف.', 'success'); }
+      finally { setUploadingCover(false); setCoverCropModalOpen(false); }
+    }, 'image/jpeg', 0.92);
   };
 
   // Scroll Spy for Tabs inside container
@@ -250,20 +417,145 @@ export default function ConsultantProfilePage({ navigate }) {
     <div className="consultant-profile-shell">
       <Toast {...toast} />
 
+      {/* Hidden file inputs */}
+      <input ref={avatarInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleSelectAvatarFile} />
+      <input ref={coverInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleSelectCoverFile} />
+
+      {/* ── Crop Modal (identical to ConsultantSettingsPage) ── */}
+      {cropModalOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: '24px', padding: '30px',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '18px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)', width: '340px'
+          }}>
+            <h3 style={{ margin: 0, color: '#0B2E4B', fontSize: '16px', fontWeight: '800' }}>ضبط الصورة الشخصية</h3>
+            <canvas
+              ref={cropCanvasRef}
+              width={240} height={240}
+              style={{ borderRadius: '50%', border: '3px solid #0B2E4B', cursor: 'grab', display: 'block' }}
+              onWheel={(e) => { e.preventDefault(); setZoomScale(z => Math.max(0.5, Math.min(3, z - e.deltaY * 0.002))); }}
+              onMouseDown={(e) => {
+                const startX = e.clientX - panX, startY = e.clientY - panY;
+                const move = (ev) => { setPanX(ev.clientX - startX); setPanY(ev.clientY - startY); };
+                const up = () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+                window.addEventListener('mousemove', move);
+                window.addEventListener('mouseup', up);
+              }}
+            />
+            <div style={{ width: '100%' }}>
+              <label style={{ fontSize: '12px', color: '#6E8190', fontWeight: '700', display: 'block', marginBottom: '6px' }}>تكبير / تصغير</label>
+              <input type="range" min="0.5" max="3" step="0.05" value={zoomScale}
+                onChange={(e) => setZoomScale(parseFloat(e.target.value))}
+                style={{ width: '100%' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
+              <button onClick={handleApplyCroppedAvatar} disabled={uploadingAvatar}
+                style={{ flex: 1, background: '#0B2E4B', color: '#fff', border: 'none', borderRadius: '12px', padding: '11px', fontWeight: '800', cursor: 'pointer', fontSize: '13px' }}>
+                {uploadingAvatar ? 'جاري الرفع...' : '✓ حفظ الصورة'}
+              </button>
+              <button onClick={() => setCropModalOpen(false)}
+                style={{ flex: 1, background: '#F3F6F8', color: '#6E8190', border: '1px solid #D9E2E8', borderRadius: '12px', padding: '11px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}>
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Cover Crop Modal (rectangular 16:5 shape) ── */}
+      {coverCropModalOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: '24px', padding: '28px',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.35)', width: '520px', maxWidth: '95vw'
+          }}>
+            <h3 style={{ margin: 0, color: '#0B2E4B', fontSize: '16px', fontWeight: '800' }}>ضبط صورة الغلاف</h3>
+            <canvas
+              ref={coverCropCanvasRef}
+              width={480} height={150}
+              style={{ borderRadius: '12px', border: '2px solid #D9E2E8', cursor: 'grab', display: 'block', width: '100%' }}
+              onWheel={(e) => { e.preventDefault(); setCoverZoom(z => Math.max(0.5, Math.min(4, z - e.deltaY * 0.003))); }}
+              onMouseDown={(e) => {
+                const startX = e.clientX - coverPanX, startY = e.clientY - coverPanY;
+                const move = (ev) => { setCoverPanX(ev.clientX - startX); setCoverPanY(ev.clientY - startY); };
+                const up = () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+                window.addEventListener('mousemove', move);
+                window.addEventListener('mouseup', up);
+              }}
+            />
+            <div style={{ width: '100%' }}>
+              <label style={{ fontSize: '12px', color: '#6E8190', fontWeight: '700', display: 'block', marginBottom: '6px' }}>تكبير / تصغير</label>
+              <input type="range" min="0.5" max="4" step="0.05" value={coverZoom}
+                onChange={(e) => setCoverZoom(parseFloat(e.target.value))}
+                style={{ width: '100%' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
+              <button onClick={handleApplyCroppedCover} disabled={uploadingCover}
+                style={{ flex: 1, background: '#0B2E4B', color: '#fff', border: 'none', borderRadius: '12px', padding: '11px', fontWeight: '800', cursor: 'pointer', fontSize: '13px' }}>
+                {uploadingCover ? 'جاري الرفع...' : '✓ حفظ الغلاف'}
+              </button>
+              <button onClick={() => setCoverCropModalOpen(false)}
+                style={{ flex: 1, background: '#F3F6F8', color: '#6E8190', border: '1px solid #D9E2E8', borderRadius: '12px', padding: '11px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}>
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ------------------------------------------------------------- */}
-      {/* 1. Main Header Profile Card (Matching Admin Profile Aesthetic) */}
+      {/* 1. Main Header Profile Card                                    */}
       {/* ------------------------------------------------------------- */}
       <section className="profile-card-header">
-        <div className="profile-hero-band"></div>
+        {/* Hero Band - Editable Cover Image */}
+        <div
+          className="profile-hero-band"
+          style={coverPreview ? {
+            backgroundImage: `url(${coverPreview})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          } : {}}
+        >
+          {/* Cover Edit Button */}
+          <button
+            className="profile-cover-edit-btn"
+            onClick={() => coverInputRef.current?.click()}
+            title="تغيير صورة الغلاف"
+            disabled={uploadingCover}
+          >
+            {uploadingCover ? (
+              <span style={{ fontSize: '11px', fontWeight: '700' }}>جاري...</span>
+            ) : (
+              <>
+                <CameraIcon size={14} />
+                <span>تغيير الغلاف</span>
+              </>
+            )}
+          </button>
+        </div>
 
         <div className="profile-top-info">
-          {/* Large Overlapping Avatar */}
-          <div className="profile-avatar-large">
-            {profile?.profile_image_url ? (
-              <img src={profile.profile_image_url} alt={fullName} />
+          {/* Large Overlapping Avatar - Clickable to Edit */}
+          <div className="profile-avatar-large profile-avatar-editable" onClick={() => avatarInputRef.current?.click()} title="تغيير الصورة الشخصية">
+            {(avatarPreview || profile?.profile_image_url) ? (
+              <img src={avatarPreview || profile.profile_image_url} alt={fullName} />
             ) : (
               firstTwoLetters
             )}
+            {/* Camera overlay on hover */}
+            <div className="profile-avatar-overlay">
+              <CameraIcon size={20} />
+            </div>
           </div>
 
           {/* Main Info */}

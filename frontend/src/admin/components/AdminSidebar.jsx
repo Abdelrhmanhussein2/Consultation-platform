@@ -47,7 +47,7 @@ const ChevronIcon = ({ isOpen }) => (
   </svg>
 );
 
-export default function AdminSidebar({ currentPath, navigate, userRole = 'super_admin', permissions = [] }) {
+export default function AdminSidebar({ currentPath, navigate, userRole = 'super_admin', permissions = [], isCollapsed }) {
   const { logout } = useAuth();
   // ══════════════════════════════════════════════════════════════════════════
   // STREAMLINED & REORGANIZED MENU HIERARCHY
@@ -75,7 +75,7 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
     // 3. Accounts (Users & Consultants)
     {
       id: 'accounts',
-      label: 'المستخدمون والمستشارون',
+      label: 'المستخدمون',
       icon: IconUsers,
       defaultPath: '/admin/users',
       subItems: [
@@ -87,7 +87,7 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
     // 4. User Accounts & Login History (New Hub)
     {
       id: 'user_accounts_group',
-      label: 'إدارة الحسابات وسجل الدخول',
+      label: 'إدارة الحسابات',
       icon: IconSecurity,
       defaultPath: '/admin/user-accounts',
       subItems: [
@@ -100,7 +100,7 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
     // 4. RBAC Roles & Permissions
     {
       id: 'rbac_group',
-      label: 'الأدوار والصلاحيات (RBAC)',
+      label: 'الأدوار والصلاحيات',
       icon: IconRbac,
       defaultPath: '/admin/rbac',
       subItems: [
@@ -113,7 +113,7 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
     { id: 'calendar', label: 'إدارة المواعيد والتقويم', path: '/admin/calendar', icon: IconSessions },
 
     // 6. Sessions & Consultations
-    { id: 'sessions', label: 'سجل الحجوزات والجلسات', path: '/admin/sessions', icon: IconSessions },
+    { id: 'sessions', label: 'سجل الحجوزات', path: '/admin/sessions', icon: IconSessions },
 
     // 7. Financial & Subscriptions - Grouped
     {
@@ -132,7 +132,7 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
     // 8. AI & Knowledge - Grouped
     {
       id: 'ai_knowledge',
-      label: 'الذكاء الاصطناعي والمعرفة',
+      label: 'الذكاء الاصطناعي',
       icon: IconKnowledge,
       defaultPath: '/admin/knowledge',
       subItems: [
@@ -236,7 +236,7 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
   };
 
   return (
-    <aside className="portal-sidebar admin-sidebar">
+    <aside className={`portal-sidebar admin-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       {/* Platform White Logo Header */}
       <div className="sidebar-header">
         <div
@@ -244,25 +244,27 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
           onClick={() => navigate('/admin')}
           style={{
             cursor: 'pointer',
-            gap: '12px',
+            gap: isCollapsed ? '0' : '12px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'flex-start',
+            justifyContent: isCollapsed ? 'center' : 'flex-start',
             width: '100%'
           }}
         >
           <img
             src="/logo_white.png"
             alt="شعار منصة ديوان"
-            style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
+            style={{ height: isCollapsed ? '48px' : '68px', width: 'auto', objectFit: 'contain', transition: 'all 0.3s ease' }}
             onError={(e) => { e.target.src = '/logo.png'; }}
           />
-          <div className="brand-text-box">
-            <span className="brand-title">منصة ديوان</span>
-            <span className="brand-subtitle" style={{ color: '#F5A52A', fontWeight: '700' }}>
-              للاستشارات الضريبية
-            </span>
-          </div>
+          {!isCollapsed && (
+            <div className="brand-text-box">
+              <span className="brand-title">منصة ديوان</span>
+              <span className="brand-subtitle" style={{ color: '#F5A52A', fontWeight: '700' }}>
+                للاستشارات الضريبية
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -287,24 +289,46 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
               <div key={item.id} className="support-accordion-group" style={{ width: '100%' }}>
                 <button
                   type="button"
-                  onClick={(e) => handleGroupClick(e, item)}
+                  onClick={(e) => {
+                    if (isCollapsed) {
+                      navigate(item.defaultPath || item.subItems[0].path);
+                    } else {
+                      handleGroupClick(e, item);
+                    }
+                  }}
                   className={`nav-item ${isAnySubActive ? 'active' : ''}`}
                   title={item.label}
-                  style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', gap: '6px' }}
+                  style={{
+                    display: 'flex',
+                    width: '100%',
+                    alignItems: 'center',
+                    justifyContent: isCollapsed ? 'center' : 'space-between',
+                    padding: isCollapsed ? '10px 0' : '7px 10px',
+                    gap: isCollapsed ? '0' : '6px'
+                  }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: isCollapsed ? 'center' : 'flex-start',
+                    gap: isCollapsed ? '0' : '8px',
+                    flex: isCollapsed ? 'none' : 1,
+                    minWidth: 0
+                  }}>
                     <span className="nav-icon" style={{ flexShrink: 0 }}>
                       <Icon size={18} color={isAnySubActive ? '#FFFFFF' : '#CBD5E1'} />
                     </span>
-                    <span className="nav-label" style={{ fontSize: '12px', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {item.label}
-                    </span>
+                    {!isCollapsed && (
+                      <span className="nav-label" style={{ fontSize: '12px', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {item.label}
+                      </span>
+                    )}
                   </div>
-                  <ChevronIcon isOpen={isGroupOpen} />
+                  {!isCollapsed && <ChevronIcon isOpen={isGroupOpen} />}
                 </button>
 
                 {/* Submenu list */}
-                {isGroupOpen && (
+                {isGroupOpen && !isCollapsed && (
                   <div className="sidebar-sub-nav" style={{ paddingRight: '36px', display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
                     {item.subItems.map(sub => {
                       const isSubActive = sub.id === activeSubId;
@@ -338,10 +362,11 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
                             width: '6px',
                             height: '6px',
                             borderRadius: '50%',
-                            background: isSubActive ? '#FFFFFF' : '#64748B',
+                            background: '#FFFFFF',
+                            opacity: isSubActive ? 1 : 0,
                             display: 'inline-block',
                             flexShrink: 0,
-                            transition: 'background 0.2s'
+                            transition: 'opacity 0.2s ease'
                           }} />
                           {sub.label}
                         </button>
@@ -362,13 +387,20 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
               onClick={(e) => handleItemClick(e, item.path)}
               className={`nav-item ${isActive ? 'active' : ''}`}
               title={item.label}
-              style={{ padding: '7px 10px', gap: '8px' }}
+              style={{
+                display: 'flex',
+                width: '100%',
+                alignItems: 'center',
+                justifyContent: isCollapsed ? 'center' : 'flex-start',
+                padding: isCollapsed ? '10px 0' : '7px 10px',
+                gap: isCollapsed ? '0' : '8px'
+              }}
             >
               <span className="nav-icon" style={{ flexShrink: 0 }}>
                 <Icon size={18} color={isActive ? '#FFFFFF' : '#CBD5E1'} />
               </span>
-              <span className="nav-label" style={{ fontSize: '12px', fontWeight: '600' }}>{item.label}</span>
-              {item.badge && <span className="admin-nav-badge">{item.badge}</span>}
+              {!isCollapsed && <span className="nav-label" style={{ fontSize: '12px', fontWeight: '600' }}>{item.label}</span>}
+              {!isCollapsed && item.badge && <span className="admin-nav-badge">{item.badge}</span>}
             </button>
           );
         })}
@@ -381,6 +413,14 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
           className="nav-item logout-nav-item"
           onClick={handleLogout}
           title="تسجيل الخروج"
+          style={{
+            display: 'flex',
+            width: '100%',
+            alignItems: 'center',
+            justifyContent: isCollapsed ? 'center' : 'flex-start',
+            padding: isCollapsed ? '10px 0' : '7px 10px',
+            gap: isCollapsed ? '0' : '8px'
+          }}
         >
           <span className="nav-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -389,7 +429,7 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
               <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
           </span>
-          <span className="nav-label" style={{ color: '#F87171' }}>تسجيل الخروج</span>
+          {!isCollapsed && <span className="nav-label" style={{ color: '#F87171' }}>تسجيل الخروج</span>}
         </button>
       </div>
     </aside>

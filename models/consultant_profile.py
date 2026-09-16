@@ -23,7 +23,8 @@ class ConsultantProfile(Base):
     years_of_experience = Column(Integer, nullable=True)
     certificates_licenses = Column(Text, nullable=True)
     price_per_hour = Column(Numeric(10, 2), nullable=True)
-    
+    cover_image_url = Column(String(500), nullable=True)
+
     # Google OAuth fields
     google_access_token = Column(String(500), nullable=True)
     google_refresh_token = Column(String(500), nullable=True)

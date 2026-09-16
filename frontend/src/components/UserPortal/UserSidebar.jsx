@@ -257,7 +257,7 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
           <img
             src="/logo_white.png"
             alt="شعار منصة ديوان"
-            style={{ height: isCollapsed ? '28px' : '36px', width: 'auto', objectFit: 'contain' }}
+            style={{ height: isCollapsed ? '48px' : '68px', width: 'auto', objectFit: 'contain', transition: 'all 0.3s ease' }}
             onError={(e) => { e.target.src = '/logo.png'; }}
           />
           {!isCollapsed && (
@@ -302,9 +302,21 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
                     }
                   }}
                   title={item.label}
-                  style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between' }}
+                  style={{
+                    display: 'flex',
+                    width: '100%',
+                    alignItems: 'center',
+                    justifyContent: isCollapsed ? 'center' : 'space-between',
+                    padding: isCollapsed ? '10px 0' : '7px 10px'
+                  }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: isCollapsed ? 'center' : 'flex-start',
+                    gap: isCollapsed ? '0' : '10px',
+                    width: isCollapsed ? '100%' : 'auto'
+                  }}>
                     <span className="nav-icon">
                       <GroupIcon size={20} color={isGroupActive ? '#FFFFFF' : '#CBD5E1'} />
                     </span>
@@ -346,10 +358,11 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
                             width: '6px',
                             height: '6px',
                             borderRadius: '50%',
-                            background: isSubActive ? '#FFFFFF' : '#64748B',
+                            background: '#FFFFFF',
+                            opacity: isSubActive ? 1 : 0,
                             display: 'inline-block',
                             flexShrink: 0,
-                            transition: 'background 0.2s'
+                            transition: 'opacity 0.2s ease'
                           }} />
                           {subItem.label}
                         </button>
@@ -376,9 +389,21 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
                     }
                   }}
                   title="الدعم والمساعدة"
-                  style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between' }}
+                  style={{
+                    display: 'flex',
+                    width: '100%',
+                    alignItems: 'center',
+                    justifyContent: isCollapsed ? 'center' : 'space-between',
+                    padding: isCollapsed ? '10px 0' : '7px 10px'
+                  }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: isCollapsed ? 'center' : 'flex-start',
+                    gap: isCollapsed ? '0' : '10px',
+                    width: isCollapsed ? '100%' : 'auto'
+                  }}>
                     <span className="nav-icon">
                       <TicketsIcon size={20} color={isSupportActive ? '#FFFFFF' : '#CBD5E1'} />
                     </span>
@@ -424,10 +449,11 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
                             width: '6px',
                             height: '6px',
                             borderRadius: '50%',
-                            background: isSubActive ? '#FFFFFF' : '#64748B',
+                            background: '#FFFFFF',
+                            opacity: isSubActive ? 1 : 0,
                             display: 'inline-block',
                             flexShrink: 0,
-                            transition: 'background 0.2s'
+                            transition: 'opacity 0.2s ease'
                           }} />
                           {subItem.label}
                         </button>
@@ -447,6 +473,14 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
               className={`nav-item ${isActive ? 'active' : ''}`}
               onClick={() => navigate(item.path)}
               title={item.label}
+              style={{
+                display: 'flex',
+                width: '100%',
+                alignItems: 'center',
+                justifyContent: isCollapsed ? 'center' : 'flex-start',
+                padding: isCollapsed ? '10px 0' : '7px 10px',
+                gap: isCollapsed ? '0' : '8px'
+              }}
             >
               <span className="nav-icon">
                 <IconComponent size={20} color={isActive ? '#FFFFFF' : '#CBD5E1'} />
@@ -463,6 +497,14 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
           className="nav-item logout-nav-item"
           onClick={handleLogout}
           title="تسجيل الخروج"
+          style={{
+            display: 'flex',
+            width: '100%',
+            alignItems: 'center',
+            justifyContent: isCollapsed ? 'center' : 'flex-start',
+            padding: isCollapsed ? '10px 0' : '7px 10px',
+            gap: isCollapsed ? '0' : '8px'
+          }}
         >
           <span className="nav-icon">
             <LogoutIcon size={20} color="#F87171" />

@@ -241,8 +241,9 @@
   padding: 0 32px;
   position: sticky;
   top: 0;
-  z-index: 90;
+  z-index: 500;
   box-shadow: var(--portal-shadow-sm);
+  overflow: visible;
 }
 
 .header-search {
@@ -287,6 +288,29 @@
   gap: 20px;
 }
 
+/* Unified RTL Header Layout Groups */
+.portal-header-right-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 0 0 auto;
+  position: relative;
+  overflow: visible;
+}
+
+.portal-header-left-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.portal-header-left-group .header-search {
+  flex: 0 1 420px;
+}
+
 /* Quick AI Ask Button */
 .ask-ai-quick-btn {
   background: linear-gradient(135deg, var(--accent-gold), #E0921B);
@@ -312,6 +336,7 @@
 /* Notifications Button & Dropdown */
 .notification-container {
   position: relative;
+  overflow: visible;
 }
 
 .notification-bell-btn {
@@ -338,7 +363,7 @@
 .notif-badge {
   position: absolute;
   top: 2px;
-  left: 2px;
+  right: 2px;
   background: #EF4444;
   color: #FFFFFF;
   font-size: 10px;
@@ -354,16 +379,18 @@
 
 .notif-dropdown {
   position: absolute;
-  left: 0;
-  top: 50px;
-  width: 340px;
+  right: 0;
+  left: auto;
+  top: calc(100% + 10px);
+  width: 390px;
   background: #FFFFFF;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
   border: 1px solid var(--border-color);
   overflow: hidden;
-  z-index: 200;
+  z-index: 9999;
   animation: dropIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top right;
 }
 
 @keyframes dropIn {
