@@ -16,7 +16,7 @@ const getServiceTypeInfo = (service) => {
       type: 'report',
       label: 'تقرير مكتوب',
       icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0A3254" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <polyline points="14 2 14 8 20 8" />
           <line x1="16" y1="13" x2="8" y2="13" />
@@ -32,7 +32,7 @@ const getServiceTypeInfo = (service) => {
       type: 'chat',
       label: 'جلسة محادثة',
       icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0A3254" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
       )
@@ -44,9 +44,9 @@ const getServiceTypeInfo = (service) => {
     type: 'video',
     label: 'جلسة فيديو',
     icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0A3254" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         <polygon points="23 7 16 12 23 17 23 7" />
-        <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+        <rect x="1" y="5" width="15" height="14" rx="2.5" ry="2.5" />
       </svg>
     )
   };
@@ -59,7 +59,7 @@ const getPricingTiers = (service) => {
     return meta.tiers.map((t) => ({
       duration: t.duration,
       price: t.price,
-      text: t.duration > 0 ? `${t.duration} دقيقة • ${t.price} د.أ` : `${t.price} د.أ`
+      text: t.duration > 0 ? `${t.duration} دقيقة – ${t.price} د.أ` : `${t.price} د.أ`
     }));
   }
 
@@ -76,7 +76,7 @@ const getPricingTiers = (service) => {
     return [{ duration: 0, price: pr, text: `${pr} د.أ` }];
   }
 
-  return [{ duration: dur, price: pr, text: `${dur} دقيقة • ${pr} د.أ` }];
+  return [{ duration: dur, price: pr, text: `${dur} دقيقة – ${pr} د.أ` }];
 };
 
 // Initial default services
@@ -85,7 +85,7 @@ const DEFAULT_DEMO_SERVICES = [
     id: 'demo-1',
     name: 'استشارة ضريبية شاملة',
     service_type: 'video',
-    description: 'مراجعة كاملة للوضع الضريبي وتحديد الالتزامات والمخاطر',
+    description: 'مراجعة كاملة للوضع الضريبي وتحديد الإلتزامات والمخاطر',
     price: 80,
     duration_minutes: 60,
     is_active: true,
@@ -161,11 +161,9 @@ export default function ConsultantServicesPage({ navigate }) {
     service_type: 'video', // 'video', 'chat', 'report'
     description: '',
     tiers: [
-      { duration: 30, price: 45 },
-      { duration: 60, price: 80 },
-      { duration: 90, price: 120 }
+      { duration: '', price: '' }
     ],
-    single_price: 200
+    single_price: ''
   });
 
   // Load Initial Page Data from Backend API / Database
@@ -215,11 +213,9 @@ export default function ConsultantServicesPage({ navigate }) {
       service_type: 'video',
       description: '',
       tiers: [
-        { duration: 30, price: 45 },
-        { duration: 60, price: 80 },
-        { duration: 90, price: 120 }
+        { duration: '', price: '' }
       ],
-      single_price: 200
+      single_price: ''
     });
     setIsModalOpen(true);
   };
@@ -268,7 +264,7 @@ export default function ConsultantServicesPage({ navigate }) {
   const handleAddTier = () => {
     setFormData((prev) => ({
       ...prev,
-      tiers: [...prev.tiers, { duration: 60, price: 80 }]
+      tiers: [...prev.tiers, { duration: '', price: '' }]
     }));
   };
 
@@ -282,7 +278,7 @@ export default function ConsultantServicesPage({ navigate }) {
   const handleUpdateTier = (idx, field, val) => {
     setFormData((prev) => ({
       ...prev,
-      tiers: prev.tiers.map((t, i) => (i === idx ? { ...t, [field]: Number(val) || '' } : t))
+      tiers: prev.tiers.map((t, i) => (i === idx ? { ...t, [field]: val === '' ? '' : (Number(val) || val) } : t))
     }));
   };
 
@@ -459,37 +455,37 @@ export default function ConsultantServicesPage({ navigate }) {
           marginBottom: '28px'
         }}
       >
-        {/* Child 1 (RIGHT in RTL): Title & Subtitle + Orange Square Icon */}
+        {/* Child 1 (RIGHT in RTL): Title & Subtitle + Orange Calendar Icon */}
         <div style={{ textAlign: 'right' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
-            {/* Yellow/Orange Square Icon (Far Right) */}
-            <div
-              style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '6px',
-                border: '2.5px solid #F59E0B',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: 'transparent',
-                flexShrink: 0
-              }}
+            {/* Orange Calendar with Clock Icon (Far Right in RTL) */}
+            <svg
+              width="36"
+              height="36"
+              viewBox="0 0 40 40"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{ flexShrink: 0 }}
             >
-              <div
-                style={{
-                  width: '10px',
-                  height: '10px',
-                  backgroundColor: '#F59E0B',
-                  borderRadius: '2px'
-                }}
-              />
-            </div>
+              {/* Calendar Body Outline */}
+              <rect x="6" y="8" width="28" height="28" rx="6" stroke="#F9A530" strokeWidth="2.6" fill="none" />
+              {/* Horizontal divider bar */}
+              <line x1="6" y1="15" x2="34" y2="15" stroke="#F9A530" strokeWidth="2.4" />
+              {/* Left Loop */}
+              <rect x="11" y="3.5" width="4" height="9" rx="2" stroke="#F9A530" strokeWidth="2.4" fill="#FFFFFF" />
+              {/* Right Loop */}
+              <rect x="25" y="3.5" width="4" height="9" rx="2" stroke="#F9A530" strokeWidth="2.4" fill="#FFFFFF" />
+              {/* Clock Circle at bottom-right corner */}
+              <circle cx="28" cy="28" r="9" fill="#FFFFFF" stroke="#F9A530" strokeWidth="2.6" />
+              {/* Clock Hands (L-shape: 12 to 3) */}
+              <path d="M28 23.5V28H32.5" stroke="#F9A530" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
 
-            {/* Title (to the left of icon) */}
+            {/* Title (to the left of icon in RTL) */}
             <h1
               style={{
-                fontSize: '28px',
+                fontFamily: "'Tajawal', sans-serif",
+                fontSize: '32px',
                 fontWeight: '800',
                 color: '#0A3254',
                 margin: 0,
@@ -558,74 +554,87 @@ export default function ConsultantServicesPage({ navigate }) {
           minHeight: '480px'
         }}
       >
-        {/* Top-Left View Mode Switcher */}
+        {/* Top-Right View Mode Switcher (Joined Segmented Control) */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-start',
-            direction: 'ltr',
-            gap: '8px',
-            marginBottom: '24px'
+            marginBottom: '20px'
           }}
         >
-          {/* Grid Icon Button (on the left) */}
-          <button
-            type="button"
-            onClick={() => setViewMode('grid')}
-            title="عرض شبكي"
+          <div
             style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '8px',
-              border: viewMode === 'grid' ? 'none' : '1px solid #CBD5E1',
-              backgroundColor: viewMode === 'grid' ? '#0A3254' : '#FFFFFF',
-              color: viewMode === 'grid' ? '#FFFFFF' : '#64748B',
-              cursor: 'pointer',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-              transition: 'all 0.15s ease'
+              borderRadius: '6px',
+              border: '1.5px solid #CBD5E1',
+              overflow: 'hidden',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
             }}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="7" height="7" rx="1.5" />
-              <rect x="14" y="3" width="7" height="7" rx="1.5" />
-              <rect x="14" y="14" width="7" height="7" rx="1.5" />
-              <rect x="3" y="14" width="7" height="7" rx="1.5" />
-            </svg>
-          </button>
+            {/* Grid Icon Button (Far Right in RTL) */}
+            <button
+              type="button"
+              onClick={() => setViewMode('grid')}
+              title="عرض شبكي"
+              style={{
+                width: '36px',
+                height: '32px',
+                border: 'none',
+                borderLeft: '1.5px solid #CBD5E1',
+                backgroundColor: viewMode === 'grid' ? '#0A3254' : '#FFFFFF',
+                color: viewMode === 'grid' ? '#FFFFFF' : '#64748B',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+                <rect x="1" y="1" width="3.5" height="3.5" rx="0.5" />
+                <rect x="6.25" y="1" width="3.5" height="3.5" rx="0.5" />
+                <rect x="11.5" y="1" width="3.5" height="3.5" rx="0.5" />
+                <rect x="1" y="6.25" width="3.5" height="3.5" rx="0.5" />
+                <rect x="6.25" y="6.25" width="3.5" height="3.5" rx="0.5" />
+                <rect x="11.5" y="6.25" width="3.5" height="3.5" rx="0.5" />
+                <rect x="1" y="11.5" width="3.5" height="3.5" rx="0.5" />
+                <rect x="6.25" y="11.5" width="3.5" height="3.5" rx="0.5" />
+                <rect x="11.5" y="11.5" width="3.5" height="3.5" rx="0.5" />
+              </svg>
+            </button>
 
-          {/* List Icon Button (on the right) */}
-          <button
-            type="button"
-            onClick={() => setViewMode('list')}
-            title="عرض قائمة"
-            style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '8px',
-              border: viewMode === 'list' ? 'none' : '1px solid #CBD5E1',
-              backgroundColor: viewMode === 'list' ? '#0A3254' : '#FFFFFF',
-              color: viewMode === 'list' ? '#FFFFFF' : '#64748B',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-              <line x1="9" y1="6" x2="21" y2="6" strokeLinecap="round" />
-              <line x1="9" y1="12" x2="21" y2="12" strokeLinecap="round" />
-              <line x1="9" y1="18" x2="21" y2="18" strokeLinecap="round" />
-              <circle cx="4" cy="6" r="1.5" fill="currentColor" />
-              <circle cx="4" cy="12" r="1.5" fill="currentColor" />
-              <circle cx="4" cy="18" r="1.5" fill="currentColor" />
-            </svg>
-          </button>
+            {/* List Icon Button (Left in RTL) */}
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              title="عرض قائمة"
+              style={{
+                width: '36px',
+                height: '32px',
+                border: 'none',
+                backgroundColor: viewMode === 'list' ? '#0A3254' : '#FFFFFF',
+                color: viewMode === 'list' ? '#FFFFFF' : '#F59E0B',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+                <circle cx="2.5" cy="3.5" r="1.2" />
+                <rect x="5.5" y="2.5" width="9" height="2" rx="1" />
+                <circle cx="2.5" cy="8" r="1.2" />
+                <rect x="5.5" y="7" width="9" height="2" rx="1" />
+                <circle cx="2.5" cy="12.5" r="1.2" />
+                <rect x="5.5" y="11.5" width="9" height="2" rx="1" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Loading Spinner */}
@@ -690,306 +699,356 @@ export default function ConsultantServicesPage({ navigate }) {
             </button>
           </div>
         ) : viewMode === 'grid' ? (
-          /* ── 3. Grid View (Matches Screenshot Exactly) ───────────────── */
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-              gap: '24px'
-            }}
-          >
-            {services.map((service) => {
-              const typeInfo = getServiceTypeInfo(service);
-              const pricingTiers = getPricingTiers(service);
-              const isToggling = toggleLoadingId === service.id;
+          /* ── 3. Grid View (Matches Screenshot Exactly: 4 Cards in 1 Row) ─── */
+          <>
+            <style>{`
+              .consultant-services-grid {
+                display: grid;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                gap: 14px;
+              }
+              @media (max-width: 960px) {
+                .consultant-services-grid {
+                  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                }
+              }
+              @media (max-width: 540px) {
+                .consultant-services-grid {
+                  grid-template-columns: 1fr !important;
+                }
+              }
+            `}</style>
+            <div className="consultant-services-grid">
+              {services.map((service) => {
+                const typeInfo = getServiceTypeInfo(service);
+                const pricingTiers = getPricingTiers(service);
+                const isToggling = toggleLoadingId === service.id;
 
-              return (
-                <div
-                  key={service.id}
-                  style={{
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: '14px',
-                    border: '1px solid #E2E8F0',
-                    padding: '22px 20px 18px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    minHeight: '270px',
-                    boxShadow: '0 2px 8px rgba(10, 50, 84, 0.03)',
-                    transition: 'all 0.2s ease',
-                    position: 'relative'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#CBD5E1';
-                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(10, 50, 84, 0.06)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = '#E2E8F0';
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(10, 50, 84, 0.03)';
-                  }}
-                >
-                  <div>
-                    {/* Top Row: Title & Icon on Right, Toggle Switch on Left */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        justifyContent: 'space-between',
-                        gap: '8px',
-                        marginBottom: '12px'
-                      }}
-                    >
-                      {/* Child 1 (RIGHT in RTL): Title Block + Golden Icon */}
+                return (
+                  <div
+                    key={service.id}
+                    style={{
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: '12px',
+                      border: '1px solid #E2E8F0',
+                      padding: '14px 12px 12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      minHeight: '210px',
+                      boxShadow: '0 1px 3px rgba(10, 50, 84, 0.04)',
+                      transition: 'all 0.2s ease',
+                      position: 'relative'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#CBD5E1';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(10, 50, 84, 0.08)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#E2E8F0';
+                      e.currentTarget.style.boxShadow = '0 1px 3px rgba(10, 50, 84, 0.04)';
+                    }}
+                  >
+                    <div>
+                      {/* Top Row: Title + Icon Group on Right, Toggle Switch on Left (in RTL) */}
                       <div
                         style={{
                           display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px'
+                          alignItems: 'flex-start',
+                          justifyContent: 'space-between',
+                          gap: '6px',
+                          marginBottom: '8px'
                         }}
                       >
-                        {/* Title & Subtitle */}
-                        <div style={{ textAlign: 'right' }}>
-                          <h3
+                        {/* Child 1 (RIGHT in RTL): Service Icon + Title & Type Pill */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '8px',
+                            minWidth: 0,
+                            flex: 1
+                          }}
+                        >
+                          {/* Amber / Orange Circular Badge (Far Right in RTL) */}
+                          <div
                             style={{
-                              fontSize: '15.5px',
-                              fontWeight: '800',
-                              color: '#0A3254',
-                              margin: '0 0 3px 0',
-                              lineHeight: 1.25
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '50%',
+                              backgroundColor: '#F5A52A',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
                             }}
                           >
-                            {service.name}
-                          </h3>
+                            {typeInfo.icon}
+                          </div>
+
+                          {/* Title & Type Pill Column */}
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'flex-start',
+                              gap: '3px',
+                              minWidth: 0,
+                              flex: 1
+                            }}
+                          >
+                            <h3
+                              style={{
+                                fontSize: '13px',
+                                fontWeight: '800',
+                                color: '#0A3254',
+                                margin: 0,
+                                lineHeight: 1.3,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                width: '100%'
+                              }}
+                              title={service.name}
+                            >
+                              {service.name}
+                            </h3>
+                            <div
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '1px 8px',
+                                backgroundColor: '#F8FAFC',
+                                border: '1px solid #E2E8F0',
+                                borderRadius: '999px',
+                                fontSize: '10px',
+                                color: '#64748B',
+                                fontWeight: '600'
+                              }}
+                            >
+                              {typeInfo.label}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Child 2 (LEFT in RTL): iOS-Style Pill Switch */}
+                        <button
+                          type="button"
+                          disabled={isToggling}
+                          onClick={() => handleToggleService(service.id, service.is_active)}
+                          title={service.is_active ? 'إيقاف التفعيل' : 'تفعيل الخدمة'}
+                          style={{
+                            width: '34px',
+                            height: '18px',
+                            borderRadius: '9px',
+                            backgroundColor: service.is_active ? '#0A3254' : '#CBD5E1',
+                            border: 'none',
+                            cursor: isToggling ? 'not-allowed' : 'pointer',
+                            position: 'relative',
+                            transition: 'all 0.2s ease',
+                            padding: 0,
+                            outline: 'none',
+                            opacity: isToggling ? 0.6 : 1,
+                            flexShrink: 0,
+                            marginTop: '2px'
+                          }}
+                        >
                           <span
                             style={{
-                              fontSize: '12px',
-                              color: '#94A3B8',
-                              fontWeight: '500',
-                              display: 'block'
+                              width: '14px',
+                              height: '14px',
+                              borderRadius: '50%',
+                              backgroundColor: '#FFFFFF',
+                              position: 'absolute',
+                              top: '2px',
+                              left: service.is_active ? '2px' : '18px',
+                              transition: 'left 0.2s ease',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
                             }}
-                          >
-                            {typeInfo.label}
-                          </span>
-                        </div>
-
-                        {/* Circular Golden / Amber Icon */}
-                        <div
-                          style={{
-                            width: '38px',
-                            height: '38px',
-                            borderRadius: '50%',
-                            backgroundColor: '#F59E0B',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#FFFFFF',
-                            flexShrink: 0,
-                            boxShadow: '0 2px 6px rgba(245, 158, 11, 0.25)'
-                          }}
-                        >
-                          {typeInfo.icon}
-                        </div>
+                          />
+                        </button>
                       </div>
 
-                      {/* Child 2 (LEFT in RTL): iOS-Style Pill Switch */}
-                      <button
-                        type="button"
-                        disabled={isToggling}
-                        onClick={() => handleToggleService(service.id, service.is_active)}
-                        title={service.is_active ? 'إيقاف التفعيل' : 'تفعيل الخدمة'}
+                      {/* Middle: Description */}
+                      <p
                         style={{
-                          width: '42px',
-                          height: '24px',
-                          borderRadius: '12px',
-                          backgroundColor: service.is_active ? '#0A3254' : '#CBD5E1',
-                          border: 'none',
-                          cursor: isToggling ? 'not-allowed' : 'pointer',
-                          position: 'relative',
-                          transition: 'background-color 0.25s ease',
-                          padding: 0,
-                          outline: 'none',
-                          opacity: isToggling ? 0.6 : 1,
-                          flexShrink: 0
+                          fontSize: '11px',
+                          color: '#64748B',
+                          lineHeight: '1.45',
+                          height: '32px',
+                          margin: '6px 0 8px 0',
+                          textAlign: 'right',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
                         }}
                       >
-                        <span
-                          style={{
-                            width: '18px',
-                            height: '18px',
-                            borderRadius: '50%',
-                            backgroundColor: '#FFFFFF',
-                            position: 'absolute',
-                            top: '3px',
-                            left: service.is_active ? '4px' : '20px',
-                            transition: 'left 0.25s ease',
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                          }}
-                        />
-                      </button>
+                        {getServiceCleanDescription(service)}
+                      </p>
                     </div>
 
-                    {/* Middle: Description */}
-                    <p
-                      style={{
-                        fontSize: '13px',
-                        color: '#64748B',
-                        lineHeight: '1.6',
-                        minHeight: '38px',
-                        margin: '14px 0 16px 0',
-                        textAlign: 'right',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
-                      }}
-                    >
-                      {getServiceCleanDescription(service)}
-                    </p>
-
-                    {/* Pricing & Duration Pills (Right-aligned in RTL) */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: '8px',
-                        marginBottom: '16px',
-                        justifyContent: 'flex-start'
-                      }}
-                    >
-                      {pricingTiers.map((tier, idx) => (
-                        <div
-                          key={idx}
-                          style={{
-                            backgroundColor: '#F1F5F9',
-                            border: 'none',
-                            borderRadius: '14px',
-                            padding: '6px 14px',
-                            fontSize: '12.5px',
-                            fontWeight: '700',
-                            color: '#0A3254',
-                            display: 'inline-flex',
-                            alignItems: 'center'
-                          }}
-                        >
-                          {tier.text}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Card Footer */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      paddingTop: '14px',
-                      borderTop: '1px solid #F1F5F9',
-                      marginTop: 'auto'
-                    }}
-                  >
-                    {/* Child 1 (RIGHT in RTL): Status Badge */}
-                    <span
-                      style={{
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        padding: '4px 14px',
-                        borderRadius: '12px',
-                        backgroundColor: service.is_active ? '#E6F7F0' : '#F1F5F9',
-                        color: service.is_active ? '#10B981' : '#64748B'
-                      }}
-                    >
-                      {service.is_active ? 'مفعلة' : 'معطلة'}
-                    </span>
-
-                    {/* Child 2 (LEFT in RTL): Action Icons in LTR order */}
+                    {/* Pricing & Duration Pills (Aligned to the RIGHT in RTL, at exact same vertical position) */}
                     <div
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '14px',
-                        direction: 'ltr'
+                        justifyContent: 'flex-start',
+                        flexWrap: 'nowrap',
+                        gap: '4px',
+                        marginTop: 'auto',
+                        marginBottom: '10px',
+                        width: '100%',
+                        boxSizing: 'border-box'
                       }}
                     >
-                      {/* View / Preview Icon (Eye) */}
-                      <button
-                        type="button"
-                        onClick={() => setViewingService(service)}
-                        title="معاينة تفاصيل الخدمة"
-                        style={{
-                          border: 'none',
-                          background: 'transparent',
-                          color: '#0A3254',
-                          cursor: 'pointer',
-                          padding: '2px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'transform 0.15s ease'
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.15)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A3254" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                          <circle cx="12" cy="12" r="3" />
-                        </svg>
-                      </button>
+                      {pricingTiers.map((tier, idx) => {
+                        const isMulti = pricingTiers.length > 2;
+                        return (
+                          <div
+                            key={idx}
+                            style={{
+                              backgroundColor: '#FFFFFF',
+                              border: '1px solid #CBD5E1',
+                              borderRadius: '999px',
+                              padding: isMulti ? '2px 4px' : '3px 10px',
+                              fontSize: isMulti ? '9px' : '10.5px',
+                              letterSpacing: isMulti ? '-0.2px' : 'normal',
+                              fontWeight: '600',
+                              color: '#475569',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              whiteSpace: 'nowrap',
+                              flex: isMulti ? '1 1 0' : '0 0 auto',
+                              minWidth: 0,
+                              textAlign: 'center'
+                            }}
+                          >
+                            {tier.text}
+                          </div>
+                        );
+                      })}
+                    </div>
 
-                      {/* Edit Icon (Pencil) */}
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEditModal(service)}
-                        title="تعديل الخدمة"
+                    {/* Card Footer */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        paddingTop: '8px',
+                        borderTop: '1px solid #F1F5F9'
+                      }}
+                    >
+                      {/* Child 1 (RIGHT in RTL): Action Icons (View, Pencil, Trash) */}
+                      <div
                         style={{
-                          border: 'none',
-                          background: 'transparent',
-                          color: '#0A3254',
-                          cursor: 'pointer',
-                          padding: '2px',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'transform 0.15s ease'
+                          gap: '8px'
                         }}
-                        onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.15)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.color = '#64748B')}
                       >
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0A3254" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-                        </svg>
-                      </button>
+                        {/* View / Preview Icon (Eye) - Far Right in RTL */}
+                        <button
+                          type="button"
+                          onClick={() => setViewingService(service)}
+                          title="معاينة تفاصيل الخدمة"
+                          style={{
+                            border: 'none',
+                            background: 'transparent',
+                            color: '#0A3254',
+                            cursor: 'pointer',
+                            padding: '2px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'transform 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.15)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0A3254" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                        </button>
 
-                      {/* Delete Icon (Trash) */}
-                      <button
-                        type="button"
-                        onClick={() => setDeleteModalService(service)}
-                        title="حذف الخدمة"
+                        {/* Edit Icon (Pencil) - Middle */}
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditModal(service)}
+                          title="تعديل الخدمة"
+                          style={{
+                            border: 'none',
+                            background: 'transparent',
+                            color: '#0A3254',
+                            cursor: 'pointer',
+                            padding: '2px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'transform 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.15)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A3254" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                        </button>
+
+                        {/* Delete Icon (Trash) - Left in RTL */}
+                        <button
+                          type="button"
+                          onClick={() => setDeleteModalService(service)}
+                          title="حذف الخدمة"
+                          style={{
+                            border: 'none',
+                            background: 'transparent',
+                            color: '#DC2626',
+                            cursor: 'pointer',
+                            padding: '2px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'transform 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.15)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      {/* Child 2 (LEFT in RTL): Status Pill Badge */}
+                      <span
                         style={{
-                          border: 'none',
-                          background: 'transparent',
-                          color: '#E11D48',
-                          cursor: 'pointer',
-                          padding: '2px',
-                          display: 'flex',
+                          fontSize: '11px',
+                          fontWeight: '700',
+                          padding: '2px 10px',
+                          borderRadius: '999px',
+                          backgroundColor: service.is_active ? '#DCFCE7' : '#F1F5F9',
+                          color: service.is_active ? '#166534' : '#64748B',
+                          display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          transition: 'transform 0.15s ease'
+                          transition: 'all 0.2s ease'
                         }}
-                        onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.15)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.color = '#E11D48')}
                       >
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E11D48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6" />
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        </svg>
-                      </button>
+                        {service.is_active ? 'مفعّلة' : 'معطّلة'}
+                      </span>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </>
         ) : (
           /* ── 4. List View (Matches Exact Table Screenshot) ───────── */
           <div style={{ width: '100%', overflowX: 'auto' }}>
@@ -1551,7 +1610,7 @@ export default function ConsultantServicesPage({ navigate }) {
         </div>
       )}
 
-      {/* ── 6. Modal: Add / Edit Service (Exact Match to User Reference Designs) ── */}
+      {/* ── 6. Modal: Add / Edit Service (Exact Match to User Reference Design) ── */}
       {isModalOpen && (
         <div
           style={{
@@ -1564,7 +1623,8 @@ export default function ConsultantServicesPage({ navigate }) {
             justifyContent: 'center',
             zIndex: 9999,
             padding: '20px',
-            fontFamily: "'Tajawal', sans-serif"
+            fontFamily: "'Tajawal', sans-serif",
+            direction: 'rtl'
           }}
           onClick={(e) => {
             if (e.target === e.currentTarget) handleCloseModal();
@@ -1573,13 +1633,15 @@ export default function ConsultantServicesPage({ navigate }) {
           <div
             style={{
               backgroundColor: '#FFFFFF',
-              borderRadius: '16px',
+              borderRadius: '24px',
               width: '100%',
-              maxWidth: '520px',
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
+              maxWidth: '440px',
+              boxShadow: '0 24px 60px rgba(10, 50, 84, 0.2)',
               overflow: 'hidden',
+              padding: '28px 24px 24px',
               animation: 'modalPop 0.22s ease-out',
-              fontFamily: "'Tajawal', sans-serif"
+              fontFamily: "'Tajawal', sans-serif",
+              boxSizing: 'border-box'
             }}
           >
             <style>{`@keyframes modalPop { from { transform: scale(0.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }`}</style>
@@ -1587,19 +1649,18 @@ export default function ConsultantServicesPage({ navigate }) {
             {/* Modal Header: Title on Right, Close ✕ on Left */}
             <div
               style={{
-                padding: '20px 24px',
-                borderBottom: '1px solid #F1F5F9',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between'
+                justifyContent: 'space-between',
+                marginBottom: '20px'
               }}
             >
-              {/* Child 1 (RIGHT in RTL): Title */}
+              {/* Right: Title */}
               <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#0A3254', fontFamily: "'Tajawal', sans-serif" }}>
-                {editingService ? 'تعديل الخدمة' : 'إضافة خدمة'}
+                {editingService ? 'تعديل الخدمة' : 'إضافة خدمة جديدة'}
               </h2>
 
-              {/* Child 2 (LEFT in RTL): Close button ✕ */}
+              {/* Left: Close button ✕ */}
               <button
                 type="button"
                 onClick={handleCloseModal}
@@ -1608,8 +1669,8 @@ export default function ConsultantServicesPage({ navigate }) {
                   background: 'transparent',
                   color: '#0A3254',
                   cursor: 'pointer',
-                  fontSize: '20px',
-                  fontWeight: '400',
+                  fontSize: '18px',
+                  fontWeight: '800',
                   lineHeight: 1,
                   padding: '4px',
                   fontFamily: "'Tajawal', sans-serif"
@@ -1619,18 +1680,18 @@ export default function ConsultantServicesPage({ navigate }) {
               </button>
             </div>
 
-            {/* Modal Body Form */}
-            <form onSubmit={handleSubmitForm} style={{ padding: '24px', fontFamily: "'Tajawal', sans-serif" }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            {/* Modal Form */}
+            <form onSubmit={handleSubmitForm} style={{ fontFamily: "'Tajawal', sans-serif" }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {/* Field 1: عنوان الخدمة */}
                 <div>
                   <label
                     style={{
                       display: 'block',
-                      fontSize: '13.5px',
+                      fontSize: '13px',
                       fontWeight: '800',
                       color: '#0A3254',
-                      marginBottom: '8px',
+                      marginBottom: '6px',
                       textAlign: 'right',
                       fontFamily: "'Tajawal', sans-serif"
                     }}
@@ -1640,15 +1701,17 @@ export default function ConsultantServicesPage({ navigate }) {
                   <input
                     type="text"
                     required
-                    placeholder="استشارة ضريبية شاملة"
+                    placeholder="ادخل عنوان الخدمة المقدّمة"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     style={{
                       width: '100%',
-                      padding: '12px 14px',
+                      height: '42px',
+                      padding: '0 14px',
                       borderRadius: '8px',
                       border: '1px solid #E2E8F0',
-                      fontSize: '14px',
+                      backgroundColor: '#F8FAFC',
+                      fontSize: '13.5px',
                       color: '#0A3254',
                       outline: 'none',
                       boxSizing: 'border-box',
@@ -1663,10 +1726,10 @@ export default function ConsultantServicesPage({ navigate }) {
                   <label
                     style={{
                       display: 'block',
-                      fontSize: '13.5px',
+                      fontSize: '13px',
                       fontWeight: '800',
                       color: '#0A3254',
-                      marginBottom: '8px',
+                      marginBottom: '6px',
                       textAlign: 'right',
                       fontFamily: "'Tajawal', sans-serif"
                     }}
@@ -1674,33 +1737,47 @@ export default function ConsultantServicesPage({ navigate }) {
                     الوصف
                   </label>
                   <textarea
-                    rows={4}
-                    placeholder="مراجعة كاملة للوضع الضريبي وتحديد الالتزامات والمخاطر"
+                    rows={3}
+                    maxLength={100}
+                    placeholder="وصف مختصر للخدمة"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     style={{
                       width: '100%',
-                      padding: '12px 14px',
+                      height: '75px',
+                      padding: '10px 14px',
                       borderRadius: '8px',
                       border: '1px solid #E2E8F0',
+                      backgroundColor: '#F8FAFC',
                       fontSize: '13.5px',
                       color: '#0A3254',
                       outline: 'none',
-                      resize: 'vertical',
+                      resize: 'none',
                       boxSizing: 'border-box',
                       textAlign: 'right',
                       fontFamily: "'Tajawal', sans-serif",
-                      lineHeight: '1.6'
+                      lineHeight: '1.5'
                     }}
                   />
+                  <div
+                    style={{
+                      fontSize: '11px',
+                      color: '#94A3B8',
+                      textAlign: 'left',
+                      marginTop: '4px',
+                      fontFamily: "'Tajawal', sans-serif"
+                    }}
+                  >
+                    100 / {formData.description ? formData.description.length : 0}
+                  </div>
                 </div>
 
-                {/* Field 3: نوع الجلسة (3 Buttons in a row: Right = Video, Middle = Chat, Left = Report) */}
+                {/* Field 3: نوع الجلسة */}
                 <div>
                   <label
                     style={{
                       display: 'block',
-                      fontSize: '13.5px',
+                      fontSize: '13px',
                       fontWeight: '800',
                       color: '#0A3254',
                       marginBottom: '8px',
@@ -1714,21 +1791,22 @@ export default function ConsultantServicesPage({ navigate }) {
                     style={{
                       display: 'grid',
                       gridTemplateColumns: 'repeat(3, 1fr)',
-                      gap: '10px'
+                      gap: '8px'
                     }}
                   >
-                    {/* Option 1 (RIGHT in RTL): جلسة فيديو */}
+                    {/* Option 1: جلسة فيديو */}
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, service_type: 'video' })}
                       style={{
-                        backgroundColor: '#FFFFFF',
+                        backgroundColor: formData.service_type === 'video' ? '#FFFFFF' : '#F8FAFC',
                         color: '#0A3254',
-                        border: formData.service_type === 'video' ? '2px solid #0A3254' : '1px solid #E2E8F0',
+                        border: formData.service_type === 'video' ? '1.5px solid #0A3254' : '1px solid #E2E8F0',
                         borderRadius: '8px',
-                        padding: '12px 6px',
-                        fontSize: '13px',
-                        fontWeight: formData.service_type === 'video' ? '800' : '600',
+                        height: '40px',
+                        padding: '0 8px',
+                        fontSize: '12.5px',
+                        fontWeight: formData.service_type === 'video' ? '800' : '700',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -1738,25 +1816,26 @@ export default function ConsultantServicesPage({ navigate }) {
                         fontFamily: "'Tajawal', sans-serif"
                       }}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polygon points="23 7 16 12 23 17 23 7" />
-                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#005D9C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="6" width="14" height="12" rx="2" />
+                        <path d="M16 10l5-3v10l-5-3" />
                       </svg>
                       <span>جلسة فيديو</span>
                     </button>
 
-                    {/* Option 2 (MIDDLE in RTL): جلسة محادثة */}
+                    {/* Option 2: جلسة محادثة */}
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, service_type: 'chat' })}
                       style={{
-                        backgroundColor: '#FFFFFF',
+                        backgroundColor: formData.service_type === 'chat' ? '#FFFFFF' : '#F8FAFC',
                         color: '#0A3254',
-                        border: formData.service_type === 'chat' ? '2px solid #0A3254' : '1px solid #E2E8F0',
+                        border: formData.service_type === 'chat' ? '1.5px solid #0A3254' : '1px solid #E2E8F0',
                         borderRadius: '8px',
-                        padding: '12px 6px',
-                        fontSize: '13px',
-                        fontWeight: formData.service_type === 'chat' ? '800' : '600',
+                        height: '40px',
+                        padding: '0 8px',
+                        fontSize: '12.5px',
+                        fontWeight: formData.service_type === 'chat' ? '800' : '700',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -1766,24 +1845,25 @@ export default function ConsultantServicesPage({ navigate }) {
                         fontFamily: "'Tajawal', sans-serif"
                       }}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                       </svg>
                       <span>جلسة محادثة</span>
                     </button>
 
-                    {/* Option 3 (LEFT in RTL): تقرير مكتوب */}
+                    {/* Option 3: تقرير مكتوب */}
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, service_type: 'report' })}
                       style={{
-                        backgroundColor: '#FFFFFF',
+                        backgroundColor: formData.service_type === 'report' ? '#FFFFFF' : '#F8FAFC',
                         color: '#0A3254',
-                        border: formData.service_type === 'report' ? '2px solid #0A3254' : '1px solid #E2E8F0',
+                        border: formData.service_type === 'report' ? '1.5px solid #0A3254' : '1px solid #E2E8F0',
                         borderRadius: '8px',
-                        padding: '12px 6px',
-                        fontSize: '13px',
-                        fontWeight: formData.service_type === 'report' ? '800' : '600',
+                        height: '40px',
+                        padding: '0 8px',
+                        fontSize: '12.5px',
+                        fontWeight: formData.service_type === 'report' ? '800' : '700',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -1793,21 +1873,20 @@ export default function ConsultantServicesPage({ navigate }) {
                         fontFamily: "'Tajawal', sans-serif"
                       }}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                         <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
                       </svg>
                       <span>تقرير مكتوب</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Field 4: Duration & Price Tiers */}
+                {/* Field 4: Duration & Price */}
                 {formData.service_type === 'report' ? (
                   <div>
-                    <p style={{ fontSize: '12px', color: '#64748B', marginBottom: '8px', textAlign: 'right', fontWeight: '500', fontFamily: "'Tajawal', sans-serif" }}>
-                      التقرير المكتوب لا يحتاج مدة زمنية؛ يتم تحديد السعر فقط.
-                    </p>
                     <label
                       style={{
                         display: 'block',
@@ -1819,70 +1898,38 @@ export default function ConsultantServicesPage({ navigate }) {
                         fontFamily: "'Tajawal', sans-serif"
                       }}
                     >
-                      السعر (د.أ)
+                      السعر (بالدينار)
                     </label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div style={{ flex: 1 }}>
-                        <input
-                          type="number"
-                          min="1"
-                          required
-                          placeholder="200"
-                          value={formData.single_price}
-                          onChange={(e) => setFormData({ ...formData, single_price: e.target.value })}
-                          style={{
-                            width: '100%',
-                            padding: '10px 14px',
-                            borderRadius: '8px',
-                            border: '1.5px solid #0A3254',
-                            fontSize: '14px',
-                            color: '#0A3254',
-                            outline: 'none',
-                            textAlign: 'right',
-                            boxSizing: 'border-box',
-                            fontFamily: "'Tajawal', sans-serif"
-                          }}
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, single_price: '' })}
-                        style={{
-                          width: '38px',
-                          height: '42px',
-                          borderRadius: '8px',
-                          border: '1px solid #FECACA',
-                          backgroundColor: '#FFFFFF',
-                          color: '#EF4444',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '15px',
-                          fontWeight: '600',
-                          flexShrink: 0,
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        ✕
-                      </button>
-                    </div>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      placeholder="ادخل سعر الجلسة"
+                      value={formData.single_price}
+                      onChange={(e) => setFormData({ ...formData, single_price: e.target.value })}
+                      style={{
+                        width: '100%',
+                        height: '40px',
+                        padding: '0 14px',
+                        borderRadius: '8px',
+                        border: '1px solid #E2E8F0',
+                        backgroundColor: '#F8FAFC',
+                        fontSize: '13.5px',
+                        color: '#0A3254',
+                        outline: 'none',
+                        textAlign: 'right',
+                        boxSizing: 'border-box',
+                        fontFamily: "'Tajawal', sans-serif"
+                      }}
+                    />
                   </div>
                 ) : (
                   <div>
-                    {/* Rows of Duration (Right), Price (Middle), Delete ✕ (Left) */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {formData.tiers.map((tier, idx) => (
-                        <div
-                          key={idx}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'flex-end',
-                            gap: '10px'
-                          }}
-                        >
-                          {/* Child 1 (RIGHT in RTL): المدة (بالدقائق) */}
-                          <div style={{ flex: 1 }}>
+                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', alignItems: 'end' }}>
+                          {/* Right: المدة (بالدقائق) */}
+                          <div>
                             {idx === 0 && (
                               <label
                                 style={{
@@ -1902,15 +1949,17 @@ export default function ConsultantServicesPage({ navigate }) {
                               type="number"
                               min="5"
                               required
-                              placeholder="المدة"
+                              placeholder="ادخل مدة الجلسة"
                               value={tier.duration}
                               onChange={(e) => handleUpdateTier(idx, 'duration', e.target.value)}
                               style={{
                                 width: '100%',
-                                padding: '10px 14px',
+                                height: '40px',
+                                padding: '0 14px',
                                 borderRadius: '8px',
                                 border: '1px solid #E2E8F0',
-                                fontSize: '14px',
+                                backgroundColor: '#F8FAFC',
+                                fontSize: '13.5px',
                                 color: '#0A3254',
                                 outline: 'none',
                                 boxSizing: 'border-box',
@@ -1920,8 +1969,8 @@ export default function ConsultantServicesPage({ navigate }) {
                             />
                           </div>
 
-                          {/* Child 2 (MIDDLE in RTL): السعر (د.أ) */}
-                          <div style={{ flex: 1 }}>
+                          {/* Left: السعر (بالدينار) */}
+                          <div>
                             {idx === 0 && (
                               <label
                                 style={{
@@ -1934,22 +1983,24 @@ export default function ConsultantServicesPage({ navigate }) {
                                   fontFamily: "'Tajawal', sans-serif"
                                 }}
                               >
-                                السعر (د.أ)
+                                السعر (بالدينار)
                               </label>
                             )}
                             <input
                               type="number"
                               min="1"
                               required
-                              placeholder="السعر"
+                              placeholder="ادخل سعر الجلسة"
                               value={tier.price}
                               onChange={(e) => handleUpdateTier(idx, 'price', e.target.value)}
                               style={{
                                 width: '100%',
-                                padding: '10px 14px',
+                                height: '40px',
+                                padding: '0 14px',
                                 borderRadius: '8px',
                                 border: '1px solid #E2E8F0',
-                                fontSize: '14px',
+                                backgroundColor: '#F8FAFC',
+                                fontSize: '13.5px',
                                 color: '#0A3254',
                                 outline: 'none',
                                 boxSizing: 'border-box',
@@ -1959,51 +2010,44 @@ export default function ConsultantServicesPage({ navigate }) {
                             />
                           </div>
 
-                          {/* Child 3 (LEFT in RTL): Red Delete Button ✕ */}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveTier(idx)}
-                            disabled={formData.tiers.length <= 1}
-                            style={{
-                              width: '38px',
-                              height: '42px',
-                              borderRadius: '8px',
-                              border: '1px solid #FECACA',
-                              backgroundColor: '#FFFFFF',
-                              color: '#EF4444',
-                              cursor: formData.tiers.length <= 1 ? 'not-allowed' : 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '15px',
-                              fontWeight: '600',
-                              flexShrink: 0,
-                              opacity: formData.tiers.length <= 1 ? 0.4 : 1,
-                              transition: 'all 0.15s ease',
-                              fontFamily: "'Tajawal', sans-serif"
-                            }}
-                          >
-                            ✕
-                          </button>
+                          {/* Remove button if multiple tiers */}
+                          {formData.tiers.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveTier(idx)}
+                              style={{
+                                height: '40px',
+                                border: 'none',
+                                background: 'transparent',
+                                color: '#EF4444',
+                                cursor: 'pointer',
+                                fontSize: '16px',
+                                padding: '0 4px',
+                                fontFamily: "'Tajawal', sans-serif"
+                              }}
+                            >
+                              ✕
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
 
-                    {/* Plus Button to add tier on the left side */}
-                    <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '10px' }}>
+                    {/* Plus Button to add tier */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '6px' }}>
                       <button
                         type="button"
                         onClick={handleAddTier}
-                        title="إضافة باقة زمنية أخرى"
+                        title="إضافة فترة أخرى"
                         style={{
                           border: 'none',
                           background: 'transparent',
                           color: '#0A3254',
                           cursor: 'pointer',
-                          fontSize: '26px',
+                          fontSize: '20px',
                           fontWeight: '800',
                           lineHeight: 1,
-                          padding: '4px 8px',
+                          padding: '4px 6px',
                           fontFamily: "'Tajawal', sans-serif"
                         }}
                       >
@@ -2014,42 +2058,16 @@ export default function ConsultantServicesPage({ navigate }) {
                 )}
               </div>
 
-              {/* Modal Footer */}
+              {/* Action Buttons */}
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
-                  marginTop: '28px',
-                  paddingTop: '20px',
-                  borderTop: '1px solid #F1F5F9'
+                  marginTop: '22px'
                 }}
               >
-                {/* Child 1 (RIGHT in RTL): إلغاء */}
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  style={{
-                    flex: 1,
-                    backgroundColor: '#FFFFFF',
-                    color: '#0A3254',
-                    border: '1px solid #CBD5E1',
-                    borderRadius: '8px',
-                    padding: '12px 20px',
-                    fontSize: '15px',
-                    fontWeight: '800',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    textAlign: 'center',
-                    fontFamily: "'Tajawal', sans-serif"
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8FAFC')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
-                >
-                  إلغاء
-                </button>
-
-                {/* Child 2 (LEFT in RTL): حفظ التعديلات */}
+                {/* Right: إضافة الخدمة */}
                 <button
                   type="submit"
                   disabled={isSubmitting}
@@ -2059,8 +2077,8 @@ export default function ConsultantServicesPage({ navigate }) {
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: '8px',
-                    padding: '12px 20px',
-                    fontSize: '15px',
+                    height: '42px',
+                    fontSize: '14px',
                     fontWeight: '800',
                     cursor: isSubmitting ? 'not-allowed' : 'pointer',
                     opacity: isSubmitting ? 0.7 : 1,
@@ -2069,7 +2087,6 @@ export default function ConsultantServicesPage({ navigate }) {
                     justifyContent: 'center',
                     gap: '8px',
                     transition: 'all 0.15s ease',
-                    boxShadow: '0 4px 12px rgba(10, 50, 84, 0.2)',
                     fontFamily: "'Tajawal', sans-serif"
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#07243D')}
@@ -2088,6 +2105,30 @@ export default function ConsultantServicesPage({ navigate }) {
                     />
                   )}
                   {editingService ? 'حفظ التعديلات' : 'إضافة الخدمة'}
+                </button>
+
+                {/* Left: إلغاء */}
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#FFFFFF',
+                    color: '#0A3254',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: '8px',
+                    height: '42px',
+                    fontSize: '14px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    textAlign: 'center',
+                    fontFamily: "'Tajawal', sans-serif"
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8FAFC')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
+                >
+                  إلغاء
                 </button>
               </div>
             </form>

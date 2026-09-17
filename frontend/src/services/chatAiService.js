@@ -14,5 +14,21 @@ export const chatAiService = {
       throw new Error(err.detail || 'فشل توليد الرد بالذكاء الاصطناعي');
     }
     return await res.json();
+  },
+
+  /**
+   * Directly asks the AI tax advisor a question
+   */
+  async directAsk(question, context = null) {
+    const res = await apiFetch('/api/chat/ai/direct-ask', {
+      method: 'POST',
+      body: JSON.stringify({ question, context }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'فشل استدعاء المستشار الذكي');
+    }
+    return await res.json();
   }
 };
+

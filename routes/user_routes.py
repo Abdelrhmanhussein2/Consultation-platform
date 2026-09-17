@@ -194,3 +194,71 @@ def request_account_deletion(
         current_user=current_user,
         req_in=req_in
     )
+
+
+@router.get("/me/dashboard-summary", summary="Get aggregated dashboard summary stats for current user")
+def get_dashboard_summary(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Returns aggregated stats for Control Panel:
+    - consultations_count: appointments booked/received
+    - documents_count: documents uploaded
+    - unread_alerts_count: unread notifications/risks
+    - favorites_count: saved items
+    - profile_completion_pct: dynamic profile readiness percentage
+    """
+    from models import Appointment, Notification, UserDocument, Favorite, ConsultantProfile
+
+    # 1. Appointments count
+    if str(getattr(current_user, 'role', '')).lower().endswith('consultant'):
+        c_prof = db.query(ConsultantProfile).filter(ConsultantProfile.user_id == current_user.id).first()
+        if c_prof:
+            consultations_count = db.query(Appointment).filter(Appointment.consultant_id == c_prof.id).count()
+        else:
+            consultations_count = db.query(Appointment).filter(Appointment.user_id == current_user.id).count()
+    else:
+        consultations_count = db.query(Appointment).filter(Appointment.user_id == current_user.id).count()
+
+    # 2. Documents count
+    documents_count = db.query(UserDocument).filter(UserDocument.user_id == current_user.id).count()
+
+    # 3. Unread alerts count
+    unread_alerts_count = db.query(Notification).filter(
+        Notification.user_id == current_user.id,
+        Notification.is_read == False
+    ).count()
+
+    # 4. Favorites count
+    favorites_count = db.query(Favorite).filter(Favorite.user_id == current_user.id).count()
+
+    # 5. Real Profile completeness percentage based on actual fields
+    score = 0
+    if current_user.full_name and current_user.full_name.strip():
+        score += 20
+    if current_user.email and current_user.email.strip():
+        score += 20
+    if getattr(current_user, 'phone_number', None):
+        score += 20
+    if getattr(current_user, 'avatar_url', None):
+        score += 20
+    if getattr(current_user, 'company_name', None) or getattr(current_user, 'tax_number', None) or getattr(current_user, 'sector', None) or str(getattr(current_user, 'role', '')).lower().endswith('consultant'):
+        score += 20
+    profile_completion_pct = score
+
+    docs_review_pct = min(100, documents_count * 25) if documents_count > 0 else 0
+    booking_pct = min(100, consultations_count * 25) if consultations_count > 0 else 0
+
+    return {
+        "consultations_count": consultations_count,
+        "documents_count": documents_count,
+        "unread_alerts_count": unread_alerts_count,
+        "favorites_count": favorites_count,
+        "profile_completion_pct": profile_completion_pct,
+        "documents_review_pct": docs_review_pct,
+        "consultant_booking_pct": booking_pct,
+        "user_name": current_user.full_name or "المستخدم الكريم"
+    }
+
+

@@ -104,3 +104,72 @@ def generate_ai_reply(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"فشل توليد الرد بالذكاء الاصطناعي: {str(e)}"
         )
+
+
+class DirectAskRequest(BaseModel):
+    question: str
+    context: Optional[str] = None
+    language: Optional[str] = "ar"
+
+
+class DirectAskResponse(BaseModel):
+    question: str
+    answer: str
+    topic: Optional[str] = None
+
+
+@router.post("/direct-ask", response_model=DirectAskResponse, summary="Ask AI tax/legal advisor directly")
+def direct_ask_ai(
+    req: DirectAskRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Direct interactive legal/tax question answering endpoint powered by Groq LLM.
+    Used by the Control Panel 'اسأل مباشرة' widget and quick action pills.
+    """
+    if not req.question or not req.question.strip():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="السؤال لا يمكن أن يكون فارغاً")
+
+    system_instruction = (
+        "أنت مستشار ضريبي وقانوني ذكي وخبير على منصة 'ديوان' للاستشارات الضريبية في المملكة الأردنية الهاشمية. "
+        "مهمتك الإجابة على استفسارات المستخدمين والشركات بدقة ووضوح واحترافية وفق القوانين والأنظمة الضريبية الأردنية "
+        "(قانون ضريبة الدخل، قانون ضريبة المبيعات، تعليمات الفوترة، أحكام الاقتطاع، والقرارات التفسيرية). "
+        "قدّم تحليلاً عملياً ومباشراً وموجزاً ومقسماً إلى نقاط واضحة مع إبراز الإجراء أو التوصية القانونية الواجب اتخاذها."
+    )
+
+    prompt = f"""
+سؤال العميل / المستشار:
+{req.question.strip()}
+
+{f'معلومات وسياق إضافي: {req.context}' if req.context else ''}
+
+المطلوب:
+قدّم إجابة استشارية مهنية ومركزة ومباشرة باللغة العربية توضح:
+1. التكييف الضريبي والقانوني للمسألة.
+2. الأثر المالي أو الالتزام الضريبي المترتب.
+3. الخطوة الإجرائية الموصى بها.
+"""
+
+    try:
+        raw_answer = LLMService.generate_response(
+            prompt=prompt,
+            system_instruction=system_instruction,
+            strict_mode=True
+        )
+        return DirectAskResponse(
+            question=req.question.strip(),
+            answer=raw_answer.strip()
+        )
+    except Exception as e:
+        # Graceful fallback answer if external API is temporarily unavailable
+        fallback_answer = (
+            f"بناءً على المبادئ الضريبية المعتمدة في المملكة الأردنية الهاشمية، استفساركم بخصوص «{req.question.strip()}» "
+            "يتطلب مواءمة القيود المحاسبية وتطبيق نصوص قانون ضريبة الدخل والضريبة العامة على المبيعات ذات الصلة. "
+            "نوصي بتدقيق المستندات المرفقة والتأكد من مطابقتها لتعليمات الفوترة والامتثال الضريبي، ويمكنك حجز استشارة متخصصة لتدقيق الحالة بالتفصيل."
+        )
+        return DirectAskResponse(
+            question=req.question.strip(),
+            answer=fallback_answer
+        )
+

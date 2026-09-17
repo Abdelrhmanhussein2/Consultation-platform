@@ -29,6 +29,7 @@ import SupportTicketDetailPage from './pages/SupportTicketDetailPage';
 import AdminApp from './admin/AdminApp';
 import PlaceholderPage from './pages/PlaceholderPage';
 import ConsultantDashboard from './pages/ConsultantDashboard';
+import ConsultantControlPanel from './pages/ConsultantControlPanel';
 import ConsultantSessionsPage from './pages/ConsultantSessionsPage';
 import ConsultantClientsPage from './pages/ConsultantClientsPage';
 import ConsultantProfilePage from './pages/ConsultantProfilePage';
@@ -112,6 +113,7 @@ function MainApp() {
     '/policies-portal',
     '/consultant',
     '/consultant/dashboard',
+    '/consultant/control-panel',
     '/consultant/services',
     '/consultant/schedule',
     '/consultant/calendar',
@@ -208,6 +210,9 @@ function MainApp() {
       }
       if (pathname === '/consultant' || pathname === '/consultant/' || pathname === '/consultant/dashboard') {
         return <ConsultantDashboard navigate={navigate} />;
+      }
+      if (pathname === '/consultant/control-panel') {
+        return <ConsultantControlPanel navigate={navigate} />;
       }
       if (pathname === '/consultant/services') {
         return <ConsultantServicesPage navigate={navigate} />;

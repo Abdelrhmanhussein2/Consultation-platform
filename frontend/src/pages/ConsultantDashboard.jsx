@@ -501,7 +501,7 @@ export default function ConsultantDashboard({ navigate }) {
       <div className="welcome" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '18px' }}>
         <div>
           <span className="eyebrow" style={{ color: '#F5A52A', fontSize: '13px', fontWeight: '800', display: 'block', marginBottom: '6px' }}>
-            لوحة المستشار
+            الرئيسية
           </span>
           <h1 style={{ fontSize: '28px', lineHeight: '1.35', margin: 0, fontWeight: '800', color: '#0D3C5C', letterSpacing: '-0.5px' }}>
             المعرفة الضريبية الأردنية في مكان واحد
