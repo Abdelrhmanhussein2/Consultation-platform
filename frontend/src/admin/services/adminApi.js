@@ -93,9 +93,6 @@ export async function getDashboardStats(period = 'week') {
   return adminRequest(`/super-admin/dashboard/stats?period=${period}`);
 }
 
-export async function getAuditLogs(limit = 20) {
-  return adminRequest(`/super-admin/audit-logs?limit=${limit}`);
-}
 
 /* ══════════════════════════════════════════════════════════════════
    USERS & COMPANIES
@@ -556,5 +553,63 @@ export async function deleteOperationalNotification(notificationId) {
     method: 'DELETE'
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// SECURITY CENTER & AUDIT LOGS APIS
+// ─────────────────────────────────────────────────────────────────────
+
+export async function getSecurityMetrics() {
+  return adminRequest('/super-admin/security/metrics');
+}
+
+export async function getFileDownloadLogs(params = {}) {
+  const query = new URLSearchParams();
+  if (params.page) query.append('page', params.page);
+  if (params.limit) query.append('limit', params.limit);
+  if (params.search) query.append('search', params.search);
+  if (params.file_category && params.file_category !== 'all') query.append('file_category', params.file_category);
+  if (params.status && params.status !== 'all') query.append('status', params.status);
+  if (params.user_role && params.user_role !== 'all') query.append('user_role', params.user_role);
+  if (params.date_from) query.append('date_from', params.date_from);
+  if (params.date_to) query.append('date_to', params.date_to);
+
+  const qs = query.toString();
+  return adminRequest(`/super-admin/security/downloads${qs ? `?${qs}` : ''}`);
+}
+
+export async function getSecuritySessions(params = {}) {
+  const query = new URLSearchParams();
+  if (params.page) query.append('page', params.page);
+  if (params.limit) query.append('limit', params.limit);
+  if (params.search) query.append('search', params.search);
+
+  const qs = query.toString();
+  return adminRequest(`/super-admin/security/sessions${qs ? `?${qs}` : ''}`);
+}
+
+export async function revokeSecuritySession(sessionId) {
+  return adminRequest(`/super-admin/security/sessions/${sessionId}/revoke`, {
+    method: 'POST'
+  });
+}
+
+export async function getAuditLogs(params = {}) {
+  const query = new URLSearchParams();
+  if (typeof params === 'number') {
+    query.append('limit', params);
+  } else {
+    if (params.page) query.append('page', params.page);
+    if (params.limit) query.append('limit', params.limit);
+    if (params.search) query.append('search', params.search);
+    if (params.action_type && params.action_type !== 'all') query.append('action_type', params.action_type);
+    if (params.admin_id && params.admin_id !== 'all') query.append('admin_id', params.admin_id);
+    if (params.date_from) query.append('date_from', params.date_from);
+    if (params.date_to) query.append('date_to', params.date_to);
+  }
+
+  const qs = query.toString();
+  return adminRequest(`/super-admin/audit-logs${qs ? `?${qs}` : ''}`);
+}
+
 
 

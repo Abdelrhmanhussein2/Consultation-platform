@@ -19,6 +19,7 @@ from models.recurring_invoice import RecurringInvoice
 from models.refunded_invoice import RefundedInvoice
 from models.admin_action_log import AdminActionLog
 from models.refresh_token import RefreshToken
+from models.file_download_log import FileDownloadLog
 from models.automation_rule import AutomationRule
 
 from models.chat_message import ChatMessage

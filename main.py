@@ -104,6 +104,41 @@ try:
                 created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
             );
         """))
+
+        # Ensure file_download_logs table exists
+        _conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS file_download_logs (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                file_id VARCHAR(200) NOT NULL,
+                file_name VARCHAR(255) NOT NULL,
+                file_category VARCHAR(100) NOT NULL DEFAULT 'documents',
+                user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+                user_name VARCHAR(200),
+                user_role VARCHAR(50) NOT NULL DEFAULT 'client',
+                status VARCHAR(50) NOT NULL DEFAULT 'success',
+                block_reason TEXT,
+                ip_address VARCHAR(100),
+                user_agent VARCHAR(300),
+                device_info VARCHAR(200),
+                created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+            );
+        """))
+        _conn.execute(text("CREATE INDEX IF NOT EXISTS ix_file_download_logs_created_at ON file_download_logs (created_at DESC)"))
+        _conn.execute(text("CREATE INDEX IF NOT EXISTS ix_file_download_logs_status ON file_download_logs (status)"))
+        _conn.execute(text("CREATE INDEX IF NOT EXISTS ix_file_download_logs_user_id ON file_download_logs (user_id)"))
+
+        # Ensure admin_action_logs enhanced columns exist
+        _conn.execute(text("ALTER TABLE admin_action_logs ADD COLUMN IF NOT EXISTS ip_address VARCHAR(100)"))
+        _conn.execute(text("ALTER TABLE admin_action_logs ADD COLUMN IF NOT EXISTS user_agent VARCHAR(300)"))
+        _conn.execute(text("ALTER TABLE admin_action_logs ADD COLUMN IF NOT EXISTS old_values TEXT"))
+        _conn.execute(text("ALTER TABLE admin_action_logs ADD COLUMN IF NOT EXISTS new_values TEXT"))
+        _conn.execute(text("ALTER TABLE admin_action_logs ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'success'"))
+
+        # Ensure refresh_tokens enhanced columns exist
+        _conn.execute(text("ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()"))
+        _conn.execute(text("ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS last_action VARCHAR(200) DEFAULT 'تسجيل الدخول للنظام'"))
+        _conn.execute(text("ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS revocation_reason VARCHAR(100)"))
+
     print("INFO: Enum and schema migration completed successfully.")
 except Exception as e:
     print(f"Warning: Enum migration failed (safe to ignore if using SQLite or first boot): {e}")

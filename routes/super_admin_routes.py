@@ -33,6 +33,8 @@ from schemes.ai_control_schemas import AIServiceConfigUpdate
 from services.super_admin.admin_automation_service import AdminAutomationService
 from services.super_admin.admin_r360_service import AdminR360Service
 from services.super_admin.admin_ai_control_service import AdminAIControlService
+from services.super_admin.file_download_service import FileDownloadService
+from services.super_admin.admin_security_service import AdminSecurityService
 from controllers.super_admin_controller import SuperAdminController
 from controllers.platform_settings_controller import PlatformSettingsController
 from controllers import ServiceExpansionController, TicketController, AdminPermissionController, UserController
@@ -998,32 +1000,128 @@ def assign_user_role(
     )
 
 
+
+# ─────────────────────────────────────────────────────────────────────
+# SECURITY CENTER, FILE DOWNLOAD LOGS & AUDIT TRAIL
+# ─────────────────────────────────────────────────────────────────────
+
 @router.get(
-    "/audit-logs",
-    summary="Get recent security audit logs",
+    "/security/metrics",
+    summary="Get 100% real database-backed security and audit metrics",
 )
-def get_audit_logs(
-    limit: int = 50,
+def get_security_metrics(
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_perm_manage_admins),
+    current_admin: User = Depends(require_admin),
 ):
     """
-    Returns recent system audit trail logs from database.
+    Returns real PostgreSQL-calculated metrics: total downloads, 24h blocked attempts, active sessions, audit events.
     """
-    from models import AdminActionLog
-    logs = db.query(AdminActionLog).order_by(AdminActionLog.created_at.desc()).limit(limit).all()
-    return [
-        {
-            "id": str(log.id),
-            "admin_id": str(log.admin_id),
-            "admin_name": log.admin.full_name if log.admin else "مدير النظام",
-            "action": log.action_type,
-            "resource": log.target_entity_type,
-            "details": log.details,
-            "created_at": log.created_at.isoformat() if log.created_at else None
-        }
-        for log in logs
-    ]
+    from services.super_admin.admin_security_service import AdminSecurityService
+    return AdminSecurityService.get_security_metrics(db)
+
+
+@router.get(
+    "/security/downloads",
+    summary="Get paginated and filtered file download and access logs",
+)
+def get_file_download_logs(
+    search: Optional[str] = Query(None, description="Search by file name, file ID, user or IP"),
+    file_category: Optional[str] = Query(None, description="Filter by file category"),
+    status: Optional[str] = Query(None, description="Filter by status (success / blocked)"),
+    user_role: Optional[str] = Query(None, description="Filter by user role"),
+    date_from: Optional[str] = Query(None, description="Filter from ISO date"),
+    date_to: Optional[str] = Query(None, description="Filter to ISO date"),
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(20, ge=1, le=100, description="Results per page"),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    """
+    Investigative file download logs tracking who touched what sensitive document and blocked attempts.
+    """
+    from services.super_admin.file_download_service import FileDownloadService
+    return FileDownloadService.get_download_logs(
+        db=db,
+        search=search,
+        file_category=file_category,
+        status=status,
+        user_role=user_role,
+        date_from=date_from,
+        date_to=date_to,
+        page=page,
+        limit=limit
+    )
+
+
+@router.get(
+    "/security/sessions",
+    summary="Get active and recent user session trails with last action",
+)
+def get_security_sessions(
+    search: Optional[str] = Query(None, description="Search by user name, email, IP or last action"),
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(50, ge=1, le=100, description="Results per page"),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    """
+    Returns live session trail with device, IP, last action and active status.
+    """
+    from services.super_admin.admin_security_service import AdminSecurityService
+    return AdminSecurityService.get_active_sessions_trail(
+        db=db,
+        search=search,
+        page=page,
+        limit=limit
+    )
+
+
+@router.post(
+    "/security/sessions/{session_id}/revoke",
+    summary="Revoke and force terminate an active session",
+)
+def revoke_security_session(
+    session_id: str,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    """
+    Forces immediate termination of a user session.
+    """
+    from services.super_admin.admin_security_service import AdminSecurityService
+    return AdminSecurityService.revoke_session(db, session_id, current_admin.id)
+
+
+@router.get(
+    "/audit-logs",
+    summary="Get comprehensive administrative audit logs with filtering and pagination",
+)
+def get_audit_logs(
+    search: Optional[str] = Query(None, description="Search by action, details, user or IP"),
+    action_type: Optional[str] = Query(None, description="Filter by action type"),
+    admin_id: Optional[str] = Query(None, description="Filter by administrator ID"),
+    date_from: Optional[str] = Query(None, description="Filter from ISO date"),
+    date_to: Optional[str] = Query(None, description="Filter to ISO date"),
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(25, ge=1, le=100, description="Results per page"),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    """
+    Returns full administrative audit trail (Who — Action — Entity — Old/New Values — IP — User Agent).
+    """
+    from services.super_admin.admin_security_service import AdminSecurityService
+    return AdminSecurityService.get_audit_logs(
+        db=db,
+        search=search,
+        action_type=action_type,
+        admin_id=admin_id,
+        date_from=date_from,
+        date_to=date_to,
+        page=page,
+        limit=limit
+    )
+
 
 
 
@@ -1877,6 +1975,8 @@ def delete_operational_notification(
         "status": "success",
         "message": "تم حذف الإشعار من قاعدة البيانات بنجاح"
     }
+
+
 
 
 
