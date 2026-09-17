@@ -1805,7 +1805,7 @@ export default function AdminSubscriptionsPage({ navigate }) {
                     <div style={{ marginTop: '8px' }}>
                       <span
                         className="sub-save-badge"
-                        style={{ background: '#2e7cf6', cursor: 'pointer' }}
+                        style={{ background: '#EBF3FA', color: '#0A3C64', border: '1px solid #D0E2F2', fontWeight: '700', cursor: 'pointer' }}
                         onClick={() => setVersionMembersModal(v)}
                       >
                         {membersCount} مشترك مسجل

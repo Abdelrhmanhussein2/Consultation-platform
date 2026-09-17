@@ -16,7 +16,8 @@ import {
   getAdminUsers,
   getAdminPayouts,
   handleConsultantAction,
-  getOperationalAlerts
+  getOperationalAlerts,
+  getUserMessages
 } from '../services/adminApi';
 
 import CCHeader from '../components/control-center/CCHeader';
@@ -579,6 +580,16 @@ export default function ControlCenter() {
         if (fullProf) {
           setEntityDetails(fullProf);
           setChatMessages(fullProf.chat_messages || []);
+        }
+        const notifs = await getUserMessages(targetUserId);
+        if (Array.isArray(notifs) && notifs.length > 0) {
+          setChatMessages(notifs.map(n => ({
+            id: n.id,
+            sender: n.sender === 'user' ? 'them' : 'me',
+            sender_name: n.sender === 'user' ? (n.author_name || ent.title) : 'إدارة المنصة',
+            text: n.message,
+            time: n.created_at ? new Date(n.created_at).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) : 'الآن'
+          })));
         }
       } catch (e) {
         console.error('Error fetching full 360 profile:', e);

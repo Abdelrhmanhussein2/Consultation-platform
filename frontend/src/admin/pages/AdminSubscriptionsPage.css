@@ -442,10 +442,14 @@
 
 .sub-primary-btn {
   border: 0;
-  background: var(--green);
+  background: #0A3C64;
   color: #fff;
+  box-shadow: 0 2px 8px rgba(10, 60, 100, 0.15);
 }
-.sub-primary-btn:hover { filter: brightness(0.94); }
+.sub-primary-btn:hover {
+  background: #0d4775;
+  box-shadow: 0 4px 14px rgba(10, 60, 100, 0.22);
+}
 
 .sub-secondary-btn {
   border: 1px solid #d8e0e6;

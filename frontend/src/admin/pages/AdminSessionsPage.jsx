@@ -280,13 +280,13 @@ export default function AdminSessionsPage({ navigate }) {
             padding: '14px 10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
-            borderBottom: activeCard === 'all' ? '3px solid #059669' : '3px solid transparent',
-            boxShadow: activeCard === 'all' ? '0 4px 12px rgba(5, 150, 105, 0.15)' : 'none',
-            background: activeCard === 'all' ? '#F0FDF4' : '#FFFFFF'
+            borderBottom: activeCard === 'all' ? '3px solid #0A3C64' : '3px solid transparent',
+            boxShadow: activeCard === 'all' ? '0 4px 12px rgba(10, 60, 100, 0.12)' : 'none',
+            background: activeCard === 'all' ? '#EBF3FA' : '#FFFFFF'
           }}
           onClick={() => setActiveCard('all')}
         >
-          <div style={{ fontSize: '24px', fontWeight: '900', color: '#059669' }}>{totalCount}</div>
+          <div style={{ fontSize: '24px', fontWeight: '900', color: '#0A3C64' }}>{totalCount}</div>
           <div style={{ fontSize: '12px', fontWeight: '800', color: '#334155', marginTop: '2px' }}>إجمالي الجلسات</div>
         </div>
 
@@ -298,13 +298,13 @@ export default function AdminSessionsPage({ navigate }) {
             padding: '14px 10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
-            borderBottom: activeCard === 'completed' ? '3px solid #059669' : '3px solid transparent',
-            boxShadow: activeCard === 'completed' ? '0 4px 12px rgba(5, 150, 105, 0.15)' : 'none',
-            background: activeCard === 'completed' ? '#ECFDF5' : '#FFFFFF'
+            borderBottom: activeCard === 'completed' ? '3px solid #0A3C64' : '3px solid transparent',
+            boxShadow: activeCard === 'completed' ? '0 4px 12px rgba(10, 60, 100, 0.12)' : 'none',
+            background: activeCard === 'completed' ? '#EBF3FA' : '#FFFFFF'
           }}
           onClick={() => setActiveCard('completed')}
         >
-          <div style={{ fontSize: '24px', fontWeight: '900', color: '#059669' }}>{completedCount}</div>
+          <div style={{ fontSize: '24px', fontWeight: '900', color: '#0A3C64' }}>{completedCount}</div>
           <div style={{ fontSize: '12px', fontWeight: '800', color: '#334155', marginTop: '2px' }}>جلسات مكتملة</div>
         </div>
 
@@ -316,13 +316,13 @@ export default function AdminSessionsPage({ navigate }) {
             padding: '14px 10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
-            borderBottom: activeCard === 'in_progress' ? '3px solid #0284C7' : '3px solid transparent',
-            boxShadow: activeCard === 'in_progress' ? '0 4px 12px rgba(2, 132, 199, 0.15)' : 'none',
-            background: activeCard === 'in_progress' ? '#F0F9FF' : '#FFFFFF'
+            borderBottom: activeCard === 'in_progress' ? '3px solid #0A3C64' : '3px solid transparent',
+            boxShadow: activeCard === 'in_progress' ? '0 4px 12px rgba(10, 60, 100, 0.12)' : 'none',
+            background: activeCard === 'in_progress' ? '#EBF3FA' : '#FFFFFF'
           }}
           onClick={() => setActiveCard('in_progress')}
         >
-          <div style={{ fontSize: '24px', fontWeight: '900', color: '#0284C7' }}>{inProgressCount}</div>
+          <div style={{ fontSize: '24px', fontWeight: '900', color: '#0A3C64' }}>{inProgressCount}</div>
           <div style={{ fontSize: '12px', fontWeight: '800', color: '#334155', marginTop: '2px' }}>قيد التنفيذ</div>
         </div>
 
@@ -334,13 +334,13 @@ export default function AdminSessionsPage({ navigate }) {
             padding: '14px 10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
-            borderBottom: activeCard === 'confirmed' ? '3px solid #0284C7' : '3px solid transparent',
-            boxShadow: activeCard === 'confirmed' ? '0 4px 12px rgba(2, 132, 199, 0.15)' : 'none',
-            background: activeCard === 'confirmed' ? '#EFF6FF' : '#FFFFFF'
+            borderBottom: activeCard === 'confirmed' ? '3px solid #0A3C64' : '3px solid transparent',
+            boxShadow: activeCard === 'confirmed' ? '0 4px 12px rgba(10, 60, 100, 0.12)' : 'none',
+            background: activeCard === 'confirmed' ? '#EBF3FA' : '#FFFFFF'
           }}
           onClick={() => setActiveCard('confirmed')}
         >
-          <div style={{ fontSize: '24px', fontWeight: '900', color: '#0284C7' }}>{confirmedCount}</div>
+          <div style={{ fontSize: '24px', fontWeight: '900', color: '#0A3C64' }}>{confirmedCount}</div>
           <div style={{ fontSize: '12px', fontWeight: '800', color: '#334155', marginTop: '2px' }}>مؤكدة</div>
         </div>
 
@@ -352,13 +352,13 @@ export default function AdminSessionsPage({ navigate }) {
             padding: '14px 10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
-            borderBottom: activeCard === 'pending' ? '3px solid #D97706' : '3px solid transparent',
-            boxShadow: activeCard === 'pending' ? '0 4px 12px rgba(217, 119, 6, 0.15)' : 'none',
-            background: activeCard === 'pending' ? '#FFFBEB' : '#FFFFFF'
+            borderBottom: activeCard === 'pending' ? '3px solid #0A3C64' : '3px solid transparent',
+            boxShadow: activeCard === 'pending' ? '0 4px 12px rgba(10, 60, 100, 0.12)' : 'none',
+            background: activeCard === 'pending' ? '#EBF3FA' : '#FFFFFF'
           }}
           onClick={() => setActiveCard('pending')}
         >
-          <div style={{ fontSize: '24px', fontWeight: '900', color: '#D97706' }}>{pendingCount}</div>
+          <div style={{ fontSize: '24px', fontWeight: '900', color: '#0A3C64' }}>{pendingCount}</div>
           <div style={{ fontSize: '12px', fontWeight: '800', color: '#334155', marginTop: '2px' }}>معلقة</div>
         </div>
 
@@ -370,13 +370,13 @@ export default function AdminSessionsPage({ navigate }) {
             padding: '14px 10px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
-            borderBottom: activeCard === 'cancelled' ? '3px solid #DC2626' : '3px solid transparent',
-            boxShadow: activeCard === 'cancelled' ? '0 4px 12px rgba(220, 38, 38, 0.15)' : 'none',
-            background: activeCard === 'cancelled' ? '#FEF2F2' : '#FFFFFF'
+            borderBottom: activeCard === 'cancelled' ? '3px solid #0A3C64' : '3px solid transparent',
+            boxShadow: activeCard === 'cancelled' ? '0 4px 12px rgba(10, 60, 100, 0.12)' : 'none',
+            background: activeCard === 'cancelled' ? '#EBF3FA' : '#FFFFFF'
           }}
           onClick={() => setActiveCard('cancelled')}
         >
-          <div style={{ fontSize: '24px', fontWeight: '900', color: '#DC2626' }}>{cancelledCount}</div>
+          <div style={{ fontSize: '24px', fontWeight: '900', color: '#0A3C64' }}>{cancelledCount}</div>
           <div style={{ fontSize: '12px', fontWeight: '800', color: '#334155', marginTop: '2px' }}>ملغاة</div>
         </div>
       </div>

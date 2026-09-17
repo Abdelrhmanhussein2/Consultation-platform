@@ -911,7 +911,7 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
               <span className="uacc-history-filter-separator"></span>
 
               <button
-                className="uacc-icon-btn pink"
+                className="uacc-icon-btn slate"
                 title="تحديث السجل"
                 onClick={() => { setHistoryPage(1); loadHistoryFromDb(); showToast('تم تحديث السجل من قاعدة البيانات'); }}
               >

@@ -331,10 +331,14 @@ function MainApp() {
   );
 }
 
+import { PreferencesProvider } from './context/PreferencesContext';
+
 export default function App() {
   return (
     <AuthProvider>
-      <MainApp />
+      <PreferencesProvider>
+        <MainApp />
+      </PreferencesProvider>
     </AuthProvider>
   );
 }

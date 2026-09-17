@@ -5,6 +5,7 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminUserAccountsPage from './pages/AdminUserAccountsPage';
 import AdminConsultantsPage from './pages/AdminConsultantsPage';
+import AdminConsultantApplicationsPage from './pages/AdminConsultantApplicationsPage';
 import AdminFinancialPage from './pages/AdminFinancialPage';
 import AdminSessionsPage from './pages/AdminSessionsPage';
 import AdminTicketsPage from './pages/AdminTicketsPage';
@@ -88,6 +89,9 @@ export default function AdminApp({ currentPath = '/admin', navigate }) {
         return <AdminUserAccountsPage view="roles" navigate={navigate} />;
       case '/admin/consultants':
         return <AdminConsultantsPage navigate={navigate} />;
+      case '/admin/consultant-applications':
+      case '/admin/consultants/pending':
+        return <AdminConsultantApplicationsPage navigate={navigate} />;
       case '/admin/financial':
         return <AdminFinancialPage navigate={navigate} />;
       case '/admin/calendar':

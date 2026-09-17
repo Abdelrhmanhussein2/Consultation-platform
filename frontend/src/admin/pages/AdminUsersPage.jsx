@@ -1330,281 +1330,49 @@ export default function AdminUsersPage({ navigate, currentPath, initialTab }) {
       {/* ══════════════════════════════════════════════════════════════════
           HERO HEADER
           ══════════════════════════════════════════════════════════════════ */}
-      <section className="users-hero" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <section className="users-hero" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '20px' }}>
         <div>
           <h1>المستخدمون <em>والعملاء</em></h1>
           <p style={{ margin: '6px 0 0 0' }}>
             ملف موحّد لفهم العميل، صفته القانونية، قطاعه، نشاطه على المنصة، استهلاك الباقة، الاستشارات، أعضاء الحساب وسجل التفاعل.
           </p>
         </div>
-        <button
-          className="admin-btn-action-primary"
-          style={{ background: '#0e3b5e', color: '#FFFFFF', padding: '10px 22px', borderRadius: '10px', fontWeight: '800', fontSize: '13.5px', cursor: 'pointer', whiteSpace: 'nowrap', border: 'none' }}
-          onClick={() => setAddUserModalOpen(true)}
-        >
-          + إضافة مستخدم / عميل
-        </button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => { loadBackendUsers(); showToast('تم تحديث البيانات مباشرة من الداتا بيز 🔄'); }}
+            style={{
+              background: '#FFFFFF',
+              color: '#0e3b5e',
+              border: '1px solid #CBD5E1',
+              padding: '9px 18px',
+              borderRadius: '10px',
+              fontWeight: '700',
+              fontSize: '13px',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+            </svg>
+            تحديث مباشر
+          </button>
+          <button
+            className="admin-btn-action-primary"
+            style={{ background: '#0e3b5e', color: '#FFFFFF', padding: '10px 22px', borderRadius: '10px', fontWeight: '800', fontSize: '13.5px', cursor: 'pointer', whiteSpace: 'nowrap', border: 'none' }}
+            onClick={() => setAddUserModalOpen(true)}
+          >
+            + إضافة مستخدم / عميل
+          </button>
+        </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════
-          PRIMARY SUB-NAVIGATION TABS (APPROVED USERS vs PENDING REQUESTS)
+          USERS DIRECTORY
           ══════════════════════════════════════════════════════════════════ */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', margin: '14px 0 24px 0', borderBottom: '2px solid #E2E8F0', paddingBottom: '14px', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            onClick={() => setActiveTab('approved')}
-            style={{
-              background: activeTab === 'approved' ? '#0e3b5e' : '#F1F5F9',
-              color: activeTab === 'approved' ? '#FFFFFF' : '#475569',
-              border: activeTab === 'approved' ? 'none' : '1px solid #CBD5E1',
-              padding: '10px 22px',
-              borderRadius: '12px',
-              fontWeight: '800',
-              fontSize: '14px',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '10px',
-              boxShadow: activeTab === 'approved' ? '0 4px 14px rgba(14,59,94,0.18)' : 'none',
-              transition: 'all 0.2s'
-            }}
-          >
-            <span>👥 المستخدمون المعتمدون</span>
-            <span style={{
-              background: activeTab === 'approved' ? 'rgba(255,255,255,0.25)' : '#E2E8F0',
-              color: activeTab === 'approved' ? '#FFFFFF' : '#0F172A',
-              padding: '2px 10px',
-              borderRadius: '20px',
-              fontSize: '12px',
-              fontWeight: '900'
-            }}>
-              {usersList.length}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('pending')}
-            style={{
-              background: activeTab === 'pending' ? '#D97706' : '#FEF3C7',
-              color: activeTab === 'pending' ? '#FFFFFF' : '#92400E',
-              border: activeTab === 'pending' ? 'none' : '1px solid #FCD34D',
-              padding: '10px 22px',
-              borderRadius: '12px',
-              fontWeight: '800',
-              fontSize: '14px',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '10px',
-              boxShadow: activeTab === 'pending' ? '0 4px 14px rgba(217,119,6,0.25)' : 'none',
-              transition: 'all 0.2s'
-            }}
-          >
-            <span>⏳ طلبات الانضمام قيد المراجعة</span>
-            <span style={{
-              background: activeTab === 'pending' ? '#FFFFFF' : '#D97706',
-              color: activeTab === 'pending' ? '#D97706' : '#FFFFFF',
-              padding: '2px 10px',
-              borderRadius: '20px',
-              fontSize: '12px',
-              fontWeight: '900'
-            }}>
-              {pendingUsers.length}
-            </span>
-          </button>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => { loadBackendUsers(); loadPendingUsers(); showToast('تم تحديث البيانات مباشرة من الداتا بيز 🔄'); }}
-          style={{
-            background: '#FFFFFF',
-            color: '#0e3b5e',
-            border: '1px solid #CBD5E1',
-            padding: '8px 18px',
-            borderRadius: '10px',
-            fontWeight: '700',
-            fontSize: '13px',
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-          </svg>
-          تحديث مباشر
-        </button>
-      </div>
-
-      {/* ══════════════════════════════════════════════════════════════════
-          VIEW 1: PENDING REGISTRATION REQUESTS (100% POSTGRESQL DATA)
-          ══════════════════════════════════════════════════════════════════ */}
-      {activeTab === 'pending' ? (
-        <div className="users-pending-container" style={{ marginBottom: '40px' }}>
-          <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '16px', padding: '18px 24px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
-                ⏳
-              </div>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#92400E' }}>
-                  طلبات تسجيل المستخدمين والشركات بانتظار اعتماد الإدارة
-                </h3>
-                <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#B45309' }}>
-                  يتم سحب هذه الطلبات مباشرة من جدول `users` في قاعدة البيانات حيث `verification_status = pending`.
-                </p>
-              </div>
-            </div>
-            <div style={{ background: '#FFFFFF', border: '1px solid #FCD34D', borderRadius: '10px', padding: '6px 14px', fontSize: '13px', fontWeight: '800', color: '#92400E' }}>
-              إجمالي المعلقين: {pendingUsers.length}
-            </div>
-          </div>
-
-          {loadingPending ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', background: '#FFFFFF', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
-              <div style={{ fontSize: '15px', fontWeight: '800', color: '#0e3b5e' }}>جاري استرجاع طلبات الانضمام المعلقة من الداتا بيز...</div>
-            </div>
-          ) : pendingUsers.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', background: '#FFFFFF', borderRadius: '20px', border: '1px dashed #CBD5E1' }}>
-              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#F0FDF4', color: '#16A34A', fontSize: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto' }}>
-                ✓
-              </div>
-              <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#0e3b5e', margin: '0 0 6px 0' }}>لا توجد طلبات انضمام معلقة حالياً</h3>
-              <p style={{ fontSize: '13.5px', color: '#64748B', margin: 0 }}>
-                جميع حسابات المستخدمين والعملاء مفعلة ومعتمدة في النظام بنسبة 100%.
-              </p>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }}>
-              {pendingUsers.map((u) => {
-                const mapEntity = {
-                  individual: 'حساب فردي',
-                  company: 'منشأة / شركة',
-                  researcher: 'باحث / أكاديمي'
-                };
-                const entityLabel = mapEntity[u.entity_type] || u.entity_type || 'عميل جديد';
-                const displayName = u.full_name || u.company_name || u.email;
-
-                return (
-                  <div
-                    key={u.id}
-                    style={{
-                      background: '#FFFFFF',
-                      border: '1px solid #E2E8F0',
-                      borderRadius: '20px',
-                      padding: '24px',
-                      boxShadow: '0 8px 24px rgba(11,46,75,0.06)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      position: 'relative'
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: '900' }}>
-                            {displayName.charAt(0)}
-                          </div>
-                          <div>
-                            <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '900', color: '#0e3b5e' }}>
-                              {displayName}
-                            </h4>
-                            <span style={{ fontSize: '12.5px', color: '#64748B' }}>
-                              {u.email}
-                            </span>
-                          </div>
-                        </div>
-                        <span style={{ background: '#FEF3C7', color: '#B45309', border: '1px solid #FCD34D', padding: '4px 10px', borderRadius: '8px', fontSize: '11.5px', fontWeight: '800' }}>
-                          ⏳ قيد المراجعة
-                        </span>
-                      </div>
-
-                      <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '12px 16px', marginBottom: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12.5px' }}>
-                        <div>
-                          <span style={{ color: '#64748B', display: 'block' }}>نوع الكيان:</span>
-                          <b style={{ color: '#0e3b5e' }}>{entityLabel}</b>
-                        </div>
-                        <div>
-                          <span style={{ color: '#64748B', display: 'block' }}>الهاتف:</span>
-                          <b style={{ color: '#0e3b5e', direction: 'ltr', display: 'inline-block' }}>{u.phone || '—'}</b>
-                        </div>
-                        <div>
-                          <span style={{ color: '#64748B', display: 'block' }}>الرقم الضريبي:</span>
-                          <b style={{ color: '#0e3b5e' }}>{u.tax_number || '—'}</b>
-                        </div>
-                        <div>
-                          <span style={{ color: '#64748B', display: 'block' }}>المدينة / العنوان:</span>
-                          <b style={{ color: '#0e3b5e' }}>{u.address || 'عمّان'}</b>
-                        </div>
-                      </div>
-
-                      <div style={{ fontSize: '12px', color: '#64748B', marginBottom: '16px' }}>
-                        📅 تاريخ التسجيل: <b>{u.created_at ? new Date(u.created_at).toLocaleDateString('ar-JO', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'اليوم'}</b>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '12px', borderTop: '1px solid #F1F5F9', paddingTop: '16px' }}>
-                      <button
-                        type="button"
-                        disabled={actionLoadingId === u.id}
-                        onClick={() => handleApproveUser(u)}
-                        style={{
-                          background: '#16A34A',
-                          color: '#FFFFFF',
-                          border: 'none',
-                          padding: '10px',
-                          borderRadius: '10px',
-                          fontWeight: '800',
-                          fontSize: '13px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          boxShadow: '0 3px 10px rgba(22,163,74,0.2)'
-                        }}
-                      >
-                        ✓ اعتماد وتفعيل
-                      </button>
-
-                      <button
-                        type="button"
-                        disabled={actionLoadingId === u.id}
-                        onClick={() => setRejectingUser(u)}
-                        style={{
-                          background: '#FEF2F2',
-                          color: '#DC2626',
-                          border: '1px solid #FECACA',
-                          padding: '10px',
-                          borderRadius: '10px',
-                          fontWeight: '800',
-                          fontSize: '13px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px'
-                        }}
-                      >
-                        ✕ رفض الطلب
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      ) : (
-        /* ══════════════════════════════════════════════════════════════════
-            VIEW 2: APPROVED USERS DIRECTORY (DEFAULT)
-            ══════════════════════════════════════════════════════════════════ */
-        <>
           <div className="users-searchbar">
             <div className="users-search-input">
               <svg className="icon" style={{ width: 18, height: 18, fill: 'none', stroke: '#0B2E4B', strokeWidth: 1.8 }} viewBox="0 0 24 24">
@@ -1849,8 +1617,6 @@ export default function AdminUsersPage({ navigate, currentPath, initialTab }) {
           )}
         </main>
       </div>
-      </>
-      )}
 
       {/* ══════════════════════════════════════════════════════════════════
           PROFILE OVERLAY (FULL SCREEN VIEW)

@@ -365,18 +365,22 @@ class ConsultantProfileCreate(BaseModel):
 class ConsultantProfileOut(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID
-    bio: Optional[str]
-    main_specialization_id: Optional[int]
+    user: Optional[UserOut] = None
+    specialization: Optional[SpecializationOut] = None
+    bio: Optional[str] = None
+    main_specialization_id: Optional[int] = None
     verification_status: VerificationStatus
-    rejection_reason: Optional[str]
-    average_rating: Decimal
-    ratings_count: int
+    rejection_reason: Optional[str] = None
+    average_rating: Decimal = Decimal('0.0')
+    ratings_count: int = 0
     activity_type: Optional[str] = None
     years_of_experience: Optional[int] = None
     certificates_licenses: Optional[str] = None
     price_per_hour: Optional[Decimal] = None
     cover_image_url: Optional[str] = None
     profile_image_url: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

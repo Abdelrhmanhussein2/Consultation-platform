@@ -98,9 +98,9 @@ export default function AdminChatManagementPage({ navigate }) {
   // ══════════════════════════════════════════════════════════════════════════
   // FETCH REAL DATA FROM POSTGRESQL (TICKETS, REPLIES, USERS)
   // ══════════════════════════════════════════════════════════════════════════
-  const loadBackendTickets = async () => {
+  const loadBackendTickets = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) setLoading(true);
       const res = await getAdminTickets({ limit: 100 });
       const tickets = Array.isArray(res) ? res : (res?.items || []);
 
@@ -149,7 +149,7 @@ export default function AdminChatManagementPage({ navigate }) {
           realId: t.id,
           name: submitterName,
           initial: submitterInitial,
-          color: isConsultant ? '#2b8f76' : '#005D9C',
+          color: isConsultant ? '#134B70' : '#0A3C64',
           ref: t.ticket_number ? `${t.ticket_number}` : `#${t.id.slice(0, 8)}`,
           subject: t.subject || 'طلب دعم واستشارة',
           preview: t.description || 'بدون تفاصيل إضافية',
@@ -194,10 +194,12 @@ export default function AdminChatManagementPage({ navigate }) {
           const idx = consultantTickets.length;
           consultantTickets.push(item);
           platformMsgMap[idx] = replies;
+          platformMsgMap[t.id] = replies;
         } else {
           const idx = userTickets.length;
           userTickets.push(item);
           ticketMsgMap[idx] = replies;
+          ticketMsgMap[t.id] = replies;
         }
       });
 
@@ -225,12 +227,12 @@ export default function AdminChatManagementPage({ navigate }) {
     } catch (err) {
       console.warn('Backend ticket sync error:', err);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadBackendTickets();
+    loadBackendTickets(false);
 
     // Fetch system users for new conversation modal
     async function loadUsers() {
@@ -247,11 +249,18 @@ export default function AdminChatManagementPage({ navigate }) {
       }
     }
     loadUsers();
+
+    // Live auto-polling every 4 seconds to sync messages across all admin & user pages in real-time
+    const interval = setInterval(() => {
+      loadBackendTickets(true);
+    }, 4000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const currentList = data[mode]?.people || [];
   const activePerson = currentList[selectedIdx] || currentList[0] || {};
-  const currentMessages = (chatMessages[mode] && chatMessages[mode][selectedIdx]) || [];
+  const currentMessages = (chatMessages[mode] && (chatMessages[mode][activePerson.realId] || chatMessages[mode][selectedIdx])) || [];
 
   // Update private note input when active person changes
   useEffect(() => {
@@ -633,16 +642,16 @@ export default function AdminChatManagementPage({ navigate }) {
 
         {/* Top Action Tools */}
         <div className="chat-top-actions">
-          <button className="chat-icon-btn green" onClick={() => setActiveOverlay('stats')} title="إحصاءات التذاكر">
+          <button className="chat-icon-btn" onClick={() => setActiveOverlay('stats')} title="إحصاءات التذاكر">
             <svg viewBox="0 0 24 24"><path d="M4 19V9" /><path d="M10 19V5" /><path d="M16 19v-7" /><path d="M22 19H2" /></svg>
           </button>
-          <button className="chat-icon-btn green" onClick={() => setActiveOverlay('filter')} title="تصفية متقدمة">
+          <button className="chat-icon-btn" onClick={() => setActiveOverlay('filter')} title="تصفية متقدمة">
             <svg viewBox="0 0 24 24"><path d="M4 5h16l-6 7v5l-4 2v-7Z" /></svg>
           </button>
-          <button className="chat-icon-btn green" onClick={handleExport} title="تصدير السجل">
+          <button className="chat-icon-btn" onClick={handleExport} title="تصدير السجل">
             <svg viewBox="0 0 24 24"><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></svg>
           </button>
-          <button className="chat-icon-btn green" onClick={() => setActiveOverlay('new')} title="إنشاء تذكرة / محادثة جديدة">
+          <button className="chat-icon-btn" onClick={() => setActiveOverlay('new')} title="إنشاء تذكرة / محادثة جديدة">
             <svg viewBox="0 0 24 24"><path d="M12 5v14" /><path d="M5 12h14" /></svg>
           </button>
         </div>
@@ -685,7 +694,7 @@ export default function AdminChatManagementPage({ navigate }) {
                     className={`chat-conv-card ${isSelected ? 'active' : ''}`}
                     onClick={() => handleSelectConv(i)}
                   >
-                    <div className="chat-avatar-sm" style={{ background: p.color || '#005D9C' }}>
+                    <div className="chat-avatar-sm" style={{ background: p.color || '#0A3C64' }}>
                       {p.initial || p.name.charAt(0)}
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
@@ -749,10 +758,10 @@ export default function AdminChatManagementPage({ navigate }) {
                     )}
                   </div>
 
-                  <button className="chat-icon-btn green" onClick={handleExport} title="تصدير المحادثة">
+                  <button className="chat-icon-btn" onClick={handleExport} title="تصدير المحادثة">
                     <svg viewBox="0 0 24 24"><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></svg>
                   </button>
-                  <button className="chat-icon-btn green" onClick={handleCopyLink} title="نسخ الرابط المباشر">
+                  <button className="chat-icon-btn" onClick={handleCopyLink} title="نسخ الرابط المباشر">
                     <svg viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></svg>
                   </button>
                 </div>
@@ -764,7 +773,7 @@ export default function AdminChatManagementPage({ navigate }) {
                 {currentMessages.length > 0 ? (
                   currentMessages.map((m, idx) => (
                     <div key={idx} className={`chat-msg-row ${m.sender === 'out' ? 'out' : 'in'}`}>
-                      <div className="chat-msg-avatar" style={{ background: m.sender === 'out' ? '#005D9C' : activePerson.color || '#E58A13' }}>
+                      <div className="chat-msg-avatar" style={{ background: m.sender === 'out' ? '#0A3C64' : (activePerson.color || '#0A3C64') }}>
                         {m.name ? m.name.charAt(0) : 'م'}
                       </div>
                       <div className="chat-msg-bubble-wrap">
@@ -858,7 +867,7 @@ export default function AdminChatManagementPage({ navigate }) {
             <>
               <div className="chat-person-head">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div className="chat-avatar-lg" style={{ background: activePerson.color || '#005D9C' }}>
+                  <div className="chat-avatar-lg" style={{ background: activePerson.color || '#0A3C64' }}>
                     {activePerson.initial || 'م'}
                   </div>
                   <div>
@@ -882,7 +891,7 @@ export default function AdminChatManagementPage({ navigate }) {
                   <div className="chat-info-row">
                     <div>
                       <div className="chat-info-label">{mode === 'platform' ? 'القسم المختص:' : 'البريد الإلكتروني:'}</div>
-                      <div className="chat-info-val" style={{ color: '#005D9C', fontWeight: '700' }}>
+                      <div className="chat-info-val" style={{ color: '#0A3C64', fontWeight: '700' }}>
                         {mode === 'platform' ? (activePerson.dept || 'القسم المالي والمحاسبي') : (activePerson.email || 'user@example.jo')}
                       </div>
                     </div>
@@ -1025,7 +1034,7 @@ export default function AdminChatManagementPage({ navigate }) {
                   type="button"
                   onClick={handleGenerateAi}
                   disabled={aiLoading}
-                  style={{ background: '#005D9C', color: '#FFFFFF', border: 'none', padding: '9px 18px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}
+                  style={{ background: '#0A3C64', color: '#FFFFFF', border: 'none', padding: '9px 18px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}
                 >
                   {aiLoading ? 'جاري التوليد...' : '✨ توليد الرد الآن'}
                 </button>
@@ -1033,7 +1042,7 @@ export default function AdminChatManagementPage({ navigate }) {
 
               {aiResult && (
                 <div style={{ marginTop: '14px', padding: '12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '13px', lineHeight: '1.6' }}>
-                  <div style={{ fontWeight: '700', color: '#005D9C', marginBottom: '6px' }}>الرد المقترح من ديوان AI:</div>
+                  <div style={{ fontWeight: '700', color: '#0A3C64', marginBottom: '6px' }}>الرد المقترح من ديوان AI:</div>
                   <div>{aiResult}</div>
                 </div>
               )}
@@ -1043,7 +1052,7 @@ export default function AdminChatManagementPage({ navigate }) {
                 type="button"
                 onClick={handleUseAiText}
                 disabled={!aiResult}
-                style={{ background: '#005D9C', color: '#FFFFFF', border: 'none', padding: '8px 18px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}
+                style={{ background: '#0A3C64', color: '#FFFFFF', border: 'none', padding: '8px 18px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}
               >
                 اعتماد وإدراج النص
               </button>
@@ -1066,19 +1075,19 @@ export default function AdminChatManagementPage({ navigate }) {
             <div className="chat-modal-body">
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
                 <div style={{ padding: '14px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '24px', fontWeight: '800', color: '#005D9C' }}>{statsMetrics.total}</div>
+                  <div style={{ fontSize: '24px', fontWeight: '800', color: '#0A3C64' }}>{statsMetrics.total}</div>
                   <div style={{ fontSize: '11px', color: '#64748B' }}>إجمالي التذاكر</div>
                 </div>
                 <div style={{ padding: '14px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '24px', fontWeight: '800', color: '#16A34A' }}>{statsMetrics.open}</div>
+                  <div style={{ fontSize: '24px', fontWeight: '800', color: '#0A3C64' }}>{statsMetrics.open}</div>
                   <div style={{ fontSize: '11px', color: '#64748B' }}>قيد المعالجة والنشطة</div>
                 </div>
                 <div style={{ padding: '14px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '24px', fontWeight: '800', color: '#E58A13' }}>{statsMetrics.urgent}</div>
+                  <div style={{ fontSize: '24px', fontWeight: '800', color: '#0A3C64' }}>{statsMetrics.urgent}</div>
                   <div style={{ fontSize: '11px', color: '#64748B' }}>أولوية عالية / حرجة</div>
                 </div>
                 <div style={{ padding: '14px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '24px', fontWeight: '800', color: '#005D9C' }}>{statsMetrics.resolved}</div>
+                  <div style={{ fontSize: '24px', fontWeight: '800', color: '#0A3C64' }}>{statsMetrics.resolved}</div>
                   <div style={{ fontSize: '11px', color: '#64748B' }}>المغلقة والمحلولة</div>
                 </div>
               </div>
@@ -1126,7 +1135,7 @@ export default function AdminChatManagementPage({ navigate }) {
               </div>
             </div>
             <div className="chat-modal-foot">
-              <button type="button" onClick={() => setActiveOverlay(null)} style={{ background: '#005D9C', color: '#FFFFFF', border: 'none', padding: '8px 18px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>
+              <button type="button" onClick={() => setActiveOverlay(null)} style={{ background: '#0A3C64', color: '#FFFFFF', border: 'none', padding: '8px 18px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>
                 تطبيق الفلتر
               </button>
               <button type="button" onClick={() => { setAdvStatus('all'); setAdvUnread('all'); setAdvSearch(''); setActiveOverlay(null); }} style={{ background: '#E2E8F0', border: 'none', padding: '8px 18px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>
@@ -1200,7 +1209,7 @@ export default function AdminChatManagementPage({ navigate }) {
                 type="button"
                 disabled={submittingTicket}
                 onClick={handleCreateNewConversation}
-                style={{ background: '#005D9C', color: '#FFFFFF', border: 'none', padding: '8px 18px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}
+                style={{ background: '#0A3C64', color: '#FFFFFF', border: 'none', padding: '8px 18px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}
               >
                 {submittingTicket ? 'جاري الإنشاء...' : 'إنشاء وحفظ في النظام'}
               </button>
@@ -1223,7 +1232,7 @@ export default function AdminChatManagementPage({ navigate }) {
             <div className="chat-modal-body">
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
                 {customTags.map((tg, i) => (
-                  <span key={i} style={{ background: '#005D9C', color: '#FFFFFF', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span key={i} style={{ background: '#0A3C64', color: '#FFFFFF', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     {tg}
                     <span style={{ cursor: 'pointer', opacity: 0.8 }} onClick={() => setCustomTags(customTags.filter((_, idx) => idx !== i))}>×</span>
                   </span>
@@ -1267,7 +1276,7 @@ export default function AdminChatManagementPage({ navigate }) {
               <button
                 type="button"
                 onClick={handleSavePrivateNote}
-                style={{ background: '#005D9C', color: '#FFFFFF', border: 'none', padding: '8px 18px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}
+                style={{ background: '#0A3C64', color: '#FFFFFF', border: 'none', padding: '8px 18px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}
               >
                 حفظ الملاحظة بالخادم
               </button>
@@ -1286,15 +1295,15 @@ export default function AdminChatManagementPage({ navigate }) {
             </div>
             <div className="chat-modal-body">
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ padding: '10px', background: '#F8FAFC', borderRadius: '8px', borderRight: '3px solid #005D9C' }}>
+                <div style={{ padding: '10px', background: '#F8FAFC', borderRadius: '8px', borderRight: '3px solid #0A3C64' }}>
                   <div style={{ fontWeight: '700', fontSize: '13px' }}>تاريخ إنشاء التذكرة</div>
                   <div style={{ fontSize: '11px', color: '#64748B' }}>{activePerson.time || 'مسجل'} • {activePerson.name}</div>
                 </div>
-                <div style={{ padding: '10px', background: '#F8FAFC', borderRadius: '8px', borderRight: '3px solid #16A34A' }}>
+                <div style={{ padding: '10px', background: '#F8FAFC', borderRadius: '8px', borderRight: '3px solid #0A3C64' }}>
                   <div style={{ fontWeight: '700', fontSize: '13px' }}>الموظف المسؤول</div>
                   <div style={{ fontSize: '11px', color: '#64748B' }}>{activePerson.assignee || 'فريق العمليات'}</div>
                 </div>
-                <div style={{ padding: '10px', background: '#F8FAFC', borderRadius: '8px', borderRight: '3px solid #E58A13' }}>
+                <div style={{ padding: '10px', background: '#F8FAFC', borderRadius: '8px', borderRight: '3px solid #0A3C64' }}>
                   <div style={{ fontWeight: '700', fontSize: '13px' }}>الحالة الحالية</div>
                   <div style={{ fontSize: '11px', color: '#64748B' }}>{activePerson.status}</div>
                 </div>

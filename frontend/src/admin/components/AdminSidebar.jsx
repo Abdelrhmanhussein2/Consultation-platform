@@ -20,7 +20,9 @@ import {
   IconAudit,
   IconSettings,
   IconReports,
-  IconSparkles
+  IconSparkles,
+  IconDatabase,
+  IconLightbulb
 } from './AdminIcons';
 
 
@@ -49,6 +51,8 @@ const ChevronIcon = ({ isOpen }) => (
 
 export default function AdminSidebar({ currentPath, navigate, userRole = 'super_admin', permissions = [], isCollapsed }) {
   const { logout } = useAuth();
+  const [activeDummySubId, setActiveDummySubId] = useState(null);
+
   // ══════════════════════════════════════════════════════════════════════════
   // STREAMLINED & REORGANIZED MENU HIERARCHY
   // ══════════════════════════════════════════════════════════════════════════
@@ -69,18 +73,18 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
     },
 
     // 2. Reports & Analytics
-
     { id: 'reports', label: 'التقارير والتحليلات', path: '/admin/reports', icon: IconReports },
 
     // 3. Accounts (Users & Consultants)
     {
       id: 'accounts',
-      label: 'المستخدمون',
+      label: 'المستخدمون والمستشارون',
       icon: IconUsers,
       defaultPath: '/admin/users',
       subItems: [
-        { id: 'users', label: 'المستخدمون والعملاء', path: '/admin/users' },
-        { id: 'consultants', label: 'المستشارون المعتمدون', path: '/admin/consultants' }
+        { id: 'users', label: 'إدارة المستخدمين', path: '/admin/users' },
+        { id: 'consultants', label: 'إدارة المستشارين', path: '/admin/consultants' },
+        { id: 'consultant_applications', label: 'طلبات انضمام المستشارين', path: '/admin/consultant-applications' }
       ]
     },
 
@@ -129,20 +133,32 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
       ]
     },
 
-    // 8. AI & Knowledge - Grouped
+    // 8. Database Group (Tabs only)
     {
-      id: 'ai_knowledge',
-      label: 'الذكاء الاصطناعي',
-      icon: IconKnowledge,
-      defaultPath: '/admin/knowledge',
+      id: 'database_group',
+      label: 'قاعدة البيانات',
+      icon: IconDatabase,
       subItems: [
-        { id: 'knowledge', label: 'قاعدة المعرفة والتشريعات', path: '/admin/knowledge' },
-        { id: 'ai_monitoring', label: 'رقابة ومحادثات AI', path: '/admin/ai-monitoring' },
-        { id: 'prompts', label: 'مكتبة البرومبت والفهرس', path: '/admin/prompts' }
+        { id: 'legislation', label: 'التشريعات والقوانين' },
+        { id: 'legal_alerts', label: 'التنبيهات التشريعية' },
+        { id: 'tax_forms_sub', label: 'النماذج الضريبية' },
+        { id: 'tax_glossary', label: 'مكتبة المصطلحات الضريبية' }
       ]
     },
 
-    // 9. Support & Tickets - Grouped
+    // 9. AI Management Group (Tabs only)
+    {
+      id: 'ai_management_group',
+      label: 'إدارة الذكاء الاصطناعي',
+      icon: IconLightbulb,
+      subItems: [
+        { id: 'ai_search_monitor', label: 'رقابة AI والبحث' },
+        { id: 'ai_knowledge_coord', label: 'منسق معرفة AI' },
+        { id: 'prompts_library', label: 'مكتبة البرومبت' }
+      ]
+    },
+
+    // 11. Support & Tickets - Grouped
     {
       id: 'support_group',
       label: 'الدعم والتذاكر',
@@ -154,10 +170,10 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
       ]
     },
 
-    // 10. Notifications
+    // 12. Notifications
     { id: 'notifications', label: 'الإشعارات', path: '/admin/notifications', icon: IconNotifications },
 
-    // 11. Security & Audit Logs - Grouped
+    // 13. Security & Audit Logs - Grouped
     {
       id: 'security_group',
       label: 'الأمان وسجل التدقيق',
@@ -169,7 +185,7 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
       ]
     },
 
-    // 12. Platform Settings
+    // 14. Platform Settings
     { id: 'settings', label: 'إعدادات المنصة', path: '/admin/settings', icon: IconSettings }
   ];
 
@@ -198,14 +214,18 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
     });
   }, [currentPath]);
 
-  // Click on single item
-  const handleItemClick = (e, path) => {
+  // Click on single or sub item
+  const handleItemClick = (e, path, id) => {
     e.preventDefault();
-    navigate(path);
+    if (path) {
+      setActiveDummySubId(null);
+      navigate(path);
+    } else if (id) {
+      setActiveDummySubId(id);
+    }
   };
 
-  // Click on parent group (e.g. Item 3 "المستخدمون والمستشارون"):
-  // Expands group AND navigates to the default first sub-item immediately!
+  // Click on parent group:
   const handleGroupClick = (e, item) => {
     e.preventDefault();
     const isCurrentlyExpanded = !!expandedGroups[item.id];
@@ -213,8 +233,9 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
     // Toggle expand state
     setExpandedGroups(prev => ({ ...prev, [item.id]: !isCurrentlyExpanded }));
 
-    // Automatically navigate to default sub-item
+    // Automatically navigate to default sub-item if configured
     if (item.defaultPath) {
+      setActiveDummySubId(null);
       navigate(item.defaultPath);
     }
   };
@@ -276,14 +297,14 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
           // Expandable Submenu Group
           if (item.subItems) {
             const isGroupOpen = !!expandedGroups[item.id];
-            
+
             // Prioritize exact route match over prefix match to prevent multiple subItems highlighting simultaneously
-            const exactSubMatch = item.subItems.find(sub => currentPath === sub.path);
+            const exactSubMatch = item.subItems.find(sub => sub.path && currentPath === sub.path);
             const activeSubId = exactSubMatch
               ? exactSubMatch.id
-              : item.subItems.find(sub => currentPath.startsWith(sub.path + '/'))?.id;
+              : item.subItems.find(sub => sub.path && currentPath.startsWith(sub.path + '/'))?.id;
 
-            const isAnySubActive = !!activeSubId;
+            const isAnySubActive = !!activeSubId || item.subItems.some(sub => sub.id === activeDummySubId);
 
             return (
               <div key={item.id} className="support-accordion-group" style={{ width: '100%' }}>
@@ -291,7 +312,7 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
                   type="button"
                   onClick={(e) => {
                     if (isCollapsed) {
-                      navigate(item.defaultPath || item.subItems[0].path);
+                      if (item.defaultPath) navigate(item.defaultPath);
                     } else {
                       handleGroupClick(e, item);
                     }
@@ -331,12 +352,12 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
                 {isGroupOpen && !isCollapsed && (
                   <div className="sidebar-sub-nav" style={{ paddingRight: '36px', display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
                     {item.subItems.map(sub => {
-                      const isSubActive = sub.id === activeSubId;
+                      const isSubActive = sub.id === activeSubId || sub.id === activeDummySubId;
                       return (
                         <button
                           key={sub.id}
                           type="button"
-                          onClick={(e) => handleItemClick(e, sub.path)}
+                          onClick={(e) => handleItemClick(e, sub.path, sub.id)}
                           className={`nav-sub-item ${isSubActive ? 'active' : ''}`}
                           style={{
                             background: 'transparent',
@@ -379,12 +400,12 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
           }
 
           // Regular Single Nav Item
-          const isActive = currentPath === item.path || (item.path === '/admin' && currentPath === '/admin/dashboard');
+          const isActive = (item.path && (currentPath === item.path || (item.path === '/admin' && currentPath === '/admin/dashboard'))) || activeDummySubId === item.id;
           return (
             <button
               key={item.id}
               type="button"
-              onClick={(e) => handleItemClick(e, item.path)}
+              onClick={(e) => handleItemClick(e, item.path, item.id)}
               className={`nav-item ${isActive ? 'active' : ''}`}
               title={item.label}
               style={{

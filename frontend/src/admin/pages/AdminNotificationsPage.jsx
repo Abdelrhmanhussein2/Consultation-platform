@@ -379,11 +379,11 @@ export default function AdminNotificationsPage({ navigate }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
         
         <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '18px 20px', display: 'flex', alignItems: 'center', gap: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ width: '46px', height: '46px', background: 'rgba(14,59,94,0.08)', color: '#0e3b5e', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <IconBell size={22} color="#0e3b5e" />
+          <div style={{ width: '46px', height: '46px', background: '#EBF3FA', color: '#0A3C64', border: '1px solid #D0E2F2', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <IconBell size={22} color="#0A3C64" />
           </div>
           <div>
-            <div style={{ fontSize: '22px', fontWeight: '900', color: '#0e3b5e', lineHeight: '1.2' }}>{totalIncoming}</div>
+            <div style={{ fontSize: '22px', fontWeight: '900', color: '#0A3C64', lineHeight: '1.2' }}>{totalIncoming}</div>
             <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '700', marginTop: '2px' }}>
               إشعارات الإدارة الواردة ({unreadIncoming} غير مقروء)
             </div>
@@ -391,31 +391,31 @@ export default function AdminNotificationsPage({ navigate }) {
         </div>
 
         <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '18px 20px', display: 'flex', alignItems: 'center', gap: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ width: '46px', height: '46px', background: '#F0FDFA', color: '#0D9488', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <IconBroadcast size={22} color="#0D9488" />
+          <div style={{ width: '46px', height: '46px', background: '#EBF3FA', color: '#0A3C64', border: '1px solid #D0E2F2', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <IconBroadcast size={22} color="#0A3C64" />
           </div>
           <div>
-            <div style={{ fontSize: '22px', fontWeight: '900', color: '#0D9488', lineHeight: '1.2' }}>{totalBroadcasts}</div>
+            <div style={{ fontSize: '22px', fontWeight: '900', color: '#0A3C64', lineHeight: '1.2' }}>{totalBroadcasts}</div>
             <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '700', marginTop: '2px' }}>إجمالي الإذاعات المرسلة</div>
           </div>
         </div>
 
         <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '18px 20px', display: 'flex', alignItems: 'center', gap: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ width: '46px', height: '46px', background: '#FEF2F2', color: '#DC2626', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <IconAlertCircle size={22} color="#DC2626" />
+          <div style={{ width: '46px', height: '46px', background: '#EBF3FA', color: '#0A3C64', border: '1px solid #D0E2F2', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <IconAlertCircle size={22} color="#0A3C64" />
           </div>
           <div>
-            <div style={{ fontSize: '22px', fontWeight: '900', color: '#DC2626', lineHeight: '1.2' }}>{urgentCount}</div>
+            <div style={{ fontSize: '22px', fontWeight: '900', color: '#0A3C64', lineHeight: '1.2' }}>{urgentCount}</div>
             <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '700', marginTop: '2px' }}>تنبيهات هامة وعاجلة</div>
           </div>
         </div>
 
         <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '18px 20px', display: 'flex', alignItems: 'center', gap: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ width: '46px', height: '46px', background: '#ECFDF5', color: '#059669', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <IconChart size={22} color="#059669" />
+          <div style={{ width: '46px', height: '46px', background: '#EBF3FA', color: '#0A3C64', border: '1px solid #D0E2F2', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <IconChart size={22} color="#0A3C64" />
           </div>
           <div>
-            <div style={{ fontSize: '22px', fontWeight: '900', color: '#059669', lineHeight: '1.2' }}>{readRate}%</div>
+            <div style={{ fontSize: '22px', fontWeight: '900', color: '#0A3C64', lineHeight: '1.2' }}>{readRate}%</div>
             <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '700', marginTop: '2px' }}>متوسط معدل القراءة</div>
           </div>
         </div>
@@ -433,8 +433,8 @@ export default function AdminNotificationsPage({ navigate }) {
             padding: '12px 24px',
             border: 'none',
             background: 'none',
-            borderBottom: activeTab === 'incoming' ? '3px solid #0e3b5e' : '3px solid transparent',
-            color: activeTab === 'incoming' ? '#0e3b5e' : '#64748B',
+            borderBottom: activeTab === 'incoming' ? '3px solid #0A3C64' : '3px solid transparent',
+            color: activeTab === 'incoming' ? '#0A3C64' : '#64748B',
             fontWeight: '800',
             fontSize: '14px',
             cursor: 'pointer',
@@ -446,7 +446,7 @@ export default function AdminNotificationsPage({ navigate }) {
           <IconBell size={18} />
           <span>إشعارات النظام والطلبات الواردة</span>
           {unreadIncoming > 0 && (
-            <span style={{ background: '#DC2626', color: '#FFFFFF', fontSize: '11px', padding: '2px 8px', borderRadius: '10px', fontWeight: '900' }}>
+            <span style={{ background: '#0A3C64', color: '#FFFFFF', fontSize: '11px', padding: '2px 8px', borderRadius: '10px', fontWeight: '900' }}>
               {unreadIncoming}
             </span>
           )}
@@ -459,8 +459,8 @@ export default function AdminNotificationsPage({ navigate }) {
             padding: '12px 24px',
             border: 'none',
             background: 'none',
-            borderBottom: activeTab === 'broadcasts' ? '3px solid #0e3b5e' : '3px solid transparent',
-            color: activeTab === 'broadcasts' ? '#0e3b5e' : '#64748B',
+            borderBottom: activeTab === 'broadcasts' ? '3px solid #0A3C64' : '3px solid transparent',
+            color: activeTab === 'broadcasts' ? '#0A3C64' : '#64748B',
             fontWeight: '800',
             fontSize: '14px',
             cursor: 'pointer',
@@ -530,7 +530,7 @@ export default function AdminNotificationsPage({ navigate }) {
                 <button
                   type="button"
                   onClick={handleMarkAllAsRead}
-                  style={{ padding: '10px 16px', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '10px', fontSize: '13px', fontWeight: '800', color: '#059669', cursor: 'pointer' }}
+                  style={{ padding: '10px 16px', background: '#EBF3FA', border: '1px solid #CBD5E1', borderRadius: '10px', fontSize: '13px', fontWeight: '800', color: '#0A3C64', cursor: 'pointer' }}
                 >
                   تحديد الكل كمقروء
                 </button>
@@ -541,13 +541,13 @@ export default function AdminNotificationsPage({ navigate }) {
           {/* Incoming Notifications Table */}
           <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0e3b5e', margin: 0 }}>
+              <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0A3C64', margin: 0 }}>
                 سجل الإشعارات الواردة ({filteredIncoming.length} إشعار)
               </h3>
               <button
                 type="button"
                 onClick={fetchLiveNotifications}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#F8FAFC', border: '1px solid #CBD5E1', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', color: '#0e3b5e', cursor: 'pointer' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#F8FAFC', border: '1px solid #CBD5E1', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', color: '#0A3C64', cursor: 'pointer' }}
               >
                 <IconRefresh size={14} />
                 <span>تحديث فوري</span>
@@ -577,10 +577,10 @@ export default function AdminNotificationsPage({ navigate }) {
                           transition: 'background 0.15s'
                         }}
                       >
-                        <td style={{ padding: '14px 16px', fontWeight: '800', color: '#0e3b5e', maxWidth: '240px' }}>
+                        <td style={{ padding: '14px 16px', fontWeight: '800', color: '#0A3C64', maxWidth: '240px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             {!n.is_read && (
-                              <span style={{ width: '8px', height: '8px', background: '#005D9C', borderRadius: '50%', flexShrink: 0 }} />
+                              <span style={{ width: '8px', height: '8px', background: '#0A3C64', borderRadius: '50%', flexShrink: 0 }} />
                             )}
                             <span>{n.title}</span>
                           </div>
@@ -589,14 +589,15 @@ export default function AdminNotificationsPage({ navigate }) {
                           {n.message}
                         </td>
                         <td style={{ padding: '14px 16px' }}>
-                          <span style={{ background: '#EFF6FF', color: '#1D4ED8', padding: '4px 10px', borderRadius: '20px', fontSize: '11.5px', fontWeight: '700' }}>
+                          <span style={{ background: '#EBF3FA', color: '#0A3C64', border: '1px solid #D0E2F2', padding: '4px 10px', borderRadius: '20px', fontSize: '11.5px', fontWeight: '700' }}>
                             {n.type || 'عام'}
                           </span>
                         </td>
                         <td style={{ padding: '14px 16px' }}>
                           <span style={{
-                            background: n.is_read ? '#F1F5F9' : '#ECFDF5',
-                            color: n.is_read ? '#64748B' : '#059669',
+                            background: n.is_read ? '#F1F5F9' : '#EBF3FA',
+                            color: n.is_read ? '#64748B' : '#0A3C64',
+                            border: n.is_read ? '1px solid #E2E8F0' : '1px solid #D0E2F2',
                             padding: '4px 10px',
                             borderRadius: '20px',
                             fontSize: '11px',
@@ -614,7 +615,7 @@ export default function AdminNotificationsPage({ navigate }) {
                               type="button"
                               onClick={() => setPreviewModalOpen(n)}
                               title="عرض التفاصيل"
-                              style={{ background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '6px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', color: '#0e7490', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                              style={{ background: '#F8FAFC', border: '1px solid #CBD5E1', padding: '6px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', color: '#0A3C64', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                             >
                               <IconEye size={14} />
                               <span>عرض</span>
@@ -624,7 +625,7 @@ export default function AdminNotificationsPage({ navigate }) {
                                 type="button"
                                 onClick={() => handleMarkAsRead(n.id)}
                                 title="تحديد كمقروء"
-                                style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '6px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', color: '#059669', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                style={{ background: '#EBF3FA', border: '1px solid #CBD5E1', padding: '6px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', color: '#0A3C64', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                               >
                                 <IconCheck size={14} />
                                 <span>مقروء</span>
@@ -634,7 +635,7 @@ export default function AdminNotificationsPage({ navigate }) {
                               type="button"
                               onClick={() => handleDeleteNotification(n.id)}
                               title="حذف الإشعار"
-                              style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', padding: '6px 8px', borderRadius: '8px', color: '#DC2626', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                              style={{ background: '#FEF2F2', border: '1px solid #FECACA', padding: '6px 8px', borderRadius: '8px', color: '#DC2626', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                             >
                               <IconTrash size={14} />
                             </button>

@@ -72,6 +72,7 @@ Docker/.env
 
 # Local documentation & roadmaps
 PROJECT_ROADMAP.md
+DIWAN_PROMPT.md
 postman_collection_phase1_phase2.json
 test_phase1_phase2_automated.py
 project_photo
