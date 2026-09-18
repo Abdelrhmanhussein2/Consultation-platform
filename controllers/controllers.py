@@ -74,11 +74,14 @@ class UserController:
                 detail="صيغة الصورة غير مدعومة. الصيغ المسموحة هي: JPG, JPEG, PNG, WEBP, GIF"
             )
             
-        # Save to static/avatars/
-        os.makedirs(os.path.join("static", "avatars"), exist_ok=True)
+        # Save to static/avatars/ — use absolute path based on project root
+        # so the file lands in the right place regardless of where uvicorn is started from
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        avatars_dir = os.path.join(project_root, "static", "avatars")
+        os.makedirs(avatars_dir, exist_ok=True)
         new_filename = f"{uuid.uuid4().hex}{ext}"
-        filepath = os.path.join("static", "avatars", new_filename)
-        
+        filepath = os.path.join(avatars_dir, new_filename)
+
         try:
             with open(filepath, "wb") as f:
                 f.write(file_bytes)
@@ -87,8 +90,8 @@ class UserController:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"فشل حفظ الصورة على الخادم: {e}"
             )
-            
-        # Update user record
+
+        # Update user record — also clear any stale avatar_url pointing to a missing file
         avatar_url = f"/static/avatars/{new_filename}"
         current_user.avatar_url = avatar_url
         db.commit()

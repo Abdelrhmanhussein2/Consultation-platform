@@ -428,6 +428,7 @@ class ConsultantPublicProfileOut(BaseModel):
     working_days: List[int] = []
     availabilities: List[ConsultantAvailabilityOut] = []
     city: Optional[str] = "عمّان"
+    profile_image_url: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -447,6 +448,8 @@ class ConsultantListItemOut(BaseModel):
     price: Optional[float] = None
     working_days: List[int] = []
     city: Optional[str] = "عمّان"
+    profile_image_url: Optional[str] = None
+    years_of_experience: Optional[int] = None
 
     class Config:
         from_attributes = True

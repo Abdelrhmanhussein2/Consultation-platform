@@ -131,7 +131,10 @@ function MainApp() {
     '/consultant/templates'
   ];
 
-  const isUserPortal = userPortalPaths.some(p => currentPath.startsWith(p));
+  // A path is "user portal" if it exactly matches or is a sub-path of any portal prefix
+  const isUserPortal = userPortalPaths.some(p => currentPath === p || currentPath.startsWith(p + '/') || currentPath.startsWith('/consultants/'));
+
+
 
   // Render User Portal content inside UserLayout
   const renderUserPortalContent = () => {
@@ -151,9 +154,7 @@ function MainApp() {
       return <ConsultantsPage navigate={navigate} />;
     }
     if (pathname.startsWith('/consultants/')) {
-      const parts = pathname.split('/');
-      const id = parts[parts.length - 1];
-      return <ConsultantDetailPage profileId={id} navigate={navigate} />;
+      return <ConsultantsPage navigate={navigate} />;
     }
     if (pathname === '/quick-consultation') {
       return <QuickConsultationPage navigate={navigate} />;

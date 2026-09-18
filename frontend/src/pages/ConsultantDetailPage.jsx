@@ -135,8 +135,20 @@ export default function ConsultantDetailPage({ profileId, navigate }) {
   const firstLetter = fullName.replace('أ. ', '').charAt(0).toUpperCase();
   const specName = consultant.specialization_name || 'ضريبة دخل';
   const ratingAvg = typeof consultant.average_rating === 'number' ? consultant.average_rating.toFixed(1) : (consultant.average_rating || '0.0');
+  const ratingCount = consultant.ratings_count || 0;
+  const sessionsCount = consultant.sessions_count || consultant.completed_sessions || 0;
   const yearsExp = (consultant.years_of_experience !== undefined && consultant.years_of_experience !== null) ? consultant.years_of_experience : (consultant.years_exp || 8);
   const basePrice = consultant.price_per_hour ? Math.round(Number(consultant.price_per_hour)) : (consultant.price ? Math.round(Number(consultant.price)) : (services && services[0]?.price ? Math.round(services[0].price) : 50));
+
+  // Hexagon SVG pattern for banner background
+  const hexagonPatternStyle = {
+    height: '110px',
+    background: 'linear-gradient(135deg, #0D3C5C 0%, #0a2f48 100%)',
+    borderTopLeftRadius: '24px',
+    borderTopRightRadius: '24px',
+    position: 'relative',
+    overflow: 'hidden',
+  };
 
   // Favorites logic
   const isFav = favorites.some(f => f.item_id === String(consultant.id));
@@ -275,13 +287,41 @@ export default function ConsultantDetailPage({ profileId, navigate }) {
 
       {/* Overlapping Top Banner Profile Card */}
       <div style={{ marginBottom: '28px' }}>
-        {/* Top Blue Cover */}
-        <div style={{
-          height: '110px',
-          backgroundColor: '#0D3C5C',
-          borderTopLeftRadius: '24px',
-          borderTopRightRadius: '24px'
-        }} />
+        {/* Top Blue Cover with hexagon pattern */}
+        <div style={hexagonPatternStyle}>
+          {/* Inline SVG hexagon tile — always renders, no CSS loading issues */}
+          <svg
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.18 }}
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <defs>
+              <pattern id="hex-pattern" x="0" y="0" width="56" height="48" patternUnits="userSpaceOnUse">
+                <polygon
+                  points="28,2 52,14 52,38 28,50 4,38 4,14"
+                  fill="none" stroke="white" strokeWidth="1.2"
+                />
+                <polygon
+                  points="56,2 80,14 80,38 56,50 32,38 32,14"
+                  fill="none" stroke="white" strokeWidth="1.2"
+                />
+                <polygon
+                  points="0,26 24,38 24,62 0,74 -24,62 -24,38"
+                  fill="none" stroke="white" strokeWidth="1.2"
+                />
+                <polygon
+                  points="56,26 80,38 80,62 56,74 32,62 32,38"
+                  fill="none" stroke="white" strokeWidth="1.2"
+                />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#hex-pattern)" />
+          </svg>
+          {/* Subtle glow overlay */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'radial-gradient(ellipse at 70% 50%, rgba(245,165,42,0.08) 0%, transparent 70%)'
+          }} />
+        </div>
 
         {/* Bottom White Card */}
         <div style={{
@@ -316,9 +356,17 @@ export default function ConsultantDetailPage({ profileId, navigate }) {
               top: '-42px',
               right: '32px',
               boxShadow: '0 4px 14px rgba(245, 165, 42, 0.2)',
-              border: '4px solid #FFFFFF'
+              border: '4px solid #FFFFFF',
+              overflow: 'hidden'
             }}>
-              {firstLetter}
+              {consultant.profile_image_url || consultant.profile_picture_url ? (
+                <img
+                  src={consultant.profile_image_url || consultant.profile_picture_url}
+                  alt={fullName}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '16px' }}
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
+              ) : firstLetter}
             </div>
 
             {/* Shift text to the left of absolute avatar */}
@@ -352,7 +400,8 @@ export default function ConsultantDetailPage({ profileId, navigate }) {
                 <span>•</span>
                 <span>⭐ {ratingAvg} ({ratingCount} تقييم)</span>
                 <span>•</span>
-                <span>✔️ 0 جلسة مكتملة</span>
+                <span>✔️ {sessionsCount} جلسة مكتملة</span>
+
               </div>
             </div>
           </div>

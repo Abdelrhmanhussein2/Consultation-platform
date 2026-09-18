@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './RegisterForm.css';
+import ModernSelect from '../ModernSelect';
 
 export default function RegisterForm({ openPolicy, navigate }) {
   // Account Type ('user' or 'consultant')
@@ -36,6 +37,8 @@ export default function RegisterForm({ openPolicy, navigate }) {
   const [activityType, setActivityType] = useState('');
   const [yearsOfExperience, setYearsOfExperience] = useState('');
   const [certificatesLicenses, setCertificatesLicenses] = useState('');
+  const [certificatesFileUrl, setCertificatesFileUrl] = useState('');
+  const [uploadingCertificates, setUploadingCertificates] = useState(false);
   const [bio, setBio] = useState('');
 
   // Step 3: Terms & Policies Agreement
@@ -209,7 +212,36 @@ export default function RegisterForm({ openPolicy, navigate }) {
     }
   };
 
-  // Submit Final Registration Form
+  // Upload Certificates file handler
+  const handleCertificatesUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setUploadingCertificates(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/auth/upload-commercial-register', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setCertificatesFileUrl(data.url);
+        setCertificatesLicenses(data.url);
+      } else {
+        setError(data.detail || 'فشل رفع الملف. يرجى إعادة المحاولة.');
+      }
+    } catch (err) {
+      setError('فشل الاتصال أثناء رفع الملف.');
+    } finally {
+      setUploadingCertificates(false);
+    }
+  };
+
   const handleSubmitRegistration = async () => {
     if (!validateStep(3)) return;
 
@@ -426,33 +458,36 @@ export default function RegisterForm({ openPolicy, navigate }) {
             {/* STEP 1: Basic Information */}
             {currentStep === 1 && (
               <div className="step-pane fade-in">
-                <div className="form-group">
-                  <label htmlFor="fullName">الاسم الكامل *</label>
-                  <div className="input-wrapper">
-                    <input
-                      type="text"
-                      id="fullName"
-                      placeholder="أدخل الاسم بالكامل"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                    />
+                {/* Row 1: Full Name + Email side by side */}
+                <div className="form-row-2col">
+                  <div className="form-group">
+                    <label htmlFor="fullName">الاسم الكامل *</label>
+                    <div className="input-wrapper">
+                      <input
+                        type="text"
+                        id="fullName"
+                        placeholder="أدخل الاسم بالكامل"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="email">البريد الإلكتروني *</label>
+                    <div className="input-wrapper">
+                      <input
+                        type="email"
+                        id="email"
+                        placeholder="example@domain.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="email">البريد الإلكتروني *</label>
-                  <div className="input-wrapper">
-                    <input
-                      type="email"
-                      id="email"
-                      placeholder="example@domain.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {/* Phone Input with Country Selector (Jordan default +962) */}
+                {/* Row 2: Phone (full width) */}
                 <div className="form-group">
                   <label htmlFor="phone">رقم الهاتف الجوال *</label>
                   <div className="phone-input-container">
@@ -479,145 +514,171 @@ export default function RegisterForm({ openPolicy, navigate }) {
                   <span className="input-hint">سيتم تسجيل رقمك بالصيغة: {countryCode}{phoneNum || '79xxxxxxx'}</span>
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="password">كلمة المرور *</label>
-                  <div className="input-wrapper password-wrapper">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      id="password"
-                      placeholder="8 خانات (حروف كبيرة وصغيرة وأرقام ورموز خاصة)"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      className="password-toggle"
-                      onClick={() => setShowPassword(!showPassword)}
-                      tabIndex="-1"
-                    >
-                      {showPassword ? '👁️' : '🔒'}
-                    </button>
+                {/* Row 3: Password + Confirm side by side */}
+                <div className="form-row-2col">
+                  <div className="form-group">
+                    <label htmlFor="password">كلمة المرور *</label>
+                    <div className="input-wrapper password-wrapper">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        id="password"
+                        placeholder="8 خانات على الأقل"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => setShowPassword(!showPassword)}
+                        tabIndex="-1"
+                        title={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                      >
+                        {showPassword ? (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                            <line x1="1" y1="1" x2="23" y2="23" />
+                          </svg>
+                        ) : (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
                   </div>
-                  {/* Real-time Password Requirements Checklist */}
-                  <div className="password-rules-hints" style={{ marginTop: '8px', fontSize: '0.78rem', color: '#64748B', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', background: 'rgba(13,60,92,0.03)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(13,60,92,0.08)' }}>
-                    <span style={{ color: password.length >= 8 ? '#166534' : '#94A3B8', fontWeight: password.length >= 8 ? '700' : '500' }}>
-                      {password.length >= 8 ? '✓' : '○'} 8 خانات على الأقل
-                    </span>
-                    <span style={{ color: /[A-Z]/.test(password) ? '#166534' : '#94A3B8', fontWeight: /[A-Z]/.test(password) ? '700' : '500' }}>
-                      {/[A-Z]/.test(password) ? '✓' : '○'} حرف كبير (A-Z)
-                    </span>
-                    <span style={{ color: /[a-z]/.test(password) ? '#166534' : '#94A3B8', fontWeight: /[a-z]/.test(password) ? '700' : '500' }}>
-                      {/[a-z]/.test(password) ? '✓' : '○'} حرف صغير (a-z)
-                    </span>
-                    <span style={{ color: /[0-9]/.test(password) ? '#166534' : '#94A3B8', fontWeight: /[0-9]/.test(password) ? '700' : '500' }}>
-                      {/[0-9]/.test(password) ? '✓' : '○'} رقم (0-9)
-                    </span>
-                    <span style={{ color: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password) ? '#166534' : '#94A3B8', fontWeight: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password) ? '700' : '500', gridColumn: 'span 2' }}>
-                      {/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password) ? '✓' : '○'} رمز خاص (@ # $ % ! & * _ -)
-                    </span>
+
+                  <div className="form-group">
+                    <label htmlFor="confirmPassword">تأكيد كلمة المرور *</label>
+                    <div className="input-wrapper">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        id="confirmPassword"
+                        placeholder="أعد كتابة كلمة المرور"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="confirmPassword">تأكيد كلمة المرور *</label>
-                  <div className="input-wrapper">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      id="confirmPassword"
-                      placeholder="أعد كتابة كلمة المرور"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                    />
-                  </div>
+                {/* Password Requirements Checklist (full width) */}
+                <div className="password-rules-hints" style={{ marginTop: '-4px', fontSize: '0.78rem', color: '#64748B', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', background: 'rgba(13,60,92,0.03)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(13,60,92,0.08)' }}>
+                  <span style={{ color: password.length >= 8 ? '#166534' : '#B0BEC5', fontWeight: password.length >= 8 ? '700' : '400' }}>
+                    {password.length >= 8 ? '✓' : '○'} 8 خانات على الأقل
+                  </span>
+                  <span style={{ color: /[A-Z]/.test(password) ? '#166534' : '#B0BEC5', fontWeight: /[A-Z]/.test(password) ? '700' : '400' }}>
+                    {/[A-Z]/.test(password) ? '✓' : '○'} حرف كبير (A-Z)
+                  </span>
+                  <span style={{ color: /[a-z]/.test(password) ? '#166534' : '#B0BEC5', fontWeight: /[a-z]/.test(password) ? '700' : '400' }}>
+                    {/[a-z]/.test(password) ? '✓' : '○'} حرف صغير (a-z)
+                  </span>
+                  <span style={{ color: /[0-9]/.test(password) ? '#166534' : '#B0BEC5', fontWeight: /[0-9]/.test(password) ? '700' : '400' }}>
+                    {/[0-9]/.test(password) ? '✓' : '○'} رقم (0-9)
+                  </span>
+                  <span style={{ color: /[!@#$%^&*()_+\-=\[\]{};':"|,.<>\/?~`]/.test(password) ? '#166534' : '#B0BEC5', fontWeight: /[!@#$%^&*()_+\-=\[\]{};':"|,.<>\/?~`]/.test(password) ? '700' : '400', gridColumn: 'span 2' }}>
+                    {/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password) ? '✓' : '○'} رمز خاص (@ # $ % ! & * _ -)
+                  </span>
                 </div>
               </div>
             )}
+
 
             {/* STEP 2: Entity & Professional Details */}
             {currentStep === 2 && (
               <div className="step-pane fade-in">
                 {accountType === 'user' ? (
                   <>
-                    <div className="form-group">
-                      <label>نوع الكيان المستخدم</label>
-                      <div className="select-wrapper">
-                        <select
+                    {/* Row 1: Entity Type + Legal Form side by side */}
+                    <div className="form-row-2col">
+                      <div className="form-group">
+                        <label>نوع الكيان المستخدم</label>
+                        <ModernSelect
+                          options={[
+                            { value: 'individual', label: '👤 فرد / أفراد' },
+                            { value: 'company',    label: '🏢 شركة / مؤسسة تجارية' },
+                            { value: 'researcher', label: '🎓 باحث / أكاديمي' },
+                          ]}
                           value={entityType}
-                          onChange={(e) => {
-                            const val = e.target.value;
+                          onChange={(val) => {
                             setEntityType(val);
                             if (val === 'individual') setLegalForm('individual');
                             else if (val === 'researcher') setLegalForm('researcher');
                             else if (val === 'company') setLegalForm('llc');
                           }}
-                        >
-                          <option value="individual">👤 فرد / أفراد</option>
-                          <option value="company">🏢 شركة / مؤسسة تجارية</option>
-                          <option value="researcher">🎓 باحث / أكاديمي</option>
-                        </select>
+                          placeholder="اختر نوع الكيان..."
+                          style={{ width: '100%' }}
+                        />
                       </div>
-                    </div>
 
-                    <div className="form-group">
-                      <label>الشكل القانوني</label>
-                      <div className="select-wrapper">
-                        <select
+                      <div className="form-group">
+                        <label>الشكل القانوني</label>
+                        <ModernSelect
+                          options={[
+                            { value: 'individual',         label: 'فرد' },
+                            { value: 'sole_proprietorship', label: 'مؤسسة فردية' },
+                            { value: 'llc',                label: 'شركة ذات مسؤولية محدودة (LLC)' },
+                            { value: 'private_joint_stock', label: 'شركة مساهمة خاصة' },
+                            { value: 'public_joint_stock',  label: 'شركة مساهمة عامة' },
+                            { value: 'non_profit',          label: 'جهة غير ربحية / جمعية' },
+                          ]}
                           value={legalForm}
-                          onChange={(e) => setLegalForm(e.target.value)}
-                        >
-                          <option value="individual">فرد</option>
-                          <option value="sole_proprietorship">مؤسسة فردية</option>
-                          <option value="llc">شركة ذات مسؤولية محدودة (LLC)</option>
-                          <option value="private_joint_stock">شركة مساهمة خاصة</option>
-                          <option value="public_joint_stock">شركة مساهمة عامة</option>
-                          <option value="non_profit">جهة غير ربحية / جمعية</option>
-                        </select>
+                          onChange={(val) => setLegalForm(val)}
+                          placeholder="اختر الشكل القانوني..."
+                          style={{ width: '100%' }}
+                        />
                       </div>
                     </div>
 
+                    {/* Row 2: Sector (full width) */}
                     <div className="form-group">
                       <label>القطاع التجاري / الاقتصادي</label>
-                      <div className="select-wrapper">
-                        <select
-                          value={sector}
-                          onChange={(e) => setSector(e.target.value)}
-                        >
-                          <option value="commercial">القطاع التجاري</option>
-                          <option value="services">قطاع الخدمات</option>
-                          <option value="industrial">القطاع الصناعي</option>
-                          <option value="banking">القطاع المالي والبنكي</option>
-                          <option value="contracting">المقاولات والإنشاءات</option>
-                          <option value="agricultural">القطاع الزراعي</option>
-                          <option value="other">قطاعات أخرى</option>
-                        </select>
-                      </div>
+                      <ModernSelect
+                        options={[
+                          { value: 'commercial',   label: 'القطاع التجاري' },
+                          { value: 'services',     label: 'قطاع الخدمات' },
+                          { value: 'industrial',   label: 'القطاع الصناعي' },
+                          { value: 'banking',      label: 'القطاع المالي والبنكي' },
+                          { value: 'contracting',  label: 'المقاولات والإنشاءات' },
+                          { value: 'agricultural', label: 'القطاع الزراعي' },
+                          { value: 'other',        label: 'قطاعات أخرى' },
+                        ]}
+                        value={sector}
+                        onChange={(val) => setSector(val)}
+                        placeholder="اختر القطاع..."
+                        style={{ width: '100%' }}
+                      />
                     </div>
 
                     {(entityType === 'company' || (legalForm && !['individual', 'independent_entity', 'researcher'].includes(legalForm))) && (
                       <>
-                        <div className="form-group">
-                          <label htmlFor="companyName">اسم الشركة / المؤسسة *</label>
-                          <div className="input-wrapper">
-                            <input
-                              type="text"
-                              id="companyName"
-                              placeholder="أدخل اسم الشركة الرسمي"
-                              value={companyName}
-                              onChange={(e) => setCompanyName(e.target.value)}
-                            />
+                        {/* Row 3: Company Name + Tax Number side by side */}
+                        <div className="form-row-2col">
+                          <div className="form-group">
+                            <label htmlFor="companyName">اسم الشركة / المؤسسة *</label>
+                            <div className="input-wrapper">
+                              <input
+                                type="text"
+                                id="companyName"
+                                placeholder="أدخل اسم الشركة الرسمي"
+                                value={companyName}
+                                onChange={(e) => setCompanyName(e.target.value)}
+                              />
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="form-group">
-                          <label htmlFor="taxNumber">الرقم الضريبي (اختياري)</label>
-                          <div className="input-wrapper">
-                            <input
-                              type="text"
-                              id="taxNumber"
-                              placeholder="الرقم الضريبي المسجل"
-                              value={taxNumber}
-                              onChange={(e) => setTaxNumber(e.target.value)}
-                            />
+                          <div className="form-group">
+                            <label htmlFor="taxNumber">الرقم الضريبي (اختياري)</label>
+                            <div className="input-wrapper">
+                              <input
+                                type="text"
+                                id="taxNumber"
+                                placeholder="الرقم الضريبي المسجل"
+                                value={taxNumber}
+                                onChange={(e) => setTaxNumber(e.target.value)}
+                              />
+                            </div>
                           </div>
                         </div>
 
@@ -645,76 +706,86 @@ export default function RegisterForm({ openPolicy, navigate }) {
                   </>
                 ) : (
                   <>
-                    <div className="form-group">
-                      <label htmlFor="title">المسمى الوظيفي / اللقب المهني *</label>
-                      <div className="input-wrapper">
-                        <input
-                          type="text"
-                          id="title"
-                          placeholder="مثال: مستشار ضريبي معتمد / خبير ضريبة دخل"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
+                    {/* Row 1: Title + Specialization side by side */}
+                    <div className="form-row-2col">
+                      <div className="form-group">
+                        <label htmlFor="title">المسمى الوظيفي / اللقب المهني *</label>
+                        <div className="input-wrapper">
+                          <input
+                            type="text"
+                            id="title"
+                            placeholder="مثال: مستشار ضريبي معتمد"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label>التخصص الرئيسي</label>
+                        <ModernSelect
+                          options={specializations.map((s) => ({ value: String(s.id), label: s.name }))}
+                          value={String(mainSpecializationId)}
+                          onChange={(val) => setMainSpecializationId(val)}
+                          placeholder="اختر التخصص..."
+                          style={{ width: '100%' }}
                         />
                       </div>
                     </div>
 
-                    <div className="form-group">
-                      <label>التخصص الرئيسي</label>
-                      <div className="select-wrapper">
-                        <select
-                          value={mainSpecializationId}
-                          onChange={(e) => setMainSpecializationId(e.target.value)}
-                        >
-                          {specializations.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.name}
-                            </option>
-                          ))}
-                        </select>
+                    {/* Row 2: Activity Type + Years of Experience side by side */}
+                    <div className="form-row-2col">
+                      <div className="form-group">
+                        <label htmlFor="activityType">نوع النشاط المهني</label>
+                        <div className="input-wrapper">
+                          <input
+                            type="text"
+                            id="activityType"
+                            placeholder="استشارات قانونية وضرائب المبيعات"
+                            value={activityType}
+                            onChange={(e) => setActivityType(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="yearsExp">سنوات الخبرة</label>
+                        <div className="input-wrapper">
+                          <input
+                            type="number"
+                            id="yearsExp"
+                            placeholder="مثال: 10"
+                            min="0"
+                            max="50"
+                            value={yearsOfExperience}
+                            onChange={(e) => setYearsOfExperience(e.target.value)}
+                          />
+                        </div>
                       </div>
                     </div>
 
+                    {/* Row 3: Certificates file upload (full width) */}
                     <div className="form-group">
-                      <label htmlFor="activityType">نوع النشاط المهني</label>
-                      <div className="input-wrapper">
+                      <label>الشهادات والاعتمادات (PDF أو صورة)</label>
+                      <div className="file-upload-box">
                         <input
-                          type="text"
-                          id="activityType"
-                          placeholder="مثال: استشارات قانونية وضرائب المبيعات"
-                          value={activityType}
-                          onChange={(e) => setActivityType(e.target.value)}
+                          type="file"
+                          accept=".pdf,.png,.jpg,.jpeg,.webp"
+                          id="certificatesFile"
+                          onChange={handleCertificatesUpload}
+                          disabled={uploadingCertificates}
                         />
+                        <label htmlFor="certificatesFile" className="file-upload-label">
+                          {uploadingCertificates
+                            ? 'جاري رفع الملف...'
+                            : certificatesFileUrl
+                            ? '✓ تم رفع ملف الشهادات والاعتمادات'
+                            : '🎓 اضغط هنا لرفع شهاداتك واعتماداتك'}
+                        </label>
                       </div>
                     </div>
 
-                    <div className="form-group">
-                      <label htmlFor="yearsExp">سنوات الخبرة</label>
-                      <div className="input-wrapper">
-                        <input
-                          type="number"
-                          id="yearsExp"
-                          placeholder="عدد سنوات الخبرة (مثال: 5)"
-                          min="0"
-                          max="50"
-                          value={yearsOfExperience}
-                          onChange={(e) => setYearsOfExperience(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="form-group">
-                      <label htmlFor="certificates">الشهادات والاعتمادات</label>
-                      <div className="input-wrapper">
-                        <input
-                          type="text"
-                          id="certificates"
-                          placeholder="الشهادات المهنية والتراخيص (CPA, SOCPA, إلخ)"
-                          value={certificatesLicenses}
-                          onChange={(e) => setCertificatesLicenses(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
+                    {/* Row 4: Bio (full width) */}
                     <div className="form-group">
                       <label htmlFor="bio">نبذة مختصرة عن المستشار</label>
                       <textarea

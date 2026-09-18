@@ -526,7 +526,23 @@ export default function ConsultantProfilePage({ navigate }) {
             backgroundPosition: 'center'
           } : {}}
         >
-          {/* Cover Edit Button */}
+          {/* Inline SVG hexagon pattern — always renders reliably */}
+          {!coverPreview && (
+            <svg
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <defs>
+                <pattern id="hex-pfp" x="0" y="0" width="56" height="48" patternUnits="userSpaceOnUse">
+                  <polygon points="28,2 52,14 52,38 28,50 4,38 4,14" fill="none" stroke="white" strokeWidth="1.2" strokeOpacity="0.2" />
+                  <polygon points="56,2 80,14 80,38 56,50 32,38 32,14" fill="none" stroke="white" strokeWidth="1.2" strokeOpacity="0.2" />
+                  <polygon points="0,26 24,38 24,62 0,74 -24,62 -24,38" fill="none" stroke="white" strokeWidth="1.2" strokeOpacity="0.2" />
+                  <polygon points="56,26 80,38 80,62 56,74 32,62 32,38" fill="none" stroke="white" strokeWidth="1.2" strokeOpacity="0.2" />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#hex-pfp)" />
+            </svg>
+          )}
           <button
             className="profile-cover-edit-btn"
             onClick={() => coverInputRef.current?.click()}

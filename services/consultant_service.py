@@ -225,6 +225,7 @@ class ConsultantService:
             "price_per_hour": profile.price_per_hour or (active_services[0].price if active_services else 50.0),
             "working_days": list(set([av.day_of_week for av in profile.availabilities if av.is_active])),
             "availabilities": profile.availabilities,
+            "profile_image_url": getattr(profile.user, "avatar_url", None) or getattr(profile, "profile_image_url", None),
         }
 
     @staticmethod
@@ -339,6 +340,8 @@ class ConsultantService:
                 "city": profile.user.address if (getattr(profile.user, "address", None)) else ["عمّان", "الزرقاء", "إربد", "العقبة", "مادبا"][abs(hash(str(profile.id))) % 5],
                 "services": [s.name for s in active_services] if active_services else ["جلسة فيديو", "جلسة محادثة"],
                 "is_available": True if profile.availabilities else True,
+                "profile_image_url": getattr(profile.user, "avatar_url", None) or getattr(profile, "profile_image_url", None),
+                "years_of_experience": profile.years_of_experience,
             })
 
         return results

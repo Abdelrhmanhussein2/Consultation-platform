@@ -324,14 +324,17 @@ const CSS = `
     direction: rtl;
   }
 
+
   .profile-hero-band {
     height: 145px;
     border-radius: 24px 24px 0 0;
-    background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.045) 25%, transparent 25%) -12px 0/28px 28px,
-      linear-gradient(135deg, transparent 75%, rgba(255, 255, 255, 0.045) 75%) -12px 0/28px 28px,
+    background-color: var(--admin-navy);
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='48'%3E%3Cpolygon points='28,2 52,14 52,38 28,50 4,38 4,14' fill='none' stroke='rgba(255,255,255,0.18)' stroke-width='1.2'/%3E%3Cpolygon points='56,2 80,14 80,38 56,50 32,38 32,14' fill='none' stroke='rgba(255,255,255,0.18)' stroke-width='1.2'/%3E%3Cpolygon points='0,26 24,38 24,62 0,74 -24,62 -24,38' fill='none' stroke='rgba(255,255,255,0.18)' stroke-width='1.2'/%3E%3Cpolygon points='56,26 80,38 80,62 56,74 32,62 32,38' fill='none' stroke='rgba(255,255,255,0.18)' stroke-width='1.2'/%3E%3C/svg%3E"),
+      radial-gradient(ellipse at 75% 50%, rgba(245,154,35,0.12) 0%, transparent 65%),
       linear-gradient(115deg, var(--admin-navy2) 0%, var(--admin-navy) 58%, var(--admin-navy3) 100%);
   }
+
 
   .profile-top-info {
     display: grid;
@@ -787,6 +790,32 @@ export default function ConsultantsPage({ navigate }) {
     if (id) window.history.pushState({ consultantId: id }, '', `/consultants/${id}`);
     setViewProfile(c); setScrollToBooking(false);
   };
+
+  // ── On hard refresh / direct URL load: restore viewProfile from URL ─
+  useEffect(() => {
+    const match = window.location.pathname.match(/^\/consultants\/([^/]+)$/);
+    if (!match) return;
+    const urlId = match[1];
+    // If already showing a profile with this id, skip
+    if (viewProfile && (viewProfile.profile_id === urlId || viewProfile.id === urlId)) return;
+    // Fetch the consultant data and set as viewProfile
+    const loadFromUrl = async () => {
+      try {
+        const data = await consultantService.getConsultantProfile(urlId, token).catch(() => null);
+        if (data) {
+          setViewProfile(data);
+        } else {
+          // Fallback: use a minimal object so ConsultantFullProfile can still load
+          setViewProfile({ profile_id: urlId, id: urlId });
+        }
+      } catch {
+        setViewProfile({ profile_id: urlId, id: urlId });
+      }
+    };
+    loadFromUrl();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   // ── Booking ────────────────────────────────────────────────────────
   const handleBookRequest = async pData => {

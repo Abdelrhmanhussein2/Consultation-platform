@@ -142,6 +142,20 @@
   font-weight: 700;
 }
 
+/* Two-column form row layout */
+.form-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+
+@media (max-width: 520px) {
+  .form-row-2col {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
 /* Phone Input with Country Selector */
 .phone-input-container {
   display: flex;
@@ -180,6 +194,37 @@
   color: var(--text-muted, #486581);
   margin-top: 4px;
   display: block;
+}
+
+/* ModernSelect override inside register form - match input style */
+.register-card .modern-select-wrapper {
+  width: 100%;
+}
+
+.register-card .modern-select-trigger {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  font-size: 0.95rem;
+  font-family: var(--font-main);
+  background-color: #FFFFFF;
+  border: 1px solid var(--border-color, #BCCCDC);
+  border-radius: 8px;
+  color: var(--text-main, #222224);
+  text-align: right;
+  justify-content: space-between;
+}
+
+.register-card .modern-select-wrapper.is-open .modern-select-trigger {
+  border-color: var(--header-bg, #005D9C);
+  box-shadow: 0 0 0 3px rgba(0, 93, 156, 0.12);
+}
+
+.register-card .modern-select-dropdown {
+  z-index: 100;
+  border-radius: 8px;
+  border: 1px solid rgba(13, 60, 92, 0.15);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
 }
 
 /* Select wrapper styling */

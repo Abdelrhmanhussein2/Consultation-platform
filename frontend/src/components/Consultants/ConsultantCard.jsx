@@ -50,10 +50,20 @@ export default function ConsultantCard({ consultant = {}, onBook, onViewDetails 
             justifyContent: 'center',
             fontWeight: '800',
             fontSize: '16px',
-            boxShadow: '0 3px 8px rgba(245, 165, 42, 0.25)'
+            boxShadow: '0 3px 8px rgba(245, 165, 42, 0.25)',
+            overflow: 'hidden',
+            flexShrink: 0
           }}
         >
-          {firstLetter}
+          {consultant.profile_image_url || consultant.profile_picture_url ? (
+            <img
+              src={consultant.profile_image_url || consultant.profile_picture_url}
+              alt={fullName}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              onError={(e) => { e.target.style.display = 'none'; e.target.parentNode.dataset.fallback = 'true'; }}
+            />
+          ) : null}
+          <span style={{ display: (consultant.profile_image_url || consultant.profile_picture_url) ? 'none' : 'flex' }}>{firstLetter}</span>
         </div>
       </div>
 
