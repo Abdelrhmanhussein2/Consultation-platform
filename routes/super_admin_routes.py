@@ -809,6 +809,31 @@ def admin_create_ticket(
 
 
 @router.get(
+    "/tickets/assignees",
+    summary="List available platform staff and administrators for ticket assignment",
+)
+def get_ticket_assignees(
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_reply_tickets)
+):
+    """
+    Returns platform administrators and support staff for assignment.
+    """
+    admins = AdminPermissionService.list_admins(db)
+    return [
+        {
+            "id": str(a.id),
+            "name": a.full_name or a.email.split('@')[0],
+            "email": a.email,
+            "role": "مسؤول رئيسي" if a.role == UserRole.super_admin else "مشرف نظام / دعم",
+            "role_code": a.role.value if hasattr(a.role, "value") else str(a.role),
+            "is_active": a.is_active
+        }
+        for a in admins
+    ]
+
+
+@router.get(
     "/tickets/{ticket_id}",
     response_model=TicketOut,
     summary="View full ticket details with internal replies",

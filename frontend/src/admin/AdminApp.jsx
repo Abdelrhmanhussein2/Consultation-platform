@@ -9,7 +9,6 @@ import AdminConsultantApplicationsPage from './pages/AdminConsultantApplications
 import AdminFinancialPage from './pages/AdminFinancialPage';
 import AdminSessionsPage from './pages/AdminSessionsPage';
 import AdminTicketsPage from './pages/AdminTicketsPage';
-import AdminChatManagementPage from './pages/AdminChatManagementPage';
 import AdminSettingsPage from './pages/AdminSettingsPage';
 import AdminRbacPage from './pages/AdminRbacPage';
 import AdminNotificationsPage from './pages/AdminNotificationsPage';
@@ -99,9 +98,8 @@ export default function AdminApp({ currentPath = '/admin', navigate }) {
       case '/admin/sessions':
         return <AdminSessionsPage navigate={navigate} />;
       case '/admin/tickets':
-        return <AdminTicketsPage navigate={navigate} />;
       case '/admin/chats':
-        return <AdminChatManagementPage navigate={navigate} />;
+        return <AdminTicketsPage navigate={navigate} />;
       case '/admin/rbac':
         return <AdminRbacPage view="roles" navigate={navigate} />;
       case '/admin/rbac/users':

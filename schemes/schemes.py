@@ -1027,10 +1027,10 @@ class TicketReplyOut(BaseModel):
     id: uuid.UUID
     ticket_id: uuid.UUID
     author_id: uuid.UUID
-    author_name: str
-    author_role: UserRole
+    author_name: Optional[str] = ""
+    author_role: Optional[Union[UserRole, str]] = "user"
     message: str
-    is_internal: bool
+    is_internal: bool = False
     created_at: datetime
 
     class Config:
@@ -1051,9 +1051,9 @@ class TicketAttachmentOut(BaseModel):
 class TicketOut(BaseModel):
     id: uuid.UUID
     submitted_by: uuid.UUID
-    submitter_name: str
-    assigned_to: Optional[uuid.UUID]
-    assignee_name: Optional[str]
+    submitter_name: Optional[str] = ""
+    assigned_to: Optional[uuid.UUID] = None
+    assignee_name: Optional[str] = None
     ticket_number: Optional[str] = None
     subject: str
     description: str
@@ -1062,7 +1062,7 @@ class TicketOut(BaseModel):
     priority: TicketPriority
     status: TicketStatus
     extra_fields: Optional[dict] = None
-    closed_at: Optional[datetime]
+    closed_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
     replies: List[TicketReplyOut] = []
@@ -1108,9 +1108,41 @@ class AdminTicketUpdate(BaseModel):
     def normalize_fields(self):
         if not self.internal_note and self.internal_notes:
             self.internal_note = self.internal_notes
-        if not self.assigned_to and self.assignee_id:
-            if isinstance(self.assignee_id, uuid.UUID):
+        if self.assigned_to:
+            if isinstance(self.assigned_to, str):
+                try:
+                    self.assigned_to = uuid.UUID(self.assigned_to)
+                except ValueError:
+                    self.assigned_to = None
+        elif self.assignee_id:
+            if isinstance(self.assignee_id, str):
+                try:
+                    self.assigned_to = uuid.UUID(self.assignee_id)
+                except ValueError:
+                    self.assigned_to = None
+            elif isinstance(self.assignee_id, uuid.UUID):
                 self.assigned_to = self.assignee_id
+        arabic_status_map = {
+            'مسودة': TicketStatus.draft,
+            'جديد': TicketStatus.new,
+            'تم الاستلام': TicketStatus.received,
+            'قيد المراجعة': TicketStatus.reviewing,
+            'بانتظار رد المستخدم': TicketStatus.waiting_user,
+            'قيد المعالجة': TicketStatus.in_progress,
+            'تم التصعيد': TicketStatus.escalated,
+            'تم الحل': TicketStatus.resolved,
+            'مغلق': TicketStatus.closed,
+            'أعيد فتحه': TicketStatus.reopened
+        }
+        if isinstance(self.status, str) and self.status in arabic_status_map:
+            self.status = arabic_status_map[self.status]
+        arabic_prio_map = {
+            'منخفضة': TicketPriority.low,
+            'متوسطة': TicketPriority.medium,
+            'عالية': TicketPriority.high
+        }
+        if isinstance(self.priority, str) and self.priority in arabic_prio_map:
+            self.priority = arabic_prio_map[self.priority]
         return self
 
 

@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   getAdminTickets,
+  getTicketAssignees,
   replyAdminTicket,
   createAdminTicket,
   updateAdminTicketStatus,
   closeAdminTicket
 } from '../services/adminApi';
+import { chatAiService } from '../../services/chatAiService';
 import ModernSelect from '../../components/ModernSelect';
 import FilterResetButton from '../../components/FilterResetButton';
+import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 
 // ══════════════════════════════════════════════════════════════════════════
 // STATUS & PRIORITY DEFINITIONS & COLOR CONFIGS
@@ -35,7 +38,9 @@ const CANNED_TEMPLATES = [
   { id: '1', title: 'تم التحقق وتحديث النظام', text: 'أهلاً بك. تم التحقق من الملاحظة وتحديث النظام من قبل الفريق الهندسي بنجاح. يرجى تجربة العملية الآن وإعلامنا في حال واجهت أي استفسار.' },
   { id: '2', title: 'طلب صورة أو تفاصيل إضافية', text: 'أهلاً بك. شكراً لتواصلك معنا. لمساعدتك بدقة وسرعة، هل يمكنك تزويدنا بصورة لرسالة الخطأ أو تفاصيل إضافية حول المشكلة؟' },
   { id: '3', title: 'تحويل الطلب للمالية والفوترة', text: 'أهلاً بك. تم تحويل استفسارك إلى قسم العمليات والمالية للمراجعة والتدقيق، وسنقوم بتحديثك بالنتيجة خلال 24 ساعة كحد أقصى.' },
-  { id: '4', title: 'تأكيد حل المشكلة بالكامل', text: 'تم اتخاذ كافة الإجراءات اللازمة وحل الطلب بنجاح. يسعدنا تقييمك لخدمة الدعم الفني ونتمنى لك يوماً سعيداً.' }
+  { id: '4', title: 'اعتماد رخصة وتخصص المستشار', text: 'شكراً لتزويدنا بالوثائق المحدثة ورخصة الاعتماد المهني، جاري تفعيل التخصص في ملفكم المعتمد بالمنصة.' },
+  { id: '5', title: 'استلام المرفقات وإثبات الدفع', text: 'تم استلام المرفقات وإثبات الدفع بنجاح، وسيتم إضافتها ومطابقتها من قبل الإدارة المالية فوراً.' },
+  { id: '6', title: 'تأكيد حل المشكلة بالكامل', text: 'تم اتخاذ كافة الإجراءات اللازمة وحل الطلب بنجاح. يسعدنا تقييمك لخدمة الدعم الفني ونتمنى لك يوماً سعيداً.' }
 ];
 
 const AI_SUGGESTIONS = [
@@ -74,15 +79,6 @@ const TICKET_PRIORITY_OPTIONS = [
   { value: 'منخفضة', label: 'منخفضة' },
   { value: 'متوسطة', label: 'متوسطة' },
   { value: 'عالية', label: 'عالية' }
-];
-
-const TICKET_ASSIGNEE_OPTIONS = [
-  { value: '', label: 'كل المشرفين' },
-  { value: 'سارة خالد', label: 'سارة خالد' },
-  { value: 'محمد علي', label: 'محمد علي' },
-  { value: 'خالد عمر', label: 'خالد عمر' },
-  { value: 'مدير الدعم', label: 'مدير الدعم' },
-  { value: 'غير معين', label: 'غير معين' }
 ];
 
 export default function AdminTicketsPage({ navigate }) {
@@ -135,7 +131,7 @@ export default function AdminTicketsPage({ navigate }) {
   // Modals Input States
   const [newStatusVal, setNewStatusVal] = useState('قيد المعالجة');
   const [statusNoteVal, setStatusNoteVal] = useState('');
-  const [newAssigneeVal, setNewAssigneeVal] = useState('سارة خالد');
+  const [newAssigneeVal, setNewAssigneeVal] = useState('');
   const [assignNoteVal, setAssignNoteVal] = useState('');
   const [newPriorityVal, setNewPriorityVal] = useState('عالية');
   const [priorityNoteVal, setPriorityNoteVal] = useState('');
@@ -155,6 +151,7 @@ export default function AdminTicketsPage({ navigate }) {
 
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [staffMembers, setStaffMembers] = useState([]);
 
   const showToast = (msg) => {
     setToastMsg(msg);
@@ -220,23 +217,42 @@ export default function AdminTicketsPage({ navigate }) {
             updated: t.updated_at ? new Date(t.updated_at).toLocaleDateString('ar-EG') : '',
             assignee: t.assignee_name || 'غير معين',
             user: t.submitter_name || t.user_name || 'عميل مسجل',
+            email: t.email || (t.submitter ? t.submitter.email : '') || 'user@platform.jo',
+            phone: t.phone || (t.submitter ? t.submitter.phone : '') || '—',
+            role: t.submitter_role || (t.sub_category === 'consultant' ? 'consultant' : 'user'),
             sla: 'الرد خلال 24 ساعة',
             slaPercent: 50,
             isDelayed: false,
             slaBreached: false,
-            messages: (t.replies || []).map(r => {
-              const isUser = r.author_role === 'user' || (r.author_id && r.author_id === t.submitted_by);
-              return {
-                from: isUser ? 'user' : 'agent',
-                name: r.author_name || (isUser ? (t.submitter_name || 'المستخدم') : 'مشرف الدعم'),
-                role: r.is_internal ? 'ملاحظة داخلية' : (isUser ? 'المستفيد' : 'موظف الدعم'),
-                date: r.created_at ? new Date(r.created_at).toLocaleDateString('ar-EG') : '',
-                time: r.created_at ? new Date(r.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '',
-                text: r.message || r.reply_text,
-                internal: r.is_internal
-              };
-            }),
-            attachments: (t.attachments || []).map(a => ({ name: a.file_name, size: '1.2 MB' })),
+            messages: [
+              ...(t.description ? [{
+                from: 'user',
+                name: t.submitter_name || t.user_name || 'صاحب التذكرة',
+                role: t.submitter_role === 'consultant' ? 'مستشار معتمد' : 'المستفيد',
+                date: t.created_at ? new Date(t.created_at).toLocaleDateString('ar-EG') : '',
+                time: t.created_at ? new Date(t.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '',
+                text: t.description,
+                internal: false
+              }] : []),
+              ...(t.replies || []).map(r => {
+                const isUser = r.author_role === 'user' || (r.author_id && r.author_id === t.submitted_by);
+                return {
+                  from: isUser ? 'user' : 'agent',
+                  name: r.author_name || (isUser ? (t.submitter_name || 'المستخدم') : 'مشرف الدعم'),
+                  role: r.is_internal ? 'ملاحظة داخلية' : (isUser ? 'المستفيد' : 'موظف الدعم'),
+                  date: r.created_at ? new Date(r.created_at).toLocaleDateString('ar-EG') : '',
+                  time: r.created_at ? new Date(r.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '',
+                  text: r.message || r.reply_text,
+                  internal: r.is_internal
+                };
+              })
+            ],
+            attachments: (t.attachments || []).map(a => ({
+              id: a.id,
+              name: a.filename || a.file_name || 'ملف مرفق',
+              path: a.file_path || '',
+              size: a.file_size ? `${Math.round(a.file_size / 1024)} KB` : '—'
+            })),
             timeline: [{ action: 'تم جلب الطلب من قاعدة البيانات', date: 'الآن', by: 'نظام ديوان' }],
             rating: null
           };
@@ -250,7 +266,19 @@ export default function AdminTicketsPage({ navigate }) {
     }
   };
 
+  const loadStaffMembers = async () => {
+    try {
+      const data = await getTicketAssignees();
+      if (Array.isArray(data) && data.length > 0) {
+        setStaffMembers(data);
+      }
+    } catch (err) {
+      console.warn('Error fetching ticket assignees:', err);
+    }
+  };
+
   useEffect(() => {
+    loadStaffMembers();
     loadBackendTickets(false);
     const interval = setInterval(() => {
       loadBackendTickets(true);
@@ -296,7 +324,41 @@ export default function AdminTicketsPage({ navigate }) {
     return true;
   });
 
+  // Dynamic Assignee Options for Filters & Modals
+  const uniqueTicketAssignees = Array.from(
+    new Set(tickets.map(t => t.assignee).filter(Boolean))
+  );
+  const allAssigneeNames = Array.from(
+    new Set([
+      ...staffMembers.map(s => s.name),
+      ...uniqueTicketAssignees
+    ])
+  ).filter(n => n && n !== 'غير معين');
+
+  const ticketAssigneeFilterOptions = [
+    { value: '', label: 'كل المشرفين' },
+    ...allAssigneeNames.map(name => ({ value: name, label: name })),
+    { value: 'غير معين', label: 'غير معين' }
+  ];
+
+  const assignModalOptions = staffMembers.length > 0
+    ? staffMembers.map(s => ({
+        value: s.name,
+        label: `${s.name} (${s.role || 'مشرف'})`
+      }))
+    : [
+        { value: 'Super Administrator', label: 'Super Administrator (مسؤول رئيسي)' }
+      ];
+
   const selectedTicket = tickets.find(t => t.id === selectedTicketId) || null;
+  const isClosedOrResolved = Boolean(
+    selectedTicket && (
+      selectedTicket.status === 'تم الحل' ||
+      selectedTicket.status === 'مغلق' ||
+      selectedTicket.status === 'resolved' ||
+      selectedTicket.status === 'closed'
+    )
+  );
 
   // ══════════════════════════════════════════════════════════════════════════
   // KANBAN DRAG AND DROP HANDLERS (SEAMLESS REARRANGE + IMMEDIATE METRICS SYNC)
@@ -398,6 +460,151 @@ export default function AdminTicketsPage({ navigate }) {
     }, 50);
   };
 
+  const handleExportChat = (ticket) => {
+    if (!ticket) return;
+    const lines = [];
+    lines.push(`========================================================================`);
+    lines.push(`منصة ديوان للاستشارات - سجل محادثة وتفاصيل التذكرة الرسمية`);
+    lines.push(`========================================================================`);
+    lines.push(`رقم التذكرة: ${ticket.id}`);
+    lines.push(`موضوع الطلب: ${ticket.subject}`);
+    lines.push(`التصنيف: ${ticket.category} | التصنيف الفرعي: ${ticket.subcategory || 'طلب عام'}`);
+    lines.push(`الحالة: ${ticket.status} | الأولوية: ${ticket.priority}`);
+    lines.push(`المستفيد / العميل: ${ticket.user} (${ticket.role === 'consultant' ? 'مستشار معتمد' : 'مستخدم'})`);
+    lines.push(`البريد الإلكتروني: ${ticket.email}`);
+    lines.push(`الهاتف: ${ticket.phone}`);
+    lines.push(`الموظف المسؤول: ${ticket.assignee}`);
+    lines.push(`تاريخ الإنشاء: ${ticket.created} | آخر تحديث: ${ticket.updated}`);
+    lines.push(`========================================================================`);
+    lines.push(`سجل الرسائل والمحادثة (${(ticket.messages || []).length} رسالة):`);
+    lines.push(`========================================================================\r\n`);
+
+    (ticket.messages || []).forEach((msg, idx) => {
+      const roleTag = msg.internal ? '[ملاحظة داخلية - للإدارة فقط]' : (msg.from === 'user' ? '[رسالة العميل]' : '[رد إدارة الدعم]');
+      lines.push(`[${idx + 1}] ${msg.time} ${msg.date} - ${msg.name} (${msg.role}) ${roleTag}:`);
+      lines.push(`${msg.text}\r\n`);
+    });
+
+    if (ticket.timeline && ticket.timeline.length > 0) {
+      lines.push(`========================================================================`);
+      lines.push(`سجل التتبع والعمليات:`);
+      lines.push(`========================================================================`);
+      ticket.timeline.forEach((item) => {
+        lines.push(`- ${item.date}: ${item.action} (${item.by})`);
+      });
+    }
+
+    const content = lines.join('\r\n');
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ticket-${ticket.id.replace('#', '')}-transcript.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('تم تصدير وحفظ سجل المحادثة بالكامل كملف نصي بنجاح.');
+  };
+
+  const handleCopyTicketId = (ticket) => {
+    if (!ticket?.id) return;
+    navigator.clipboard.writeText(ticket.id).then(() => {
+      showToast(`تم نسخ رقم التذكرة ${ticket.id} إلى الحافظة.`);
+    }).catch(() => {
+      showToast(`تم نسخ رقم التذكرة: ${ticket.id}`);
+    });
+  };
+
+  const handleQuickStatusChange = async (newStatus) => {
+    if (!selectedTicketId) return;
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('ar-EG');
+    const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+
+    setTickets(prev => prev.map(t => {
+      if (t.id !== selectedTicketId) return t;
+      return {
+        ...t,
+        status: newStatus,
+        updated: dateStr,
+        timeline: [
+          { action: `تم تغيير الحالة إلى [${newStatus}]`, date: `${timeStr} - ${dateStr}`, by: 'بواسطة المشرف' },
+          ...t.timeline
+        ]
+      };
+    }));
+
+    showToast(`تم تغيير حالة التذكرة إلى: ${newStatus}`);
+
+    try {
+      const targetTicket = tickets.find(t => t.id === selectedTicketId);
+      const dbId = targetTicket?.realId || selectedTicketId.replace('#', '');
+      await updateAdminTicketStatus(dbId, {
+        status: newStatus,
+        internal_notes: `Status changed to ${newStatus}`
+      });
+    } catch (err) {
+      console.warn('Backend ticket update fallback:', err);
+    }
+  };
+
+  const handleQuickPriorityChange = async (newPriority) => {
+    if (!selectedTicketId) return;
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('ar-EG');
+    const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+
+    setTickets(prev => prev.map(t => {
+      if (t.id !== selectedTicketId) return t;
+      return {
+        ...t,
+        priority: newPriority,
+        updated: dateStr,
+        timeline: [
+          { action: `تم تغيير الأولوية إلى [${newPriority}]`, date: `${timeStr} - ${dateStr}`, by: 'بواسطة المشرف' },
+          ...t.timeline
+        ]
+      };
+    }));
+
+    showToast(`تم تغيير أولوية التذكرة إلى: ${newPriority}`);
+
+    try {
+      const targetTicket = tickets.find(t => t.id === selectedTicketId);
+      const dbId = targetTicket?.realId || selectedTicketId.replace('#', '');
+      await updateAdminTicketStatus(dbId, {
+        priority: newPriority
+      });
+    } catch (err) {
+      console.warn('Backend ticket priority fallback:', err);
+    }
+  };
+
+  const handleAiSuggestReply = async (purpose = 'general_reply') => {
+    if (!selectedTicket) return;
+    setAiEnhancing(true);
+    try {
+      const prompt = `الموضوع: ${selectedTicket.subject}\nالعميل: ${selectedTicket.user}\nالتصنيف: ${selectedTicket.category}`;
+      const res = await chatAiService.generateReply(prompt, purpose);
+      if (res && res.text) {
+        setReplyText(res.text);
+        showToast('تم توليد الرد الذكي بنجاح.');
+      } else {
+        const fallback = `أهلاً بك ${selectedTicket.user}، نشكر تواصلك معنا بخصوص (${selectedTicket.subject}). جاري تدقيق الطلب وسنوافيكم بالتحديث فوراً.`;
+        setReplyText(fallback);
+        showToast('تم إدراج الصياغة المقترحة.');
+      }
+    } catch (err) {
+      const fallback = `أهلاً بك ${selectedTicket.user}، نشكر تواصلك معنا بخصوص (${selectedTicket.subject}). جاري تدقيق الطلب وسنوافيكم بالتحديث فوراً.`;
+      setReplyText(fallback);
+      showToast('تم إدراج الصياغة المقترحة.');
+    } finally {
+      setAiEnhancing(false);
+      setShowAiDropdown(false);
+    }
+  };
+
   const handleAiEnhance = () => {
     if (!replyText.trim()) {
       showToast('يرجى كتابة نص في الرد أولاً لتحسينه وتنسيقه بالذكاء الاصطناعي.');
@@ -409,7 +616,7 @@ export default function AdminTicketsPage({ navigate }) {
       const enhanced = `أهلاً بك، نشكر لك تواصلك مع فريق الدعم الفني في منصة ديوان.\n\n${current}\n\nنحن دائماً في خدمتك ويسعدنا تقديم كامل المساعدة لك.`;
       setReplyText(enhanced);
       setAiEnhancing(false);
-      showToast('✨ تم تحسين وصياغة النص باحترافية عبر الذكاء الاصطناعي!');
+      showToast('تم تحسين وصياغة النص باحترافية عبر الذكاء الاصطناعي.');
     }, 450);
   };
 
@@ -422,7 +629,7 @@ export default function AdminTicketsPage({ navigate }) {
   const handleSelectAiSuggestion = (text) => {
     setReplyText(prev => (prev ? `${prev}\n\n${text}` : text));
     setShowAiDropdown(false);
-    showToast('✨ تم إدراج صياغة الذكاء الاصطناعي المقترحة.');
+    showToast('تم إدراج صياغة الذكاء الاصطناعي المقترحة.');
   };
 
   const handleFileAttach = (e) => {
@@ -513,7 +720,7 @@ export default function AdminTicketsPage({ navigate }) {
   const handleStatusSubmit = async () => {
     if (!selectedTicketId) return;
     const now = new Date();
-    const dateStr = '20/08/2026';
+    const dateStr = now.toLocaleDateString('ar-EG');
     const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
 
     // 1. Optimistic State Update
@@ -553,34 +760,39 @@ export default function AdminTicketsPage({ navigate }) {
   const handleAssignSubmit = async () => {
     if (!selectedTicketId) return;
     const now = new Date();
-    const dateStr = '20/08/2026';
+    const dateStr = now.toLocaleDateString('ar-EG');
     const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+
+    const targetStaff = staffMembers.find(s => s.name === newAssigneeVal || s.id === newAssigneeVal);
+    const assigneeDisplayName = targetStaff ? targetStaff.name : (newAssigneeVal || 'غير معين');
+    const assigneeId = targetStaff ? targetStaff.id : null;
 
     setTickets(prev => prev.map(t => {
       if (t.id !== selectedTicketId) return t;
       const noteTxt = assignNoteVal ? `: ${assignNoteVal}` : '';
       return {
         ...t,
-        assignee: newAssigneeVal,
+        assignee: assigneeDisplayName,
+        assigned_to: assigneeId,
         updated: dateStr,
         timeline: [
-          { action: `تم تحويل الطلب إلى [${newAssigneeVal}]${noteTxt}`, date: `${timeStr} - ${dateStr}`, by: 'بواسطة المشرف' },
+          { action: `تم تحويل الطلب إلى [${assigneeDisplayName}]${noteTxt}`, date: `${timeStr} - ${dateStr}`, by: 'بواسطة المشرف' },
           ...t.timeline
         ]
       };
     }));
 
-    const assigneeToSave = newAssigneeVal;
     const assignNoteToSave = assignNoteVal;
     setActiveModal(null);
     setAssignNoteVal('');
-    showToast(`تم تحويل الطلب إلى: ${assigneeToSave}`);
+    showToast(`تم تحويل الطلب إلى: ${assigneeDisplayName}`);
 
     try {
       const targetTicket = tickets.find(t => t.id === selectedTicketId);
       const dbId = targetTicket?.realId || selectedTicketId.replace('#', '');
       await updateAdminTicketStatus(dbId, {
-        internal_note: `Assigned to ${assigneeToSave}. ${assignNoteToSave || ''}`
+        assigned_to: assigneeId,
+        internal_note: `Assigned to ${assigneeDisplayName}. ${assignNoteToSave || ''}`
       });
     } catch (err) {
       console.warn('Backend assign error fallback:', err);
@@ -590,7 +802,7 @@ export default function AdminTicketsPage({ navigate }) {
   const handlePrioritySubmit = async () => {
     if (!selectedTicketId) return;
     const now = new Date();
-    const dateStr = '20/08/2026';
+    const dateStr = now.toLocaleDateString('ar-EG');
     const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
 
     setTickets(prev => prev.map(t => {
@@ -624,7 +836,7 @@ export default function AdminTicketsPage({ navigate }) {
   const handleInternalNoteSubmit = async () => {
     if (!selectedTicketId || !internalNoteText.trim()) return;
     const now = new Date();
-    const dateStr = '20/08/2026';
+    const dateStr = now.toLocaleDateString('ar-EG');
     const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
 
     setTickets(prev => prev.map(t => {
@@ -663,745 +875,827 @@ export default function AdminTicketsPage({ navigate }) {
     }
   };
 
-  return (
-    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '40px', textAlign: 'right', direction: 'rtl' }}>
+  const messagesEndRef = useRef(null);
 
+  return (
+    <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 20px', direction: 'rtl', fontFamily: 'Tajawal, sans-serif' }}>
       {/* Toast Notification */}
       {toastMsg && (
-        <div style={{ position: 'fixed', bottom: '24px', left: '24px', background: '#0e3b5e', color: '#FFFFFF', padding: '12px 24px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', zIndex: 99999, display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700', fontSize: '13.5px', direction: 'rtl' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
+        <div style={{ position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)', background: '#0A3254', color: '#FFFFFF', padding: '12px 24px', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)', zIndex: 99999, fontSize: '14px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span>{toastMsg}</span>
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════════════════════════════════
-          DETAIL VIEW (EXACT SPECIFICATION AND ALIGNMENT MATCHING REFERENCE)
-          ══════════════════════════════════════════════════════════════════════════ */}
       {selectedTicket ? (
-        <div style={{ maxWidth: '1120px', width: '100%', margin: '0 auto', direction: 'rtl', textAlign: 'right' }}>
+        <div style={{ maxWidth: '1440px', width: '100%', margin: '0 auto', direction: 'rtl', textAlign: 'right' }}>
 
-          {/* Top Bar with Action buttons on the RIGHT and Return button on the LEFT */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '20px' }}>
-
-            {/* 4 Action Buttons (on the RIGHT in RTL) */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              <button
-                onClick={() => { setNewStatusVal(selectedTicket.status); setActiveModal('change-status'); }}
-                style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', padding: '8px 16px', borderRadius: '10px', fontSize: '12.5px', fontWeight: '700', color: '#374151', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.13 15.57a10 10 0 1 0 3.73-10.51L2 8" /></svg>
-                <span>تحديث الحالة</span>
-              </button>
-
-              <button
-                onClick={() => { setNewAssigneeVal(selectedTicket.assignee); setActiveModal('assign-ticket'); }}
-                style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', padding: '8px 16px', borderRadius: '10px', fontSize: '12.5px', fontWeight: '700', color: '#374151', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-                <span>تحويل الطلب</span>
-              </button>
-
-              <button
-                onClick={() => { setNewPriorityVal(selectedTicket.priority); setActiveModal('change-priority'); }}
-                style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', padding: '8px 16px', borderRadius: '10px', fontSize: '12.5px', fontWeight: '700', color: '#374151', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" /></svg>
-                <span>تغيير الأولوية</span>
-              </button>
-
-              <button
-                onClick={() => setActiveModal('add-internal')}
-                style={{ background: '#FFFDF5', border: '1px solid #FCD34D', padding: '8px 16px', borderRadius: '10px', fontSize: '12.5px', fontWeight: '800', color: '#B45309', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
-                <span>ملاحظة داخلية</span>
-              </button>
-            </div>
-
-            {/* Back Button (on the LEFT in RTL) */}
+          {/* Top Actions & Navigation Bar */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '18px' }}>
+            
+            {/* Export Transcript Button (Chic DIWAN Style) */}
             <button
+              type="button"
+              onClick={() => handleExportChat(selectedTicket)}
+              style={{
+                background: '#FFFFFF',
+                border: '1px solid #CBD5E1',
+                padding: '9px 18px',
+                borderRadius: '10px',
+                fontSize: '13px',
+                fontWeight: '800',
+                color: '#0A3254',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#F8FAFC';
+                e.currentTarget.style.borderColor = '#0A3254';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#FFFFFF';
+                e.currentTarget.style.borderColor = '#CBD5E1';
+              }}
+              title="تصدير السجل الكامل كملف نصي"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0A3254" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              <span>تصدير السجل</span>
+            </button>
+
+            {/* Back Button */}
+            <button
+              type="button"
               onClick={() => setSelectedTicketId(null)}
-              style={{ background: '#0e3b5e', color: '#FFFFFF', border: 'none', padding: '9px 18px', borderRadius: '10px', fontWeight: '800', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+              style={{ background: '#0A3254', color: '#FFFFFF', border: 'none', padding: '9px 20px', borderRadius: '10px', fontWeight: '800', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'background 0.15s ease', boxShadow: '0 2px 4px rgba(10,50,84,0.18)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#0D3C5C'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#0A3254'; }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
               <span>العودة لقائمة التذاكر</span>
             </button>
           </div>
 
-          {/* 2 Columns Grid: Right Main Column (65%) and Left Sidebar (35%) */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: '20px', direction: 'rtl' }}>
+          {/* Main 2-Column Responsive Workspace */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '20px', alignItems: 'start', direction: 'rtl' }}>
 
             {/* ══════════════════════════════════════════════════════════════════
-                RIGHT MAIN COLUMN (معلومات الطلب + المحادثة)
+                MAIN EXPANDED WORKSPACE (CENTER & RIGHT: CHAT THREAD & CONSOLE)
                 ══════════════════════════════════════════════════════════════════ */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-              {/* معلومات الطلب (Ticket Info Card) */}
-              <div style={{ background: '#FFFFFF', border: '1px solid #F3F4F6', borderRadius: '16px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', textAlign: 'right' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#0e3b5e', margin: '0 0 16px 0' }}>معلومات الطلب</h3>
+              {/* Active Ticket Header Banner */}
+              <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                
+                {/* Right: Submitter & Ticket Details */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#0A3254', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: '800', flexShrink: 0 }}>
+                    {selectedTicket.user ? selectedTicket.user.charAt(0) : 'م'}
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                      <span style={{ fontSize: '15px', fontWeight: '800', color: '#0A3254' }}>{selectedTicket.user}</span>
+                      <span style={{ fontSize: '11px', fontWeight: '700', padding: '2px 8px', borderRadius: '6px', background: selectedTicket.role === 'consultant' ? '#F0FDF4' : '#F1F5F9', color: selectedTicket.role === 'consultant' ? '#166534' : '#475569', border: selectedTicket.role === 'consultant' ? '1px solid #BBF7D0' : '1px solid #E2E8F0' }}>
+                        {selectedTicket.role === 'consultant' ? 'مستشار معتمد' : 'مستخدم المنصة'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span>{selectedTicket.email}</span>
+                      <span>•</span>
+                      <span style={{ direction: 'ltr' }}>{selectedTicket.phone}</span>
+                    </div>
+                  </div>
+                </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px' }}>
-                  <div>
-                    <span style={{ color: '#6B7280', fontSize: '12px' }}>المستخدم: </span>
-                    <strong style={{ color: '#374151' }}>{selectedTicket.user}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: '#6B7280', fontSize: '12px' }}>رقم الطلب: </span>
-                    <strong style={{ fontFamily: 'monospace', color: '#0e3b5e' }}>{selectedTicket.id}</strong>
-                  </div>
+                {/* Left: Ticket ID & Status Badges */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyTicketId(selectedTicket)}
+                    title="انقر لنسخ رقم التذكرة"
+                    style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '6px 12px', borderRadius: '6px', fontFamily: 'monospace', fontWeight: '800', fontSize: '13px', color: '#0A3254', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <span>{selectedTicket.id}</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                  </button>
 
-                  <div>
-                    <span style={{ color: '#6B7280', fontSize: '12px' }}>الفئة: </span>
-                    <strong style={{ color: '#374151' }}>{selectedTicket.category}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: '#6B7280', fontSize: '12px' }}>الفئة الفرعية: </span>
-                    <span style={{ color: '#374151' }}>{selectedTicket.subcategory}</span>
-                  </div>
+                  <span className={`badge ${STATUS_CONFIG[selectedTicket.status]?.color || 'bg-gray-100 text-gray-700'}`} style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '800' }}>
+                    {selectedTicket.status}
+                  </span>
 
-                  <div style={{ gridColumn: 'span 2' }}>
-                    <span style={{ color: '#6B7280', fontSize: '12px' }}>الموضوع: </span>
-                    <strong style={{ color: '#0e3b5e', fontSize: '13.5px' }}>{selectedTicket.subject}</strong>
-                  </div>
-
-                  <div>
-                    <span style={{ color: '#6B7280', fontSize: '12px' }}>التاريخ: </span>
-                    <span style={{ color: '#374151' }}>{selectedTicket.created}</span>
-                  </div>
-                  <div>
-                    <span style={{ color: '#6B7280', fontSize: '12px' }}>القناة: </span>
-                    <span style={{ color: '#374151' }}>مركز المساعدة</span>
-                  </div>
-
-                  <div>
-                    <span style={{ color: '#6B7280', fontSize: '12px', display: 'block', marginBottom: '4px' }}>الحالة: </span>
-                    <span className={`badge ${STATUS_CONFIG[selectedTicket.status]?.color}`} style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', display: 'inline-flex', alignItems: 'center' }}>
-                      {selectedTicket.status}
-                    </span>
-                  </div>
+                  <span className={`badge ${PRIORITY_CONFIG[selectedTicket.priority]?.color || 'bg-gray-100 text-gray-700'}`} style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '800' }}>
+                    {selectedTicket.priority}
+                  </span>
                 </div>
               </div>
 
-              {/* المحادثة (Conversation Thread Card) */}
-              <div style={{ background: '#FFFFFF', border: '1px solid #F3F4F6', borderRadius: '16px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', textAlign: 'right' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#0e3b5e', margin: '0 0 20px 0' }}>المحادثة</h3>
+              {/* Main Chat Stream & Rich Console Card */}
+              <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column' }}>
+                
+                {/* Topic & Subject Headline */}
+                <div style={{ borderBottom: '1px solid #F1F5F9', paddingBottom: '14px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                  <div>
+                    <span style={{ fontSize: '11.5px', color: '#64748B', fontWeight: '700', display: 'block', marginBottom: '2px' }}>
+                      موضوع التذكرة ({selectedTicket.category} / {selectedTicket.subcategory}):
+                    </span>
+                    <h2 style={{ fontSize: '15px', fontWeight: '800', color: '#0A3254', margin: 0 }}>
+                      {selectedTicket.subject}
+                    </h2>
+                  </div>
+                  <span style={{ fontSize: '11.5px', color: '#94A3B8', fontWeight: '600' }}>
+                    تاريخ الإنشاء: {selectedTicket.created}
+                  </span>
+                </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '420px', overflowY: 'auto' }}>
-                  {selectedTicket.messages.map((m, idx) => {
-                    const isUser = m.from === 'user';
-                    const isInternal = m.internal;
+                {/* Messages Stream Viewport (Enlarged Height) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '560px', minHeight: '440px', overflowY: 'auto', padding: '6px 4px 12px 4px' }}>
+                  {selectedTicket.messages && selectedTicket.messages.length > 0 ? (
+                    selectedTicket.messages.map((m, idx) => {
+                      const isUser = m.from === 'user';
+                      const isInternal = m.internal;
 
-                    return (
-                      <div
-                        key={idx}
-                        style={{
-                          display: 'flex',
-                          width: '100%',
-                          justifyContent: isUser ? 'flex-start' : 'flex-end',
-                          textAlign: 'right'
-                        }}
-                      >
+                      return (
                         <div
+                          key={idx}
                           style={{
-                            maxWidth: '85%',
-                            borderRadius: '16px',
-                            borderTopRightRadius: isUser ? '2px' : '16px',
-                            borderTopLeftRadius: !isUser ? '2px' : '16px',
-                            padding: '14px 18px',
-                            background: isInternal ? '#FFFBEB' : isUser ? '#0e3b5e' : '#F3F4F6',
-                            color: isInternal ? '#78350F' : isUser ? '#FFFFFF' : '#1F2937',
-                            border: isInternal ? '1px solid #FDE68A' : 'none',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                            display: 'flex',
+                            width: '100%',
+                            justifyContent: isUser ? 'flex-start' : 'flex-end',
                             textAlign: 'right'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: '700', marginBottom: '6px', color: isInternal ? '#92400E' : isUser ? '#FDBA74' : '#0e7490' }}>
-                            <span style={{ fontWeight: '800' }}>{m.name}</span>
-                            <span style={{ opacity: 0.8 }}>| {m.role} {isInternal ? '(ملاحظة سرية للأدمن فقط)' : ''}</span>
-                          </div>
-                          <div style={{ fontSize: '13.5px', lineHeight: '1.6', textAlign: 'right' }}>{m.text}</div>
-                          <div style={{ fontSize: '10px', opacity: 0.65, marginTop: '6px', textAlign: 'left', direction: 'ltr' }}>
-                            {m.time} {m.date}
+                          <div
+                            style={{
+                              maxWidth: '82%',
+                              borderRadius: '12px',
+                              borderTopRightRadius: isUser ? '2px' : '12px',
+                              borderTopLeftRadius: !isUser ? '2px' : '12px',
+                              padding: '14px 18px',
+                              background: isInternal ? '#FFFDF5' : isUser ? '#0A3254' : '#F8FAFC',
+                              color: isInternal ? '#78350F' : isUser ? '#FFFFFF' : '#1E293B',
+                              border: isInternal ? '1px solid #FCD34D' : isUser ? 'none' : '1px solid #E2E8F0',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                              textAlign: 'right'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', fontSize: '11px', fontWeight: '700', marginBottom: '6px', borderBottom: isUser ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(0,0,0,0.06)', paddingBottom: '4px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: isInternal ? '#92400E' : isUser ? '#93C5FD' : '#0A3254' }}>
+                                <span style={{ fontWeight: '800' }}>{m.name}</span>
+                                <span style={{ opacity: 0.85 }}>| {m.role}</span>
+                              </div>
+                              <span style={{ fontSize: '10px', opacity: 0.75, direction: 'ltr' }}>
+                                {m.time} {m.date}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '13.5px', lineHeight: '1.65', whiteSpace: 'pre-wrap', textAlign: 'right', fontWeight: '500' }}>
+                              {m.text}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '40px 0', color: '#94A3B8', fontSize: '13px' }}>
+                      لا توجد رسائل مسجلة في هذه التذكرة بعد
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
                 </div>
 
-                {/* Reply Input Box - Matching Requested Screenshot */}
-                <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #E5E7EB', textAlign: 'right' }}>
-
-                  {/* Public / Internal Tab Switch */}
-                  <div style={{ display: 'flex', gap: '14px', marginBottom: '12px' }}>
-                    <button
-                      onClick={() => setReplyInternal(false)}
-                      style={{
-                        padding: '4px 8px',
-                        background: 'transparent',
-                        color: !replyInternal ? '#0e3b5e' : '#9CA3AF',
-                        border: 'none',
-                        borderBottom: !replyInternal ? '2px solid #0e3b5e' : '2px solid transparent',
-                        fontSize: '12.5px',
-                        fontWeight: '700',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      رد عام
-                    </button>
-                    <button
-                      onClick={() => setReplyInternal(true)}
-                      style={{
-                        padding: '4px 8px',
-                        background: 'transparent',
-                        color: replyInternal ? '#D97706' : '#9CA3AF',
-                        border: 'none',
-                        borderBottom: replyInternal ? '2px solid #D97706' : '2px solid transparent',
-                        fontSize: '12.5px',
-                        fontWeight: '700',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      ملاحظة داخلية
-                    </button>
-                  </div>
-
-                  {/* Main Rich Editor Container */}
-                  <div style={{
-                    border: '1px solid #D1D5DB',
-                    borderRadius: '12px',
-                    background: replyInternal ? '#FFFDF5' : '#FFFFFF',
-                    overflow: 'visible',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-                    position: 'relative'
-                  }}>
-
-                    {/* Top Editor Toolbar */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '8px 14px',
-                      borderBottom: '1px solid #E5E7EB',
-                      background: '#FAFAFA',
-                      borderTopLeftRadius: '11px',
-                      borderTopRightRadius: '11px'
-                    }}>
-
-                      {/* Left side: Formatting Icons (B, /, U) */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {/* Reply & Response Console */}
+                <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #E2E8F0', textAlign: 'right' }}>
+                  {isClosedOrResolved ? (
+                    <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '28px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                      </div>
+                      <div>
+                        <h4 style={{ fontSize: '15px', fontWeight: '800', color: '#0A3254', margin: '0 0 6px 0' }}>
+                          المحادثة مغلقة {selectedTicket.status === 'تم الحل' ? '(تم حل التذكرة بنجاح)' : '(التذكرة مغلقة)'}
+                        </h4>
+                        <p style={{ fontSize: '13px', color: '#64748B', margin: 0, lineHeight: '1.5' }}>
+                          تم إنهاء وإغلاق هذه التذكرة بنجاح. تم قفل المحادثة لمنع إرسال أي ردود إضافية.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickStatusChange('قيد المعالجة')}
+                        style={{
+                          marginTop: '6px',
+                          background: '#0A3254',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          padding: '9px 20px',
+                          borderRadius: '8px',
+                          fontSize: '12.5px',
+                          fontWeight: '800',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          boxShadow: '0 2px 4px rgba(10, 50, 84, 0.15)',
+                          transition: 'background 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = '#0D3C5C'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = '#0A3254'; }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M21.5 2v6h-6M2.13 15.57a10 10 0 1 0 3.73-10.51L2 8" /></svg>
+                        <span>إعادة فتح التذكرة وتفعيل المحادثة</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      {/* Public vs Internal Note Tab Switch */}
+                      <div style={{ display: 'flex', gap: '16px', marginBottom: '12px' }}>
                         <button
                           type="button"
-                          onClick={() => applyFormatting('bold')}
-                          title="عريض (Bold)"
+                          onClick={() => setReplyInternal(false)}
                           style={{
-                            width: '28px',
-                            height: '28px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            border: '1px solid transparent',
-                            borderRadius: '6px',
+                            padding: '6px 12px',
                             background: 'transparent',
+                            color: !replyInternal ? '#0A3254' : '#94A3B8',
+                            border: 'none',
+                            borderBottom: !replyInternal ? '2px solid #0A3254' : '2px solid transparent',
+                            fontSize: '13px',
                             fontWeight: '800',
-                            fontSize: '13.5px',
-                            color: '#374151',
                             cursor: 'pointer'
                           }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = '#E5E7EB'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                         >
-                          B
+                          رد رسمي عام
                         </button>
-                        <span style={{ color: '#D1D5DB', fontSize: '13px' }}>/</span>
                         <button
                           type="button"
-                          onClick={() => applyFormatting('underline')}
-                          title="تسطير (Underline)"
+                          onClick={() => setReplyInternal(true)}
                           style={{
-                            width: '28px',
-                            height: '28px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            border: '1px solid transparent',
-                            borderRadius: '6px',
+                            padding: '6px 12px',
                             background: 'transparent',
-                            textDecoration: 'underline',
-                            fontWeight: '700',
-                            fontSize: '13.5px',
-                            color: '#374151',
+                            color: replyInternal ? '#B45309' : '#94A3B8',
+                            border: 'none',
+                            borderBottom: replyInternal ? '2px solid #B45309' : '2px solid transparent',
+                            fontSize: '13px',
+                            fontWeight: '800',
                             cursor: 'pointer'
                           }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = '#E5E7EB'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                         >
-                          U
+                          ملاحظة داخلية خاصة بالإدارة
                         </button>
                       </div>
 
-                      {/* Right side: AI Rewrite & Enhance Button */}
-                      <button
-                        type="button"
-                        onClick={handleAiEnhance}
-                        disabled={aiEnhancing}
-                        style={{
+                      {/* Main Rich Editor Box */}
+                      <div style={{
+                        border: replyInternal ? '1px solid #FCD34D' : '1px solid #CBD5E1',
+                        borderRadius: '10px',
+                        background: replyInternal ? '#FFFDF5' : '#FFFFFF',
+                        overflow: 'visible',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                        position: 'relative'
+                      }}>
+
+                        {/* Top Editor Toolbar */}
+                        <div style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '6px',
-                          border: 'none',
-                          background: 'transparent',
-                          color: '#0e7490',
-                          fontWeight: '800',
-                          fontSize: '12.5px',
-                          cursor: 'pointer',
-                          padding: '4px 8px',
-                          borderRadius: '6px'
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = '#F0FDFA'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z" /></svg>
-                        <span>{aiEnhancing ? 'جاري التحسين الذكي...' : 'تحسين وصياغة النص'}</span>
-                      </button>
+                          justifyContent: 'space-between',
+                          padding: '8px 12px',
+                          borderBottom: '1px solid #E2E8F0',
+                          background: replyInternal ? '#FEF9C3' : '#F8FAFC',
+                          borderTopLeftRadius: '9px',
+                          borderTopRightRadius: '9px'
+                        }}>
 
-                    </div>
+                          {/* Formatting tools (B, U) */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => applyFormatting('bold')}
+                              title="عريض (Bold)"
+                              style={{
+                                width: '28px',
+                                height: '28px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '1px solid transparent',
+                                borderRadius: '6px',
+                                background: 'transparent',
+                                fontWeight: '800',
+                                fontSize: '13.5px',
+                                color: '#334155',
+                                cursor: 'pointer'
+                              }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = '#E2E8F0'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                            >
+                              B
+                            </button>
+                            <span style={{ color: '#CBD5E1', fontSize: '13px' }}>/</span>
+                            <button
+                              type="button"
+                              onClick={() => applyFormatting('underline')}
+                              title="تسطير (Underline)"
+                              style={{
+                                width: '28px',
+                                height: '28px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '1px solid transparent',
+                                borderRadius: '6px',
+                                background: 'transparent',
+                                textDecoration: 'underline',
+                                fontWeight: '700',
+                                fontSize: '13.5px',
+                                color: '#334155',
+                                cursor: 'pointer'
+                              }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = '#E2E8F0'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                            >
+                              U
+                            </button>
+                          </div>
 
-                    {/* Editor Textarea */}
-                    <textarea
-                      ref={textareaRef}
-                      placeholder={replyInternal ? 'اكتب ملاحظة داخلية (للإدارة فقط)...' : 'اكتب ردك هنا... (اضغط Enter للإرسال)'}
-                      value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          if (selectedTicket && !isSendingReplyRef.current) {
-                            handleSendReply(selectedTicket.id, false);
-                          }
-                        }
-                      }}
-                      rows={3}
-                      style={{
-                        width: '100%',
-                        padding: '14px 16px',
-                        border: 'none',
-                        outline: 'none',
-                        resize: 'vertical',
-                        minHeight: '85px',
-                        background: 'transparent',
-                        fontSize: '13.5px',
-                        lineHeight: '1.6',
-                        fontFamily: 'inherit',
-                        textAlign: 'right',
-                        direction: 'rtl'
-                      }}
-                    />
-
-                    {/* Attached files previews (if any) */}
-                    {attachedFiles.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '0 14px 10px' }}>
-                        {attachedFiles.map((file, fIdx) => (
-                          <div
-                            key={fIdx}
+                          {/* AI Rephrase Button */}
+                          <button
+                            type="button"
+                            onClick={handleAiEnhance}
+                            disabled={aiEnhancing}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
                               gap: '6px',
-                              background: '#F1F5F9',
+                              border: 'none',
+                              background: 'transparent',
+                              color: '#0A3254',
+                              fontWeight: '800',
+                              fontSize: '12.5px',
+                              cursor: 'pointer',
+                              padding: '4px 8px',
+                              borderRadius: '6px'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = '#F1F5F9'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z" /></svg>
+                            <span>{aiEnhancing ? 'جاري التحسين الذكي...' : 'تحسين وصياغة النص'}</span>
+                          </button>
+
+                        </div>
+
+                        {/* Textarea Input */}
+                        <textarea
+                          ref={textareaRef}
+                          placeholder={replyInternal ? 'اكتب ملاحظة داخلية سرية (تظهر لموظفي الإدارة فقط)...' : 'اكتب الرد الرسمي هنا... (اضغط Enter للإرسال)'}
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              if (selectedTicket && !isSendingReplyRef.current) {
+                                handleSendReply(selectedTicket.id, false);
+                              }
+                            }
+                          }}
+                          rows={3}
+                          style={{
+                            width: '100%',
+                            padding: '14px 16px',
+                            border: 'none',
+                            outline: 'none',
+                            resize: 'vertical',
+                            minHeight: '90px',
+                            background: 'transparent',
+                            fontSize: '13.5px',
+                            lineHeight: '1.6',
+                            fontFamily: 'inherit',
+                            textAlign: 'right',
+                            direction: 'rtl'
+                          }}
+                        />
+
+                        {/* Previews for attached files */}
+                        {attachedFiles.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '0 14px 10px' }}>
+                            {attachedFiles.map((file, fIdx) => (
+                              <div
+                                key={fIdx}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  background: '#F1F5F9',
+                                  border: '1px solid #CBD5E1',
+                                  padding: '4px 10px',
+                                  borderRadius: '6px',
+                                  fontSize: '11.5px',
+                                  color: '#334155'
+                                }}
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+                                <span>{file.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveFile(fIdx)}
+                                  style={{ border: 'none', background: 'transparent', color: '#DC2626', cursor: 'pointer', fontWeight: '800' }}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                      </div>
+
+                      {/* Hidden File Input */}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        style={{ display: 'none' }}
+                        onChange={handleFileAttach}
+                      />
+
+                      {/* Action Bar Beneath Textarea */}
+                      <div style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                        marginTop: '12px'
+                      }}>
+
+                        {/* Left Buttons: Send vs Send & Close */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <button
+                            type="button"
+                            disabled={isSendingReply}
+                            onClick={() => handleSendReply(selectedTicket.id, true)}
+                            style={{
+                              background: '#FFFFFF',
+                              color: '#0A3254',
                               border: '1px solid #CBD5E1',
-                              padding: '4px 10px',
-                              borderRadius: '6px',
-                              fontSize: '11.5px',
-                              color: '#334155'
+                              padding: '9px 18px',
+                              borderRadius: '8px',
+                              fontSize: '12.5px',
+                              fontWeight: '800',
+                              cursor: isSendingReply ? 'not-allowed' : 'pointer',
+                              opacity: isSendingReply ? 0.6 : 1,
+                              transition: 'all 0.15s ease'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = '#F8FAFC'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; }}
+                          >
+                            {isSendingReply ? 'جاري الحفظ...' : 'إرسال وإغلاق التذكرة'}
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={isSendingReply || (!replyText.trim() && attachedFiles.length === 0)}
+                            onClick={() => handleSendReply(selectedTicket.id, false)}
+                            style={{
+                              background: '#0A3254',
+                              color: '#FFFFFF',
+                              border: 'none',
+                              padding: '9px 24px',
+                              borderRadius: '8px',
+                              fontSize: '13px',
+                              fontWeight: '800',
+                              cursor: (isSendingReply || (!replyText.trim() && attachedFiles.length === 0)) ? 'not-allowed' : 'pointer',
+                              opacity: (isSendingReply || (!replyText.trim() && attachedFiles.length === 0)) ? 0.6 : 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              boxShadow: '0 2px 4px rgba(10, 50, 84, 0.2)'
                             }}
                           >
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
-                            <span>{file.name}</span>
+                            <span>{isSendingReply ? 'جاري الإرسال...' : 'إرسال الرد'}</span>
+                            <span style={{ fontSize: '11px' }}>↵</span>
+                          </button>
+                        </div>
+
+                        {/* Right Tools: Templates, AI Suggest, Attach File */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
+
+                          {/* 1. Quick Templates Menu */}
+                          <div style={{ position: 'relative' }} ref={templatesDropdownRef}>
                             <button
                               type="button"
-                              onClick={() => handleRemoveFile(fIdx)}
-                              style={{ border: 'none', background: 'transparent', color: '#EF4444', cursor: 'pointer', fontWeight: '800' }}
+                              onClick={() => {
+                                setShowTemplatesDropdown(prev => !prev);
+                                setShowAiDropdown(false);
+                              }}
+                              style={{
+                                background: showTemplatesDropdown ? '#FEF3C7' : '#FFFFFF',
+                                border: showTemplatesDropdown ? '1px solid #D97706' : '1px solid #CBD5E1',
+                                borderRadius: '8px',
+                                padding: '8px 12px',
+                                fontSize: '12px',
+                                fontWeight: '700',
+                                color: showTemplatesDropdown ? '#B45309' : '#334155',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                cursor: 'pointer'
+                              }}
                             >
-                              ✕
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /></svg>
+                              <span>قوالب جاهزة</span>
                             </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
 
-                  </div>
-
-                  {/* Hidden File Input */}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    style={{ display: 'none' }}
-                    onChange={handleFileAttach}
-                  />
-
-                  {/* Bottom Action Bar */}
-                  <div style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '10px',
-                    marginTop: '12px'
-                  }}>
-
-                    {/* Left Actions: Send & Send and Close */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <button
-                        type="button"
-                        disabled={isSendingReply}
-                        onClick={() => handleSendReply(selectedTicket.id, true)}
-                        style={{
-                          background: '#FFFFFF',
-                          color: '#0e7490',
-                          border: '1px solid #BAE6FD',
-                          padding: '9px 18px',
-                          borderRadius: '10px',
-                          fontSize: '12.5px',
-                          fontWeight: '800',
-                          cursor: isSendingReply ? 'not-allowed' : 'pointer',
-                          opacity: isSendingReply ? 0.6 : 1,
-                          transition: 'all 0.18s ease'
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = '#F0F9FF'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; }}
-                      >
-                        {isSendingReply ? 'جاري الحفظ...' : 'إرسال وإغلاق المحادثة'}
-                      </button>
-
-                      <button
-                        type="button"
-                        disabled={isSendingReply || (!replyText.trim() && attachedFiles.length === 0)}
-                        onClick={() => handleSendReply(selectedTicket.id, false)}
-                        style={{
-                          background: '#0e3b5e',
-                          color: '#FFFFFF',
-                          border: 'none',
-                          padding: '9px 24px',
-                          borderRadius: '10px',
-                          fontSize: '13px',
-                          fontWeight: '800',
-                          cursor: (isSendingReply || (!replyText.trim() && attachedFiles.length === 0)) ? 'not-allowed' : 'pointer',
-                          opacity: (isSendingReply || (!replyText.trim() && attachedFiles.length === 0)) ? 0.6 : 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          boxShadow: '0 2px 4px rgba(14, 59, 94, 0.2)'
-                        }}
-                      >
-                        <span>{isSendingReply ? 'جاري الإرسال...' : 'إرسال'}</span>
-                        <span style={{ fontSize: '11px' }}>↵</span>
-                      </button>
-                    </div>
-
-                    {/* Right Tools: Attach, AI Assistant, Canned Templates */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
-
-                      {/* 1. Canned Templates Button & Dropdown */}
-                      <div style={{ position: 'relative' }} ref={templatesDropdownRef}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowTemplatesDropdown(prev => !prev);
-                            setShowAiDropdown(false);
-                          }}
-                          style={{
-                            background: showTemplatesDropdown ? '#FEF3C7' : '#FFFFFF',
-                            border: showTemplatesDropdown ? '1px solid #F59E0B' : '1px solid #E2E8F0',
-                            borderRadius: '10px',
-                            padding: '8px 14px',
-                            fontSize: '12px',
-                            fontWeight: '700',
-                            color: showTemplatesDropdown ? '#B45309' : '#374151',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            cursor: 'pointer',
-                            boxShadow: showTemplatesDropdown ? '0 0 0 2px rgba(245, 158, 11, 0.15)' : 'none',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          <span>قوالب جاهزة</span>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /></svg>
-                        </button>
-
-                        {showTemplatesDropdown && (
-                          <div style={{
-                            position: 'absolute',
-                            bottom: 'calc(100% + 10px)',
-                            right: '0',
-                            width: '340px',
-                            maxWidth: 'calc(100vw - 32px)',
-                            background: 'rgba(255, 255, 255, 0.98)',
-                            backdropFilter: 'blur(16px)',
-                            border: '1px solid rgba(226, 232, 240, 0.95)',
-                            borderRadius: '16px',
-                            boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(0,0,0,0.03)',
-                            zIndex: 9999,
-                            padding: '12px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            textAlign: 'right',
-                            animation: 'fadeInUp 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
-                          }}>
-                            {/* Header */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '10px', marginBottom: '8px', borderBottom: '1px solid #F1F5F9' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ fontSize: '13px', background: '#FEF3C7', padding: '4px 8px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /></svg>
-                                </span>
-                                <span style={{ fontSize: '13px', fontWeight: '800', color: '#1E293B' }}>قوالب الردود الجاهزة</span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => setShowTemplatesDropdown(false)}
-                                style={{ background: '#F1F5F9', border: 'none', color: '#64748B', fontSize: '11px', fontWeight: '800', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}
-                              >
-                                ✕
-                              </button>
-                            </div>
-
-                            <div style={{ maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '2px' }}>
-                              {CANNED_TEMPLATES.map(t => (
-                                <div
-                                  key={t.id}
-                                  onClick={() => handleSelectTemplate(t.text)}
-                                  style={{
-                                    background: '#F8FAFC',
-                                    border: '1px solid #F1F5F9',
-                                    padding: '10px 12px',
-                                    borderRadius: '10px',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s ease',
-                                    textAlign: 'right'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = '#FEF3C7';
-                                    e.currentTarget.style.borderColor = '#FDE68A';
-                                    e.currentTarget.style.transform = 'translateY(-1px)';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = '#F8FAFC';
-                                    e.currentTarget.style.borderColor = '#F1F5F9';
-                                    e.currentTarget.style.transform = 'none';
-                                  }}
-                                >
-                                  <div style={{ fontWeight: '800', fontSize: '12.5px', color: '#0e3b5e', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <span>{t.title}</span>
-                                    <span style={{ fontSize: '11px', color: '#D97706', fontWeight: '800' }}>إدراج ↵</span>
-                                  </div>
-                                  <div style={{ fontSize: '11.5px', color: '#64748B', lineHeight: '1.45', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                    {t.text}
-                                  </div>
+                            {showTemplatesDropdown && (
+                              <div style={{
+                                position: 'absolute',
+                                bottom: 'calc(100% + 10px)',
+                                right: '0',
+                                width: '360px',
+                                maxWidth: 'calc(100vw - 32px)',
+                                background: '#FFFFFF',
+                                border: '1px solid #E2E8F0',
+                                borderRadius: '12px',
+                                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
+                                zIndex: 9999,
+                                padding: '12px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                textAlign: 'right'
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '8px', marginBottom: '8px', borderBottom: '1px solid #F1F5F9' }}>
+                                  <span style={{ fontSize: '13px', fontWeight: '800', color: '#0A3254' }}>قوالب الردود الرسمية المعتمدة</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowTemplatesDropdown(false)}
+                                    style={{ background: '#F1F5F9', border: 'none', color: '#64748B', fontSize: '11px', fontWeight: '800', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}
+                                  >
+                                    ✕
+                                  </button>
                                 </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
 
-                      {/* 2. AI Assistant Button & Dropdown */}
-                      <div style={{ position: 'relative' }} ref={aiDropdownRef}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowAiDropdown(prev => !prev);
-                            setShowTemplatesDropdown(false);
-                          }}
-                          style={{
-                            background: showAiDropdown ? '#E0F2FE' : '#FFFFFF',
-                            border: showAiDropdown ? '1px solid #0284C7' : '1px solid #E2E8F0',
-                            borderRadius: '10px',
-                            padding: '8px 14px',
-                            fontSize: '12px',
-                            fontWeight: '700',
-                            color: '#0284C7',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            cursor: 'pointer',
-                            boxShadow: showAiDropdown ? '0 0 0 2px rgba(2, 132, 199, 0.15)' : 'none',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          <span>مساعد AI</span>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z" /></svg>
-                        </button>
-
-                        {showAiDropdown && (
-                          <div style={{
-                            position: 'absolute',
-                            bottom: 'calc(100% + 10px)',
-                            right: '0',
-                            width: '350px',
-                            maxWidth: 'calc(100vw - 32px)',
-                            background: 'rgba(255, 255, 255, 0.98)',
-                            backdropFilter: 'blur(16px)',
-                            border: '1px solid rgba(186, 230, 253, 0.95)',
-                            borderRadius: '16px',
-                            boxShadow: '0 20px 40px -10px rgba(2, 132, 199, 0.2), 0 0 0 1px rgba(0,0,0,0.03)',
-                            zIndex: 9999,
-                            padding: '12px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            textAlign: 'right',
-                            animation: 'fadeInUp 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
-                          }}>
-                            {/* Header */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '10px', marginBottom: '8px', borderBottom: '1px solid #F0F9FF' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ fontSize: '13px', background: '#E0F2FE', padding: '4px 8px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0284C7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z" /></svg>
-                                </span>
-                                <span style={{ fontSize: '13px', fontWeight: '800', color: '#0369A1' }}>اقتراحات المساعد الذكي التفاعلية</span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => setShowAiDropdown(false)}
-                                style={{ background: '#F1F5F9', border: 'none', color: '#64748B', fontSize: '11px', fontWeight: '800', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}
-                              >
-                                ✕
-                              </button>
-                            </div>
-
-                            <div style={{ maxHeight: '290px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '2px' }}>
-                              {AI_SUGGESTIONS.map(ai => (
-                                <div
-                                  key={ai.id}
-                                  onClick={() => handleSelectAiSuggestion(ai.text)}
-                                  style={{
-                                    background: '#F0F9FF',
-                                    border: '1px solid #E0F2FE',
-                                    padding: '10px 12px',
-                                    borderRadius: '10px',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s ease',
-                                    textAlign: 'right'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = '#E0F2FE';
-                                    e.currentTarget.style.borderColor = '#BAE6FD';
-                                    e.currentTarget.style.transform = 'translateY(-1px)';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = '#F0F9FF';
-                                    e.currentTarget.style.borderColor = '#E0F2FE';
-                                    e.currentTarget.style.transform = 'none';
-                                  }}
-                                >
-                                  <div style={{ fontWeight: '800', fontSize: '12.5px', color: '#0369A1', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <span>{ai.title}</span>
-                                    <span style={{ fontSize: '11px', color: '#0284C7', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                      <span>تطبيق</span>
-                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0284C7" strokeWidth="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z" /></svg>
-                                    </span>
-                                  </div>
-                                  <div style={{ fontSize: '11.5px', color: '#475569', lineHeight: '1.45', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                    {ai.text}
-                                  </div>
+                                <div style={{ maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                  {CANNED_TEMPLATES.map(t => (
+                                    <div
+                                      key={t.id}
+                                      onClick={() => handleSelectTemplate(t.text)}
+                                      style={{
+                                        background: '#F8FAFC',
+                                        border: '1px solid #F1F5F9',
+                                        padding: '10px 12px',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s ease',
+                                        textAlign: 'right'
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = '#FEF9C3';
+                                        e.currentTarget.style.borderColor = '#FDE68A';
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = '#F8FAFC';
+                                        e.currentTarget.style.borderColor = '#F1F5F9';
+                                      }}
+                                    >
+                                      <div style={{ fontWeight: '800', fontSize: '12.5px', color: '#0A3254', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <span>{t.title}</span>
+                                        <span style={{ fontSize: '11px', color: '#D97706', fontWeight: '800' }}>إدراج ↵</span>
+                                      </div>
+                                      <div style={{ fontSize: '11.5px', color: '#64748B', lineHeight: '1.45', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                        {t.text}
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
-                            </div>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
 
-                      {/* 3. Attach File Button */}
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        style={{
-                          background: '#FFFFFF',
-                          border: '1px solid #E5E7EB',
-                          borderRadius: '10px',
-                          padding: '8px 14px',
-                          fontSize: '12px',
-                          fontWeight: '700',
-                          color: '#374151',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <span>إرفاق ملف</span>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
-                      </button>
+                          {/* 2. AI Assistant Generator Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleAiSuggestReply('اقتراح رد')}
+                            disabled={aiEnhancing}
+                            style={{
+                              background: '#FFFFFF',
+                              border: '1px solid #CBD5E1',
+                              borderRadius: '8px',
+                              padding: '8px 12px',
+                              fontSize: '12px',
+                              fontWeight: '700',
+                              color: '#0A3254',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              cursor: aiEnhancing ? 'not-allowed' : 'pointer'
+                            }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z" /></svg>
+                            <span>{aiEnhancing ? 'جاري التوليد...' : 'اقتراح رد AI'}</span>
+                          </button>
+
+                          {/* 3. Attach File Button */}
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            style={{
+                              background: '#FFFFFF',
+                              border: '1px solid #CBD5E1',
+                              borderRadius: '8px',
+                              padding: '8px 12px',
+                              fontSize: '12px',
+                              fontWeight: '700',
+                              color: '#334155',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+                            <span>إرفاق ملف</span>
+                          </button>
+
+                        </div>
+
+                      </div>
 
                     </div>
-
-                  </div>
-
+                  )}
                 </div>
+
               </div>
+
             </div>
 
             {/* ══════════════════════════════════════════════════════════════════
-                LEFT SIDEBAR (SLA + سجل التدقيق الكامل + المرفقات)
+                INTEGRATED SIDEBAR (CLIENT PROFILE, QUICK CONTROLS & TIMELINE)
                 ══════════════════════════════════════════════════════════════════ */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'right' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'right' }}>
 
-              {/* SLA Card */}
-              <div style={{ background: '#FFFFFF', border: '1px solid #F3F4F6', borderRadius: '16px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', textAlign: 'right' }}>
-                <h4 style={{ fontSize: '12px', fontWeight: '800', color: '#0e3b5e', margin: '0 0 10px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SLA</h4>
-                <div style={{ fontSize: '12px', color: '#4B5563', marginBottom: '8px' }}>{selectedTicket.sla}</div>
-                <div style={{ width: '100%', height: '6px', background: '#E5E7EB', borderRadius: '9999px', overflow: 'hidden', marginBottom: '6px' }}>
-                  <div style={{ width: `${selectedTicket.slaPercent || 35}%`, height: '100%', background: selectedTicket.slaPercent > 80 ? '#EF4444' : '#FB923C', borderRadius: '9999px' }}></div>
-                </div>
-                <div style={{ fontSize: '11px', color: selectedTicket.slaPercent > 80 ? '#DC2626' : '#EA580C', fontWeight: '700' }}>
-                  {selectedTicket.slaPercent > 80 ? 'تم تجاوز SLA' : 'الوقت المتبقي: 35 دقيقة'}
+              {/* Submitter Profile & Spec Card */}
+              <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#0A3254', margin: '0 0 12px 0', borderBottom: '1px solid #F1F5F9', paddingBottom: '8px' }}>
+                  بيانات صاحب التذكرة
+                </h4>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12.5px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#64748B' }}>الاسم:</span>
+                    <strong style={{ color: '#0A3254' }}>{selectedTicket.user}</strong>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#64748B' }}>البريد:</span>
+                    <span style={{ color: '#334155' }}>{selectedTicket.email}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#64748B' }}>الهاتف:</span>
+                    <span style={{ color: '#334155', direction: 'ltr' }}>{selectedTicket.phone}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#64748B' }}>الصفة:</span>
+                    <span style={{ fontWeight: '700', color: '#0A3254' }}>
+                      {selectedTicket.role === 'consultant' ? 'مستشار ضريبي' : 'مستخدم'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#64748B' }}>القناة:</span>
+                    <span style={{ color: '#334155' }}>مركز الدعم المباشر</span>
+                  </div>
                 </div>
               </div>
 
-              {/* سجل التدقيق الكامل (Full Audit Timeline Card) */}
-              <div style={{ background: '#FFFFFF', border: '1px solid #F3F4F6', borderRadius: '16px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', textAlign: 'right' }}>
-                <h4 style={{ fontSize: '12px', fontWeight: '800', color: '#0e3b5e', margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>سجل التدقيق الكامل</h4>
+              {/* Live In-Place Controls Card */}
+              <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#0A3254', margin: '0 0 14px 0', borderBottom: '1px solid #F1F5F9', paddingBottom: '8px' }}>
+                  إدارة وحالة التذكرة
+                </h4>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative' }}>
-                  {selectedTicket.timeline.map((ev, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '12px', textAlign: 'right' }}>
-                      <div style={{ width: '9px', height: '9px', borderRadius: '50%', background: i === 0 ? '#0e3b5e' : '#9CA3AF', marginTop: '4px', flexShrink: 0 }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div>
+                    <label style={{ fontSize: '12px', color: '#64748B', fontWeight: '800', display: 'block', marginBottom: '6px' }}>
+                      حالة التذكرة:
+                    </label>
+                    <ModernSelect
+                      options={Object.keys(STATUS_CONFIG).map(st => ({ value: st, label: st }))}
+                      value={selectedTicket.status}
+                      onChange={(val) => handleQuickStatusChange(val)}
+                      placeholder="اختر الحالة..."
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '12px', color: '#64748B', fontWeight: '800', display: 'block', marginBottom: '6px' }}>
+                      الأولوية:
+                    </label>
+                    <ModernSelect
+                      options={[
+                        { value: 'منخفضة', label: 'منخفضة' },
+                        { value: 'متوسطة', label: 'متوسطة' },
+                        { value: 'عالية', label: 'عالية' }
+                      ]}
+                      value={selectedTicket.priority}
+                      onChange={(val) => handleQuickPriorityChange(val)}
+                      placeholder="اختر الأولوية..."
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '12px', color: '#64748B', fontWeight: '800', display: 'block', marginBottom: '6px' }}>
+                      المشرف المسؤول:
+                    </label>
+                    <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#0A3254', padding: '8px 12px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A3254" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                        <span>{selectedTicket.assignee || 'غير معين'}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const initialAssignee = (selectedTicket.assignee && selectedTicket.assignee !== 'غير معين')
+                            ? selectedTicket.assignee
+                            : (staffMembers[0]?.name || 'Super Administrator');
+                          setNewAssigneeVal(initialAssignee);
+                          setActiveModal('assign-ticket');
+                        }}
+                        style={{ border: 'none', background: '#0A3254', color: '#FFFFFF', padding: '5px 12px', borderRadius: '6px', fontSize: '11.5px', fontWeight: '800', cursor: 'pointer', transition: 'background 0.15s ease' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = '#0D3C5C'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = '#0A3254'; }}
+                      >
+                        تحويل
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Attachments Card */}
+              <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#0A3254', margin: '0 0 10px 0', borderBottom: '1px solid #F1F5F9', paddingBottom: '8px' }}>
+                  المرفقات والملفات
+                </h4>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {selectedTicket.attachments && selectedTicket.attachments.length > 0 ? (
+                    selectedTicket.attachments.map((att, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F8FAFC', padding: '9px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', flex: 1, minWidth: 0 }}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0A3254" strokeWidth="2.2" style={{ flexShrink: 0 }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                          <span style={{ fontWeight: '700', color: '#0A3254', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{att.name}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                          {att.size && <span style={{ fontSize: '11px', color: '#64748B' }}>{att.size}</span>}
+                          {att.path && (
+                            <a
+                              href={att.path.startsWith('http') ? att.path : `/${att.path}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ color: '#0A3254', textDecoration: 'none', display: 'flex', alignItems: 'center' }}
+                              title="فتح الملف"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ fontSize: '12px', color: '#94A3B8' }}>لا توجد مرفقات مسجلة</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Audit Timeline Card */}
+              <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#0A3254', margin: '0 0 12px 0', borderBottom: '1px solid #F1F5F9', paddingBottom: '8px' }}>
+                  سجل التتبع والعمليات
+                </h4>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {selectedTicket.timeline && selectedTicket.timeline.map((ev, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '11.5px' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: i === 0 ? '#0A3254' : '#CBD5E1', marginTop: '4px', flexShrink: 0 }} />
                       <div>
-                        <strong style={{ color: '#0e3b5e', display: 'block', fontSize: '12px' }}>{ev.action}</strong>
-                        <span style={{ color: '#6B7280', fontSize: '11px' }}>{ev.date}</span>
-                        <span style={{ color: '#9CA3AF', fontSize: '10.5px', display: 'block' }}>{ev.by}</span>
+                        <strong style={{ color: '#0A3254', display: 'block' }}>{ev.action}</strong>
+                        <span style={{ color: '#64748B', fontSize: '10.5px' }}>{ev.date} • {ev.by}</span>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* المرفقات (Attachments Card) */}
-              <div style={{ background: '#FFFFFF', border: '1px solid #F3F4F6', borderRadius: '16px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', textAlign: 'right' }}>
-                <h4 style={{ fontSize: '12px', fontWeight: '800', color: '#0e3b5e', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>المرفقات</h4>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {selectedTicket.attachments && selectedTicket.attachments.length > 0 ? (
-                    selectedTicket.attachments.map((att, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F9FAFB', padding: '10px 14px', borderRadius: '10px', border: '1px solid #E5E7EB', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0e7490" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
-                          <div>
-                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#374151' }}>{att.name}</div>
-                            <div style={{ fontSize: '10px', color: '#9CA3AF' }}>{att.size}</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div style={{ fontSize: '12px', color: '#9CA3AF' }}>لا توجد مرفقات</div>
-                  )}
-                </div>
-              </div>
-
             </div>
+
           </div>
+
         </div>
       ) : (
         /* ══════════════════════════════════════════════════════════════════════════
@@ -1572,7 +1866,7 @@ export default function AdminTicketsPage({ navigate }) {
 
                 <div style={{ width: '140px' }}>
                   <ModernSelect
-                    options={TICKET_ASSIGNEE_OPTIONS}
+                    options={ticketAssigneeFilterOptions}
                     value={filters.assignee}
                     onChange={(val) => setFilters(prev => ({ ...prev, assignee: val }))}
                     placeholder="كل المشرفين"
@@ -1884,23 +2178,23 @@ export default function AdminTicketsPage({ navigate }) {
           onClick={(e) => { if (e.target === e.currentTarget) setActiveModal(null); }}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '20px', direction: 'rtl' }}
         >
-          <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '24px', maxWidth: '400px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', textAlign: 'right' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0e3b5e', margin: '0 0 14px 0' }}>تحويل الطلب</h3>
-            <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', fontSize: '12px', color: '#6B7280', marginBottom: '4px' }}>الموظف الحالي:</label>
-              <div style={{ fontWeight: '800', fontSize: '13px', color: '#374151', marginBottom: '8px' }}>{selectedTicket?.assignee}</div>
+          <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '24px', maxWidth: '420px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', textAlign: 'right' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0e3b5e', margin: '0 0 14px 0' }}>تحويل الطلب لموظف / مشرف</h3>
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ display: 'block', fontSize: '12px', color: '#6B7280', marginBottom: '4px' }}>الموظف / المشرف الحالي:</label>
+              <div style={{ fontWeight: '800', fontSize: '13px', color: '#374151', marginBottom: '10px' }}>{selectedTicket?.assignee || 'غير معين'}</div>
               <ModernSelect
-                options={['سارة خالد', 'محمد علي', 'خالد عمر', 'مدير الدعم']}
+                options={assignModalOptions}
                 value={newAssigneeVal}
                 onChange={(val) => setNewAssigneeVal(val)}
-                placeholder="اختر الموظف..."
+                placeholder="اختر الموظف أو المشرف..."
               />
             </div>
             <textarea
-              placeholder="سبب التحويل / ملاحظة داخلية..."
+              placeholder="سبب التحويل / ملاحظة وتوجيهات داخلية..."
               value={assignNoteVal}
               onChange={(e) => setAssignNoteVal(e.target.value)}
-              rows={2}
+              rows={3}
               style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', marginBottom: '16px', fontSize: '13px', textAlign: 'right', direction: 'rtl', outline: 'none' }}
             />
             <div style={{ display: 'flex', gap: '10px' }}>
@@ -1912,7 +2206,7 @@ export default function AdminTicketsPage({ navigate }) {
               </button>
               <button
                 onClick={handleAssignSubmit}
-                style={{ flex: 1, padding: '10px', background: '#f7a61d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontWeight: '800', fontSize: '13px', cursor: 'pointer' }}
+                style={{ flex: 1, padding: '10px', background: '#0A3254', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontWeight: '800', fontSize: '13px', cursor: 'pointer' }}
               >
                 تأكيد التحويل
               </button>

@@ -4,6 +4,7 @@ import ModernSelect from '../../components/ModernSelect';
 import FilterResetButton from '../../components/FilterResetButton';
 import { notificationService } from '../../services/notificationService';
 import { sendBroadcastNotification } from '../services/adminApi';
+import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 
 // Clean SVG Icons
 const IconBroadcast = ({ size = 20, color = 'currentColor' }) => (
@@ -159,16 +160,25 @@ export default function AdminNotificationsPage({ navigate }) {
     }
   };
 
-  const handleDeleteNotification = async (id) => {
-    if (window.confirm('هل أنت متأكد من حذف هذا الإشعار؟')) {
-      try {
-        await notificationService.deleteNotification(id, token);
-        setLiveNotifications(prev => prev.filter(n => n.id !== id));
-        showToast('تم حذف الإشعار بنجاح.');
-      } catch (e) {
-        showToast('خطأ في حذف الإشعار');
+  const [confirmModalConfig, setConfirmModalConfig] = useState(null);
+
+  const handleDeleteNotification = (id) => {
+    setConfirmModalConfig({
+      title: 'حذف الإشعار',
+      message: 'هل أنت متأكد من رغبتك في حذف هذا الإشعار نهائياً؟',
+      confirmText: 'حذف الإشعار',
+      onConfirm: async () => {
+        try {
+          await notificationService.deleteNotification(id, token);
+          setLiveNotifications(prev => prev.filter(n => n.id !== id));
+          showToast('تم حذف الإشعار بنجاح.');
+        } catch (e) {
+          showToast('خطأ في حذف الإشعار');
+        } finally {
+          setConfirmModalConfig(null);
+        }
       }
-    }
+    });
   };
 
   // Quick Templates without emojis
@@ -294,10 +304,16 @@ export default function AdminNotificationsPage({ navigate }) {
   };
 
   const handleDeleteBroadcast = (id) => {
-    if (window.confirm('هل أنت متأكد من رغبتك في حذف هذا الإشعار من السجل؟')) {
-      setBroadcasts(broadcasts.filter(b => b.id !== id));
-      showToast('تم حذف الإشعار من السجل بنجاح.');
-    }
+    setConfirmModalConfig({
+      title: 'حذف من سجل البث',
+      message: 'هل أنت متأكد من رغبتك في حذف هذا الإشعار من سجل البث؟',
+      confirmText: 'حذف السجل',
+      onConfirm: () => {
+        setBroadcasts(broadcasts.filter(b => b.id !== id));
+        showToast('تم حذف الإشعار من السجل بنجاح.');
+        setConfirmModalConfig(null);
+      }
+    });
   };
 
   // KPI Computations
@@ -973,6 +989,18 @@ export default function AdminNotificationsPage({ navigate }) {
           </div>
         </div>
       )}
+
+      {/* Sleek ConfirmModal */}
+      <ConfirmModal
+        isOpen={Boolean(confirmModalConfig)}
+        title={confirmModalConfig?.title || 'تأكيد الحذف'}
+        message={confirmModalConfig?.message || 'هل أنت متأكد من المتابعة؟'}
+        confirmText={confirmModalConfig?.confirmText || 'تأكيد'}
+        cancelText="إلغاء"
+        variant="danger"
+        onConfirm={confirmModalConfig?.onConfirm}
+        onCancel={() => setConfirmModalConfig(null)}
+      />
 
     </div>
   );

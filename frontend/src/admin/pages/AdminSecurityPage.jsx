@@ -9,6 +9,7 @@ import {
 import ModernSelect from '../../components/ModernSelect';
 import FilterResetButton from '../../components/FilterResetButton';
 import Toast, { useToast } from '../../components/Toast/Toast';
+import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import './AdminSecurityPage.css';
 
 // ─── Clean SVG Icon Components (Strictly Zero Emojis) ───
@@ -161,11 +162,13 @@ export default function AdminSecurityPage({ navigate }) {
     }
   }, [sessionsPage, sessionSearch, showToast]);
 
-  const handleRevokeSession = async (sessionId) => {
-    if (!window.confirm('هل أنت متأكد من رغبتك في إنهاء هذه الجلسة فورياً وإبطال توكن المستخدم؟')) return;
-    setRevokingId(sessionId);
+  const [sessionToRevoke, setSessionToRevoke] = useState(null);
+
+  const confirmRevokeSession = async () => {
+    if (!sessionToRevoke) return;
+    setRevokingId(sessionToRevoke);
     try {
-      const res = await revokeSecuritySession(sessionId);
+      const res = await revokeSecuritySession(sessionToRevoke);
       if (res && res.success) {
         showToast('تم إنهاء الجلسة وإبطال التوكن بنجاح', 'success');
         fetchSessions();
@@ -178,6 +181,7 @@ export default function AdminSecurityPage({ navigate }) {
       showToast('حدث خطأ أثناء إنهاء الجلسة', 'error');
     } finally {
       setRevokingId(null);
+      setSessionToRevoke(null);
     }
   };
 
@@ -666,7 +670,7 @@ export default function AdminSecurityPage({ navigate }) {
                             type="button"
                             className="sec-terminate-btn"
                             disabled={revokingId === sess.id}
-                            onClick={() => handleRevokeSession(sess.id)}
+                            onClick={() => setSessionToRevoke(sess.id)}
                             title="إنهاء الجلسة فوراً وإبطال التوكن"
                           >
                             {revokingId === sess.id ? 'جاري الإلغاء...' : 'إنهاء الجلسة'}
@@ -931,6 +935,19 @@ export default function AdminSecurityPage({ navigate }) {
           </div>
         </div>
       )}
+
+      {/* Session Revocation Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(sessionToRevoke)}
+        title="إنهاء الجلسة النشطة"
+        message="هل أنت متأكد من رغبتك في إنهاء هذه الجلسة فورياً وإبطال توكن المستخدم؟"
+        confirmText="إنهاء الجلسة"
+        cancelText="تراجع"
+        variant="danger"
+        isLoading={Boolean(revokingId)}
+        onConfirm={confirmRevokeSession}
+        onCancel={() => setSessionToRevoke(null)}
+      />
 
     </div>
   );

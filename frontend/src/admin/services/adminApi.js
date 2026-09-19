@@ -282,6 +282,35 @@ export async function getAdminTickets(params = {}) {
   return adminRequest(`/super-admin/tickets${query ? `?${query}` : ''}`);
 }
 
+export async function getTicketAssignees() {
+  try {
+    const res = await adminRequest('/super-admin/tickets/assignees');
+    if (Array.isArray(res) && res.length > 0) return res;
+  } catch (e) {
+    console.warn('Failed to fetch from /super-admin/tickets/assignees, trying fallback', e);
+  }
+  try {
+    const admins = await adminRequest('/super-admin/admins');
+    if (Array.isArray(admins)) {
+      return admins.map(a => ({
+        id: a.id,
+        name: a.full_name || a.email,
+        email: a.email,
+        role: a.role === 'super_admin' ? 'مسؤول رئيسي' : 'مشرف نظام / دعم',
+        role_code: a.role,
+        is_active: a.is_active
+      }));
+    }
+  } catch (e2) {
+    console.warn('Failed to fetch from fallback /super-admin/admins', e2);
+  }
+  return [];
+}
+
+export async function getAdminTicket(ticketId) {
+  return adminRequest(`/super-admin/tickets/${ticketId}`);
+}
+
 export async function createAdminTicket(ticketData) {
   return adminRequest('/super-admin/tickets', {
     method: 'POST',
@@ -289,10 +318,18 @@ export async function createAdminTicket(ticketData) {
   });
 }
 
-export async function replyAdminTicket(ticketId, { reply_text, is_internal = false, status_update = null }) {
+export async function replyAdminTicket(ticketId, data) {
+  const payload = typeof data === 'string'
+    ? { message: data, reply_text: data }
+    : {
+        message: data.message || data.reply_text || '',
+        reply_text: data.reply_text || data.message || '',
+        is_internal: Boolean(data.is_internal),
+        status_update: data.status_update || null
+      };
   return adminRequest(`/super-admin/tickets/${ticketId}/reply`, {
     method: 'POST',
-    body: JSON.stringify({ reply_text, is_internal, status_update })
+    body: JSON.stringify(payload)
   });
 }
 
@@ -306,7 +343,10 @@ export async function updateAdminTicketStatus(ticketId, updateData) {
 export async function closeAdminTicket(ticketId, resolutionNotes = '') {
   return adminRequest(`/super-admin/tickets/${ticketId}`, {
     method: 'PATCH',
-    body: JSON.stringify({ status: 'closed', internal_note: resolutionNotes })
+    body: JSON.stringify({
+      status: 'closed',
+      internal_notes: resolutionNotes || 'Closed by admin'
+    })
   });
 }
 

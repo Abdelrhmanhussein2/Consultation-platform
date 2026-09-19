@@ -163,7 +163,7 @@ class TicketService:
         """
         Lists all tickets with administrative filters and search.
         """
-        query = db.query(SupportTicket).join(User, SupportTicket.submitted_by == User.id)
+        query = db.query(SupportTicket).outerjoin(User, SupportTicket.submitted_by == User.id)
 
         if status:
             query = query.filter(SupportTicket.status == status)

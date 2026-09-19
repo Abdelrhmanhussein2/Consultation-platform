@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import CreateRefundInvoiceModal from "../components/CreateRefundInvoiceModal";
 import ModernSelect from "../../components/ModernSelect";
+import ConfirmModal from "../../components/ConfirmModal/ConfirmModal";
 
 const SORT_OPTIONS = [
   { value: "date_desc", label: "الأحدث" },
@@ -136,14 +137,23 @@ export default function AdminRefundedInvoicesPage({ navigate }) {
   const pendingCount   = refInvoices.filter(r => r.status === "processing" || r.status === "pending").length;
   const rejectedCount  = refInvoices.filter(r => r.status === "rejected").length;
 
-  const handleDeleteRefund = async (item) => {
-    setActiveMenuId(null);
-    if (!window.confirm("\u0647\u0644 \u0623\u0646\u062a \u0645\u062a\u0623\u0643\u062f \u0645\u0646 \u062d\u0630\u0641 \u0637\u0644\u0628 \u0627\u0644\u0627\u0633\u062a\u0631\u062f\u0627\u062f \u0647\u0630\u0627\u061f")) return;
+  const [itemToDelete, setItemToDelete] = useState(null);
+
+  const confirmDeleteRefund = async () => {
+    if (!itemToDelete) return;
     try {
-      await fetch(`/api/refunded-invoices/${item.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
-      setRefInvoices(p => p.filter(i => i.id !== item.id));
-      alert("\u062a\u0645 \u0627\u0644\u062d\u0630\u0641 \u0628\u0646\u062c\u0627\u062d");
-    } catch { setRefInvoices(p => p.filter(i => i.id !== item.id)); alert("\u062a\u0645 \u0627\u0644\u062d\u0630\u0641 \u0628\u0646\u062c\u0627\u062d"); }
+      await fetch(`/api/refunded-invoices/${itemToDelete.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      setRefInvoices(p => p.filter(i => i.id !== itemToDelete.id));
+    } catch {
+      setRefInvoices(p => p.filter(i => i.id !== itemToDelete.id));
+    } finally {
+      setItemToDelete(null);
+    }
+  };
+
+  const handleDeleteRefund = (item) => {
+    setActiveMenuId(null);
+    setItemToDelete(item);
   };
 
   const handleCreateRefund = async (e) => {
@@ -356,6 +366,19 @@ export default function AdminRefundedInvoicesPage({ navigate }) {
         onClose={() => setShowRefundModal(false)}
         onSuccess={fetchRefunds}
       />
+
+      {/* Refund Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(itemToDelete)}
+        title="حذف طلب الاسترداد"
+        message="هل أنت متأكد من رغبتك في حذف طلب الاسترداد هذا نهائياً؟"
+        confirmText="حذف الطلب"
+        cancelText="إلغاء"
+        variant="danger"
+        onConfirm={confirmDeleteRefund}
+        onCancel={() => setItemToDelete(null)}
+      />
+
     </div>
   );
 }

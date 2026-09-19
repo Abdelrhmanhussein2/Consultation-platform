@@ -3,6 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import CreateRefundInvoiceModal from "../components/CreateRefundInvoiceModal";
 import ModernSelect from "../../components/ModernSelect";
 import FilterResetButton from "../../components/FilterResetButton";
+import ConfirmModal from "../../components/ConfirmModal/ConfirmModal";
 
 const fmt = (n) => Number(n || 0).toLocaleString("ar-JO", { minimumFractionDigits: 3 });
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("zh-Hans-CN") : "-";
@@ -395,9 +396,11 @@ export default function AdminInvoicesPage({ navigate }) {
     setShowCreateEditor(true);
   };
 
-  const handleDeleteInvoice = async (item, tabType) => {
-    setActiveMenuId(null);
-    if (!window.confirm("هل أنت تأكد من رغبتك في حذف هذا العنصر؟")) return;
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const confirmDeleteInvoice = async () => {
+    if (!deleteTarget) return;
+    const { item, tabType } = deleteTarget;
     try {
       let endpoint = `/api/invoices/${item.id}`;
       if (tabType === "recurring") endpoint = `/api/recurring-invoices/${item.id}`;
@@ -408,20 +411,24 @@ export default function AdminInvoicesPage({ navigate }) {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok || res.status === 204) {
-        alert("تم الحذف بنجاح");
         fetchInvoices();
       } else {
         if (tabType === "invoices") setInvoices(prev => prev.filter(i => i.id !== item.id));
         if (tabType === "recurring") setRecInvoices(prev => prev.filter(i => i.id !== item.id));
         if (tabType === "refunds") setRefInvoices(prev => prev.filter(i => i.id !== item.id));
-        alert("تم الحذف بنجاح");
       }
     } catch {
       if (tabType === "invoices") setInvoices(prev => prev.filter(i => i.id !== item.id));
       if (tabType === "recurring") setRecInvoices(prev => prev.filter(i => i.id !== item.id));
       if (tabType === "refunds") setRefInvoices(prev => prev.filter(i => i.id !== item.id));
-      alert("تم الحذف بنجاح");
+    } finally {
+      setDeleteTarget(null);
     }
+  };
+
+  const handleDeleteInvoice = (item, tabType) => {
+    setActiveMenuId(null);
+    setDeleteTarget({ item, tabType });
   };
 
   const handleResendInvoice = (item) => {
@@ -2932,6 +2939,19 @@ export default function AdminInvoicesPage({ navigate }) {
           </div>
         </div>
       </div>
+
+      {/* Invoice Deletion Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteTarget)}
+        title="حذف العنصر"
+        message="هل أنت متأكد من رغبتك في حذف هذا السجل نهائياً؟"
+        confirmText="حذف نهائي"
+        cancelText="إلغاء"
+        variant="danger"
+        onConfirm={confirmDeleteInvoice}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
     </div>
   );
 }

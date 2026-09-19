@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import './AdminSubscriptionsPage.css';
 import ModernSelect from '../../components/ModernSelect';
 import FilterResetButton from '../../components/FilterResetButton';
+import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 
 // ══════════════════════════════════════════════════════════════════
 // DATASETS & CONSTANTS
@@ -395,18 +396,25 @@ export default function AdminSubscriptionsPage({ navigate }) {
     }
   };
 
+  const [planToDelete, setPlanToDelete] = useState(null);
+
   // Delete Plan (with DB Sync)
-  const handleDeletePlan = async (id) => {
-    if (window.confirm('هل أنت متأكد من حذف هذه الباقة؟')) {
-      try {
-        await fetch(`/api/subscriptions/plans/${id}`, { method: 'DELETE' });
-        setPlans((prev) => prev.filter((p) => p.id !== id));
-        showToast('تم حذف الباقة بنجاح');
-        loadAdminSubscriptionsData();
-      } catch (e) {
-        showToast('خطأ في حذف الباقة', 'error');
-      }
+  const confirmDeletePlan = async () => {
+    if (!planToDelete) return;
+    try {
+      await fetch(`/api/subscriptions/plans/${planToDelete}`, { method: 'DELETE' });
+      setPlans((prev) => prev.filter((p) => p.id !== planToDelete));
+      showToast('تم حذف الباقة بنجاح');
+      loadAdminSubscriptionsData();
+    } catch (e) {
+      showToast('خطأ في حذف الباقة', 'error');
+    } finally {
+      setPlanToDelete(null);
     }
+  };
+
+  const handleDeletePlan = (id) => {
+    setPlanToDelete(id);
   };
 
   // Open Plan Editor
@@ -2830,10 +2838,17 @@ export default function AdminSubscriptionsPage({ navigate }) {
         </div>
       )}
 
-      {/* Toast Notification Popup */}
-      <div className={`sub-toast ${toastShow ? 'show' : ''}`}>
-        {toastMsg}
-      </div>
+      {/* Plan Deletion Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(planToDelete)}
+        title="حذف الباقة"
+        message="هل أنت متأكد من رغبتك في حذف هذه الباقة من قاعدة البيانات؟"
+        confirmText="حذف الباقة"
+        cancelText="إلغاء"
+        variant="danger"
+        onConfirm={confirmDeletePlan}
+        onCancel={() => setPlanToDelete(null)}
+      />
 
     </div>
   );

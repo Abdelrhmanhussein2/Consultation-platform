@@ -9,6 +9,7 @@ import {
 import AutomationRuleModal from './AutomationRuleModal';
 import ModernSelect from '../../../components/ModernSelect';
 import FilterResetButton from '../../../components/FilterResetButton';
+import ConfirmModal from '../../../components/ConfirmModal/ConfirmModal';
 
 export default function AutomationTab() {
   const [rules, setRules] = useState([]);
@@ -19,6 +20,7 @@ export default function AutomationTab() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingRule, setEditingRule] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   const fetchRulesAndEffects = async () => {
     setLoading(true);
@@ -69,13 +71,19 @@ export default function AutomationTab() {
     }
   };
 
-  const handleDelete = async (ruleId) => {
-    if (!window.confirm('هل أنت تأكد من حذف هذه القاعدة؟')) return;
+  const handleDelete = (ruleId) => {
+    setConfirmDeleteId(ruleId);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDeleteId) return;
     try {
-      await deleteAutomationRule(ruleId);
+      await deleteAutomationRule(confirmDeleteId);
+      setConfirmDeleteId(null);
       fetchRulesAndEffects();
     } catch (err) {
-      alert('فشل حذف القاعدة: ' + err.message);
+      setConfirmDeleteId(null);
+      console.error('Failed to delete rule:', err);
     }
   };
 
@@ -322,6 +330,17 @@ export default function AutomationTab() {
           }}
         />
       )}
+
+      <ConfirmModal
+        isOpen={Boolean(confirmDeleteId)}
+        title="تأكيد حذف قاعدة الأتمتة"
+        message="هل أنت متأكد من رغبتك في حذف قاعدة الأتمتة المحددة نهائياً من النظام؟ لا يمكن التراجع عن هذا الإجراء."
+        confirmText="نعم، احذف القاعدة"
+        cancelText="إلغاء"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   );
 }

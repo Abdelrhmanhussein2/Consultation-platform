@@ -3,6 +3,7 @@ import './AdminUsersPage.css';
 import { getAdminUsers, createAdminUser, getPendingUsers, handleUserAction, getUserFullProfile } from '../services/adminApi';
 import ModernSelect from '../../components/ModernSelect';
 import FilterResetButton from '../../components/FilterResetButton';
+import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 
 const LEGAL_OPTIONS = [
   { value: '', label: 'الصفة القانونية' },
@@ -346,21 +347,27 @@ export default function AdminUsersPage({ navigate, currentPath, initialTab }) {
     }
   }, [currentPath]);
 
+  const [userToApprove, setUserToApprove] = useState(null);
+
   // Handle Approve User Action
-  const handleApproveUser = async (u) => {
+  const handleApproveUser = (u) => {
+    setUserToApprove(u);
+  };
+
+  const confirmApproveUser = async () => {
+    if (!userToApprove) return;
+    const u = userToApprove;
     const confirmName = u.full_name || u.company_name || u.email;
-    if (!window.confirm(`هل أنت متأكد من رغبتك في اعتماد وتفعيل حساب "${confirmName}"؟`)) {
-      return;
-    }
     setActionLoadingId(u.id);
     try {
       await handleUserAction(u.id, 'approve');
-      showToast(`تم اعتماد وتفعيل حساب ${confirmName} بنجاح! 🎉`);
+      showToast(`تم اعتماد وتفعيل حساب ${confirmName} بنجاح`);
       await Promise.all([loadPendingUsers(), loadBackendUsers()]);
     } catch (err) {
       alert(err.message || 'حدث خطأ أثناء اعتماد الحساب');
     } finally {
       setActionLoadingId(null);
+      setUserToApprove(null);
     }
   };
 
@@ -2401,6 +2408,19 @@ export default function AdminUsersPage({ navigate, currentPath, initialTab }) {
           </div>
         </div>
       )}
+
+      {/* User Approval Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(userToApprove)}
+        title="اعتماد وتفعيل الحساب"
+        message={`هل أنت متأكد من رغبتك في اعتماد وتفعيل حساب "${userToApprove?.full_name || userToApprove?.company_name || userToApprove?.email}"؟`}
+        confirmText="اعتماد وتفعيل"
+        cancelText="إلغاء"
+        variant="primary"
+        isLoading={Boolean(actionLoadingId)}
+        onConfirm={confirmApproveUser}
+        onCancel={() => setUserToApprove(null)}
+      />
 
     </div>
   );

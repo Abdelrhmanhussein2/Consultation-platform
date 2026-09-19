@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import './AdminUserAccountsPage.css';
 import ModernSelect from '../../components/ModernSelect';
 import FilterResetButton from '../../components/FilterResetButton';
+import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import {
   getAdminUsers,
   toggleUserActive,
@@ -456,17 +457,23 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
     setLogModalOpen(true);
   }
 
-  async function handleDeleteLog(id) {
-    if (window.confirm('هل تريد حذف سجل تسجيل الدخول هذا من الداتا بيز؟')) {
-      setHistoryList(prev => prev.filter(x => x.id !== id));
-      showToast('تم حذف السجل من قاعدة البيانات');
+  function handleDeleteLog(id) {
+    setDeleteModalContent({
+      title: 'حذف سجل تسجيل الدخول',
+      text: 'هل أنت متأكد من رغبتك في حذف سجل تسجيل الدخول هذا نهائياً من قاعدة البيانات؟',
+      confirmText: 'حذف السجل',
+      onConfirm: async () => {
+        setHistoryList(prev => prev.filter(x => x.id !== id));
+        setDeleteModalContent(null);
+        showToast('تم حذف السجل من قاعدة البيانات');
 
-      try {
-        await deleteLoginLog(id);
-      } catch (err) {
-        console.warn('Backend delete log error:', err);
+        try {
+          await deleteLoginLog(id);
+        } catch (err) {
+          console.warn('Backend delete log error:', err);
+        }
       }
-    }
+    });
   }
 
   // Roles CRUD (Persistent in DB)
@@ -513,18 +520,24 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
     }
   }
 
-  async function handleDeleteRole(id) {
-    if (window.confirm('هل أنت متأكد من حذف هذا الدور من الداتا بيز؟')) {
-      const updatedRoles = roles.filter(x => x.id !== id);
-      setRoles(updatedRoles);
-      showToast('تم حذف الدور من قاعدة البيانات');
+  function handleDeleteRole(id) {
+    setDeleteModalContent({
+      title: 'حذف الدور الإداري',
+      text: 'هل أنت متأكد من رغبتك في حذف هذا الدور نهائياً من قاعدة البيانات؟',
+      confirmText: 'حذف الدور',
+      onConfirm: async () => {
+        const updatedRoles = roles.filter(x => x.id !== id);
+        setRoles(updatedRoles);
+        setDeleteModalContent(null);
+        showToast('تم حذف الدور من قاعدة البيانات');
 
-      try {
-        await saveAccountRoles(updatedRoles);
-      } catch (err) {
-        console.warn('Backend delete role error:', err);
+        try {
+          await saveAccountRoles(updatedRoles);
+        } catch (err) {
+          console.warn('Backend delete role error:', err);
+        }
       }
-    }
+    });
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -1682,31 +1695,18 @@ export default function AdminUserAccountsPage({ view = 'users', navigate }) {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════ */}
-      {/* MODAL 5: DELETE CONFIRMATION MODAL */}
+      {/* MODAL 5: SLEEK CONFIRMATION MODAL */}
       {/* ══════════════════════════════════════════════════════════════════════ */}
-      <div className={`uacc-overlay ${deleteModalContent ? 'show' : ''}`}>
-        <div className="uacc-modal sm">
-          <div className="uacc-modal-head">
-            <div className="uacc-modal-title">{deleteModalContent?.title}</div>
-            <button className="uacc-close-btn" onClick={() => setDeleteModalContent(null)}>
-              <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>
-            </button>
-          </div>
-          <div className="uacc-modal-body">
-            <p style={{ margin: '10px 0', fontSize: '13px', color: '#334155', lineHeight: '1.6' }}>
-              {deleteModalContent?.text}
-            </p>
-          </div>
-          <div className="uacc-modal-actions">
-            <button className="uacc-btn danger" onClick={deleteModalContent?.onConfirm}>
-              تأكيد الحذف
-            </button>
-            <button className="uacc-btn gray" onClick={() => setDeleteModalContent(null)}>
-              إلغاء
-            </button>
-          </div>
-        </div>
-      </div>
+      <ConfirmModal
+        isOpen={Boolean(deleteModalContent)}
+        title={deleteModalContent?.title || 'تأكيد الحذف'}
+        message={deleteModalContent?.text || 'هل أنت متأكد من رغبتك في المتابعة؟'}
+        confirmText={deleteModalContent?.confirmText || 'تأكيد الحذف'}
+        cancelText="إلغاء"
+        variant="danger"
+        onConfirm={deleteModalContent?.onConfirm}
+        onCancel={() => setDeleteModalContent(null)}
+      />
 
       {/* Toast */}
       {toastMsg && (

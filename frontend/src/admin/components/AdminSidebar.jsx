@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import {
   IconDashboard,
   IconUsers,
@@ -52,6 +53,8 @@ const ChevronIcon = ({ isOpen }) => (
 export default function AdminSidebar({ currentPath, navigate, userRole = 'super_admin', permissions = [], isCollapsed }) {
   const { logout } = useAuth();
   const [activeDummySubId, setActiveDummySubId] = useState(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   // ══════════════════════════════════════════════════════════════════════════
   // STREAMLINED & REORGANIZED MENU HIERARCHY
@@ -158,17 +161,8 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
       ]
     },
 
-    // 11. Support & Tickets - Grouped
-    {
-      id: 'support_group',
-      label: 'الدعم والتذاكر',
-      icon: IconTickets,
-      defaultPath: '/admin/tickets',
-      subItems: [
-        { id: 'tickets', label: 'تذاكر الدعم الفني', path: '/admin/tickets' },
-        { id: 'chats', label: 'إدارة المحادثات', path: '/admin/chats' }
-      ]
-    },
+    // 11. Support & Tickets
+    { id: 'tickets', label: 'الدعم والتذاكر', path: '/admin/tickets', icon: IconTickets },
 
     // 12. Notifications
     { id: 'notifications', label: 'الإشعارات', path: '/admin/notifications', icon: IconNotifications },
@@ -240,10 +234,15 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
     }
   };
 
-  // Logout handler
-  const handleLogout = async (e) => {
+  // Logout handler (Custom Dialog)
+  const handleLogoutClick = (e) => {
     e.preventDefault();
-    if (window.confirm('هل تريد تسجيل الخروج من لوحة التحكم؟')) {
+    setShowLogoutConfirm(true);
+  };
+
+  const handleConfirmLogout = async () => {
+    setLoggingOut(true);
+    try {
       if (logout) {
         await logout();
       } else {
@@ -253,6 +252,11 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
         localStorage.removeItem('admin');
         window.location.href = '/login';
       }
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      setLoggingOut(false);
+      setShowLogoutConfirm(false);
     }
   };
 
@@ -432,7 +436,7 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
         <button
           type="button"
           className="nav-item logout-nav-item"
-          onClick={handleLogout}
+          onClick={handleLogoutClick}
           title="تسجيل الخروج"
           style={{
             display: 'flex',
@@ -453,6 +457,19 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
           {!isCollapsed && <span className="nav-label" style={{ color: '#F87171' }}>تسجيل الخروج</span>}
         </button>
       </div>
+
+      {/* Elegant Custom Logout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        title="تسجيل الخروج من لوحة التحكم"
+        message="هل أنت متأكد من رغبتك في تسجيل الخروج وإنهاء الجلسة الإدارية الحالية؟"
+        confirmText="تسجيل الخروج"
+        cancelText="البقاء في اللوحة"
+        variant="danger"
+        isLoading={loggingOut}
+        onConfirm={handleConfirmLogout}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
     </aside>
   );
 }
