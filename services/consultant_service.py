@@ -616,7 +616,43 @@ class ConsultantService:
         db.add(request)
         db.commit()
         db.refresh(request)
+
+        # ── Send Notifications to Consultant and Admins ──────────────
+        try:
+            from services.notification_service import NotificationService
+            from models import ConsultantProfile, User
+            profile = db.query(ConsultantProfile).filter(ConsultantProfile.id == consultant_id).first()
+            if profile:
+                # 1. Notify Consultant
+                NotificationService.send(
+                    db=db,
+                    user_id=profile.user_id,
+                    notification_type=NotificationType.general,
+                    title="تم إرسال طلب التخصص بنجاح",
+                    message=f"تم استلام طلب اعتماد التخصص ({request_in.service_name}) وهو قيد المراجعة الإدارية.",
+                    related_entity_type="service_expansion_request",
+                    related_entity_id=request.id
+                )
+
+                # 2. Notify All Admins
+                consultant_user = db.query(User).filter(User.id == profile.user_id).first()
+                c_name = consultant_user.full_name if consultant_user else "مستشار"
+                admins = db.query(User).filter(User.role.in_([UserRole.admin, UserRole.super_admin])).all()
+                for adm in admins:
+                    NotificationService.send(
+                        db=db,
+                        user_id=adm.id,
+                        notification_type=NotificationType.general,
+                        title="طلب تخصص جديد من مستشار",
+                        message=f"قدّم المستشار ({c_name}) طلباً لاعتماد تخصص ({request_in.service_name}).",
+                        related_entity_type="service_expansion_request",
+                        related_entity_id=request.id
+                    )
+        except Exception as ex:
+            print("Error sending expansion notification:", ex)
+
         return request
+
 
     @staticmethod
     def get_my_expansions(

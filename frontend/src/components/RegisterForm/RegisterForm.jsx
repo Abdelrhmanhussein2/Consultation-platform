@@ -67,25 +67,41 @@ export default function RegisterForm({ openPolicy, navigate }) {
 
   // Fetch Specializations for Consultants on mount
   useEffect(() => {
-    fetch('/api/specializations')
+    fetch('/api/specializations/')
       .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length > 0) {
           setSpecializations(data);
-          if (data.length > 0) {
+          if (!mainSpecializationId) {
             setMainSpecializationId(data[0].id.toString());
           }
+        } else {
+          throw new Error('No data');
         }
       })
       .catch(() => {
-        // Fallback default list if API fails
-        setSpecializations([
-          { id: 1, name: 'ضريبة القيمة المضافة (VAT)' },
-          { id: 2, name: 'ضريبة الدخل والمبيعات' },
-          { id: 3, name: 'التخطيط والامتثال الضريبي' },
-          { id: 4, name: 'الاستشارات النزاعية والاعتراضات' }
-        ]);
-        setMainSpecializationId('1');
+        // Fallback official 15 specializations list
+        const official15 = [
+          { id: 1, name: 'ضريبة الدخل والمبيعات' },
+          { id: 2, name: 'المناطق الحرة والتنموية' },
+          { id: 3, name: 'منطقة العقبة الاقتصادية الخاصة' },
+          { id: 4, name: 'قوانين الإستثمار' },
+          { id: 5, name: 'قوانين الجمارك' },
+          { id: 6, name: 'الضرائب الدولية' },
+          { id: 7, name: 'الإزدواج الضريبي' },
+          { id: 8, name: 'الأسعار التحويلية' },
+          { id: 9, name: 'الضريبة الخاصة' },
+          { id: 10, name: 'المنازعات الضريبية' },
+          { id: 11, name: 'إدارة المخاطر' },
+          { id: 12, name: 'تدقيق الحسابات' },
+          { id: 13, name: 'التدقيق الداخلي' },
+          { id: 14, name: 'الإعسار' },
+          { id: 15, name: 'التصفية' }
+        ];
+        setSpecializations(official15);
+        if (!mainSpecializationId) {
+          setMainSpecializationId('1');
+        }
       });
   }, []);
 

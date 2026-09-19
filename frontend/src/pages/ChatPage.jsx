@@ -233,8 +233,9 @@ export default function ChatPage({ navigate }) {
           });
 
           if (!targetChat) {
-            const isConsultantRole = user?.role === 'consultant';
+            const isConsultantRole = user?.role === 'consultant' || user?.role === 'platform_consultant';
             targetChat = {
+
               id: `new-chat-${Date.now()}`,
               client_name: isConsultantRole ? paramUser : (user?.full_name || 'عميل الاستشارة'),
               consultant_name: isConsultantRole ? (user?.full_name || 'المستشار الضريبي') : paramUser,
@@ -691,10 +692,11 @@ export default function ChatPage({ navigate }) {
     if (appt.id === 'admin_support' || appt.is_admin_room) {
       return 'إدارة المنصة والدعم المباشر';
     }
-    const isConsultantAppt = user?.role === 'consultant' ||
+    const isConsultantAppt = (user?.role === 'consultant' || user?.role === 'platform_consultant') ||
       (appt.consultant && String(appt.consultant.user_id) === String(user?.id)) ||
       (appt.consultant_id && user?.profile && String(appt.consultant_id) === String(user.profile.id)) ||
       (user?.email && (appt.consultant_name?.includes(user?.full_name) || appt.consultant?.user?.email === user?.email));
+
 
     if (isConsultantAppt) {
       return appt.client_name || appt.user?.full_name || appt.user_name || appt.client?.full_name || 'عميل الاستشارة';

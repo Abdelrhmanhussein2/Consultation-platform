@@ -246,11 +246,12 @@ export default function MyAppointmentsPage({ navigate }) {
 
   // Helper to get Partner Name based on user role
   const getPartnerName = (appt) => {
-    if (user?.role === 'consultant') {
+    if (user?.role === 'consultant' || user?.role === 'platform_consultant') {
       return appt.client_name || appt.user?.full_name || appt.user_name || 'العميل';
     }
     return appt.consultant_name || appt.consultant?.user?.full_name || 'د. مستشار المنصة';
   };
+
 
   const filteredAppointments = getFilteredAppointments();
 

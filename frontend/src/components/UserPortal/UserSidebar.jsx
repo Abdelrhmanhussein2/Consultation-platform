@@ -287,7 +287,8 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
     { path: '/settings', label: 'الإعدادات', IconComponent: SettingsIcon }
   ];
 
-  const navItems = userRole === 'consultant' ? consultantNavItems : clientNavItems;
+  const isConsultant = userRole === 'consultant' || userRole === 'platform_consultant';
+  const navItems = isConsultant ? consultantNavItems : clientNavItems;
 
   const handleLogout = () => {
     logout();
@@ -301,7 +302,7 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
         currentPath === '/consultant/dashboard' ||
         currentPath === '/consultant' ||
         currentPath === '/consultant/' ||
-        (userRole === 'consultant' && currentPath === '/dashboard')
+        (isConsultant && currentPath === '/dashboard')
       );
     }
     if (item.path === '/consultant/control-panel') {
@@ -328,7 +329,7 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
       <div className="sidebar-header" style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.22)', padding: isCollapsed ? '16px 8px' : '16px 18px' }}>
         <div
           className="brand-wrapper"
-          onClick={() => navigate(userRole === 'consultant' ? '/consultant/dashboard' : '/dashboard')}
+          onClick={() => navigate(isConsultant ? '/consultant/dashboard' : '/dashboard')}
           style={{
             cursor: 'pointer',
             gap: isCollapsed ? '0' : '12px',
@@ -349,13 +350,14 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
               <span className="brand-title" style={{ color: '#F5A52A', fontWeight: '800', fontSize: '16px', letterSpacing: '-0.3px', lineHeight: '1.2' }}>
                 منصة ديوان
               </span>
-              <span className="brand-subtitle" style={{ color: userRole === 'consultant' ? '#FFFFFF' : '#94A3B8', fontWeight: userRole === 'consultant' ? '600' : 'normal', fontSize: '11px', marginTop: '3px' }}>
-                {userRole === 'consultant' ? 'مستشار ضريبي معتمد' : 'للاستشارات الضريبية'}
+              <span className="brand-subtitle" style={{ color: isConsultant ? '#FFFFFF' : '#94A3B8', fontWeight: isConsultant ? '600' : 'normal', fontSize: '11px', marginTop: '3px' }}>
+                {isConsultant ? 'مستشار ضريبي معتمد' : 'للاستشارات الضريبية'}
               </span>
             </div>
           )}
         </div>
       </div>
+
 
       {/* Main Navigation Items */}
       <nav className="sidebar-nav">

@@ -139,13 +139,18 @@ function MainApp() {
   // Render User Portal content inside UserLayout
   const renderUserPortalContent = () => {
     const pathname = currentPath.split('?')[0];
+    const isConsultant = user?.role === 'consultant' || user?.role === 'platform_consultant';
+
+    if (pathname === '/dashboard') {
+      return isConsultant ? <ConsultantDashboard navigate={navigate} /> : <UserDashboard navigate={navigate} />;
+    }
 
     if (
       pathname === '/calendar' ||
       pathname === '/appointments-management' ||
       pathname === '/diwan-calendar'
     ) {
-      return <DiwanAppointmentsPage initialRole="user" navigate={navigate} />;
+      return <DiwanAppointmentsPage initialRole={isConsultant ? "consultant" : "user"} navigate={navigate} />;
     }
     if (pathname === '/consultant/calendar') {
       return <DiwanAppointmentsPage initialRole="consultant" navigate={navigate} />;
@@ -160,7 +165,7 @@ function MainApp() {
       return <QuickConsultationPage navigate={navigate} />;
     }
     if (pathname === '/my-appointments') {
-      return <MyAppointmentsPage navigate={navigate} />;
+      return isConsultant ? <ConsultantSessionsPage navigate={navigate} /> : <MyAppointmentsPage navigate={navigate} />;
     }
     if (pathname === '/chat') {
       return <ChatPage navigate={navigate} />;
@@ -172,10 +177,10 @@ function MainApp() {
       return <AiAssistantPage />;
     }
     if (pathname === '/subscriptions') {
-      return <UserSubscriptionsPage navigate={navigate} />;
+      return isConsultant ? <ConsultantSubscriptionsPage navigate={navigate} /> : <UserSubscriptionsPage navigate={navigate} />;
     }
     if (pathname === '/invoices') {
-      return <InvoicesPage />;
+      return isConsultant ? <ConsultantPaymentsPage navigate={navigate} /> : <InvoicesPage />;
     }
     if (pathname === '/tickets') {
       return <BusinessHelpPage navigate={navigate} />;
@@ -198,7 +203,7 @@ function MainApp() {
       return <PolicyCenterPage openPolicy={openPolicy} />;
     }
     if (pathname === '/settings' || pathname === '/consultant/settings') {
-      if (user?.role === 'consultant') {
+      if (isConsultant) {
         return <ConsultantSettingsPage navigate={navigate} />;
       }
       return <UserSettingsPage navigate={navigate} />;
@@ -206,7 +211,7 @@ function MainApp() {
 
     // Consultant Portal Screens (Only for approved consultants)
     if (pathname.startsWith('/consultant')) {
-      if (user?.role !== 'consultant' && user?.role !== 'platform_consultant') {
+      if (!isConsultant) {
         return <UserDashboard navigate={navigate} />;
       }
       if (pathname === '/consultant' || pathname === '/consultant/' || pathname === '/consultant/dashboard') {
@@ -260,8 +265,9 @@ function MainApp() {
     }
 
     // Default Portal page
-    return <UserDashboard navigate={navigate} />;
+    return isConsultant ? <ConsultantDashboard navigate={navigate} /> : <UserDashboard navigate={navigate} />;
   };
+
 
   // 1. Loading state fallback while checking auth
   if (loading) {

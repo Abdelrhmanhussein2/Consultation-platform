@@ -45,7 +45,9 @@ export default function ConsultantSettingsPage({ navigate }) {
 
   // 3. Specializations from Database
   const [specializationsList, setSpecializationsList] = useState([]);
-  const [currentSpecializationName, setCurrentSpecializationName] = useState('استشارات ضريبة الدخل والمبيعات');
+  const [currentSpecializationId, setCurrentSpecializationId] = useState(1);
+  const [currentSpecializationName, setCurrentSpecializationName] = useState('ضريبة الدخل والمبيعات');
+  const [approvedSpecializations, setApprovedSpecializations] = useState([]);
   const [specMode, setSpecMode] = useState('add');
 
   const [addSpec, setAddSpec] = useState({
@@ -63,6 +65,15 @@ export default function ConsultantSettingsPage({ navigate }) {
   });
 
   const [pendingRequests, setPendingRequests] = useState([]);
+  const [dialogModal, setDialogModal] = useState({ open: false, title: '', message: '', type: 'warning' });
+
+  const showDialogModal = (title, message, type = 'warning') => {
+    setDialogModal({ open: true, title, message, type });
+  };
+
+  const closeDialogModal = () => {
+    setDialogModal({ open: false, title: '', message: '', type: 'warning' });
+  };
 
   // 4. Bank & CliQ Payout
   const [bank, setBank] = useState({
@@ -186,19 +197,30 @@ export default function ConsultantSettingsPage({ navigate }) {
   useEffect(() => {
     async function loadData() {
       try {
+        const official15 = [
+          { id: 1, name: 'ضريبة الدخل والمبيعات', description: 'استشارات وتدقيق ضريبة الدخل وضريبة المبيعات العامة' },
+          { id: 2, name: 'المناطق الحرة والتنموية', description: 'الحوافز الضريبية والأنظمة الخاصة بالمناطق التنموية والحرة' },
+          { id: 3, name: 'منطقة العقبة الاقتصادية الخاصة', description: 'التشريعات والامتيازات الضريبية والجمركية في منطقة العقبة' },
+          { id: 4, name: 'قوانين الإستثمار', description: 'قوانين البيئة الاستثمارية والاعفاءات والحوافز للمستثمرين' },
+          { id: 5, name: 'قوانين الجمارك', description: 'التعريفات الجمركية، التخليص، وقوانين الجمارك الأردنية والدولية' },
+          { id: 6, name: 'الضرائب الدولية', description: 'المعايير الدولية للضرائب وتخطيط الضرائب عبر الحدود' },
+          { id: 7, name: 'الإزدواج الضريبي', description: 'اتفاقيات تجنب الازدواج الضريبي وحماية الحقوق المالية الدولية' },
+          { id: 8, name: 'الأسعار التحويلية', description: 'سياسات التسعير التحويلي والملفات المحلية والمركزية للشركات' },
+          { id: 9, name: 'الضريبة الخاصة', description: 'السلع والخدمات الخاضعة للضريبة الخاصة وآليات احتسابها' },
+          { id: 10, name: 'المنازعات الضريبية', description: 'الاعتراضات، لجان التسوية، وقضايا المحاكم الضريبية' },
+          { id: 11, name: 'إدارة المخاطر', description: 'إدارة المخاطر المالية والضريبية والامتثال الرقابي' },
+          { id: 12, name: 'تدقيق الحسابات', description: 'التدقيق المالي الخارجي والقوائم المالية المعتمدة' },
+          { id: 13, name: 'التدقيق الداخلي', description: 'مراجعة الأنظمة الرقابية الداخلية وضبط العمليات المالية' },
+          { id: 14, name: 'الإعسار', description: 'قوانين وإجراءات الإعسار وحماية الدائنين والمدينين' },
+          { id: 15, name: 'التصفية', description: 'تصفية الشركات والكيانات التجارية وإنهاء الالتزامات الضريبية' }
+        ];
+
         // 1. Fetch real specializations from database
-        const specs = await apiFetch('/api/specializations').catch(() => null);
+        const specs = await apiFetch('/api/specializations/').catch(() => null);
         if (specs && Array.isArray(specs) && specs.length > 0) {
           setSpecializationsList(specs);
         } else {
-          setSpecializationsList([
-            { id: 1, name: 'استشارات ضريبة الدخل والمبيعات الأردنية' },
-            { id: 2, name: 'التخطيط الضريبي والامتثال للشركات' },
-            { id: 3, name: 'النزاعات الضريبية واللجان القضائية والاعتراضات' },
-            { id: 4, name: 'تسعير المعاملات (Transfer Pricing) والشركات الدولية' },
-            { id: 5, name: 'التدقيق المحاسبي المعتمد ورخص JCPA' },
-            { id: 6, name: 'ضريبة العقارات والأموال غير المنقولة' }
-          ]);
+          setSpecializationsList(official15);
         }
 
         if (token) {
@@ -213,6 +235,9 @@ export default function ConsultantSettingsPage({ navigate }) {
             }
             if (consultantProf.activity_type) {
               setProfile((prev) => ({ ...prev, title: consultantProf.activity_type }));
+            }
+            if (consultantProf.main_specialization_id) {
+              setCurrentSpecializationId(consultantProf.main_specialization_id);
             }
             if (consultantProf.specialization?.name || consultantProf.specialization_name) {
               setCurrentSpecializationName(consultantProf.specialization?.name || consultantProf.specialization_name);
@@ -244,9 +269,17 @@ export default function ConsultantSettingsPage({ navigate }) {
               reason: req.service_description || 'طلب اعتماد مقدم للإدارة',
               fileName: req.proof_document_url ? req.proof_document_url.split('/').pop() : 'وثيقة رخصة JCPA',
               date: req.created_at ? new Date(req.created_at).toLocaleDateString('ar-EG') : 'اليوم',
-              status: req.status === 'approved' ? 'تمت الموافقة' : req.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة'
+              status: req.status === 'approved' ? 'تمت الموافقة' : req.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة',
+              rawStatus: req.status,
+              specId: req.requested_specialization_id
             }));
             setPendingRequests(formattedExp);
+
+            // Collect approved additional specializations
+            const approved = formattedExp
+              .filter((req) => req.rawStatus === 'approved' && !req.type.includes('تغيير'))
+              .map((req) => req.name);
+            setApprovedSpecializations(approved);
           }
         }
       } catch (e) {}
@@ -393,11 +426,11 @@ export default function ConsultantSettingsPage({ navigate }) {
     const form = isAdd ? addSpec : changeSpec;
 
     if (!form.selectedId) {
-      alert('يرجى اختيار التخصص من القائمة المنسدلة');
+      showDialogModal('تنبيه مطلوب', 'يرجى اختيار التخصص المطلوب من القائمة المنسدلة أولاً.');
       return;
     }
     if (!form.reason.trim()) {
-      alert('يرجى كتابة سبب الطلب وموجز المؤهلات');
+      showDialogModal('تنبيه مطلوب', 'يرجى كتابة سبب ومبررات الطلب وموجز المؤهلات والخبرات الداعمة.');
       return;
     }
 
@@ -557,13 +590,13 @@ export default function ConsultantSettingsPage({ navigate }) {
     e.preventDefault();
     if (!newPassword || !token) return;
     if (confirmPassword && newPassword !== confirmPassword) {
-      alert('كلمة المرور وتأكيدها غير متطابقين');
+      showDialogModal('تنبيه', 'كلمة المرور وتأكيدها غير متطابقين');
       return;
     }
 
     const strength = getPasswordStrength(newPassword);
     if (!strength.isValid) {
-      alert('كلمة المرور الجديدة يجب أن تكون قوية وتحتوي على 8 خانات، حرف كبير، حرف صغير، رقم، ورمز خاص.');
+      showDialogModal('كلمة مرور ضعيفة', 'كلمة المرور الجديدة يجب أن تكون قوية وتحتوي على 8 خانات، حرف كبير، حرف صغير، رقم، ورمز خاص.');
       return;
     }
 
@@ -587,7 +620,7 @@ export default function ConsultantSettingsPage({ navigate }) {
         setConfirmPassword('');
       } else {
         const err = await res.json();
-        alert(err.detail || 'حدث خطأ أثناء تغيير كلمة المرور');
+        showDialogModal('خطأ في العملية', err.detail || 'حدث خطأ أثناء تغيير كلمة المرور', 'error');
       }
     } catch {
       showToast('خطأ أثناء تغيير كلمة المرور');
@@ -610,12 +643,12 @@ export default function ConsultantSettingsPage({ navigate }) {
 
   const handleVerifyPasswordOtpAndReset = async () => {
     if (!pwdOtpCode || !pwdOtpNewPassword || !token) {
-      alert('يرجى إدخال كود التحقق وكلمة المرور الجديدة');
+      showDialogModal('بيانات غير مكتملة', 'يرجى إدخال كود التحقق وكلمة المرور الجديدة');
       return;
     }
     const strength = getPasswordStrength(pwdOtpNewPassword);
     if (!strength.isValid) {
-      alert('كلمة المرور الجديدة يجب أن تكون قوية وتحتوي على 8 خانات، حرف كبير، حرف صغير، رقم، ورمز خاص.');
+      showDialogModal('كلمة مرور ضعيفة', 'كلمة المرور الجديدة يجب أن تكون قوية وتحتوي على 8 خانات، حرف كبير، حرف صغير، رقم، ورمز خاص.');
       return;
     }
 
@@ -633,18 +666,18 @@ export default function ConsultantSettingsPage({ navigate }) {
       setPwdOtpCode('');
       setPwdOtpNewPassword('');
     } catch {
-      alert('رمز التحقق غير صحيح أو انتهت صلاحيته');
+      showDialogModal('رمز غير صحيح', 'رمز التحقق غير صحيح أو انتهت صلاحيته', 'error');
     }
   };
 
   const handleRequestEmailOtp = async (e) => {
     e.preventDefault();
     if (!newEmail.trim()) {
-      alert('يرجى إدخال البريد الإلكتروني الجديد');
+      showDialogModal('تنبيه', 'يرجى إدخال البريد الإلكتروني الجديد');
       return;
     }
     if (!isValidEmail(newEmail)) {
-      alert('يرجى إدخال بريد إلكتروني رسمي وصحيح');
+      showDialogModal('بريد غير صالح', 'يرجى إدخال بريد إلكتروني رسمي وصحيح');
       return;
     }
 
@@ -683,14 +716,14 @@ export default function ConsultantSettingsPage({ navigate }) {
       setEmailOtpCode('');
       if (refreshUser) refreshUser();
     } catch {
-      alert('رمز التحقق غير صحيح أو انتهت صلاحيته');
+      showDialogModal('رمز غير صحيح', 'رمز التحقق غير صحيح أو انتهت صلاحيته', 'error');
     }
   };
 
   const handleRequestPhoneOtp = async (e) => {
     e.preventDefault();
     if (!newPhone.trim() || newPhone.trim().length < 9) {
-      alert('يرجى إدخال رقم موبايل صحيح مع مفتاح الدولة');
+      showDialogModal('تنبيه', 'يرجى إدخال رقم موبايل صحيح مع مفتاح الدولة');
       return;
     }
     try {
@@ -730,7 +763,7 @@ export default function ConsultantSettingsPage({ navigate }) {
       setPhoneOtpCode('');
       if (refreshUser) refreshUser();
     } catch {
-      alert('رمز التحقق غير صحيح');
+      showDialogModal('رمز غير صحيح', 'رمز التحقق غير صحيح', 'error');
     }
   };
 
@@ -1084,7 +1117,9 @@ export default function ConsultantSettingsPage({ navigate }) {
 
           {activeTab === 'specialization' && (
             <ConsultantSpecializationsTab
+              currentSpecializationId={currentSpecializationId}
               currentSpecializationName={currentSpecializationName}
+              approvedSpecializations={approvedSpecializations}
               specializationsList={specializationsList}
               specMode={specMode}
               setSpecMode={setSpecMode}
@@ -1172,6 +1207,98 @@ export default function ConsultantSettingsPage({ navigate }) {
           )}
         </div>
       </div>
+
+      {/* ══════════════════════════════════════════════════════════════════
+          CUSTOM CENTERED DIALOG MODAL (DIWAN BRANDING)
+          ══════════════════════════════════════════════════════════════════ */}
+      {dialogModal.open && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(10, 50, 84, 0.45)',
+          backdropFilter: 'blur(5px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px',
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: '16px',
+            maxWidth: '430px',
+            width: '100%',
+            padding: '28px 24px',
+            boxShadow: '0 20px 45px rgba(10,50,84,0.18)',
+            border: '1px solid #E2E8F0',
+            textAlign: 'center',
+            boxSizing: 'border-box'
+          }}>
+            {/* Modal Icon */}
+            <div style={{
+              width: '54px',
+              height: '54px',
+              borderRadius: '50%',
+              background: dialogModal.type === 'error' ? '#FEF2F2' : '#EFF6FF',
+              color: dialogModal.type === 'error' ? '#DC2626' : '#0A3C64',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px auto',
+              border: dialogModal.type === 'error' ? '1px solid #FECACA' : '1px solid #BFDBFE'
+            }}>
+              {dialogModal.type === 'error' ? (
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="15" y1="9" x2="9" y2="15" />
+                  <line x1="9" y1="9" x2="15" y2="15" />
+                </svg>
+              ) : (
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              )}
+            </div>
+
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '900', color: '#0A3C64' }}>
+              {dialogModal.title}
+            </h3>
+
+            <p style={{ margin: '0 0 22px 0', fontSize: '14px', color: '#475569', lineHeight: '1.6' }}>
+              {dialogModal.message}
+            </p>
+
+            <button
+              type="button"
+              onClick={closeDialogModal}
+              style={{
+                background: '#0A3C64',
+                color: '#FFFFFF',
+                border: 'none',
+                padding: '11px 24px',
+                borderRadius: '10px',
+                fontWeight: '800',
+                fontSize: '14px',
+                cursor: 'pointer',
+                width: '100%',
+                boxShadow: '0 4px 12px rgba(10,60,100,0.18)',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#0d4b7d'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#0A3C64'}
+            >
+              حسناً، فهمت ذلك
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

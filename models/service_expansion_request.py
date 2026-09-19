@@ -25,3 +25,16 @@ class ServiceExpansionRequest(Base):
     specialization = relationship("Specialization", back_populates="expansion_requests")
     reviewer = relationship("User", back_populates="reviewed_expansions", foreign_keys=[reviewed_by])
     services = relationship("ConsultantService", back_populates="expansion_request")
+
+    @property
+    def consultant_name(self) -> str | None:
+        return self.consultant.user.full_name if self.consultant and self.consultant.user else None
+
+    @property
+    def consultant_email(self) -> str | None:
+        return self.consultant.user.email if self.consultant and self.consultant.user else None
+
+    @property
+    def specialization_name(self) -> str | None:
+        return self.specialization.name if self.specialization else None
+

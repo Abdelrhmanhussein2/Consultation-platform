@@ -54,7 +54,7 @@ const DateFilterInput = ({ placeholder, value, onChange }) => {
         if (typeof ref.current.showPicker === 'function') {
           ref.current.showPicker();
         }
-      } catch {}
+      } catch { }
     }
   };
 
@@ -91,7 +91,7 @@ const DateFilterInput = ({ placeholder, value, onChange }) => {
             if (typeof e.target.showPicker === 'function') {
               e.target.showPicker();
             }
-          } catch {}
+          } catch { }
         }}
         style={{
           width: '100%',
@@ -117,7 +117,7 @@ const DateFilterInput = ({ placeholder, value, onChange }) => {
             if (typeof e.target.showPicker === 'function') {
               e.target.showPicker();
             }
-          } catch {}
+          } catch { }
         }}
         onBlur={(e) => {
           e.target.style.borderColor = '#E2E8F0';
@@ -655,7 +655,7 @@ export default function ConsultantSessionsPage({ navigate }) {
           return parsed;
         }
       }
-    } catch {}
+    } catch { }
     return DEMO_SESSIONS;
   });
 
@@ -683,7 +683,7 @@ export default function ConsultantSessionsPage({ navigate }) {
   const handleOpenVideoRoom = async (sessionId) => {
     try {
       if (token && sessionId) {
-        await appointmentService.openVideoSession(sessionId, token).catch(() => {});
+        await appointmentService.openVideoSession(sessionId, token).catch(() => { });
       }
     } catch (err) {
       console.warn('Failed to register room opening:', err);
@@ -704,7 +704,7 @@ export default function ConsultantSessionsPage({ navigate }) {
   useEffect(() => {
     try {
       localStorage.setItem('consultant_kanban_sessions_exact_v6', JSON.stringify(sessions));
-    } catch {}
+    } catch { }
   }, [sessions]);
 
   // Helper to parse date string & time to ISO
@@ -895,9 +895,9 @@ export default function ConsultantSessionsPage({ navigate }) {
   const handleDeleteSession = async (id) => {
     if (token) {
       try {
-        await consultantService.rejectAppointment(id, 'تم الإلغاء بواسطة المستشار', token).catch(() => {});
-        await consultantService.updateAppointmentStatus(id, { status: 'cancelled_by_consultant' }, token).catch(() => {});
-      } catch {}
+        await consultantService.rejectAppointment(id, 'تم الإلغاء بواسطة المستشار', token).catch(() => { });
+        await consultantService.updateAppointmentStatus(id, { status: 'cancelled_by_consultant' }, token).catch(() => { });
+      } catch { }
     }
     setSessions((prev) => prev.filter((s) => s.id !== id));
     if (selectedSession?.id === id) setSelectedSession(null);
@@ -928,9 +928,9 @@ export default function ConsultantSessionsPage({ navigate }) {
             await consultantService.updateAppointmentStatus(editingSession.id, {
               scheduled_at: isoDate,
               notes: rescheduleReason
-            }, token).catch(() => {});
+            }, token).catch(() => { });
           });
-        } catch {}
+        } catch { }
       }
       setSessions((prev) =>
         prev.map((s) =>
@@ -946,17 +946,17 @@ export default function ConsultantSessionsPage({ navigate }) {
           const backendStatus = newPaymentStatus === 'مدفوعة' ? 'confirmed' : 'pending_payment';
           await consultantService.updateAppointmentStatus(editingSession.id, {
             status: backendStatus
-          }, token).catch(() => {});
-        } catch {}
+          }, token).catch(() => { });
+        } catch { }
       }
       setSessions((prev) =>
         prev.map((s) =>
           s.id === editingSession.id
             ? {
-                ...s,
-                payment_status: newPaymentStatus,
-                status: newPaymentStatus === 'مدفوعة' && s.status === 'pending' ? 'confirmed' : s.status
-              }
+              ...s,
+              payment_status: newPaymentStatus,
+              status: newPaymentStatus === 'مدفوعة' && s.status === 'pending' ? 'confirmed' : s.status
+            }
             : s
         )
       );
@@ -975,11 +975,11 @@ export default function ConsultantSessionsPage({ navigate }) {
         else if (newStatus === 'completed') backendSt = 'completed';
         else if (newStatus === 'cancelled') backendSt = 'cancelled_by_consultant';
 
-        await consultantService.updateAppointmentStatus(id, { status: backendSt }, token).catch(() => {});
+        await consultantService.updateAppointmentStatus(id, { status: backendSt }, token).catch(() => { });
         if (newStatus === 'confirmed') {
-          await consultantService.approveAppointment(id, token).catch(() => {});
+          await consultantService.approveAppointment(id, token).catch(() => { });
         }
-      } catch {}
+      } catch { }
     }
     setSessions((prev) =>
       prev.map((s) => (s.id === id ? { ...s, status: newStatus } : s))
@@ -996,13 +996,16 @@ export default function ConsultantSessionsPage({ navigate }) {
   return (
     <div
       style={{
-        padding: '24px 32px 60px',
+        padding: '16px 12px 60px',
         fontFamily: "'Tajawal', sans-serif",
         direction: 'rtl',
         color: '#1E293B',
         backgroundColor: '#F8FAFC',
         minHeight: '100vh',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        width: '100%',
+        maxWidth: '100%',
+        overflowX: 'hidden'
       }}
     >
       <Toast show={toast.show} message={toast.message} type={toast.type} />
@@ -1081,7 +1084,7 @@ export default function ConsultantSessionsPage({ navigate }) {
           flexWrap: 'wrap'
         }}
       >
-        {/* Card 1 (Far Right): مكتملة (15) - Green */}
+        {/* Card 1 (Far Right): مكتملة */}
         <div
           style={{
             width: '150px',
@@ -1095,7 +1098,7 @@ export default function ConsultantSessionsPage({ navigate }) {
             flexShrink: 0
           }}
         >
-          <div style={{ fontSize: '34px', fontWeight: '900', color: '#10B981', lineHeight: 1 }}>
+          <div style={{ fontSize: '34px', fontWeight: '900', color: '#0A3254', lineHeight: 1 }}>
             {stats.completed}
           </div>
           <div style={{ fontSize: '13.5px', fontWeight: '700', color: '#64748B', marginTop: '8px' }}>
@@ -1103,7 +1106,7 @@ export default function ConsultantSessionsPage({ navigate }) {
           </div>
         </div>
 
-        {/* Card 2: قيد التنفيذ (15) - Blue */}
+        {/* Card 2: قيد التنفيذ */}
         <div
           style={{
             width: '150px',
@@ -1117,7 +1120,7 @@ export default function ConsultantSessionsPage({ navigate }) {
             flexShrink: 0
           }}
         >
-          <div style={{ fontSize: '34px', fontWeight: '900', color: '#0284C7', lineHeight: 1 }}>
+          <div style={{ fontSize: '34px', fontWeight: '900', color: '#0A3254', lineHeight: 1 }}>
             {stats.in_progress}
           </div>
           <div style={{ fontSize: '13.5px', fontWeight: '700', color: '#64748B', marginTop: '8px' }}>
@@ -1125,7 +1128,7 @@ export default function ConsultantSessionsPage({ navigate }) {
           </div>
         </div>
 
-        {/* Card 3 (Center): مؤكدة (5) - Cyan */}
+        {/* Card 3 (Center): مؤكدة */}
         <div
           style={{
             width: '150px',
@@ -1139,7 +1142,7 @@ export default function ConsultantSessionsPage({ navigate }) {
             flexShrink: 0
           }}
         >
-          <div style={{ fontSize: '34px', fontWeight: '900', color: '#0EA5E9', lineHeight: 1 }}>
+          <div style={{ fontSize: '34px', fontWeight: '900', color: '#0A3254', lineHeight: 1 }}>
             {stats.confirmed}
           </div>
           <div style={{ fontSize: '13.5px', fontWeight: '700', color: '#64748B', marginTop: '8px' }}>
@@ -1147,7 +1150,7 @@ export default function ConsultantSessionsPage({ navigate }) {
           </div>
         </div>
 
-        {/* Card 4: معلقة (4) - Orange */}
+        {/* Card 4: معلقة */}
         <div
           style={{
             width: '150px',
@@ -1161,7 +1164,7 @@ export default function ConsultantSessionsPage({ navigate }) {
             flexShrink: 0
           }}
         >
-          <div style={{ fontSize: '34px', fontWeight: '900', color: '#F59E0B', lineHeight: 1 }}>
+          <div style={{ fontSize: '34px', fontWeight: '900', color: '#0A3254', lineHeight: 1 }}>
             {stats.pending}
           </div>
           <div style={{ fontSize: '13.5px', fontWeight: '700', color: '#64748B', marginTop: '8px' }}>
@@ -1169,7 +1172,7 @@ export default function ConsultantSessionsPage({ navigate }) {
           </div>
         </div>
 
-        {/* Card 5 (Far Left): ملغاة (4) - Red */}
+        {/* Card 5 (Far Left): ملغاة */}
         <div
           style={{
             width: '150px',
@@ -1183,7 +1186,7 @@ export default function ConsultantSessionsPage({ navigate }) {
             flexShrink: 0
           }}
         >
-          <div style={{ fontSize: '34px', fontWeight: '900', color: '#EF4444', lineHeight: 1 }}>
+          <div style={{ fontSize: '34px', fontWeight: '900', color: '#0A3254', lineHeight: 1 }}>
             {stats.cancelled}
           </div>
           <div style={{ fontSize: '13.5px', fontWeight: '700', color: '#64748B', marginTop: '8px' }}>
@@ -1424,9 +1427,11 @@ export default function ConsultantSessionsPage({ navigate }) {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(5, 1fr)',
-            gap: '14px',
-            alignItems: 'start'
+            gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+            gap: '8px',
+            alignItems: 'start',
+            width: '100%',
+            boxSizing: 'border-box'
           }}
         >
           {COLUMNS_CONFIG.map((col) => {
@@ -1441,7 +1446,10 @@ export default function ConsultantSessionsPage({ navigate }) {
                   backgroundColor: 'transparent',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '10px'
+                  gap: '8px',
+                  minWidth: 0,
+                  width: '100%',
+                  boxSizing: 'border-box'
                 }}
               >
                 {/* Column Header */}
@@ -1451,34 +1459,39 @@ export default function ConsultantSessionsPage({ navigate }) {
                     borderTop: `2px solid ${col.headerAccentColor}`,
                     borderLeft: `2px solid ${col.headerAccentColor}`,
                     borderRight: `2px solid ${col.headerAccentColor}`,
-                    borderTopLeftRadius: '16px',
-                    borderTopRightRadius: '16px',
+                    borderTopLeftRadius: '12px',
+                    borderTopRightRadius: '12px',
                     borderBottom: '1.5px solid #CBD5E1',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '6px 14px',
-                    height: '36px',
-                    boxSizing: 'border-box'
+                    padding: '5px 8px',
+                    height: '34px',
+                    boxSizing: 'border-box',
+                    minWidth: 0
                   }}
                 >
                   {/* Right: Dot + Title */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, overflow: 'hidden' }}>
                     <span
                       style={{
-                        width: '7px',
-                        height: '7px',
+                        width: '6px',
+                        height: '6px',
                         borderRadius: '50%',
                         backgroundColor: col.dotColor,
-                        display: 'inline-block'
+                        display: 'inline-block',
+                        flexShrink: 0
                       }}
                     />
                     <span
                       style={{
-                        fontSize: '14px',
+                        fontSize: '12.5px',
                         fontWeight: '800',
                         color: '#0A3254',
-                        fontFamily: "'Tajawal', sans-serif"
+                        fontFamily: "'Tajawal', sans-serif",
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
                       }}
                     >
                       {col.title}
@@ -1488,49 +1501,48 @@ export default function ConsultantSessionsPage({ navigate }) {
                   {/* Left: Count Badge */}
                   <div
                     style={{
-                      minWidth: '22px',
-                      height: '22px',
-                      padding: '0 4px',
+                      minWidth: '20px',
+                      height: '20px',
+                      padding: '0 3px',
                       borderRadius: '3px',
                       border: `1.5px solid ${col.badgeBorder}`,
                       backgroundColor: col.badgeBg,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '11.5px',
+                      fontSize: '11px',
                       fontWeight: '800',
                       color: '#0A3254',
                       fontFamily: "'Tajawal', sans-serif",
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
+                      flexShrink: 0
                     }}
                   >
                     {countToShow}
                   </div>
                 </div>
 
-                {/* Cards Container with smooth scrolling */}
+                {/* Cards Container with smooth full-page scrolling */}
                 <div
-                  className="kanban-cards-scroll"
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '10px',
-                    maxHeight: '680px',
-                    overflowY: 'auto',
-                    paddingRight: '2px',
-                    paddingLeft: '2px'
+                    gap: '8px',
+                    minWidth: 0,
+                    width: '100%',
+                    boxSizing: 'border-box'
                   }}
                 >
                   {colSessions.length === 0 ? (
                     <div
                       style={{
-                        padding: '36px 12px',
+                        padding: '24px 8px',
                         textAlign: 'center',
                         backgroundColor: '#FFFFFF',
-                        borderRadius: '16px',
+                        borderRadius: '12px',
                         border: '1px dashed #CBD5E1',
                         color: '#94A3B8',
-                        fontSize: '13px',
+                        fontSize: '12px',
                         fontFamily: "'Tajawal', sans-serif"
                       }}
                     >
@@ -1549,18 +1561,20 @@ export default function ConsultantSessionsPage({ navigate }) {
                           onClick={() => setSelectedSession(session)}
                           style={{
                             backgroundColor: '#FFFFFF',
-                            borderRadius: '18px',
+                            borderRadius: '14px',
                             border: '1.5px solid #E2E8F0',
                             borderTop: `2.5px solid ${col.cardAccentColor}`,
                             borderRight: `2.5px solid ${col.cardAccentColor}`,
-                            padding: '13px 14px 10px',
+                            padding: '9px 10px 8px',
                             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
                             display: 'flex',
                             flexDirection: 'column',
-                            gap: '5px',
+                            gap: '4px',
                             transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                             cursor: 'pointer',
-                            position: 'relative'
+                            position: 'relative',
+                            minWidth: 0,
+                            boxSizing: 'border-box'
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.transform = 'translateY(-2px)';
@@ -1577,7 +1591,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
-                              fontSize: '12px',
+                              fontSize: '11px',
                               fontWeight: '700'
                             }}
                           >
@@ -1587,7 +1601,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                               style={{
                                 color: '#10B981',
                                 fontWeight: '700',
-                                fontSize: '12px',
+                                fontSize: '11px',
                                 fontFamily: "'Tajawal', sans-serif",
                                 letterSpacing: '0.2px'
                               }}
@@ -1600,9 +1614,9 @@ export default function ConsultantSessionsPage({ navigate }) {
                               style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '5px',
+                                gap: '4px',
                                 color: typeInfo.color,
-                                fontSize: '11.5px',
+                                fontSize: '10.5px',
                                 fontWeight: '700',
                                 fontFamily: "'Tajawal', sans-serif"
                               }}
@@ -1615,11 +1629,11 @@ export default function ConsultantSessionsPage({ navigate }) {
                           {/* Title */}
                           <h4
                             style={{
-                              margin: '2px 0 1px',
-                              fontSize: '14px',
+                              margin: '1px 0',
+                              fontSize: '12.5px',
                               fontWeight: '800',
                               color: '#0A3254',
-                              lineHeight: 1.35,
+                              lineHeight: 1.3,
                               textAlign: 'right',
                               fontFamily: "'Tajawal', sans-serif",
                               overflow: 'hidden',
@@ -1636,18 +1650,19 @@ export default function ConsultantSessionsPage({ navigate }) {
                             style={{
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '6px',
+                              gap: '5px',
                               color: '#0A3254',
-                              fontSize: '12px',
+                              fontSize: '11.5px',
                               fontWeight: '700',
                               textAlign: 'right',
-                              fontFamily: "'Tajawal', sans-serif"
+                              fontFamily: "'Tajawal', sans-serif",
+                              minWidth: 0
                             }}
                           >
                             <div
                               style={{
-                                width: '20px',
-                                height: '20px',
+                                width: '18px',
+                                height: '18px',
                                 borderRadius: '50%',
                                 backgroundColor: '#F1F5F9',
                                 display: 'flex',
@@ -1656,9 +1671,11 @@ export default function ConsultantSessionsPage({ navigate }) {
                                 flexShrink: 0
                               }}
                             >
-                              <UserAvatarIcon size={12} color="#94A3B8" />
+                              <UserAvatarIcon size={11} color="#94A3B8" />
                             </div>
-                            <span>{session.client_name}</span>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {session.client_name}
+                            </span>
                           </div>
 
                           {/* Date & Time (Right in col.cardAccentColor) & Duration/Price (Left in gray) */}
@@ -1667,18 +1684,19 @@ export default function ConsultantSessionsPage({ navigate }) {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
-                              fontSize: '11px',
+                              fontSize: '10px',
                               fontWeight: '700',
                               marginTop: '2px',
-                              fontFamily: "'Tajawal', sans-serif"
+                              fontFamily: "'Tajawal', sans-serif",
+                              minWidth: 0
                             }}
                           >
                             {/* Right: Date & Time in column accent color */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
                               <div
                                 style={{
-                                  width: '18px',
-                                  height: '18px',
+                                  width: '16px',
+                                  height: '16px',
                                   borderRadius: '50%',
                                   backgroundColor: '#F1F5F9',
                                   display: 'flex',
@@ -1687,16 +1705,17 @@ export default function ConsultantSessionsPage({ navigate }) {
                                   flexShrink: 0
                                 }}
                               >
-                                <CalendarIcon size={10} color="#94A3B8" />
+                                <CalendarIcon size={9} color="#94A3B8" />
                               </div>
                               <div
                                 style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: '6px',
+                                  gap: '4px',
                                   color: col.cardAccentColor,
-                                  fontSize: '11px',
-                                  fontWeight: '700'
+                                  fontSize: '10px',
+                                  fontWeight: '700',
+                                  whiteSpace: 'nowrap'
                                 }}
                               >
                                 <span dir="ltr">{session.date || '20-08-2026'}</span>
@@ -1705,7 +1724,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                             </div>
 
                             {/* Left: Duration & Price */}
-                            <div style={{ color: '#64748B', fontSize: '11px', fontWeight: '700' }}>
+                            <div style={{ color: '#64748B', fontSize: '10px', fontWeight: '700', whiteSpace: 'nowrap' }}>
                               {(session.duration_and_price || '60 دقيقة • 85 دينار')
                                 .replace(/\.00/g, '')
                                 .replace(/د\.أ/g, 'دينار')
@@ -1718,7 +1737,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                             style={{
                               height: '1px',
                               backgroundColor: '#E2E8F0',
-                              margin: '4px 0 2px',
+                              margin: '3px 0 2px',
                               width: '100%'
                             }}
                           />
@@ -1729,11 +1748,12 @@ export default function ConsultantSessionsPage({ navigate }) {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
-                              paddingTop: '2px'
+                              paddingTop: '2px',
+                              minWidth: 0
                             }}
                           >
                             {/* Right in RTL: Action Icons (Eye, Edit, Red Trash) */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                               {/* Eye */}
                               <button
                                 type="button"
@@ -1746,13 +1766,13 @@ export default function ConsultantSessionsPage({ navigate }) {
                                   border: 'none',
                                   background: 'transparent',
                                   cursor: 'pointer',
-                                  padding: '2px',
+                                  padding: '1px',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center'
                                 }}
                               >
-                                <EyeIcon size={15} color="#0A3254" />
+                                <EyeIcon size={14} color="#0A3254" />
                               </button>
 
                               {/* Pencil */}
@@ -1767,13 +1787,13 @@ export default function ConsultantSessionsPage({ navigate }) {
                                   border: 'none',
                                   background: 'transparent',
                                   cursor: 'pointer',
-                                  padding: '2px',
+                                  padding: '1px',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center'
                                 }}
                               >
-                                <EditIcon size={13} color="#0A3254" />
+                                <EditIcon size={12} color="#0A3254" />
                               </button>
 
                               {/* Red Trash */}
@@ -1788,27 +1808,28 @@ export default function ConsultantSessionsPage({ navigate }) {
                                   border: 'none',
                                   background: 'transparent',
                                   cursor: 'pointer',
-                                  padding: '2px',
+                                  padding: '1px',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center'
                                 }}
                               >
-                                <TrashIcon size={13} color="#EF4444" />
+                                <TrashIcon size={12} color="#EF4444" />
                               </button>
                             </div>
 
                             {/* Left in RTL: Status Badge Pill */}
                             <div
                               style={{
-                                fontSize: '10.5px',
+                                fontSize: '9.5px',
                                 fontWeight: '800',
-                                padding: '3px 10px',
-                                borderRadius: '6px',
+                                padding: '2px 7px',
+                                borderRadius: '5px',
                                 backgroundColor: col.statusPillBg,
-                                border: `1.2px solid ${col.statusPillBorder}`,
+                                border: `1px solid ${col.statusPillBorder}`,
                                 color: col.statusPillColor,
-                                fontFamily: "'Tajawal', sans-serif"
+                                fontFamily: "'Tajawal', sans-serif",
+                                whiteSpace: 'nowrap'
                               }}
                             >
                               {col.statusPillText}
@@ -1817,17 +1838,17 @@ export default function ConsultantSessionsPage({ navigate }) {
 
                           {/* Attendance status indicators on card if applicable */}
                           {(session.attendance_status === 'user_no_show' || session.no_show_party === 'user') && (
-                            <div style={{ fontSize: '10.5px', fontWeight: '800', color: '#DC2626', backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', padding: '3px 8px', borderRadius: '6px', marginTop: '4px', textAlign: 'center' }}>
-                              ⚠️ غياب العميل (المشكلة من العميل)
+                            <div style={{ fontSize: '9.5px', fontWeight: '800', color: '#DC2626', backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', padding: '2px 6px', borderRadius: '5px', marginTop: '3px', textAlign: 'center' }}>
+                              ⚠️ غياب العميل
                             </div>
                           )}
                           {(session.attendance_status === 'consultant_no_show' || session.no_show_party === 'consultant') && (
-                            <div style={{ fontSize: '10.5px', fontWeight: '800', color: '#991B1B', backgroundColor: '#FEE2E2', border: '1px solid #F87171', padding: '3px 8px', borderRadius: '6px', marginTop: '4px', textAlign: 'center' }}>
+                            <div style={{ fontSize: '9.5px', fontWeight: '800', color: '#991B1B', backgroundColor: '#FEE2E2', border: '1px solid #F87171', padding: '2px 6px', borderRadius: '5px', marginTop: '3px', textAlign: 'center' }}>
                               ⚠️ غياب المستشار
                             </div>
                           )}
                           {session.attendance_status === 'both_attended' && (
-                            <div style={{ fontSize: '10.5px', fontWeight: '800', color: '#059669', backgroundColor: '#D1FAE5', border: '1px solid #A7F3D0', padding: '3px 8px', borderRadius: '6px', marginTop: '4px', textAlign: 'center' }}>
+                            <div style={{ fontSize: '9.5px', fontWeight: '800', color: '#059669', backgroundColor: '#D1FAE5', border: '1px solid #A7F3D0', padding: '2px 6px', borderRadius: '5px', marginTop: '3px', textAlign: 'center' }}>
                               ✓ حضر الطرفان
                             </div>
                           )}
@@ -1911,14 +1932,14 @@ export default function ConsultantSessionsPage({ navigate }) {
                             s.payment_status === 'مدفوعة'
                               ? '#D1FAE5'
                               : s.payment_status === 'بانتظار الدفع'
-                              ? '#FEF3C7'
-                              : '#FEE2E2',
+                                ? '#FEF3C7'
+                                : '#FEE2E2',
                           color:
                             s.payment_status === 'مدفوعة'
                               ? '#059669'
                               : s.payment_status === 'بانتظار الدفع'
-                              ? '#D97706'
-                              : '#DC2626'
+                                ? '#D97706'
+                                : '#DC2626'
                         }}
                       >
                         {s.payment_status}
@@ -2255,28 +2276,28 @@ export default function ConsultantSessionsPage({ navigate }) {
                       selectedSession.attendance_status === 'both_attended'
                         ? '#D1FAE5'
                         : (selectedSession.attendance_status === 'user_no_show' || selectedSession.no_show_party === 'user')
-                        ? '#FEE2E2'
-                        : selectedSession.room_opened_at
-                        ? '#E0F2FE'
-                        : '#F1F5F9',
+                          ? '#FEE2E2'
+                          : selectedSession.room_opened_at
+                            ? '#E0F2FE'
+                            : '#F1F5F9',
                     color:
                       selectedSession.attendance_status === 'both_attended'
                         ? '#059669'
                         : (selectedSession.attendance_status === 'user_no_show' || selectedSession.no_show_party === 'user')
-                        ? '#DC2626'
-                        : selectedSession.room_opened_at
-                        ? '#0284C7'
-                        : '#64748B'
+                          ? '#DC2626'
+                          : selectedSession.room_opened_at
+                            ? '#0284C7'
+                            : '#64748B'
                   }}>
                     {selectedSession.attendance_status === 'both_attended'
                       ? 'حضر الطرفان ✓'
                       : (selectedSession.attendance_status === 'user_no_show' || selectedSession.no_show_party === 'user')
-                      ? 'غياب العميل (خطأ العميل)'
-                      : (selectedSession.attendance_status === 'consultant_no_show' || selectedSession.no_show_party === 'consultant')
-                      ? 'غياب المستشار'
-                      : selectedSession.room_opened_at
-                      ? 'الغرفة مفتوحة بانتظار العميل'
-                      : 'بانتظار بدء المستشار للجلسة'}
+                        ? 'غياب العميل (خطأ العميل)'
+                        : (selectedSession.attendance_status === 'consultant_no_show' || selectedSession.no_show_party === 'consultant')
+                          ? 'غياب المستشار'
+                          : selectedSession.room_opened_at
+                            ? 'الغرفة مفتوحة بانتظار العميل'
+                            : 'بانتظار بدء المستشار للجلسة'}
                   </span>
                 </div>
 

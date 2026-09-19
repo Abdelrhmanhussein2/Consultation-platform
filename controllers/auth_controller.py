@@ -82,10 +82,28 @@ class AuthController:
                 profile.certificates_licenses = consultant_in.certificates_licenses
             db.commit()
             db.refresh(profile)
+
+        # ── Notify Admins in Database ─────────────────────────────────
+        try:
+            from services.notification_service import NotificationService
+            admins = db.query(User).filter(User.role.in_([UserRole.admin, UserRole.super_admin])).all()
+            for adm in admins:
+                NotificationService.send(
+                    db=db,
+                    user_id=adm.id,
+                    notification_type=NotificationType.general,
+                    title="طلب تسجيل مستشار جديد",
+                    message=f"سجّل المستشار ({db_user.full_name}) طلباً جديداً بالمنصة وهو بانتظار المراجعة والاعتماد.",
+                    related_entity_type="consultant_profile",
+                    related_entity_id=profile.id if profile else None
+                )
+        except Exception as ex:
+            print("Error notifying admins on consultant registration:", ex)
             
         return {
             "message": "تم تسجيل طلب الانضمام كمستشار بنجاح وهو قيد المراجعة حالياً من قبل الإدارة."
         }
+
 
     @staticmethod
     def login(db: Session, login_in: UserLogin, redis_client, device_info: str = None):
@@ -106,22 +124,22 @@ class AuthController:
                 detail="User account is inactive"
             )
             
-        # Consultants must be approved to login
-        if db_user.role == UserRole.consultant:
-            if not db_user.profile or db_user.profile.verification_status != VerificationStatus.approved:
-                status_val = db_user.profile.verification_status if db_user.profile else VerificationStatus.pending
-                if status_val == VerificationStatus.pending:
+        # Consultants and Platform Consultants must be approved to login
+        if db_user.role in (UserRole.consultant, UserRole.platform_consultant):
+            prof_status = db_user.profile.verification_status if db_user.profile else db_user.verification_status
+            if prof_status != VerificationStatus.approved:
+                if prof_status == VerificationStatus.pending:
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail="حساب المستشار الخاص بك قيد المراجعة حالياً من قبل الإدارة."
                     )
-                elif status_val == VerificationStatus.rejected:
-                    reason = db_user.profile.rejection_reason or "أوراق التقديم غير كافية."
+                elif prof_status == VerificationStatus.rejected:
+                    reason = (db_user.profile.rejection_reason if db_user.profile else None) or "أوراق التقديم غير كافية."
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail=f"تم رفض طلب انضمامك كمستشار. السبب: {reason}"
                     )
-        else:
+        elif db_user.role == UserRole.user:
             if db_user.verification_status != VerificationStatus.approved:
                 if db_user.verification_status == VerificationStatus.pending:
                     raise HTTPException(

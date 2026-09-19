@@ -38,6 +38,11 @@ class AdminUsersService:
         profile.reviewed_by = super_admin_id
         profile.reviewed_at = datetime.now(timezone.utc)
         profile.rejection_reason = None  # Clear any previous rejection reason
+
+        user = db.query(User).filter(User.id == user_id).first()
+        if user:
+            user.verification_status = VerificationStatus.approved
+            user.is_active = True
         
         db.commit()
         db.refresh(profile)
@@ -46,6 +51,7 @@ class AdminUsersService:
         NotificationService.send_application_approved(db, user_id)
         
         return profile
+
 
     @staticmethod
     def reject_consultant(
@@ -83,10 +89,14 @@ class AdminUsersService:
         """
         query = db.query(User)
         if role:
-            query = query.filter(User.role == role)
+            if role in (UserRole.consultant, UserRole.platform_consultant) or str(role) in ('consultant', 'platform_consultant'):
+                query = query.filter(User.role.in_([UserRole.consultant, UserRole.platform_consultant]))
+            else:
+                query = query.filter(User.role == role)
         
         offset = (page - 1) * limit
         return query.offset(offset).limit(limit).all()
+
 
     @staticmethod
     def toggle_user_active(db: Session, user_id: uuid.UUID, super_admin_id: uuid.UUID) -> User:
@@ -306,7 +316,11 @@ class AdminUsersService:
             )
 
         if role:
-            query = query.filter(User.role == role)
+            if role in (UserRole.consultant, UserRole.platform_consultant) or str(role) in ('consultant', 'platform_consultant'):
+                query = query.filter(User.role.in_([UserRole.consultant, UserRole.platform_consultant]))
+            else:
+                query = query.filter(User.role == role)
+
 
         if entity_type:
             query = query.filter(User.entity_type == entity_type)

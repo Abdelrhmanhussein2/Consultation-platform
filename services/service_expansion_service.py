@@ -56,25 +56,60 @@ class ServiceExpansionService:
         ).first()
 
         if profile:
-            # ── Role upgrade ─────────────────────────────────────────
+            # ── Role upgrade & Account Activation ─────────────────────
             if new_status == VerificationStatus.approved:
+                profile.verification_status = VerificationStatus.approved
                 user = db.query(User).filter(User.id == profile.user_id).first()
-                if user and user.role == UserRole.consultant:
-                    user.role = UserRole.platform_consultant
+                if user:
+                    user.verification_status = VerificationStatus.approved
+                    user.is_active = True
+                    if user.role == UserRole.consultant:
+                        user.role = UserRole.platform_consultant
+
+
+                if exp_req.requested_specialization_id:
+                    if "تغيير" in (exp_req.service_name or ""):
+                        profile.main_specialization_id = exp_req.requested_specialization_id
+                    
+                    # Add to credentials if not already present
+                    from models.consultant_credential import ConsultantCredential
+                    existing_cred = db.query(ConsultantCredential).filter(
+                        ConsultantCredential.consultant_id == profile.id,
+                        ConsultantCredential.specialization_id == exp_req.requested_specialization_id
+                    ).first()
+                    if not existing_cred:
+                        db.add(ConsultantCredential(
+                            consultant_id=profile.id,
+                            specialization_id=exp_req.requested_specialization_id,
+                            document_url=exp_req.proof_document_url or "https://diwan.jo/docs/credentials",
+                            status=VerificationStatus.approved,
+                            reviewed_by=admin_id,
+                            reviewed_at=datetime.now(timezone.utc)
+                        ))
+                    else:
+                        existing_cred.status = VerificationStatus.approved
+                        existing_cred.reviewed_by = admin_id
+                        existing_cred.reviewed_at = datetime.now(timezone.utc)
 
             # ── Notification ─────────────────────────────────────────
-            db.add(Notification(
-                user_id=profile.user_id,
-                type=NotificationType.service_request_status_update,
-                title="تحديث حالة طلب توسيع الخدمات",
-                message=(
-                    f"تم {'قبول' if new_status == VerificationStatus.approved else 'رفض'} "
-                    f"طلب إضافة الخدمة '{exp_req.service_name}'."
-                    f"{f' السبب: {rejection_reason}' if rejection_reason else ''}"
-                ),
-                related_entity_type="service_expansion_request",
-                related_entity_id=exp_req.id,
-            ))
-            db.commit()
+            try:
+                from services.notification_service import NotificationService
+                notif_msg = (
+                    f"تمت الموافقة على طلب اعتماد التخصص '{exp_req.service_name}' بنجاح وتحديث ملفك المهني."
+                    if new_status == VerificationStatus.approved else
+                    f"تم رفض طلب اعتماد التخصص '{exp_req.service_name}'. السبب: {rejection_reason or 'يرجى مراجعة الوثائق وإعادة التقديم.'}"
+                )
+                NotificationService.send(
+                    db=db,
+                    user_id=profile.user_id,
+                    notification_type=NotificationType.service_request_status_update,
+                    title="تحديث حالة طلب التخصص",
+                    message=notif_msg,
+                    related_entity_type="service_expansion_request",
+                    related_entity_id=exp_req.id,
+                )
+            except Exception as ex:
+                print("Notification dispatch error:", ex)
 
         return exp_req
+

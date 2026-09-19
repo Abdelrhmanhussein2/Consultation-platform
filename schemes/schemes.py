@@ -510,15 +510,18 @@ class ServiceExpansionReviewAction(BaseModel):
 class ServiceExpansionRequestOut(BaseModel):
     id: uuid.UUID
     consultant_id: uuid.UUID
-    requested_specialization_id: Optional[int]
+    requested_specialization_id: Optional[int] = None
     service_name: str
-    service_description: Optional[str]
+    service_description: Optional[str] = None
     proof_document_url: str
     status: VerificationStatus
-    rejection_reason: Optional[str]
-    reviewed_by: Optional[uuid.UUID]
-    reviewed_at: Optional[datetime]
+    rejection_reason: Optional[str] = None
+    reviewed_by: Optional[uuid.UUID] = None
+    reviewed_at: Optional[datetime] = None
     created_at: datetime
+    consultant_name: Optional[str] = None
+    consultant_email: Optional[str] = None
+    specialization_name: Optional[str] = None
 
     class Config:
         from_attributes = True

@@ -225,6 +225,18 @@ export async function reviewCredential(credentialId, { action, rejection_reason 
   });
 }
 
+export async function getPendingExpansions() {
+  return adminRequest('/super-admin/expansions/pending');
+}
+
+export async function reviewExpansionRequest(requestId, { action, rejection_reason = '' }) {
+  return adminRequest(`/super-admin/expansions/${requestId}/action`, {
+    method: 'POST',
+    body: JSON.stringify({ action, rejection_reason })
+  });
+}
+
+
 /* ══════════════════════════════════════════════════════════════════
    FINANCIAL & PAYOUTS
    ══════════════════════════════════════════════════════════════════ */
