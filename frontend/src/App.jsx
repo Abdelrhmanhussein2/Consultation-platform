@@ -339,12 +339,14 @@ function MainApp() {
 }
 
 import { PreferencesProvider } from './context/PreferencesContext';
+import GlobalDialog from './components/ConfirmModal/GlobalDialog';
 
 export default function App() {
   return (
     <AuthProvider>
       <PreferencesProvider>
         <MainApp />
+        <GlobalDialog />
       </PreferencesProvider>
     </AuthProvider>
   );

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { consultantService } from '../services/consultantService';
 import { appointmentService } from '../services/appointmentService';
+import { OFFICIAL_15_SPECIALIZATIONS } from '../utils/specializations';
 import '../components/QuickConsultation/QuickConsultationWizard.css';
 
 // Custom Icons matching system
@@ -66,11 +67,14 @@ export default function QuickConsultationPage({ navigate }) {
     async function loadSpecs() {
       try {
         const data = await consultantService.getSpecializations();
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length > 0) {
           setSpecializations(data);
+        } else {
+          setSpecializations(OFFICIAL_15_SPECIALIZATIONS);
         }
       } catch (err) {
         console.error('Failed to load specializations:', err);
+        setSpecializations(OFFICIAL_15_SPECIALIZATIONS);
       }
     }
     loadSpecs();

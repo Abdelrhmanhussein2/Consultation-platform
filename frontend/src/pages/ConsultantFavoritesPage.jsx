@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Toast, { useToast } from '../components/Toast/Toast';
+import { showDialog } from '../components/ConfirmModal/dialogManager';
 
 export default function ConsultantFavoritesPage({ navigate }) {
   const { token } = useAuth();
@@ -33,7 +34,14 @@ export default function ConsultantFavoritesPage({ navigate }) {
   }, [token]);
 
   const handleDelete = async (item) => {
-    if (!window.confirm('هل أنت متأكد من إزالة هذا العنصر من المفضلة؟')) return;
+    const confirmed = await showDialog({
+      title: 'إزالة من المفضلة',
+      message: 'هل أنت متأكد من رغبتك في إزالة هذا العنصر من المفضلة؟',
+      confirmText: 'إزالة',
+      cancelText: 'إلغاء',
+      variant: 'danger'
+    });
+    if (!confirmed) return;
 
     try {
       const res = await fetch(`/api/favorites/${item.id}`, {

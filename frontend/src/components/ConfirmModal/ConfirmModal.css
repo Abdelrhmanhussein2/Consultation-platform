@@ -146,3 +146,25 @@
   background: #B45309;
   border-color: #B45309;
 }
+
+.diwan-confirm-success {
+  background: #16A36D;
+  border-color: #16A36D;
+  color: #FFFFFF;
+}
+
+.diwan-confirm-success:hover:not(:disabled) {
+  background: #15803D;
+  border-color: #15803D;
+}
+
+.diwan-confirm-info {
+  background: #0284C7;
+  border-color: #0284C7;
+  color: #FFFFFF;
+}
+
+.diwan-confirm-info:hover:not(:disabled) {
+  background: #0369A1;
+  border-color: #0369A1;
+}

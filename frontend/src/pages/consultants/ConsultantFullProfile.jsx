@@ -107,6 +107,7 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
   const [liveReviews, setLiveReviews]   = useState([]);
   const [profileLoading, setProfileLoading] = useState(false);
 
+  const overlayRef = useRef(null);
   const mainScrollRef = useRef(null);
   const sideScrollRef = useRef(null);
 
@@ -404,19 +405,16 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
       const elRect = element.getBoundingClientRect();
       const containerRect = container.getBoundingClientRect();
       const relativeTop = elRect.top - containerRect.top + container.scrollTop;
-      container.scrollTo({ top: Math.max(0, relativeTop - 12), behavior: 'smooth' });
+      container.scrollTo({ top: Math.max(0, relativeTop - 8), behavior: 'smooth' });
 
       setTimeout(() => {
         isScrollingToSectionRef.current = false;
-      }, 700);
+      }, 800);
     }
   };
 
   const handleMainScroll = () => {
     if (isScrollingToSectionRef.current || !mainScrollRef.current) return;
-    const container = mainScrollRef.current;
-    const containerRect = container.getBoundingClientRect();
-
     const sections = [
       { id: 'sec-about', key: 'about' },
       { id: 'sec-experience', key: 'experience' },
@@ -427,12 +425,13 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
       { id: 'sec-faq', key: 'faq' }
     ];
 
+    const container = mainScrollRef.current;
+    const containerTop = container.getBoundingClientRect().top;
     let current = sections[0].key;
     for (const sec of sections) {
       const el = document.getElementById(sec.id);
       if (el) {
-        const elRect = el.getBoundingClientRect();
-        if (elRect.top <= containerRect.top + 100) {
+        if (el.getBoundingClientRect().top <= containerTop + 80) {
           current = sec.key;
         }
       }
@@ -547,7 +546,7 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
       <Toast {...toast} />
       {/* Top Return Bar */}
       <div className="profile-return-bar">
-        <button onClick={onClose}>
+        <button onClick={onClose} type="button">
           {isColleaguesMode ? '← العودة إلى زملاء المنصة' : '← العودة إلى المستشارين'}
         </button>
         <b>

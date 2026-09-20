@@ -37,19 +37,21 @@ export default function ConfirmModal({
         </div>
 
         <div className="diwan-confirm-actions">
-          <button
-            type="button"
-            className="diwan-confirm-btn diwan-confirm-cancel"
-            onClick={onCancel}
-            disabled={isLoading}
-          >
-            {cancelText}
-          </button>
+          {Boolean(cancelText) && (
+            <button
+              type="button"
+              className="diwan-confirm-btn diwan-confirm-cancel"
+              onClick={onCancel}
+              disabled={isLoading}
+            >
+              {cancelText}
+            </button>
+          )}
           
           <button
             type="button"
-            className={`diwan-confirm-btn diwan-confirm-${variant}`}
-            onClick={onConfirm}
+            className={`diwan-confirm-btn diwan-confirm-${variant || 'primary'}`}
+            onClick={onConfirm || onCancel}
             disabled={isLoading}
           >
             {isLoading ? "جاري التنفيذ..." : confirmText}

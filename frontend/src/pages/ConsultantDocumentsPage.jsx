@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Toast, { useToast } from '../components/Toast/Toast';
+import { showDialog } from '../components/ConfirmModal/dialogManager';
 
 export default function ConsultantDocumentsPage() {
   const { token } = useAuth();
@@ -94,7 +95,14 @@ export default function ConsultantDocumentsPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('هل أنت متأكد من حذف هذا المستند نهائياً؟')) return;
+    const confirmed = await showDialog({
+      title: 'حذف المستند',
+      message: 'هل أنت متأكد من رغبتك في حذف هذا المستند نهائياً؟',
+      confirmText: 'حذف نهائي',
+      cancelText: 'إلغاء',
+      variant: 'danger'
+    });
+    if (!confirmed) return;
 
     try {
       const res = await fetch(`/api/user-documents/${id}`, {

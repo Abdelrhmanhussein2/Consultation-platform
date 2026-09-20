@@ -483,7 +483,7 @@
 }
 
 /* ==========================================================================
-   PROFILE OVERLAY (FULL SCREEN VIEW)
+   PROFILE OVERLAY (FULL SCREEN VIEW - FIXED HEADER & DUAL SCROLL COLUMNS)
    ========================================================================== */
 
 .profile-overlay-wrapper {
@@ -499,15 +499,17 @@
 }
 
 .profile-return-bar {
-  height: 54px;
+  height: 52px;
   background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--admin-line);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
   box-shadow: 0 4px 14px rgba(11, 46, 75, 0.05);
-  flex: 0 0 auto;
+  flex: 0 0 52px;
+  z-index: 100;
 }
 
 .profile-return-bar button {
@@ -515,52 +517,65 @@
   background: #FFFFFF;
   color: var(--admin-navy);
   border-radius: 999px;
-  padding: 8px 15px;
+  padding: 8px 18px;
   font-weight: 800;
-  font-size: 11px;
+  font-size: 11.5px;
   cursor: pointer;
   transition: 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .profile-return-bar button:hover {
   background: #EEF3F6;
+  border-color: var(--admin-navy2);
 }
 
 .profile-return-bar b {
   color: var(--admin-navy);
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 13.5px;
+  font-weight: 850;
 }
 
 .profile-viewport-shell {
-  height: calc(100vh - 54px);
   width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
 .profile-shell-grid {
-  width: min(1200px, calc(100% - 36px));
-  height: 100%;
-  margin: auto;
+  width: min(1240px, calc(100% - 32px));
+  margin: 12px auto 0;
+  height: calc(100vh - 52px - 16px);
+  flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 390px;
   grid-template-rows: auto minmax(0, 1fr);
-  gap: 0 28px;
+  gap: 14px 24px;
+  align-items: start;
   overflow: hidden;
+  padding-bottom: 8px;
 }
 
-/* Header Card in profile */
+/* Header Card in profile - Fixed at row 1 */
 .profile-card-header {
   grid-column: 1 / -1;
   grid-row: 1;
   background: #FFFFFF;
   border: 1px solid var(--admin-line);
-  border-radius: 24px;
+  border-radius: 20px;
   box-shadow: var(--admin-shadow);
   overflow: hidden;
-  margin: 18px 5px 8px;
-  z-index: 2;
   direction: rtl;
+  position: relative;
+  z-index: 10;
+  margin-bottom: 0;
+  flex-shrink: 0;
 }
 
 .profile-hero-band {
@@ -677,50 +692,54 @@
   color: #FFFFFF;
 }
 
-/* Scroll Columns */
+/* Scroll Columns - Independent Dual Column Scrolling */
 .profile-main-scroll {
   grid-column: 1;
   grid-row: 2;
+  min-width: 0;
   height: 100%;
-  min-height: 0;
+  max-height: 100%;
   overflow-y: auto;
-  direction: ltr !important;
-  padding-right: 10px !important;
-  padding-left: 5px !important;
-  scrollbar-gutter: stable !important;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
   scrollbar-width: thin;
-}
-
-.profile-main-scroll>* {
-  direction: rtl !important;
+  scrollbar-color: #CBD5E1 transparent;
+  padding-left: 4px;
 }
 
 .profile-side-scroll {
   grid-column: 2;
   grid-row: 2;
+  min-width: 0;
   height: 100%;
-  min-height: 0;
+  max-height: 100%;
   overflow-y: auto;
-  direction: rtl !important;
-  padding-left: 10px !important;
-  padding-right: 5px !important;
-  scrollbar-gutter: stable !important;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
   scrollbar-width: thin;
-}
-
-.profile-side-scroll>* {
-  direction: rtl !important;
+  scrollbar-color: #CBD5E1 transparent;
+  padding-left: 4px;
 }
 
 .profile-main-scroll::-webkit-scrollbar,
 .profile-side-scroll::-webkit-scrollbar {
-  width: 7px;
+  width: 6px;
+}
+
+.profile-main-scroll::-webkit-scrollbar-track,
+.profile-side-scroll::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .profile-main-scroll::-webkit-scrollbar-thumb,
 .profile-side-scroll::-webkit-scrollbar-thumb {
-  background: #AEBFCB;
+  background: #CBD5E1;
   border-radius: 999px;
+}
+
+.profile-main-scroll::-webkit-scrollbar-thumb:hover,
+.profile-side-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
 }
 
 /* Section Cards */
@@ -1833,22 +1852,6 @@
     position: static;
   }
 
-  .profile-shell-grid {
-    display: block;
-    overflow-y: auto;
-  }
-
-  .profile-main-scroll,
-  .profile-side-scroll {
-    height: auto;
-    overflow: visible;
-    padding: 20px 0;
-    direction: rtl !important;
-  }
-
-  .profile-viewport-shell {
-    overflow: auto;
-  }
 }
 
 @media (max-width: 760px) {

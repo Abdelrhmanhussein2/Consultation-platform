@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { appointmentService } from '../../services/appointmentService';
+import { showDialog } from '../ConfirmModal/dialogManager';
 import './VideoSessionModal.css';
 
 export default function VideoSessionModal({ appointmentId, isOpen, onClose, onSessionEnd, onRequestRating }) {
@@ -75,9 +76,14 @@ export default function VideoSessionModal({ appointmentId, isOpen, onClose, onSe
   };
 
   const handleMarkUserNoShow = async () => {
-    if (!window.confirm('هل تؤكد أن العميل لم يحضر الجلسة بعد انتهاء المهلة المقررة؟ سيتم تسجيل عدم الحضور كخطأ من جانب العميل وإنهاء الجلسة.')) {
-      return;
-    }
+    const confirmed = await showDialog({
+      title: 'تأكيد تسجيل عدم الحضور',
+      message: 'هل تؤكد أن العميل لم يحضر الجلسة بعد انتهاء المهلة المقررة؟ سيتم تسجيل عدم الحضور كخطأ من جانب العميل وإنهاء الجلسة.',
+      confirmText: 'تأكيد عدم الحضور',
+      cancelText: 'إلغاء',
+      variant: 'warning'
+    });
+    if (!confirmed) return;
 
     setMarkingNoShow(true);
     try {

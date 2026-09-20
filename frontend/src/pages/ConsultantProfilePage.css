@@ -291,25 +291,10 @@
   color: #FFFFFF;
 }
 
-/* Scrollable content area — takes remaining height and scrolls internally */
+/* Content area — flows naturally with page scroll */
 .consultant-profile-shell .profile-main-scroll {
-  flex: 1;
-  max-height: calc(100vh - 420px);
-  min-height: 380px;
-  overflow-y: auto;
+  width: 100%;
   padding: 10px 4px 40px;
-  scrollbar-width: thin;
-  scrollbar-color: #AEBFCB transparent;
-  scroll-behavior: smooth;
-}
-
-.consultant-profile-shell .profile-main-scroll::-webkit-scrollbar {
-  width: 6px;
-}
-
-.consultant-profile-shell .profile-main-scroll::-webkit-scrollbar-thumb {
-  background: #AEBFCB;
-  border-radius: 999px;
 }
 
 /* Section Card */

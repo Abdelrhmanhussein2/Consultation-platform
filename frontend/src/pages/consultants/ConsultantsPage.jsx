@@ -10,13 +10,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { consultantService } from '../../services/consultantService';
 import { appointmentService } from '../../services/appointmentService';
-import BookingModal  from '../../components/Consultants/BookingModal';
-import PaymentModal  from '../../components/Consultants/PaymentModal';
-import ConsultantListCard    from './ConsultantListCard';
+import BookingModal from '../../components/Consultants/BookingModal';
+import PaymentModal from '../../components/Consultants/PaymentModal';
+import ConsultantListCard from './ConsultantListCard';
 import ConsultantFullProfile from './ConsultantFullProfile';
 import ModernSelect from '../../components/ModernSelect';
 import FilterResetButton from '../../components/FilterResetButton';
 import { applyFilters, applySorting, buildPageNums, CITIES, COMM, CHIPS, PAGE_SIZE } from './consultantFilterUtils';
+import { OFFICIAL_15_SPECIALIZATIONS } from '../../utils/specializations';
 
 /* ── CSS ──────────────────────────────────────────────────────────── */
 const CSS = `
@@ -161,9 +162,82 @@ const CSS = `
   .cp-checks { display: flex; flex-direction: column; gap: 9px; }
   .cp-checks label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--admin-text); cursor: pointer; font-weight: 600; }
   .cp-checks input { accent-color: var(--admin-navy); width: 16px; height: 16px; cursor: pointer; }
-  .cp-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
   .cp-chip { border: 1px solid var(--admin-line); background: var(--admin-surface); color: var(--admin-text); border-radius: 999px; padding: 5px 13px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s; font-family: inherit; }
   .cp-chip.active, .cp-chip:hover { background: var(--admin-orangeSoft); border-color: var(--admin-orange); color: var(--admin-orange2); }
+
+  /* Price Range Slider */
+  .cp-price-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 7px;
+    background: #E2E8F0;
+    border-radius: 999px;
+    outline: none;
+    transition: background 0.2s;
+  }
+  .cp-price-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #0B2E4B;
+    border: 3px solid #FFFFFF;
+    box-shadow: 0 2px 8px rgba(11, 46, 75, 0.4);
+    cursor: pointer;
+    transition: transform 0.15s, background 0.15s;
+  }
+  .cp-price-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    background: #F59A23;
+  }
+  .cp-price-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #0B2E4B;
+    border: 3px solid #FFFFFF;
+    box-shadow: 0 2px 8px rgba(11, 46, 75, 0.4);
+    cursor: pointer;
+  }
+
+  /* Rating Range Slider */
+  .cp-rating-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 7px;
+    background: #E2E8F0;
+    border-radius: 999px;
+    outline: none;
+    transition: background 0.2s;
+  }
+  .cp-rating-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #0B2E4B;
+    border: 3px solid #FFFFFF;
+    box-shadow: 0 2px 8px rgba(11, 46, 75, 0.4);
+    cursor: pointer;
+    transition: transform 0.15s, background 0.15s;
+  }
+  .cp-rating-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    background: #F59A23;
+  }
+  .cp-rating-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #0B2E4B;
+    border: 3px solid #FFFFFF;
+    box-shadow: 0 2px 8px rgba(11, 46, 75, 0.4);
+    cursor: pointer;
+  }
 
   /* Results area */
   .cp-main-area { min-height: 400px; }
@@ -245,7 +319,7 @@ const CSS = `
   .cp-toast { display: flex; align-items: center; gap: 12px; background: var(--admin-navy); color: #fff; padding: 14px 22px; border-radius: 16px; font-size: 13px; font-weight: 700; box-shadow: 0 8px 24px rgba(11, 46, 75, 0.2); animation: slideUp .3s ease; }
   .cp-toast-icon { color: #16A36D; flex-shrink: 0; }
 
-  /* ── Full Profile View (Exact match to Admin Profile aesthetic) ──── */
+  /* ── Full Profile View (Fixed Header & Independent Dual Column Scrolling) ──── */
   .profile-overlay-wrapper {
     position: fixed;
     inset: 0;
@@ -259,15 +333,17 @@ const CSS = `
   }
 
   .profile-return-bar {
-    height: 54px;
+    height: 52px;
     background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(8px);
     border-bottom: 1px solid var(--admin-line);
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 24px;
     box-shadow: 0 4px 14px rgba(11, 46, 75, 0.05);
-    flex: 0 0 auto;
+    flex: 0 0 52px;
+    z-index: 100;
   }
 
   .profile-return-bar button {
@@ -281,10 +357,14 @@ const CSS = `
     cursor: pointer;
     transition: 0.15s ease;
     font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
 
   .profile-return-bar button:hover {
     background: #EEF3F6;
+    border-color: var(--admin-navy2);
   }
 
   .profile-return-bar b {
@@ -294,34 +374,43 @@ const CSS = `
   }
 
   .profile-viewport-shell {
-    height: calc(100vh - 54px);
     width: 100%;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
   }
 
   .profile-shell-grid {
-    width: min(1200px, calc(100% - 36px));
-    height: 100%;
-    margin: auto;
+    width: min(1240px, calc(100% - 32px));
+    margin: 12px auto 0;
+    height: calc(100vh - 52px - 16px);
+    flex: 1;
+    min-height: 0;
     display: grid;
     grid-template-columns: minmax(0, 1fr) 390px;
     grid-template-rows: auto minmax(0, 1fr);
-    gap: 0 28px;
+    gap: 14px 24px;
+    align-items: start;
     overflow: hidden;
+    padding-bottom: 8px;
   }
 
-  /* Header Card in profile */
+  /* Header Card in profile - Fixed at row 1 */
   .profile-card-header {
     grid-column: 1 / -1;
     grid-row: 1;
     background: #FFFFFF;
     border: 1px solid var(--admin-line);
-    border-radius: 24px;
+    border-radius: 20px;
     box-shadow: var(--admin-shadow);
     overflow: hidden;
-    margin: 18px 5px 8px;
-    z-index: 2;
     direction: rtl;
+    position: relative;
+    z-index: 10;
+    margin-bottom: 0;
+    flex-shrink: 0;
   }
 
 
@@ -477,44 +566,38 @@ const CSS = `
     box-shadow: 0 4px 12px rgba(11, 46, 75, 0.18);
   }
 
-  /* Scroll Columns */
+  /* Scroll Columns - Independent Dual Column Scrolling */
   .profile-main-scroll {
     grid-column: 1;
     grid-row: 2;
+    min-width: 0;
     height: 100%;
-    min-height: 0;
+    max-height: 100%;
     overflow-y: auto;
-    direction: ltr !important;
-    padding-right: 10px !important;
-    padding-left: 5px !important;
-    scrollbar-gutter: stable !important;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
     scrollbar-width: thin;
-  }
-
-  .profile-main-scroll > * {
-    direction: rtl !important;
+    scrollbar-color: #CBD5E1 transparent;
+    padding-left: 4px;
   }
 
   .profile-side-scroll {
     grid-column: 2;
     grid-row: 2;
+    min-width: 0;
     height: 100%;
-    min-height: 0;
+    max-height: 100%;
     overflow-y: auto;
-    direction: rtl !important;
-    padding-left: 10px !important;
-    padding-right: 5px !important;
-    scrollbar-gutter: stable !important;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
     scrollbar-width: thin;
-  }
-
-  .profile-side-scroll > * {
-    direction: rtl !important;
+    scrollbar-color: #CBD5E1 transparent;
+    padding-left: 4px;
   }
 
   .profile-main-scroll::-webkit-scrollbar,
   .profile-side-scroll::-webkit-scrollbar {
-    width: 7px;
+    width: 6px;
   }
 
   .profile-main-scroll::-webkit-scrollbar-track,
@@ -524,7 +607,7 @@ const CSS = `
 
   .profile-main-scroll::-webkit-scrollbar-thumb,
   .profile-side-scroll::-webkit-scrollbar-thumb {
-    background: #AEBFCB;
+    background: #CBD5E1;
     border-radius: 999px;
   }
 
@@ -536,40 +619,40 @@ const CSS = `
   .profile-section-card {
     background: #FFFFFF;
     border: 1px solid var(--admin-line);
-    border-radius: 24px;
-    margin-bottom: 20px;
-    padding: 24px 27px;
-    box-shadow: 0 8px 20px rgba(11, 46, 75, 0.04);
-    scroll-margin-top: 16px;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 20px;
+    margin-bottom: 16px;
+    padding: 22px 24px;
+    box-shadow: 0 4px 16px rgba(11, 46, 75, 0.04);
+    scroll-margin-top: 10px;
+    transition: all 0.2s ease;
   }
 
   .profile-section-card h2 {
-    margin: 0 0 16px;
+    margin: 0 0 14px;
     color: var(--admin-navy);
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 850;
     border-bottom: none;
     padding-bottom: 0;
   }
 
-  @media (max-width: 1024px) {
+  @media (max-width: 768px) {
     .profile-viewport-shell {
       overflow-y: auto !important;
-      height: calc(100vh - 54px);
     }
     .profile-shell-grid {
       display: flex;
       flex-direction: column;
       height: auto;
       overflow: visible;
+      gap: 16px;
     }
     .profile-main-scroll,
     .profile-side-scroll {
-      overflow: visible;
       height: auto;
-      direction: rtl !important;
-      padding: 0 !important;
+      overflow: visible;
+      width: 100%;
+      padding-left: 0;
     }
   }
 
@@ -702,29 +785,29 @@ export default function ConsultantsPage({ navigate }) {
   const { token, user } = useAuth();
 
   // Data
-  const [all, setAll]       = useState([]);
-  const [specs, setSpecs]   = useState([]);
+  const [all, setAll] = useState([]);
+  const [specs, setSpecs] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // UI state
-  const [selected, setSelected]         = useState(null);
-  const [viewProfile, setViewProfile]   = useState(null);
+  const [selected, setSelected] = useState(null);
+  const [viewProfile, setViewProfile] = useState(null);
   const [scrollToBooking, setScrollToBooking] = useState(false);
-  const [toast, setToast]               = useState('');
-  const [paymentData, setPaymentData]   = useState(null);
-  const [errorModal, setErrorModal]     = useState('');
-  const [view, setView]                 = useState('grid');
-  const [sort, setSort]                 = useState('best');
-  const [page, setPage]                 = useState(1);
+  const [toast, setToast] = useState('');
+  const [paymentData, setPaymentData] = useState(null);
+  const [errorModal, setErrorModal] = useState('');
+  const [view, setView] = useState('grid');
+  const [sort, setSort] = useState('best');
+  const [page, setPage] = useState(1);
 
   // Filter state
-  const [search, setSearch]   = useState('');
-  const [cityF, setCityF]     = useState('');
-  const [availF, setAvailF]   = useState(false);
+  const [search, setSearch] = useState('');
+  const [cityF, setCityF] = useState('');
+  const [availF, setAvailF] = useState(false);
   const [selSpecs, setSelSpecs] = useState([]);
   const [selComms, setSelComms] = useState([]);
-  const [chip, setChip]       = useState(null);   // price chip index
-  const [minRat, setMinRat]   = useState('');
+  const [priceRange, setPriceRange] = useState(200); // Slider max price (200 = All)
+  const [minRat, setMinRat] = useState('4.0'); // Default rating is 4.0 as requested
 
   // ── Helpers ────────────────────────────────────────────────────────
   const isConsultantMe = useCallback(c => {
@@ -737,84 +820,112 @@ export default function ConsultantsPage({ navigate }) {
   const showToast = msg => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
   // ── Fetch from backend ─────────────────────────────────────────────
-  // Backend handles: min_rating + price chip (min_price/max_price)
+  // Backend handles: min_rating
   // All other filters are applied client-side
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const f = {};
-      if (minRat) f.min_rating = parseFloat(minRat);
-      if (chip !== null) {
-        const c = CHIPS[chip];
-        if (c.max) f.max_price = c.max;
-        if (c.min) f.min_price = c.min;
-      }
+      if (minRat && parseFloat(minRat) > 0) f.min_rating = parseFloat(minRat);
       const [cd, sd] = await Promise.all([
         consultantService.getConsultants(f, token),
         consultantService.getSpecializations()
       ]);
-      // Backend يستثني المستشار الحالي تلقائياً من النتائج
       setAll(Array.isArray(cd) ? cd : []);
-
-      setSpecs(Array.isArray(sd) ? sd : []);
+      setSpecs(Array.isArray(sd) && sd.length > 0 ? sd : OFFICIAL_15_SPECIALIZATIONS);
     } catch (e) {
       console.error('fetchData error:', e);
       setAll([]);
     } finally {
       setLoading(false);
     }
-  }, [minRat, chip, token]);
+  }, [minRat, token]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // All 15 official specializations
+  const displaySpecs = specs && specs.length >= 10 ? specs : OFFICIAL_15_SPECIALIZATIONS;
+
   // ── Client-side filter + sort ──────────────────────────────────────
-  const filtered = applyFilters(all, { search, selSpecs, selComms, cityF, availF });
-  const sorted   = applySorting(filtered, sort);
+  const filtered = applyFilters(all, { search, selSpecs, selComms, cityF, availF, maxPrice: priceRange, minRat });
+  const sorted = applySorting(filtered, sort);
   const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
-  const paged    = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paged = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const pageNums = buildPageNums(totalPages, page);
 
   // ── Filter actions ─────────────────────────────────────────────────
-  const reset = () => { setSelSpecs([]); setSelComms([]); setChip(null); setMinRat(''); setCityF(''); setAvailF(false); setSearch(''); setPage(1); };
+  const reset = () => { setSelSpecs([]); setSelComms([]); setPriceRange(200); setMinRat('4.0'); setCityF(''); setAvailF(false); setSearch(''); setPage(1); };
   const toggleSpec = id => { const s = String(id); setSelSpecs(p => p.includes(s) ? p.filter(x => x !== s) : [...p, s]); setPage(1); };
-  const toggleComm = v  => { setSelComms(p => p.includes(v) ? p.filter(x => x !== v) : [...p, v]); setPage(1); };
+  const toggleComm = v => { setSelComms(p => p.includes(v) ? p.filter(x => x !== v) : [...p, v]); setPage(1); };
 
   // ── Navigation ─────────────────────────────────────────────────────
+  const isColleaguesMode = typeof window !== 'undefined' && window.location.pathname.includes('colleagues');
+
   const handleBookNowFromCatalog = c => {
     const id = c?.profile_id || c?.id;
-    if (id) window.history.pushState({ consultantId: id }, '', `/consultants/${id}`);
-    setViewProfile(c); setScrollToBooking(true);
-  };
-  const handleViewProfileFromCatalog = c => {
-    const id = c?.profile_id || c?.id;
-    if (id) window.history.pushState({ consultantId: id }, '', `/consultants/${id}`);
-    setViewProfile(c); setScrollToBooking(false);
+    const path = isColleaguesMode ? `/consultant/colleagues/${id}` : `/consultants/${id}`;
+    if (typeof navigate === 'function') {
+      navigate(path);
+    } else if (id) {
+      window.history.pushState({ consultantId: id }, '', path);
+    }
+    setViewProfile(c);
+    setScrollToBooking(true);
   };
 
-  // ── On hard refresh / direct URL load: restore viewProfile from URL ─
+  const handleViewProfileFromCatalog = c => {
+    const id = c?.profile_id || c?.id;
+    const path = isColleaguesMode ? `/consultant/colleagues/${id}` : `/consultants/${id}`;
+    if (typeof navigate === 'function') {
+      navigate(path);
+    } else if (id) {
+      window.history.pushState({ consultantId: id }, '', path);
+    }
+    setViewProfile(c);
+    setScrollToBooking(false);
+  };
+
+  const handleCloseProfile = useCallback(() => {
+    const backPath = isColleaguesMode ? '/consultant/colleagues' : '/consultants';
+    setViewProfile(null);
+    setScrollToBooking(false);
+    if (typeof navigate === 'function') {
+      navigate(backPath);
+    } else {
+      window.history.pushState({}, '', backPath);
+    }
+  }, [isColleaguesMode, navigate]);
+
+  // ── On hard refresh / direct URL load & popstate: restore viewProfile from URL ─
   useEffect(() => {
-    const match = window.location.pathname.match(/^\/consultants\/([^/]+)$/);
-    if (!match) return;
-    const urlId = match[1];
-    // If already showing a profile with this id, skip
-    if (viewProfile && (viewProfile.profile_id === urlId || viewProfile.id === urlId)) return;
-    // Fetch the consultant data and set as viewProfile
-    const loadFromUrl = async () => {
+    const syncFromUrl = async () => {
+      const match = window.location.pathname.match(/^\/(?:consultants|consultant\/colleagues)\/([^/]+)$/);
+      if (!match) {
+        if (viewProfile) {
+          setViewProfile(null);
+          setScrollToBooking(false);
+        }
+        return;
+      }
+      const urlId = match[1];
+      if (viewProfile && (viewProfile.profile_id === urlId || viewProfile.id === urlId)) return;
       try {
         const data = await consultantService.getConsultantProfile(urlId, token).catch(() => null);
         if (data) {
           setViewProfile(data);
         } else {
-          // Fallback: use a minimal object so ConsultantFullProfile can still load
           setViewProfile({ profile_id: urlId, id: urlId });
         }
       } catch {
         setViewProfile({ profile_id: urlId, id: urlId });
       }
     };
-    loadFromUrl();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    syncFromUrl();
+    window.addEventListener('popstate', syncFromUrl);
+    return () => window.removeEventListener('popstate', syncFromUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
 
   // ── Booking ────────────────────────────────────────────────────────
@@ -827,11 +938,11 @@ export default function ConsultantsPage({ navigate }) {
       const consultantId = isUuid(pData?.consultant_id) ? pData.consultant_id : 'c2264e0d-7229-481a-9718-8657077c42fe';
 
       await appointmentService.bookAppointment({
-        consultant_id:    consultantId,
-        service_id:       isUuid(pData?.service_id) ? pData.service_id : null,
-        scheduled_at:     pData?.scheduled_at || new Date().toISOString(),
+        consultant_id: consultantId,
+        service_id: isUuid(pData?.service_id) ? pData.service_id : null,
+        scheduled_at: pData?.scheduled_at || new Date().toISOString(),
         duration_minutes: pData?.duration_minutes || 60,
-        notes:            pData?.serviceName || 'طلب حجز استشارة'
+        notes: pData?.serviceName || 'طلب حجز استشارة'
       }, activeToken);
 
       setToast('');
@@ -844,8 +955,6 @@ export default function ConsultantsPage({ navigate }) {
   };
 
   // ── Full Profile View ──────────────────────────────────────────────
-  const isColleaguesMode = typeof window !== 'undefined' && window.location.pathname.includes('colleagues');
-
   if (viewProfile) {
     return (
       <>
@@ -853,12 +962,7 @@ export default function ConsultantsPage({ navigate }) {
         <ConsultantFullProfile
           consultant={viewProfile}
           isColleagues={isColleaguesMode}
-          onClose={() => {
-            const backPath = isColleaguesMode ? '/consultant/colleagues' : '/consultants';
-            window.history.replaceState({}, '', backPath);
-            setViewProfile(null);
-            setScrollToBooking(false);
-          }}
+          onClose={handleCloseProfile}
           onBook={c => setSelected(c)}
           onBookRequest={handleBookRequest}
           scrollToBookingOnMount={scrollToBooking}
@@ -870,14 +974,14 @@ export default function ConsultantsPage({ navigate }) {
           price={paymentData?.price || 42.50} consultantName={paymentData?.consultantName || 'مستشار'} serviceName={paymentData?.serviceName || 'استشارة'} isMock={true} />
         {toast && <div className="cp-toast-backdrop"><div className="cp-toast"><div className="cp-toast-icon">✓</div><div>{toast}</div></div></div>}
         {errorModal && (
-          <div onClick={() => setErrorModal('')} style={{ position:'fixed',inset:0,zIndex:100002,background:'rgba(13,60,92,0.5)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center' }}>
-            <div onClick={e => e.stopPropagation()} style={{ background:'#fff',borderRadius:'18px',padding:'36px 32px',maxWidth:'400px',width:'90%',textAlign:'center',direction:'rtl' }}>
-              <div style={{ width:'64px',height:'64px',borderRadius:'50%',background:'#FEE2E2',border:'3px solid #FECACA',margin:'0 auto 18px',display:'flex',alignItems:'center',justifyContent:'center' }}>
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <div onClick={() => setErrorModal('')} style={{ position: 'fixed', inset: 0, zIndex: 100002, background: 'rgba(13,60,92,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '18px', padding: '36px 32px', maxWidth: '400px', width: '90%', textAlign: 'center', direction: 'rtl' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#FEE2E2', border: '3px solid #FECACA', margin: '0 auto 18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </div>
-              <h3 style={{ fontSize:'18px',fontWeight:'800',color:'#0D3C5C',margin:'0 0 10px' }}>فشل الحجز</h3>
-              <p style={{ fontSize:'14px',color:'#64748B',margin:'0 0 24px',lineHeight:1.7 }}>{errorModal}</p>
-              <button onClick={() => setErrorModal('')} style={{ width:'100%',padding:'12px 0',borderRadius:'10px',border:'none',background:'#EF4444',color:'#fff',fontWeight:'700',fontSize:'14px',cursor:'pointer' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0D3C5C', margin: '0 0 10px' }}>فشل الحجز</h3>
+              <p style={{ fontSize: '14px', color: '#64748B', margin: '0 0 24px', lineHeight: 1.7 }}>{errorModal}</p>
+              <button onClick={() => setErrorModal('')} style={{ width: '100%', padding: '12px 0', borderRadius: '10px', border: 'none', background: '#EF4444', color: '#fff', fontWeight: '700', fontSize: '14px', cursor: 'pointer' }}>
                 حسناً، سأختار وقتاً آخر
               </button>
             </div>
@@ -900,7 +1004,7 @@ export default function ConsultantsPage({ navigate }) {
               {isColleaguesMode ? (
                 <>زملاء المنصة — <em>شبكة الخبراء والمستشارين</em></>
               ) : (
-                <>اعثر على <em>المستشار المناسب</em><br/>بسهولة وسرعة.</>
+                <>اعثر على <em>المستشار المناسب</em><br />بسهولة وسرعة.</>
               )}
             </h1>
           </div>
@@ -914,7 +1018,7 @@ export default function ConsultantsPage({ navigate }) {
         {/* Search bar */}
         <div className="cp-searchbar">
           <div className="cp-search-input">
-            <span style={{ color:'#94A3B8',fontSize:'18px' }}>⌕</span>
+            <span style={{ color: '#94A3B8', fontSize: '18px' }}>⌕</span>
             <input
               placeholder="ابحث باسم المستشار أو المجال الضريبي..."
               value={search}
@@ -959,12 +1063,15 @@ export default function ConsultantsPage({ navigate }) {
 
             {/* Specialization */}
             <div className="cp-filter-group">
-              <div className="cp-filter-label">المجال</div>
-              <div className="cp-checks">
-                {specs.slice(0, 8).map(s => (
-                  <label key={s.id}>
-                    <input type="checkbox" checked={selSpecs.includes(String(s.id))} onChange={() => toggleSpec(s.id)} />
-                    {s.name}
+              <div className="cp-filter-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>المجال الضريبي</span>
+                {selSpecs.length > 0 && <span style={{ fontSize: '11px', color: 'var(--admin-orange)', fontWeight: '800' }}>{selSpecs.length} محدد</span>}
+              </div>
+              <div className="cp-checks" style={{ maxHeight: '240px', overflowY: 'auto', paddingLeft: '4px' }}>
+                {displaySpecs.map(s => (
+                  <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12.5px', padding: '3px 0' }}>
+                    <input type="checkbox" checked={selSpecs.includes(String(s.id)) || selSpecs.includes(s.name)} onChange={() => toggleSpec(s.id)} />
+                    <span>{s.name}</span>
                   </label>
                 ))}
               </div>
@@ -996,29 +1103,83 @@ export default function ConsultantsPage({ navigate }) {
               </div>
             </div>
 
-            {/* Price chip */}
+            {/* Price Range Slider */}
             <div className="cp-filter-group">
-              <div className="cp-filter-label">السعر / الجلسة</div>
-              <div className="cp-chip-row">
-                {CHIPS.map((c, i) => (
-                  <button key={i} className={`cp-chip${chip === i ? ' active' : ''}`}
-                    onClick={() => { setChip(chip === i ? null : i); setPage(1); }}>
-                    {c.label}
-                  </button>
-                ))}
+              <div className="cp-filter-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span>السعر / الجلسة</span>
+                <span style={{
+                  fontSize: '12px',
+                  fontWeight: '800',
+                  color: priceRange >= 200 ? 'var(--admin-muted)' : 'var(--admin-navy)',
+                  background: '#F1F5F9',
+                  padding: '3px 10px',
+                  borderRadius: '999px',
+                  border: '1px solid #E2E8F0'
+                }}>
+                  {priceRange >= 200 ? 'جميع الأسعار' : `حتى ${priceRange} د.أ`}
+                </span>
+              </div>
+              <div style={{ padding: '6px 2px 2px' }}>
+                <input
+                  type="range"
+                  min="20"
+                  max="200"
+                  step="5"
+                  value={priceRange}
+                  onChange={e => { setPriceRange(Number(e.target.value)); setPage(1); }}
+                  className="cp-price-slider"
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748B', marginTop: '7px', fontWeight: '700', padding: '0 2px' }}>
+                  <span>20 د.أ</span>
+                  <span>50 د.أ</span>
+                  <span>70 د.أ</span>
+                  <span>100 د.أ</span>
+                  <span>200+ د.أ</span>
+                </div>
               </div>
             </div>
 
-            {/* Rating */}
+            {/* Rating Slider */}
             <div className="cp-filter-group">
-              <div className="cp-filter-label">التقييم</div>
-              <div className="cp-checks">
-                {[{v:'4.7',l:'4.7 فأعلى'},{v:'4.5',l:'4.5 فأعلى'},{v:'4.0',l:'4.0 فأعلى'}].map(r => (
-                  <label key={r.v}>
-                    <input type="radio" name="cpRating" checked={minRat === r.v} onChange={() => { setMinRat(minRat === r.v ? '' : r.v); setPage(1); }} />
-                    {r.l}
-                  </label>
-                ))}
+              <div className="cp-filter-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span>التقييم</span>
+                <span style={{
+                  fontSize: '12px',
+                  fontWeight: '800',
+                  color: Number(minRat) <= 0 || !minRat ? 'var(--admin-muted)' : 'var(--admin-navy)',
+                  background: '#F1F5F9',
+                  padding: '3px 10px',
+                  borderRadius: '999px',
+                  border: '1px solid #E2E8F0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}>
+                  <span>⭐</span>
+                  <span>{Number(minRat) <= 0 || !minRat ? 'جميع التقييمات' : `${Number(minRat).toFixed(1)} فأعلى`}</span>
+                </span>
+              </div>
+              <div style={{ padding: '6px 2px 2px' }}>
+                <input
+                  type="range"
+                  min="0"
+                  max="5.0"
+                  step="0.1"
+                  value={minRat ? Number(minRat) : 0}
+                  onChange={e => {
+                    const val = Number(e.target.value);
+                    setMinRat(val === 0 ? '' : val.toFixed(1));
+                    setPage(1);
+                  }}
+                  className="cp-rating-slider"
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748B', marginTop: '6px', fontWeight: '700' }}>
+                  <span>الكل</span>
+                  <span>3.5 ⭐</span>
+                  <span>4.0 ⭐</span>
+                  <span>4.5 ⭐</span>
+                  <span>5.0 ⭐</span>
+                </div>
               </div>
             </div>
 
@@ -1062,13 +1223,13 @@ export default function ConsultantsPage({ navigate }) {
             </div>
 
             {loading ? (
-              <div className="cp-loading"><div className="cp-spinner"/><p>جاري تحميل دليل المستشارين...</p></div>
+              <div className="cp-loading"><div className="cp-spinner" /><p>جاري تحميل دليل المستشارين...</p></div>
             ) : paged.length === 0 ? (
               <div className="cp-empty">
                 <div className="cp-empty-icon">🔍</div>
                 <h3>لا يوجد مستشارون مطابقون</h3>
                 <p>جرّب تغيير معايير البحث أو إزالة بعض الفلاتر.</p>
-                <button style={{ marginTop:'16px',background:'#F59A23',color:'#fff',border:'none',borderRadius:'999px',padding:'10px 24px',fontWeight:'700',cursor:'pointer',fontFamily:'inherit' }} onClick={reset}>
+                <button style={{ marginTop: '16px', background: '#F59A23', color: '#fff', border: 'none', borderRadius: '999px', padding: '10px 24px', fontWeight: '700', cursor: 'pointer', fontFamily: 'inherit' }} onClick={reset}>
                   مسح جميع الفلاتر
                 </button>
               </div>
@@ -1094,7 +1255,7 @@ export default function ConsultantsPage({ navigate }) {
                 {page > 1 && <button onClick={() => setPage(p => p - 1)}>‹</button>}
                 {pageNums.map((p, i) =>
                   p === '…'
-                    ? <span key={`d${i}`} style={{ padding:'0 4px',color:'#667A8A' }}>…</span>
+                    ? <span key={`d${i}`} style={{ padding: '0 4px', color: '#667A8A' }}>…</span>
                     : <button key={p} className={page === p ? 'active' : ''} onClick={() => setPage(p)}>{p}</button>
                 )}
                 {page < totalPages && <button onClick={() => setPage(p => p + 1)}>›</button>}
@@ -1115,7 +1276,7 @@ export default function ConsultantsPage({ navigate }) {
             <div className="cp-toast">
               <div className="cp-toast-icon">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12"/>
+                  <polyline points="20 6 9 17 4 12" />
                 </svg>
               </div>
               <div>{toast}</div>
