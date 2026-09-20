@@ -1012,6 +1012,14 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
       activeAvailForDay = selectedConsultantObj.availabilities.filter(a => a.day_of_week === pythonDow && a.is_active !== false);
     }
 
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const isPastDate = newDate < todayStr;
+    const isToday = newDate === todayStr;
+    const currentDecHour = now.getHours() + now.getMinutes() / 60;
+
+    if (isPastDate) return [];
+
     if (activeAvailForDay && activeAvailForDay.length > 0) {
       activeAvailForDay.forEach(av => {
         const sTime = av.start_time ? String(av.start_time).slice(0, 5) : '09:00';
@@ -1021,15 +1029,17 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
         let cur = startH + startM / 60;
         const endVal = endH + endM / 60;
         while (cur + durHours <= endVal) {
-          const busy = events.some(o => o.advisor === activeBookingAdvisor && o.date === newDate && !(cur + durHours <= o.start || cur >= o.start + o.dur));
-          slots.push({ t: cur, busy });
+          const isTimePassed = isToday && cur <= (currentDecHour + 0.1);
+          const busy = isTimePassed || events.some(o => o.advisor === activeBookingAdvisor && o.date === newDate && !(cur + durHours <= o.start || cur >= o.start + o.dur));
+          slots.push({ t: cur, busy, isPast: isTimePassed });
           cur += 0.5;
         }
       });
     } else {
       for (let t = 9; t <= 17 - durHours; t += 0.5) {
-        const busy = events.some(o => o.advisor === activeBookingAdvisor && o.date === newDate && !(t + durHours <= o.start || t >= o.start + o.dur));
-        slots.push({ t, busy });
+        const isTimePassed = isToday && t <= (currentDecHour + 0.1);
+        const busy = isTimePassed || events.some(o => o.advisor === activeBookingAdvisor && o.date === newDate && !(t + durHours <= o.start || t >= o.start + o.dur));
+        slots.push({ t, busy, isPast: isTimePassed });
       }
     }
     return slots;

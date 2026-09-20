@@ -139,10 +139,13 @@ class ConsultantService:
                                 break
                                 
                         if not has_overlap:
-                            available_slots.append({
-                                "start_time": start_slot_dt,
-                                "end_time": slot_end
-                            })
+                            # Filter out past slots (allow 10 min buffer)
+                            now_utc = datetime.now(timezone.utc)
+                            if start_slot_dt > (now_utc + timedelta(minutes=10)):
+                                available_slots.append({
+                                    "start_time": start_slot_dt,
+                                    "end_time": slot_end
+                                })
                             
                         new_start_dt = start_slot_dt + timedelta(minutes=duration_minutes)
                         if new_start_dt.date() > current_date:
@@ -159,10 +162,12 @@ class ConsultantService:
                             break
                             
                     if not has_overlap:
-                        available_slots.append({
-                            "start_time": start_slot_dt,
-                            "end_time": slot_end
-                        })
+                        now_utc = datetime.now(timezone.utc)
+                        if start_slot_dt > (now_utc + timedelta(minutes=10)):
+                            available_slots.append({
+                                "start_time": start_slot_dt,
+                                "end_time": slot_end
+                            })
                     
             current_date += timedelta(days=1)
             

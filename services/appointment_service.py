@@ -80,10 +80,15 @@ class AppointmentService:
             hourly_rate = consultant.price_per_hour or Decimal("50.00")
             price = (Decimal(duration) / Decimal("60.00")) * hourly_rate
 
-        # Verify the selected scheduled_at is within consultant's availability if they have any defined
+        # Verify the selected scheduled_at is in the future (not in the past)
+        now_utc = datetime.now(timezone.utc)
         appt_start_dt = appt_in.scheduled_at
         if appt_start_dt.tzinfo is None:
             appt_start_dt = appt_start_dt.replace(tzinfo=timezone.utc)
+        
+        if appt_start_dt < (now_utc - timedelta(minutes=5)):
+            raise ValueError("لا يمكن حجز موعد في الماضي. يرجى اختيار موعد وتوقيت قادم.")
+
         appt_duration = timedelta(minutes=duration)
         appt_end_dt = appt_start_dt + appt_duration
 

@@ -738,7 +738,7 @@ const CSS = `
   .booking-slots-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 14px; }
   .booking-slot-btn { border: 1px solid var(--admin-line); background: var(--admin-surface); border-radius: 10px; padding: 8px 4px; font-family: inherit; font-size: 12px; font-weight: 700; color: var(--admin-navy); cursor: pointer; transition: all .15s; }
   .booking-slot-btn.active { background: var(--admin-navy); border-color: var(--admin-navy); color: #fff; }
-  .booking-slot-btn:hover:not(.active) { background: var(--admin-orangeSoft); border-color: var(--admin-orange); }
+  .booking-slot-btn.disabled, .booking-slot-btn:disabled { background: #F1F5F9 !important; border-color: #E2E8F0 !important; color: #94A3B8 !important; cursor: not-allowed !important; text-decoration: line-through; opacity: 0.65; pointer-events: none; }
 
   /* Quick overview */
   .quick-overview-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--admin-surface); font-size: 13px; }

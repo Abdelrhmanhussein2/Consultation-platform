@@ -16,6 +16,9 @@ function getDaysForWeek(offset, dbAvailabilities = null, dbWorkingDays = null) {
   const dayNames   = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
   const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
+  const now = new Date();
+  const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
   const baseDate = new Date();
   baseDate.setDate(baseDate.getDate() + offset * 7);
 
@@ -29,11 +32,17 @@ function getDaysForWeek(offset, dbAvailabilities = null, dbWorkingDays = null) {
     const dayName     = dayNames[d.getDay()];
     const monthName   = monthNames[d.getMonth()];
     const pythonDow   = (d.getDay() + 6) % 7;   // 0=Monday … 6=Sunday
+    const isoDate     = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const isToday     = isoDate === todayIso;
+    const isPast      = isoDate < todayIso;
 
     let isAvailable   = false;
     let timeRangeText = 'غير متاح (عطلة)';
 
-    if (hasAvailabilitiesData) {
+    if (isPast) {
+      isAvailable   = false;
+      timeRangeText = 'تاريخ سابق (غير متاح)';
+    } else if (hasAvailabilitiesData) {
       const activeSlotsForDay = dbAvailabilities.filter(
         a => a && a.day_of_week === pythonDow && a.is_active !== false
       );
@@ -77,7 +86,9 @@ function getDaysForWeek(offset, dbAvailabilities = null, dbWorkingDays = null) {
     daysList.push({
       num: dayNum, label: dayName, month: monthName,
       fullDate: `${dayName}، ${d.getDate()} ${monthName}`,
-      isoDate: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`,
+      isoDate,
+      isToday,
+      isPast,
       avail: isAvailable, timeRange: timeRangeText
     });
   }
@@ -373,15 +384,56 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
   const rawTimeslots  = computedSlots !== null ? computedSlots
     : (Array.isArray(activeProfile?.availabilities) && activeProfile.availabilities.length === 0
       ? [] : ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30']);
-  const timeslots = freeTimeStrings !== null ? rawTimeslots.filter(t => freeTimeStrings.has(t)) : rawTimeslots;
+
+  // 🕒 Calculate all slots with individual disabled / inactive states
+  const now = new Date();
+  const todayIso = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const isDateToday = currentDayObj.isoDate === todayIso;
+  const isDatePast = currentDayObj.isoDate < todayIso;
+
+  const slotItems = rawTimeslots.map(slotTimeStr => {
+    let isPast = false;
+    if (isDatePast) {
+      isPast = true;
+    } else if (isDateToday) {
+      const [sH, sM] = slotTimeStr.split(':').map(Number);
+      const slotDate = new Date(`${currentDayObj.isoDate}T${String(sH).padStart(2, '0')}:${String(sM).padStart(2, '0')}:00`);
+      // Require at least 10 minutes buffer ahead of current time
+      isPast = slotDate.getTime() <= (Date.now() + 10 * 60 * 1000);
+    }
+    const isBooked = freeTimeStrings !== null ? !freeTimeStrings.has(slotTimeStr) : false;
+    const isDisabled = isPast || isBooked;
+    return {
+      time: slotTimeStr,
+      isPast,
+      isBooked,
+      isDisabled
+    };
+  });
+
+  const availableSlotItems = slotItems.filter(s => !s.isDisabled);
 
   const handleProceedToBookingRequest = () => {
     try {
-      const timeToUse   = selectedTime || (timeslots.length > 0 ? timeslots[0] : '10:00');
-      const dayObj      = currentDayObj || { fullDate: 'اليوم', isoDate: new Date().toISOString().split('T')[0] };
-      const serviceTitle = `${selectedService?.name || 'جلسة فيديو'} - ${dayObj.fullDate} الساعة ${timeToUse}`;
-      const [hh, mm]    = timeToUse.split(':').map(Number);
-      const localDt     = new Date(`${dayObj.isoDate}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:00`);
+      if (availableSlotItems.length === 0) {
+        showToast('لا توجد مواعيد متاحة في هذا اليوم، يرجى اختيار موعد ليوم قادم.', 'error');
+        return;
+      }
+      const activeChosenTime = selectedTime && availableSlotItems.some(s => s.time === selectedTime)
+        ? selectedTime
+        : availableSlotItems[0].time;
+
+      const dayObj   = currentDayObj || { fullDate: 'اليوم', isoDate: new Date().toISOString().split('T')[0] };
+      const [hh, mm] = activeChosenTime.split(':').map(Number);
+      const localDt  = new Date(`${dayObj.isoDate}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:00`);
+      
+      // Ensure the slot is not in the past
+      if (localDt.getTime() <= Date.now() + 5 * 60 * 1000) {
+        showToast('هذا الموعد قد مضى بالفعل، يرجى اختيار موعد قادم.', 'error');
+        return;
+      }
+
+      const serviceTitle = `${selectedService?.name || 'جلسة فيديو'} - ${dayObj.fullDate} الساعة ${activeChosenTime}`;
       if (typeof onBookRequest === 'function') {
         onBookRequest({
           consultantName: name, serviceName: serviceTitle,
@@ -901,20 +953,40 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
                   </small>
                 </div>
 
-                {!currentDayObj.avail ? (
-                  <div style={{ border:'1px dashed #CBD5E1',background:'#F8FAFC',borderRadius:'16px',padding:'24px 16px',textAlign:'center',color:'#64748B',fontSize:'14px',fontWeight:'700',marginTop:'14px' }}>
-                    لا توجد مواعيد متاحة في هذا اليوم.
+                {currentDayObj.isPast ? (
+                  <div style={{ border:'1px dashed #CBD5E1',background:'#F8FAFC',borderRadius:'16px',padding:'24px 16px',textAlign:'center',color:'#64748B',fontSize:'13px',fontWeight:'700',marginTop:'14px' }}>
+                    هذا التاريخ قد مضى، يرجى اختيار موعد قادم.
                   </div>
-                ) : timeslots.length === 0 ? (
-                  <div style={{ border:'1px dashed #FCA5A5',background:'#FEF2F2',borderRadius:'16px',padding:'24px 16px',textAlign:'center',color:'#991B1B',fontSize:'13px',fontWeight:'700',marginTop:'14px' }}>
-                    جميع المواعيد المتاحة محجوزة.
+                ) : !currentDayObj.avail || slotItems.length === 0 ? (
+                  <div style={{ border:'1px dashed #CBD5E1',background:'#F8FAFC',borderRadius:'16px',padding:'24px 16px',textAlign:'center',color:'#64748B',fontSize:'14px',fontWeight:'700',marginTop:'14px' }}>
+                    لا توجد مواعيد متاحة في هذا اليوم (عطلة المستشار).
                   </div>
                 ) : (
-                  <div className="booking-slots-grid">
-                    {timeslots.map(t => (
-                      <button key={t} className={`booking-slot-btn ${selectedTime===t?'active':''}`} onClick={()=>setSelectedTime(t)}>{t}</button>
-                    ))}
-                  </div>
+                  <>
+                    <div className="booking-slots-grid">
+                      {slotItems.map(({ time, isDisabled, isPast, isBooked }) => (
+                        <button
+                          key={time}
+                          type="button"
+                          disabled={isDisabled}
+                          title={isPast ? 'هذا الموعد مضى (مغلق)' : isBooked ? 'هذا الموعد محجوز' : 'موعد متاح'}
+                          className={`booking-slot-btn ${selectedTime === time ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`}
+                          onClick={() => {
+                            if (!isDisabled) setSelectedTime(time);
+                          }}
+                        >
+                          {time}
+                        </button>
+                      ))}
+                    </div>
+                    {availableSlotItems.length === 0 && (
+                      <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B', borderRadius: '12px', padding: '10px 14px', fontSize: '11.5px', fontWeight: '700', textAlign: 'center', marginTop: '12px', lineHeight: 1.5 }}>
+                        {currentDayObj.isToday
+                          ? '⏰ جميع مواعيد اليوم مغلقة (مضت أوقات العمل). يرجى اختيار موعد للأيام القادمة.'
+                          : '⚠️ جميع المواعيد لهذا اليوم محجوزة أو مغلقة.'}
+                      </div>
+                    )}
+                  </>
                 )}
 
                 <div style={{ marginTop: '16px' }}>
