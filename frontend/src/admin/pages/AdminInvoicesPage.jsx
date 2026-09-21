@@ -1,5 +1,8 @@
-import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useEffect, useCallback } from "react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { useAuth } from "../../context/AuthContext";
+import { getAdminToken } from "../services/adminApi";
 import CreateRefundInvoiceModal from "../components/CreateRefundInvoiceModal";
 import ModernSelect from "../../components/ModernSelect";
 import FilterResetButton from "../../components/FilterResetButton";
@@ -28,21 +31,13 @@ const si = (s) => STATUS_LABELS[s] || { label: s || "-", bg: "#F1F5F9", color: "
 const CYCLES = { monthly: "كل شهر", quarterly: "كل 3 أشهر", semiannual: "كل 6 أشهر", annual: "سنوي", weekly: "أسبوعي" };
 
 const CUSTOMERS = [
-  { id: 1, name: "شركة الأفق للاستشارات ذ.م.م", type: "شركة ذات مسؤولية محدودة", tax: "200145879", address: "عمّان - الشميساني", email: "accounts@alofuq.jo", phone: "06 560 1100" },
-  { id: 2, name: "مؤسسة النخبة التجارية", type: "مؤسسة فردية", tax: "201125877", address: "إربد - شارع الجامعة", email: "info@elite.jo", phone: "02 720 4411" },
-  { id: 3, name: "أحمد محمود الخطيب", type: "أفراد", tax: "", address: "عمّان - تلاع العلي", email: "ahmad.k@example.com", phone: "079 881 2450" },
-  { id: 4, name: "شركة البيان للتكنولوجيا ذ.م.م", type: "شركة ذات مسؤولية محدودة", tax: "201884521", address: "عمّان - وادي صقرة", email: "finance@albayan-tech.jo", phone: "06 585 2211" },
-  { id: 5, name: "جامعة الريادة الخاصة", type: "جامعات", tax: "202118554", address: "عمّان - طريق المطار", email: "finance@riyadah.edu.jo", phone: "06 471 5500" },
-  { id: 6, name: "هيئة التطوير المهني", type: "هيئات ومنظمات", tax: "202555100", address: "عمّان - العبدلي", email: "finance@pda.org.jo", phone: "06 520 7788" },
-  { id: 7, name: "جمعية آفاق للتنمية", type: "جمعيات", tax: "202887411", address: "الزرقاء - الوسط التجاري", email: "admin@afaq.org.jo", phone: "05 390 1442" },
-  { id: 8, name: "شركة المشرق المساهمة الخاصة", type: "شركة مساهمة خاصة", tax: "203114220", address: "عمّان - الدوار الخامس", email: "tax@almashreq.jo", phone: "06 593 9011" },
-  { id: 9, name: "شركة الاتحاد الصناعية المساهمة العامة", type: "شركة مساهمة عامة", tax: "203445879", address: "سحاب - المدينة الصناعية", email: "finance@unionind.jo", phone: "06 402 6610" },
-  { id: 10, name: "وزارة الخدمات الرقمية", type: "حكومي", tax: "GOV-100225", address: "عمّان - الدوار الثالث", email: "finance@digital.gov.jo", phone: "06 500 1000" },
-  { id: 11, name: "شركة الرواد للتجارة", type: "شركة تضامن", tax: "204110025", address: "العقبة - المنطقة التجارية", email: "accounts@rowad.jo", phone: "03 201 7722" },
-  { id: 12, name: "شركة الموردون للتوزيع", type: "شركة توصية بسيطة", tax: "204551102", address: "عمّان - ماركا", email: "billing@suppliers.jo", phone: "06 488 2200" },
-  { id: 13, name: "د. سامر العلي", type: "أكاديمي وباحث", tax: "", address: "عمّان - الجبيهة", email: "s.alali@research.jo", phone: "079 700 8144" },
-  { id: 14, name: "مؤسسة النور للخدمات", type: "مؤسسة فردية", tax: "205020115", address: "مادبا - وسط البلد", email: "info@alnoor.jo", phone: "05 324 8801" },
-  { id: 15, name: "منظمة تمكين الأردن", type: "هيئات ومنظمات", tax: "205441170", address: "عمّان - أم أذينة", email: "finance@tamkeen.org.jo", phone: "06 592 7331" }
+  { id: "89f29cb8-4166-41ab-80e2-6e29abd7a4fa", name: "رانيا الخطيب", displayName: "رانيا الخطيب", type: "أفراد", tax: "", address: "عمّان - الأردن", email: "rania@alkhatib.co", phone: "+962790001144" },
+  { id: "71f4d7fd-1677-4cf0-82b0-f5a8dc963361", name: "عمر حداد", displayName: "عمر حداد", type: "أفراد", tax: "", address: "عمّان - الأردن", email: "omar@haddad.io", phone: "+962791102211" },
+  { id: "330d2f6b-1e43-4b89-8bbd-d1473e60bcbc", name: "لينا ناصر", displayName: "لينا ناصر", type: "أفراد", tax: "", address: "عمّان - الأردن", email: "lina@nasser-med.com", phone: "+962792213322" },
+  { id: "3ed59f17-0ad2-4a2f-a96d-34efb1503745", name: "يوسف درويش", displayName: "يوسف درويش", type: "أفراد", tax: "", address: "عمّان - الأردن", email: "yousef@darwish-foods.com", phone: "+962793324433" },
+  { id: "9a0d718b-540d-4e80-9591-2e460136a2c4", name: "سارة عودة", displayName: "سارة عودة", type: "أفراد", tax: "", address: "عمّان - الأردن", email: "sara@odeh.co", phone: "+962794435544" },
+  { id: "14b878b1-3007-449a-9cad-6cdb1abcbb55", name: "خالد المصري", displayName: "خالد المصري", type: "أفراد", tax: "", address: "عمّان - الأردن", email: "k.masri@mlog.co", phone: "+962795546655" },
+  { id: "d772a893-8b35-45f9-a645-ceb76b034a13", name: "عبدالرحمن حسين محمد حسين الأصفر", displayName: "عبدالرحمن حسين محمد حسين الأصفر", type: "أفراد", tax: "", address: "عمّان - الأردن", email: "abdelrhmanhussein886@gmail.com", phone: "+201098504252" },
 ];
 
 const SIGNERS_BY_DEPT = {
@@ -50,7 +45,25 @@ const SIGNERS_BY_DEPT = {
   "القسم المالي": ["محمد حسني - المدير المالي", "رانية السيد - رئيس الحسابات"],
   "قسم العمليات": ["خالد عمر - مدير العمليات", "يوسف كامل - مشرف العمليات"],
   "قسم الدعم والمساعدة": ["ليلى منصور - رئيس الدعم", "عمر الفاروق - مسؤول الدعم"],
-  "قسم الاستشارات": ["د. سامح عبد الفتاح - رئيس المستشارين", "م. طارق يونس - استشاري أول"]
+  "قسم الاستشارات": ["أحمد نصار - مستشار ضريبي معتمد", "عبدالرحمن حسين - مستشار المنصة"]
+};
+
+const MOCK_SESSIONS = [
+  { id: "1", sessionCode: "SES-3466D16E", consultationCode: "ADV-3466D16E", consultantName: "أحمد نصار", clientName: "" },
+  { id: "2", sessionCode: "SES-7110E83A", consultationCode: "ADV-7110E83A", consultantName: "أحمد نصار", clientName: "" },
+  { id: "3", sessionCode: "SES-74A22889", consultationCode: "ADV-74A22889", consultantName: "عبدالرحمن حسين", clientName: "" },
+];
+
+const isConsultantMatch = (sessionConsultantName, selectedName) => {
+  if (!selectedName || !sessionConsultantName) return false;
+  const sClean = sessionConsultantName.trim().toLowerCase();
+  const cClean = selectedName.trim().toLowerCase();
+  if (sClean === cClean) return true;
+  if (sClean.includes(cClean) || cClean.includes(sClean)) return true;
+  const sWords = sClean.split(/\s+/).slice(0, 2).join(" ");
+  const cWords = cClean.split(/\s+/).slice(0, 2).join(" ");
+  if (sWords && cWords && (sWords === cWords || sClean.includes(cWords) || cClean.includes(sWords))) return true;
+  return false;
 };
 
 const Avatar = ({ name, id }) => {
@@ -80,11 +93,73 @@ const Card = ({ icon, label, value, sub, subColor, accent }) => (
 
 const Th = ({ ch }) => <th style={{ padding: "12px 14px", color: "#64748B", fontWeight: 800, fontSize: 12, textAlign: "right", whiteSpace: "nowrap" }}>{ch}</th>;
 
-function numberToArabicWords(num) {
-  if (!num || isNaN(num) || num === 0) return "صفر د.أ";
-  const integerPart = Math.floor(num);
-  const decimalPart = Math.round((num - integerPart) * 1000);
-  return `${integerPart} د.أ ${decimalPart > 0 ? `و ${decimalPart} فلس` : ""}`;
+function numberToArabicWords(amount) {
+  if (!amount || isNaN(amount) || amount <= 0) return "فقط صفر دينار أردني لا غير";
+
+  const units = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة"];
+  const teens = ["عشرة", "أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر", "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر"];
+  const tens = ["", "", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
+  const hundreds = ["", "مائة", "مئتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"];
+
+  const convert3Digits = (n) => {
+    let res = [];
+    const h = Math.floor(n / 100);
+    const rem = n % 100;
+    if (h > 0) res.push(hundreds[h]);
+    if (rem > 0) {
+      if (rem < 10) {
+        res.push(units[rem]);
+      } else if (rem < 20) {
+        res.push(teens[rem - 10]);
+      } else {
+        const u = rem % 10;
+        const t = Math.floor(rem / 10);
+        if (u > 0) {
+          res.push(`${units[u]} و${tens[t]}`);
+        } else {
+          res.push(tens[t]);
+        }
+      }
+    }
+    return res.join(" و");
+  };
+
+  const convertGroup = (val) => {
+    if (val === 0) return "";
+    let parts = [];
+    const thousands = Math.floor(val / 1000);
+    const rem = val % 1000;
+
+    if (thousands > 0) {
+      if (thousands === 1) parts.push("ألف");
+      else if (thousands === 2) parts.push("ألفان");
+      else if (thousands >= 3 && thousands <= 10) parts.push(`${units[thousands]} آلاف`);
+      else parts.push(`${convert3Digits(thousands)} ألف`);
+    }
+
+    if (rem > 0) {
+      parts.push(convert3Digits(rem));
+    }
+    return parts.join(" و");
+  };
+
+  const intPart = Math.floor(amount);
+  const decPart = Math.round((amount - intPart) * 1000);
+
+  let text = "فقط ";
+  if (intPart > 0) {
+    const intWords = convertGroup(intPart);
+    text += `${intWords} دينار أردني`;
+  } else {
+    text += "صفر دينار";
+  }
+
+  if (decPart > 0) {
+    const decWords = convert3Digits(decPart);
+    text += ` و${decWords} فلس`;
+  }
+  text += " لا غير";
+  return text;
 }
 
 export default function AdminInvoicesPage({ navigate }) {
@@ -156,14 +231,32 @@ export default function AdminInvoicesPage({ navigate }) {
   const [seller, setSeller] = useState("منصة ديوان للاستشارات الضريبية");
   const [otherSellerName, setOtherSellerName] = useState("");
   const [selectedCustIndex, setSelectedCustIndex] = useState(0);
+  const [dbCustomers, setDbCustomers] = useState([]);
+  const [dbConsultants, setDbConsultants] = useState([]);
+  const [dbSessions, setDbSessions] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+
+  // Billable customers: if DB loaded, use filtered DB list; otherwise filter static list too
+  const customerList = dbCustomers.length > 0
+    ? dbCustomers
+    : CUSTOMERS.filter(c => c.type !== 'إدارة المنصة' && c.type !== 'مستشار ضريبي' && c.displayName !== 'Super Administrator');
+  const currentCust = customerList[selectedCustIndex] || customerList[0] || {
+    name: "—",
+    displayName: "—",
+    email: "",
+    phone: "",
+    address: "عمّان، الأردن",
+    tax: "",
+    id: ""
+  };
 
   // Operation type & line items
   const [opType, setOpType] = useState("consult"); // consult, package, filing, platform
 
   // Dynamic fields for Consultations tab
   const [consultType, setConsultType] = useState("جلسة فيديو");
-  const [consultantName, setConsultantName] = useState("د. سامح عبد الفتاح");
-  const [sessionNo, setSessionNo] = useState("SES-2026-104");
+  const [consultantName, setConsultantName] = useState("أحمد نصار");
+  const [sessionNo, setSessionNo] = useState("SES-3466D16E");
 
   // Dynamic fields for Packages tab
   const [packageOpType, setPackageOpType] = useState("شراء بطاقة");
@@ -176,14 +269,13 @@ export default function AdminInvoicesPage({ navigate }) {
   const [taxFileNo, setTaxFileNo] = useState("TAX-100245");
 
   // Dynamic fields for Platform Share tab
-  const [platformConsultant, setPlatformConsultant] = useState("د. سامح عبد الفتاح");
-  const [consultationNo, setConsultationNo] = useState("ADV-2026-7781");
+  const [platformConsultant, setPlatformConsultant] = useState("أحمد نصار");
+  const [consultationNo, setConsultationNo] = useState("ADV-3466D16E");
   const [platformRate, setPlatformRate] = useState("20%");
 
-  // Line items state
+  // Line items state (initialized with the primary requested service)
   const [lineItems, setLineItems] = useState([
-    { id: 1, name: "استشارة فورية مع مستشار المنصة", qty: 1, unit: "جلسة", price: 85, discount: 0, taxRate: 16 },
-    { id: 2, name: "استشارة دعم ومساعدة", qty: 1, unit: "استشارة", price: 45, discount: 0, taxRate: 16 }
+    { id: 1, name: "استشارة مكالمة فيديو - أحمد نصار - SES-3466D16E", qty: 1, unit: "جلسة", price: 85, discount: 0, taxRate: 16 }
   ]);
 
   // Payment
@@ -262,7 +354,191 @@ export default function AdminInvoicesPage({ navigate }) {
     } finally { setLoading(false); }
   }, [token]);
 
-  useEffect(() => { fetchInvoices(); }, [fetchInvoices]);
+  const fetchUsers = useCallback(async () => {
+    const effectiveToken = token || getAdminToken();
+    setLoadingUsers(true);
+
+    const mapLegal = (u) => {
+      if (u.entity_type === 'company' || u.company_name) return 'شركة';
+      if (u.role === 'consultant') return 'مستشار ضريبي';
+      if (u.role === 'admin' || u.role === 'super_admin') return 'إدارة المنصة';
+      return 'فرد / عميل';
+    };
+
+    // 1. Fetch Real Users from Database
+    try {
+      let usersList = [];
+
+      // Primary: Call /api/invoices/customers/search which queries the database directly without permission blockers
+      try {
+        const resSearch = await fetch("/api/invoices/customers/search?q=");
+        if (resSearch.ok) {
+          const sData = await resSearch.json();
+          if (Array.isArray(sData) && sData.length > 0) {
+            usersList = sData;
+          }
+        }
+      } catch (e) {
+        console.warn("Could not fetch /api/invoices/customers/search:", e);
+      }
+
+      // Secondary: If token is present, try /api/super-admin/users to enrich with full profile metadata
+      if (effectiveToken && usersList.length === 0) {
+        try {
+          const res = await fetch("/api/super-admin/users?limit=200", {
+            headers: { Authorization: `Bearer ${effectiveToken}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const saList = Array.isArray(data) ? data : (data.users || []);
+            if (saList.length > 0) {
+              usersList = saList;
+            }
+          }
+        } catch (e) {
+          console.warn("Could not fetch /api/super-admin/users:", e);
+        }
+      }
+
+      if (usersList.length > 0) {
+        const formatted = usersList.map((u) => {
+          const rawName = u.full_name || u.name || u.company_name || u.email || "مستخدم بدون اسم";
+          const compName = u.company_name;
+          return {
+            id: u.id,
+            user_id: u.id,
+            name: rawName,
+            displayName: compName && u.full_name && compName !== u.full_name
+              ? `${u.full_name} (${compName})`
+              : rawName,
+            type: u.type ? (u.type === 'company' ? 'شركة' : u.type === 'individual' ? 'أفراد' : u.type) : mapLegal(u),
+            tax: u.tax || u.tax_number || "",
+            address: u.address || (u.city ? `${u.city}، الأردن` : "عمّان، الأردن"),
+            email: u.email || "",
+            phone: u.phone || "",
+            role: u.role || "client"
+          };
+        });
+        // Filter: exclude platform consultants — invoices are only for users and certified consultants
+        const billableCustomers = formatted.filter(
+          (u) => u.role !== 'platform_consultant' && u.role !== 'admin' && u.role !== 'super_admin'
+        );
+        setDbCustomers(billableCustomers);
+      }
+    } catch (err) {
+      console.warn("Could not fetch database users for invoices:", err);
+    } finally {
+      setLoadingUsers(false);
+    }
+
+    // 2. Fetch Consultants from Database
+    try {
+      let resCons = await fetch("/api/super-admin/users?role=consultant&limit=100", {
+        headers: { Authorization: `Bearer ${effectiveToken}` },
+      });
+      if (!resCons.ok) {
+        resCons = await fetch("/api/consultants/?limit=50", {
+          headers: { Authorization: `Bearer ${effectiveToken}` },
+        });
+      }
+      if (resCons.ok) {
+        const consData = await resCons.json();
+        const consList = Array.isArray(consData) ? consData : (consData.users || consData.consultants || []);
+        if (consList.length > 0) {
+          const mappedCons = consList.map(c => ({
+            id: c.id,
+            name: c.full_name || c.name || c.display_name || c.email || "مستشار",
+            email: c.email || "",
+            phone: c.phone || ""
+          }));
+          setDbConsultants(mappedCons);
+          setConsultantName(prev => (!prev || prev.includes("سامح") || prev.includes("طارق") ? mappedCons[0].name : prev));
+          setPlatformConsultant(prev => (!prev || prev.includes("سامح") || prev.includes("طارق") ? mappedCons[0].name : prev));
+        }
+      }
+    } catch (err) {
+      console.warn("Could not fetch consultants from backend:", err);
+    }
+
+    // 3. Fetch Sessions / Appointments from Database
+    try {
+      const resSessions = await fetch("/api/super-admin/sessions", {
+        headers: { Authorization: `Bearer ${effectiveToken}` },
+      });
+      if (resSessions.ok) {
+        const sessionsData = await resSessions.json();
+        if (Array.isArray(sessionsData) && sessionsData.length > 0) {
+          const formattedSessions = sessionsData.map(s => {
+            const rawId = String(s.appointment_id || s.id || '');
+            const codeId = rawId.substring(0, 8).toUpperCase();
+            return {
+              id: rawId,
+              sessionCode: `SES-${codeId}`,
+              consultationCode: `ADV-${codeId}`,
+              consultantName: s.consultant_name || "",
+              clientName: s.client_name || "",
+              status: s.status,
+              scheduledAt: s.scheduled_at
+            };
+          });
+          setDbSessions(formattedSessions);
+        }
+      }
+    } catch (err) {
+      console.warn("Could not fetch sessions from backend:", err);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchInvoices();
+    fetchUsers();
+  }, [fetchInvoices, fetchUsers]);
+
+  useEffect(() => {
+    const handler = () => {
+      fetchUsers();
+    };
+    window.addEventListener("admin_data_updated", handler);
+    return () => window.removeEventListener("admin_data_updated", handler);
+  }, [fetchUsers]);
+
+  const allSessions = dbSessions.length > 0 ? dbSessions : MOCK_SESSIONS;
+
+  const availableConsultantSessions = consultantName
+    ? allSessions.filter(s => isConsultantMatch(s.consultantName, consultantName))
+    : allSessions;
+
+  const availablePlatformSessions = platformConsultant
+    ? allSessions.filter(s => isConsultantMatch(s.consultantName, platformConsultant))
+    : allSessions;
+
+  // Keep sessionNo strictly in sync with the selected consultant
+  useEffect(() => {
+    if (!consultantName) return;
+    const matches = allSessions.filter(s => isConsultantMatch(s.consultantName, consultantName));
+    if (matches.length > 0) {
+      const isValid = matches.some(s => s.sessionCode === sessionNo);
+      if (!isValid) {
+        setSessionNo(matches[0].sessionCode);
+      }
+    } else {
+      setSessionNo("");
+    }
+  }, [consultantName, allSessions, sessionNo]);
+
+  // Keep consultationNo strictly in sync with the selected platform consultant
+  useEffect(() => {
+    if (!platformConsultant) return;
+    const matches = allSessions.filter(s => isConsultantMatch(s.consultantName, platformConsultant));
+    if (matches.length > 0) {
+      const isValid = matches.some(s => s.consultationCode === consultationNo);
+      if (!isValid) {
+        setConsultationNo(matches[0].consultationCode);
+      }
+    } else {
+      setConsultationNo("");
+    }
+  }, [platformConsultant, allSessions, consultationNo]);
 
   // Calculations
   const calcSubtotal = lineItems.reduce((sum, item) => sum + (Number(item.qty || 0) * Number(item.price || 0) - Number(item.discount || 0)), 0);
@@ -291,11 +567,43 @@ export default function AdminInvoicesPage({ navigate }) {
     const unit = opType === "consult" ? "جلسة" : opType === "package" ? "باقة" : opType === "filing" ? "خدمة" : "نسبة";
     const price = opType === "consult" ? 85 : opType === "package" ? 150 : opType === "filing" ? 120 : 50;
 
-    setLineItems(prev => [
-      ...prev,
-      { id: Date.now(), name: text, qty: 1, unit, price, discount: 0, taxRate: taxEnabled ? 16 : 0 }
-    ]);
+    setLineItems(prev => {
+      if (!prev || prev.length === 0) {
+        return [{ id: 1, name: text, qty: 1, unit, price, discount: 0, taxRate: taxEnabled ? 16 : 0 }];
+      }
+      if (prev[0].name === text) {
+        return prev;
+      }
+      return [
+        ...prev,
+        { id: Date.now(), name: text, qty: 1, unit, price, discount: 0, taxRate: taxEnabled ? 16 : 0 }
+      ];
+    });
   };
+
+  // Synchronize the primary line item automatically with the selected operation service
+  useEffect(() => {
+    const text = getGeneratedPresetText();
+    const unit = opType === "consult" ? "جلسة" : opType === "package" ? "باقة" : opType === "filing" ? "خدمة" : "نسبة";
+    const defaultPrice = opType === "consult" ? 85 : opType === "package" ? 150 : opType === "filing" ? 120 : 50;
+
+    setLineItems(prev => {
+      if (!prev || prev.length === 0) {
+        return [{ id: 1, name: text, qty: 1, unit, price: defaultPrice, discount: 0, taxRate: taxEnabled ? 16 : 0 }];
+      }
+      const [first, ...rest] = prev;
+      return [
+        {
+          ...first,
+          name: text,
+          unit,
+          price: first.price ? first.price : defaultPrice,
+          taxRate: taxEnabled ? (first.taxRate ?? 16) : 0
+        },
+        ...rest
+      ];
+    });
+  }, [opType, consultType, consultantName, sessionNo, currentPackage, packageDuration, taxServiceType, taxPeriod, taxFileNo, platformConsultant, consultationNo, platformRate, taxEnabled]);
 
   const fetchNextNumber = async () => {
     try {
@@ -341,9 +649,11 @@ export default function AdminInvoicesPage({ navigate }) {
     setTerms("0");
     setInvoiceClass("فاتورة خدمات");
     setStatus("مدفوعة");
+    const text = getGeneratedPresetText();
+    const unit = opType === "consult" ? "جلسة" : opType === "package" ? "باقة" : opType === "filing" ? "خدمة" : "نسبة";
+    const defaultPrice = opType === "consult" ? 85 : opType === "package" ? 150 : opType === "filing" ? 120 : 50;
     setLineItems([
-      { id: 1, name: "استشارة فورية مع مستشار المنصة", qty: 1, unit: "جلسة", price: 85, discount: 0, taxRate: 16 },
-      { id: 2, name: "استشارة دعم ومساعدة", qty: 1, unit: "استشارة", price: 45, discount: 0, taxRate: 16 }
+      { id: 1, name: text, qty: 1, unit, price: defaultPrice, discount: 0, taxRate: 16 }
     ]);
     setPayMethod("بطاقة بنكية");
     setPaymentStatus("مدفوع");
@@ -359,7 +669,7 @@ export default function AdminInvoicesPage({ navigate }) {
   const handleAddRow = () => {
     setLineItems(prev => [
       ...prev,
-      { id: Date.now(), name: "بند جديد", qty: 1, unit: "خدمة", price: 50, discount: 0, taxRate: taxEnabled ? 16 : 0 }
+      { id: Date.now(), name: "بند إضافي", qty: 1, unit: "خدمة", price: 0, discount: 0, taxRate: taxEnabled ? 16 : 0 }
     ]);
   };
 
@@ -383,8 +693,9 @@ export default function AdminInvoicesPage({ navigate }) {
     setRefNo(item.reference_number || "");
     if (item.created_at) setInvDate(new Date(item.created_at).toISOString().split('T')[0]);
     if (item.due_date) setDueDate(new Date(item.due_date).toISOString().split('T')[0]);
-    if (item.user_name) {
-      const foundIdx = CUSTOMERS.findIndex(c => c.name === item.user_name);
+    if (item.user_name || item.customer_name) {
+      const targetName = item.user_name || item.customer_name;
+      const foundIdx = customerList.findIndex(c => c.name === targetName || c.displayName === targetName || c.email === targetName);
       if (foundIdx >= 0) setSelectedCustIndex(foundIdx);
     }
     if (item.total_amount || item.amount) {
@@ -531,7 +842,7 @@ export default function AdminInvoicesPage({ navigate }) {
 
   const submitInvoice = async (targetStatus) => {
     try {
-      const currentCust = CUSTOMERS[selectedCustIndex] || CUSTOMERS[0];
+      const currentCust = customerList[selectedCustIndex] || customerList[0];
       const opDetails = {
         consultType,
         consultantName,
@@ -562,8 +873,9 @@ export default function AdminInvoicesPage({ navigate }) {
         tax_enabled: taxEnabled,
         seller_name: seller === "أخرى" ? (otherSellerName || "جهة أخرى") : seller,
         customer_name: currentCust.name,
-        customer_address: currentCust.address,
+        customer_address: currentCust.address || "عمّان، الأردن",
         customer_tax_number: currentCust.tax || "",
+        issued_to_user_id: currentCust.user_id || (typeof currentCust.id === 'string' && currentCust.id.length > 20 ? currentCust.id : null),
         operation_type: opType,
         operation_details: opDetails,
         line_items: lineItems.map(item => ({
@@ -679,118 +991,47 @@ export default function AdminInvoicesPage({ navigate }) {
   const handleSaveDraft = () => submitInvoice("draft");
   const handleIssueInvoice = () => submitInvoice(status === "مدفوعة" ? "paid" : "issued");
 
-  const diwanPrintA5 = () => {
+  const diwanPrintA5 = async () => {
     try {
       const source = document.querySelector('.invoice-sheet') || document.getElementById('invoice-sheet-container');
       if (!source) {
-        throw new Error('لم يتم العثور على الفاتورة (invoice-sheet)');
-      }
-
-      const popup = window.open('about:blank', '_blank', 'width=1200,height=850');
-      if (!popup) {
-        alert('اسمح بالنوافذ المنبثقة لهذه الصفحة ثم أعد المحاولة.');
+        alert('لم يتم العثور على الفاتورة.');
         return;
       }
 
-      const clone = source.cloneNode(true);
-      clone.id = 'printInvoiceSheet';
-      clone.style.margin = '0';
-      clone.style.maxWidth = 'none';
-      clone.style.position = 'static';
-      clone.style.left = '0';
-      clone.style.top = '0';
-      clone.style.width = Math.max(source.scrollWidth, source.offsetWidth) + 'px';
-      clone.style.boxShadow = 'none';
-      clone.style.transform = 'none';
+      // Temporarily remove box-shadow for clean capture
+      const origBoxShadow = source.style.boxShadow;
+      const origBorderRadius = source.style.borderRadius;
+      source.style.boxShadow = 'none';
+      source.style.borderRadius = '0';
 
-      popup.document.open();
-      popup.document.write(`
-        <!doctype html>
-        <html lang="ar" dir="rtl">
-        <head>
-            <meta charset="utf-8">
-            <title>طباعة الفاتورة - ${invNo}</title>
-            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-            <style>
-                @page {
-                    size: A5 landscape;
-                    margin: 0;
-                }
-                html, body {
-                    margin: 0!important;
-                    padding: 0!important;
-                    width: 210mm!important;
-                    height: 148mm!important;
-                    overflow: hidden!important;
-                    background: #fff!important;
-                    font-family: var(--font-main);
-                }
-                #printPage {
-                    width: 210mm;
-                    height: 148mm;
-                    position: relative;
-                    overflow: hidden;
-                    background: #fff;
-                }
-                #printFrame {
-                    position: absolute;
-                    left: 50%;
-                    top: 50%;
-                    transform: translate(-50%,-50%);
-                    transform-origin: center center;
-                }
-                #printInvoiceSheet {
-                    margin: 0!important;
-                    box-shadow: none!important;
-                    page-break-inside: avoid!important;
-                    break-inside: avoid!important;
-                }
-                .invoice-view-top, .details-backdrop, .details-drawer, .inv-version-row {
-                    display: none!important;
-                }
-            </style>
-        </head>
-        <body>
-            <div id="printPage">
-                <div id="printFrame">
-                    ${clone.outerHTML}
-                </div>
-            </div>
-            <script>
-                (function(){
-                    function fit(){
-                        const page = document.getElementById('printPage');
-                        const frame = document.getElementById('printFrame');
-                        const sheet = document.getElementById('printInvoiceSheet');
-                        if(!page || !frame || !sheet) return;
-                        sheet.style.transform = 'none';
-                        const pw = page.clientWidth - 16;
-                        const ph = page.clientHeight - 16;
-                        const sw = Math.max(sheet.scrollWidth, sheet.offsetWidth);
-                        const sh = Math.max(sheet.scrollHeight, sheet.offsetHeight);
-                        const scale = Math.min(pw / sw, ph / sh, 1);
-                        frame.style.width = sw + 'px';
-                        frame.style.height = sh + 'px';
-                        frame.style.transform = 'translate(-50%,-50%) scale(' + scale + ')';
-                    }
-                    Promise.resolve(document.fonts && document.fonts.ready ? document.fonts.ready : null).then(function(){
-                        setTimeout(function(){
-                            fit();
-                            setTimeout(function(){
-                                window.focus();
-                                window.print();
-                            }, 180);
-                        }, 120);
-                    });
-                })();
-            <\/script>
-        </body>
-        </html>
-      `);
-      popup.document.close();
+      const canvas = await html2canvas(source, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        scrollX: 0,
+        scrollY: 0,
+        width: source.scrollWidth,
+        height: source.scrollHeight,
+      });
+
+      // Restore styles
+      source.style.boxShadow = origBoxShadow;
+      source.style.borderRadius = origBorderRadius;
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: [canvas.width / 2, canvas.height / 2],
+      });
+
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2);
+      pdf.save(`فاتورة-${invNo || 'invoice'}.pdf`);
     } catch (e) {
       console.error(e);
-      alert('تعذر تجهيز الطباعة: ' + e.message);
+      alert('تعذر تحميل الفاتورة: ' + e.message);
     }
   };
 
@@ -1010,7 +1251,7 @@ export default function AdminInvoicesPage({ navigate }) {
   const subs = { invoices: "إدارة ومتابعة جميع فواتير ديوان", recurring: "إدارة الفواتير المتكررة ودوريتها", refunds: "إدارة عمليات استرداد قيمة الخدمات" };
   const btnLabel = { invoices: "إنشاء فاتورة جديدة", recurring: "إنشاء فاتورة دورية", refunds: "إنشاء طلب استرداد" };
 
-  const currentCust = CUSTOMERS[selectedCustIndex] || CUSTOMERS[0];
+
 
   return (
     <div style={{ direction: "rtl", fontFamily: "var(--font-main)", color: "#1E293B", minHeight: "100vh", background: "#F8FAFC" }}>
@@ -1121,12 +1362,90 @@ export default function AdminInvoicesPage({ navigate }) {
         .payment-info .line { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; }
         .payment-info .hint { font-size: 10px; color: #94A3B8; margin-top: 12px; }
 
-        .extra { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
-        .summary { background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 16px; }
-        .sumrow { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; color: #475569; }
-        .sumrow.total { border-top: 1px solid #E2E8F0; padding-top: 8px; font-weight: 800; color: #0D3C5C; }
-        .sumrow.final { font-size: 16px; font-weight: 900; color: #0D3C5C; border-top: 2px solid #0D3C5C; padding-top: 10px; margin-top: 6px; }
-        .words { font-size: 11px; color: #64748B; font-weight: 700; background: #fff; padding: 8px 12px; border-radius: 8px; border: 1px solid #E2E8F0; margin-top: 12px; text-align: center; }
+        .extra { display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 24px; align-items: start; }
+        .editor-summary-card { 
+          background: #F8FAFC !important; 
+          border: 1.5px solid #E2E8F0 !important; 
+          border-radius: 14px !important; 
+          padding: 20px !important; 
+          display: flex !important; 
+          flex-direction: column !important; 
+          gap: 10px !important;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.03) !important;
+          box-sizing: border-box !important;
+          width: 100% !important;
+        }
+        .editor-summary-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 14px;
+          font-weight: 800;
+          color: #0D3C5C;
+          border-bottom: 1.5px solid #E2E8F0;
+          padding-bottom: 10px;
+          margin-bottom: 4px;
+        }
+        .editor-summary-title i {
+          color: #0891B2;
+          font-size: 15px;
+        }
+        .inv-sumrow { 
+          display: flex !important; 
+          justify-content: space-between !important; 
+          align-items: center !important; 
+          font-size: 13.5px !important; 
+          color: #475569 !important; 
+          padding: 3px 0 !important;
+        }
+        .inv-sumrow span { 
+          font-weight: 700 !important; 
+          color: #64748B !important; 
+        }
+        .inv-sumrow strong { 
+          font-weight: 800 !important; 
+          color: #0D3C5C !important; 
+          direction: ltr !important; 
+          font-size: 14px !important; 
+        }
+        .inv-sumrow.total { 
+          border-top: 1px dashed #CBD5E1 !important; 
+          padding-top: 10px !important; 
+          margin-top: 4px !important;
+          font-weight: 700 !important; 
+        }
+        .inv-sumrow.total span { color: #334155 !important; }
+        .inv-sumrow.total strong { color: #1E293B !important; font-size: 15px !important; }
+        .inv-sumrow.final { 
+          font-size: 16px !important; 
+          border-top: 2px solid #0D3C5C !important; 
+          padding-top: 12px !important; 
+          margin-top: 6px !important; 
+        }
+        .inv-sumrow.final span {
+          font-size: 15px !important;
+          font-weight: 900 !important;
+          color: #0D3C5C !important;
+        }
+        .inv-sumrow.final strong { 
+          font-size: 20px !important; 
+          font-weight: 900 !important; 
+          color: #0D3C5C !important; 
+        }
+        .inv-words-box { 
+          font-size: 12px !important; 
+          color: #0369A1 !important; 
+          background: #F0F9FF !important; 
+          padding: 11px 14px !important; 
+          border-radius: 10px !important; 
+          border: 1.5px solid #BAE6FD !important; 
+          margin-top: 8px !important; 
+          text-align: center !important; 
+          font-weight: 700 !important;
+          line-height: 1.6 !important;
+          width: 100% !important;
+          box-sizing: border-box !important;
+        }
 
         .qr-grid { display: flex; gap: 20px; align-items: center; }
         .qr { width: 100px; height: 100px; background: #F1F5F9; border: 2px dashed #CBD5E1; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 32px; color: #94A3B8; flex-shrink: 0; }
@@ -1140,6 +1459,32 @@ export default function AdminInvoicesPage({ navigate }) {
         .btn.dark { background: #1E293B; color: #fff; border: none; border-radius: 9px; padding: 10px 24px; font-weight: 800; cursor: pointer; font-size: 14px; }
         .btn { background: #fff; border: 1.5px solid #CBD5E1; border-radius: 9px; padding: 10px 20px; font-weight: 700; color: #475569; cursor: pointer; font-size: 14px; }
         .btn:hover { background: #F1F5F9; }
+
+        /* Absolute FontAwesome Icon Font Enforcement */
+        i, i[class*="fa-"], span[class*="fa-"], [class*="fa-"], .op-card i, .badge i, .del-btn i, .method i, .ghost-btn i, .primary-top i, .preview-btn i, .pb i, .ab i {
+          font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands", "FontAwesome" !important;
+          font-style: normal !important;
+          font-variant: normal !important;
+          text-rendering: auto !important;
+          line-height: 1 !important;
+          display: inline-block;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
+        .fa-solid, i.fa-solid, [class*="fa-solid"] {
+          font-weight: 900 !important;
+        }
+        .fa-regular, i.fa-regular, [class*="fa-regular"] {
+          font-weight: 400 !important;
+        }
+        .fa-brands, i.fa-brands, [class*="fa-brands"] {
+          font-family: "Font Awesome 6 Brands" !important;
+          font-weight: 400 !important;
+        }
+        i::before, i[class*="fa-"]::before, span[class*="fa-"]::before, [class*="fa-"]::before,
+        .op-card i::before, .badge i::before, .del-btn i::before, .method i::before {
+          font-family: inherit !important;
+        }
       `}</style>
 
       {/* FULL-SCREEN PREVIEW MODAL MATCHING SCREENSHOTS EXACTLY */}
@@ -1155,7 +1500,7 @@ export default function AdminInvoicesPage({ navigate }) {
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <button className="primary-top" onClick={diwanPrintA5} type="button">
-                <i className="fa-solid fa-print"></i> طباعة الفاتورة (A5)
+                <i className="fa-solid fa-download"></i> تحميل الفاتورة (PDF)
               </button>
               <button style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: "#64748B", fontWeight: "bold" }} onClick={() => setShowPreviewModal(false)}>
                 ×
@@ -1241,12 +1586,12 @@ export default function AdminInvoicesPage({ navigate }) {
                         <div style={{ width: 36, height: 36, borderRadius: 8, background: "#0D3C5C", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>
                           <i className="fa-solid fa-building"></i>
                         </div>
-                        <b style={{ fontSize: 13, color: "#0D3C5C" }}>{currentCust.name}</b>
+                        <b style={{ fontSize: 13, color: "#0D3C5C" }}>{currentCust.displayName || currentCust.name}</b>
                       </div>
                       <div style={{ fontSize: 11, color: "#64748B", display: "grid", gap: 3 }}>
-                        <div>{currentCust.address} · {currentCust.type} · رقم ضريبي {currentCust.tax || "200145879"}</div>
-                        <div>الهاتف: {currentCust.phone || "+962 7 962 9000 000"}</div>
-                        <div>البريد: {currentCust.email || "client@example.com"}</div>
+                        <div>{currentCust.address || "عمّان، الأردن"} {currentCust.type ? `· ${currentCust.type}` : ""} {currentCust.tax ? `· رقم ضريبي ${currentCust.tax}` : ""}</div>
+                        {currentCust.phone && <div>الهاتف: {currentCust.phone}</div>}
+                        {currentCust.email && <div>البريد: {currentCust.email}</div>}
                       </div>
                     </div>
                   </div>
@@ -1645,19 +1990,45 @@ export default function AdminInvoicesPage({ navigate }) {
                 <div className="billbox">
                   <div className="billhead">
                     <b>الفاتورة إلى</b>
-                    <button className="link" type="button">+ إضافة عميل جديد</button>
+                    <button
+                      className="link"
+                      type="button"
+                      onClick={() => navigate ? navigate('/admin/users') : null}
+                      title="إضافة أو إدارة المستخدمين"
+                    >
+                      + إضافة عميل جديد
+                    </button>
                   </div>
-                  <label>اسم العميل <span className="req">*</span></label>
-                  <select value={selectedCustIndex} onChange={e => setSelectedCustIndex(Number(e.target.value))}>
-                    {CUSTOMERS.map((c, i) => (
-                      <option key={c.id} value={i}>{c.name}</option>
+                  <label>
+                    اسم العميل <span className="req">*</span>
+                    {loadingUsers && <span style={{ fontSize: 11, color: "#64748B", marginRight: 8 }}>جاري التحميل من قاعدة البيانات...</span>}
+                  </label>
+                  <select
+                    value={selectedCustIndex}
+                    onChange={e => {
+                      const idx = Number(e.target.value);
+                      setSelectedCustIndex(idx);
+                      const selected = customerList[idx];
+                      if (selected && selected.type) {
+                        setCustomerType(selected.type);
+                      }
+                    }}
+                  >
+                    {customerList.map((c, i) => (
+                      <option key={c.id || i} value={i}>
+                        {c.displayName || c.name}
+                      </option>
                     ))}
                   </select>
                   <div className="customer-summary">
-                    <div className="round">{currentCust.name.substring(0, 1)}</div>
+                    <div className="round">{((currentCust.name || "؟").trim()).substring(0, 1)}</div>
                     <div>
-                      <b>{currentCust.name}</b>
-                      <span>{currentCust.address} {currentCust.tax ? `· رقم ضريبي ${currentCust.tax}` : ""}</span>
+                      <b>{currentCust.displayName || currentCust.name}</b>
+                      <span>
+                        {currentCust.address || "عمّان، الأردن"}
+                        {currentCust.tax ? ` · رقم ضريبي ${currentCust.tax}` : ""}
+                        {currentCust.phone ? ` · ${currentCust.phone}` : ""}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1720,20 +2091,61 @@ export default function AdminInvoicesPage({ navigate }) {
                       </select>
                     </div>
                     <div>
-                      <label>اسم المستشار</label>
-                      <select value={consultantName} onChange={e => setConsultantName(e.target.value)}>
+                      <label>اسم المستشار <span className="req">*</span></label>
+                      <select
+                        value={consultantName}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setConsultantName(val);
+                          const matches = allSessions.filter(s => isConsultantMatch(s.consultantName, val));
+                          if (matches.length > 0) {
+                            setSessionNo(matches[0].sessionCode);
+                          } else {
+                            setSessionNo("");
+                          }
+                        }}
+                      >
                         <option value="">اختر المستشار</option>
-                        <option value="د. سامح عبد الفتاح">د. سامح عبد الفتاح</option>
-                        <option value="م. طارق يونس">م. طارق يونس</option>
-                        <option value="أحمد علي">أحمد علي</option>
+                        {dbConsultants.length > 0 ? (
+                          dbConsultants.map(c => (
+                            <option key={c.id} value={c.name}>{c.name}</option>
+                          ))
+                        ) : (
+                          <>
+                            <option value="أحمد نصار">أحمد نصار</option>
+                            <option value="عبدالرحمن حسين محمد حسين الأصفر">عبدالرحمن حسين محمد حسين الأصفر</option>
+                          </>
+                        )}
                       </select>
                     </div>
                     <div>
-                      <label>رقم الجلسة</label>
-                      <select value={sessionNo} onChange={e => setSessionNo(e.target.value)}>
-                        <option value="SES-2026-104">SES-2026-104</option>
-                        <option value="SES-2026-105">SES-2026-105</option>
-                        <option value="SES-2026-106">SES-2026-106</option>
+                      <label>رقم الجلسة <span className="req">*</span></label>
+                      <select
+                        value={sessionNo}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setSessionNo(val);
+                          const matched = allSessions.find(s => s.sessionCode === val);
+                          if (matched && matched.consultantName) {
+                            const matchedCons = dbConsultants.find(c => isConsultantMatch(matched.consultantName, c.name));
+                            if (matchedCons) {
+                              setConsultantName(matchedCons.name);
+                            }
+                          }
+                        }}
+                      >
+                        <option value="">اختر رقم الجلسة</option>
+                        {availableConsultantSessions.length > 0 ? (
+                          availableConsultantSessions.map(s => (
+                            <option key={s.id} value={s.sessionCode}>
+                              {s.sessionCode} {s.consultantName ? `— (${s.consultantName})` : ''} {s.clientName ? `[${s.clientName}]` : ''}
+                            </option>
+                          ))
+                        ) : consultantName ? (
+                          <option value="" disabled>لا توجد جلسات مسجلة للمستشار ({consultantName})</option>
+                        ) : (
+                          <option value="" disabled>الرجاء اختيار المستشار أولاً</option>
+                        )}
                       </select>
                     </div>
                   </div>
@@ -1804,19 +2216,61 @@ export default function AdminInvoicesPage({ navigate }) {
                 {opType === "platform" && (
                   <div className="grid three">
                     <div>
-                      <label>المستشار</label>
-                      <select value={platformConsultant} onChange={e => setPlatformConsultant(e.target.value)}>
+                      <label>المستشار <span className="req">*</span></label>
+                      <select
+                        value={platformConsultant}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setPlatformConsultant(val);
+                          const matches = allSessions.filter(s => isConsultantMatch(s.consultantName, val));
+                          if (matches.length > 0) {
+                            setConsultationNo(matches[0].consultationCode);
+                          } else {
+                            setConsultationNo("");
+                          }
+                        }}
+                      >
                         <option value="">اختر المستشار</option>
-                        <option value="د. سامح عبد الفتاح">د. سامح عبد الفتاح</option>
-                        <option value="م. طارق يونس">م. طارق يونس</option>
+                        {dbConsultants.length > 0 ? (
+                          dbConsultants.map(c => (
+                            <option key={c.id} value={c.name}>{c.name}</option>
+                          ))
+                        ) : (
+                          <>
+                            <option value="أحمد نصار">أحمد نصار</option>
+                            <option value="عبدالرحمن حسين محمد حسين الأصفر">عبدالرحمن حسين محمد حسين الأصفر</option>
+                          </>
+                        )}
                       </select>
                     </div>
                     <div>
-                      <label>رقم الاستشارة</label>
-                      <select value={consultationNo} onChange={e => setConsultationNo(e.target.value)}>
-                        <option value="ADV-2026-7781">ADV-2026-7781</option>
-                        <option value="ADV-2026-7782">ADV-2026-7782</option>
-                        <option value="ADV-2026-7783">ADV-2026-7783</option>
+                      <label>رقم الاستشارة <span className="req">*</span></label>
+                      <select
+                        value={consultationNo}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setConsultationNo(val);
+                          const matched = allSessions.find(s => s.consultationCode === val);
+                          if (matched && matched.consultantName) {
+                            const matchedCons = dbConsultants.find(c => isConsultantMatch(matched.consultantName, c.name));
+                            if (matchedCons) {
+                              setPlatformConsultant(matchedCons.name);
+                            }
+                          }
+                        }}
+                      >
+                        <option value="">اختر الاستشارة</option>
+                        {availablePlatformSessions.length > 0 ? (
+                          availablePlatformSessions.map(s => (
+                            <option key={s.id} value={s.consultationCode}>
+                              {s.consultationCode} {s.consultantName ? `— (${s.consultantName})` : ''} {s.clientName ? `[${s.clientName}]` : ''}
+                            </option>
+                          ))
+                        ) : platformConsultant ? (
+                          <option value="" disabled>لا توجد استشارات مسجلة للمستشار ({platformConsultant})</option>
+                        ) : (
+                          <option value="" disabled>الرجاء اختيار المستشار أولاً</option>
+                        )}
                       </select>
                     </div>
                     <div>
@@ -2000,13 +2454,35 @@ export default function AdminInvoicesPage({ navigate }) {
                 </div>
               </div>
 
-              <div className="summary">
-                <div className="sumrow"><span>المبلغ</span><strong>{fmt(calcSubtotal)} {currency}</strong></div>
-                <div className="sumrow"><span>الخصم</span><strong>0.000 {currency}</strong></div>
-                <div className="sumrow"><span>الضريبة</span><strong>{fmt(calcTaxTotal)} {currency}</strong></div>
-                <div className="sumrow total"><span>الإجمالي قبل التقريب</span><strong>{fmt(calcGrandTotal)} {currency}</strong></div>
-                <div className="sumrow final"><span>الإجمالي</span><strong>{fmt(calcGrandTotal)} {currency}</strong></div>
-                <div className="words">{numberToArabicWords(calcGrandTotal)}</div>
+              <div className="editor-summary-card">
+                <div className="editor-summary-title">
+                  <i className="fa-solid fa-receipt"></i>
+                  <span>ملخص الحساب الإجمالي</span>
+                </div>
+                <div className="inv-sumrow">
+                  <span>المبلغ الفرعي</span>
+                  <strong>{fmt(calcSubtotal)} {currency}</strong>
+                </div>
+                <div className="inv-sumrow">
+                  <span>الخصم</span>
+                  <strong>0.000 {currency}</strong>
+                </div>
+                <div className="inv-sumrow">
+                  <span>ضريبة المبيعات ({taxEnabled ? '16%' : '0%'})</span>
+                  <strong>{fmt(calcTaxTotal)} {currency}</strong>
+                </div>
+                <div className="inv-sumrow total">
+                  <span>الإجمالي قبل التقريب</span>
+                  <strong>{fmt(calcGrandTotal)} {currency}</strong>
+                </div>
+                <div className="inv-sumrow final">
+                  <span>الإجمالي المستحق</span>
+                  <strong>{fmt(calcGrandTotal)} {currency}</strong>
+                </div>
+                <div className="inv-words-box">
+                  <i className="fa-solid fa-pen-fancy" style={{ marginLeft: 6 }}></i>
+                  {numberToArabicWords(calcGrandTotal)}
+                </div>
               </div>
             </div>
           </section>
@@ -2579,8 +3055,10 @@ export default function AdminInvoicesPage({ navigate }) {
         const itemTotal = Number(sel.total_amount || sel.amount || sel.refund_amount || 0);
         const itemTax = Number(sel.tax_amount || (itemTotal > 0 ? itemTotal * 0.16 / 1.16 : 0));
         const itemSubtotal = itemTotal - itemTax;
-        const itemCustName = sel.user_name || "شركة الأفق للاستشارات ذ.م.م";
-        const itemCustEmail = sel.user_email || "accounts@alofuq.jo";
+        const itemCustName = sel.customer_name || sel.user_name || "—";
+        const itemCustAddr = sel.customer_address || "عمّان - الأردن";
+        const itemCustTax  = sel.customer_tax_number || "";
+        const itemCustPhone = sel.customer_phone || sel.user_phone || "";
         const itemPayMethod = sel.payment_method || "بطاقة بنكية";
         const itemItems = Array.isArray(sel.line_items) && sel.line_items.length > 0 ? sel.line_items : [
           { name: sel.service_name || sel.service || (sel.type === "subscription" ? "اشتراك باقة استشارية" : sel.type === "appointment" ? "جلسة استشارة مسجلة" : "خدمات استشارية وطباعة ضريبية"), qty: 1, unit: "خدمة", price: itemSubtotal, discount: 0, taxRate: 16 }
@@ -2598,7 +3076,7 @@ export default function AdminInvoicesPage({ navigate }) {
               </div>
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                 <button className="primary-top" onClick={diwanPrintA5} type="button">
-                  <i className="fa-solid fa-print"></i> طباعة الفاتورة (A5)
+                  <i className="fa-solid fa-download"></i> تحميل الفاتورة (PDF)
                 </button>
                 <button style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: "#64748B", fontWeight: "bold" }} onClick={() => setSel(null)}>
                   ×
@@ -2686,8 +3164,9 @@ export default function AdminInvoicesPage({ navigate }) {
                           <b style={{ fontSize: 13, color: "#0D3C5C" }}>{itemCustName}</b>
                         </div>
                         <div style={{ fontSize: 11, color: "#64748B", display: "grid", gap: 3 }}>
-                          <div>{itemCustEmail}</div>
-                          <div>الهاتف: +962 7 962 9000 000</div>
+                          <div>{itemCustAddr}</div>
+                          {itemCustTax && <div>الرقم الضريبي: {itemCustTax}</div>}
+                          {itemCustPhone && <div>الهاتف: {itemCustPhone}</div>}
                         </div>
                       </div>
                     </div>
@@ -2868,8 +3347,8 @@ export default function AdminInvoicesPage({ navigate }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14, background: '#F8FAFC', padding: '10px 14px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 11 }}>
           <div>
             <div style={{ color: '#64748B', fontWeight: 700 }}>المستفيد / العميل:</div>
-            <div style={{ fontWeight: 900, color: '#0D3C5C', fontSize: 12 }}>{currentCust.name}</div>
-            <div style={{ color: '#475569' }}>{currentCust.address} {currentCust.tax ? `· رقم ضريبي: ${currentCust.tax}` : ''}</div>
+            <div style={{ fontWeight: 900, color: '#0D3C5C', fontSize: 12 }}>{currentCust.displayName || currentCust.name}</div>
+            <div style={{ color: '#475569' }}>{currentCust.address || "عمّان، الأردن"} {currentCust.tax ? `· رقم ضريبي: ${currentCust.tax}` : ''}</div>
           </div>
           <div style={{ textAlign: 'left' }}>
             <div><span style={{ color: '#64748B' }}>تاريخ الإصدار: </span><b>{invDate}</b></div>
@@ -2955,4 +3434,5 @@ export default function AdminInvoicesPage({ navigate }) {
     </div>
   );
 }
+
 

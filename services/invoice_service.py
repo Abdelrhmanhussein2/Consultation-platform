@@ -131,7 +131,12 @@ class InvoiceService:
                 (User.phone.ilike(term)) |
                 (User.tax_number.ilike(term))
             )
-        users = query.limit(30).all()
+        # Only billable customers: regular users and external certified consultants
+        # Exclude platform_consultant, admin, super_admin
+        from helpers.enums import UserRole
+        billable_roles = [UserRole.user, UserRole.consultant]
+        query = query.filter(User.role.in_(billable_roles))
+        users = query.limit(100).all()
         results = []
         for u in users:
             name = u.company_name or u.full_name or u.email
@@ -146,5 +151,6 @@ class InvoiceService:
                 "address": address,
                 "email": u.email or "",
                 "phone": u.phone or "",
+                "role": u.role.value if hasattr(u.role, 'value') else str(u.role),
             })
         return results
