@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { appointmentService } from '../services/appointmentService';
 import { notificationService } from '../services/notificationService';
 import { apiFetch } from '../services/api';
+import { getNotificationTarget } from '../utils/notificationRouter';
 import './UserDashboard.css';
 
 export default function UserDashboard({ navigate }) {
@@ -219,17 +220,20 @@ export default function UserDashboard({ navigate }) {
 
   // Activity Items Combined accurately
   const rawActivities = [
-    ...notifications.map(n => ({
-      id: `notif-${n.id}`,
-      rawId: n.id,
-      type: 'notif',
-      title: n.title || n.message || 'تنبيه جديد',
-      date: n.created_at ? new Date(n.created_at).toLocaleDateString('ar-EG') : 'اليوم',
-      category: 'alerts',
-      sub: n.message || 'تحديث على منصتك الضريبية',
-      link: n.link || n.url || null,
-      appointment_id: n.appointment_id || n.appt_id || n.data?.appointment_id || null
-    })),
+    ...notifications.map(n => {
+      const target = getNotificationTarget(n, user?.role);
+      return {
+        id: `notif-${n.id}`,
+        rawId: n.id,
+        type: 'notif',
+        title: n.title || n.message || 'تنبيه جديد',
+        date: n.created_at ? new Date(n.created_at).toLocaleDateString('ar-EG') : 'اليوم',
+        category: 'alerts',
+        sub: n.message || 'تحديث على منصتك الضريبية',
+        link: target ? target.url : (n.link || n.url || null),
+        appointment_id: n.appointment_id || n.appt_id || n.data?.appointment_id || null
+      };
+    }),
     ...appointments.map(a => ({
       id: `appt-${a.id}`,
       rawId: a.id,

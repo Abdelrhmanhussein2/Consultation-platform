@@ -9,7 +9,7 @@
   padding-bottom: 50px;
   text-align: right;
   direction: rtl;
-  font-family: var(--font-main, 'Cairo', 'Segoe UI', Tahoma, sans-serif);
+  font-family: 'Tajawal', sans-serif !important;
 }
 
 /* ── Toast Notification ─────────────────────────────────────────────────── */

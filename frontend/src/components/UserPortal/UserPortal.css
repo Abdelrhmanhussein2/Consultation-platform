@@ -42,7 +42,7 @@
   display: flex;
   min-height: 100vh;
   background-color: var(--portal-bg);
-  font-family: 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  font-family: 'Tajawal', sans-serif !important;
   direction: rtl;
   color: var(--portal-text-dark);
 }

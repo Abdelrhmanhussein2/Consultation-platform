@@ -42,7 +42,8 @@
 }
 
 :root {
-  --font-main: 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-main: 'Tajawal', sans-serif;
+  --font-family: 'Tajawal', sans-serif;
   --font-weight-header: 800;
   --font-weight-title: 700;
   --font-weight-subtitle: 600;
@@ -82,11 +83,14 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: var(--font-main);
+  font-family: 'Tajawal', sans-serif !important;
+}
+
+html, body, #root, button, input, select, textarea {
+  font-family: 'Tajawal', sans-serif !important;
 }
 
 html, body, #root {
-  font-family: var(--font-main) !important;
   background: var(--bg-gradient);
   color: var(--text-main);
   direction: rtl;

@@ -4,6 +4,7 @@ import { apiFetch } from '../../services/api';
 import { notificationService } from '../../services/notificationService';
 import NotificationDropdown from './NotificationDropdown';
 import UserProfileDropdown from './UserProfileDropdown';
+import { getNotificationTarget } from '../../utils/notificationRouter';
 import { BellIcon, SidebarToggleIcon } from './Icons';
 import './UserHeader.css';
 
@@ -93,122 +94,10 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
 
     setShowNotifications(false);
 
-    // Explicit target URL if provided by backend
-    if (notif.target_url) {
-      navigate(notif.target_url);
-      return;
-    }
-
-    const rawTitle = notif.title || '';
-    const rawMsg = notif.message || '';
-    const title = rawTitle.toLowerCase();
-    const msg = rawMsg.toLowerCase();
-    const type = (notif.type || notif.notification_type || '').toLowerCase();
-    const isConsultant = user?.role === 'consultant' || user?.role === 'platform_consultant';
-
-
-    // 1. Session Links & Appointments FIRST (e.g. "رابط جلسة الاستشارة جاهز", "طلب حجز موعد جديد")
-    if (
-      type.includes('session') ||
-      type.includes('appointment') ||
-      title.includes('رابط') ||
-      title.includes('جلسة') ||
-      title.includes('موعد') ||
-      title.includes('حجز')
-    ) {
-      let apptId = notif.related_entity_id || '';
-      if (!apptId && notif.message) {
-        const match = notif.message.match(/consultation-([a-f0-9-]+)/i);
-        if (match) apptId = match[1];
-      }
-
-      const targetPath = isConsultant ? '/consultant/sessions' : '/my-appointments';
-      if (apptId) {
-        navigate(`${targetPath}?openApptId=${apptId}`);
-      } else {
-        navigate(targetPath);
-      }
-      return;
-    }
-
-    // 1.5. Support Tickets & Platform Communications from Admin
-    if (
-      type.includes('ticket') ||
-      notif.related_entity_type === 'support_ticket' ||
-      notif.related_entity_type === 'ticket' ||
-      title.includes('تذكرة') ||
-      msg.includes('تذكرتك') ||
-      title.includes('الدعم') ||
-      msg.includes('الدعم') ||
-      title.includes('إدارة المنصة') ||
-      msg.includes('إدارة المنصة') ||
-      title.includes('المنصة')
-    ) {
-      const ticketId = notif.related_entity_id;
-      if (ticketId && String(ticketId).length > 10) {
-        navigate(`/support/tickets/${ticketId}`);
-      } else {
-        navigate('/support/tickets');
-      }
-      return;
-    }
-
-    // 2. Consultation Chat (Only between Client & Consultant for booked sessions)
-    if (
-      type.includes('chat') ||
-      type.includes('message') ||
-      title.includes('رسالة') ||
-      title.includes('محادثة') ||
-      msg.includes('رسالة')
-    ) {
-      let senderName = '';
-      if (rawTitle.includes('من ')) {
-        senderName = rawTitle.split('من ')[1]?.trim() || '';
-      } else if (rawMsg.includes('من ')) {
-        senderName = rawMsg.split('من ')[1]?.trim() || '';
-      }
-
-      const entityId = notif.related_entity_id || '';
-      let chatUrl = '/chat';
-      const params = new URLSearchParams();
-      if (entityId) params.append('apptId', entityId);
-      if (senderName) params.append('user', senderName);
-
-      const paramStr = params.toString();
-      if (paramStr) chatUrl += `?${paramStr}`;
-
-      navigate(chatUrl);
-      return;
-    }
-
-    // 3. Earnings / Invoices / Payments
-    if (
-      type.includes('payment') ||
-      type.includes('payout') ||
-      title.includes('تحويل') ||
-      title.includes('دفع') ||
-      title.includes('فاتورة') ||
-      msg.includes('أرباح')
-    ) {
-      if (isConsultant) {
-        navigate('/consultant/earnings');
-      } else {
-        navigate('/invoices');
-      }
-      return;
-    }
-
-    // 4. Support Tickets
-    if (type.includes('ticket') || title.includes('تذكرة') || msg.includes('تذكرة')) {
-      navigate('/support/tickets');
-      return;
-    }
-
-    // 5. Default fallback
-    if (isConsultant) {
-      navigate('/consultant/sessions');
-    } else {
-      navigate('/my-appointments');
+    // Resolve target page & tab dynamically
+    const target = getNotificationTarget(notif, user?.role);
+    if (target && target.url && navigate) {
+      navigate(target.url);
     }
   };
 

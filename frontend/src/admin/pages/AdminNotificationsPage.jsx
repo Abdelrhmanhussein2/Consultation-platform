@@ -5,6 +5,7 @@ import FilterResetButton from '../../components/FilterResetButton';
 import { notificationService } from '../../services/notificationService';
 import { sendBroadcastNotification } from '../services/adminApi';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
+import { getNotificationTarget } from '../../utils/notificationRouter';
 
 // Clean SVG Icons
 const IconBroadcast = ({ size = 20, color = 'currentColor' }) => (
@@ -965,19 +966,22 @@ export default function AdminNotificationsPage({ navigate }) {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
-              {(previewModalOpen.related_entity_type === 'support_ticket' || previewModalOpen.title?.includes('تذكرة') || previewModalOpen.message?.includes('تذكرة')) && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const tId = previewModalOpen.related_entity_id;
-                    setPreviewModalOpen(null);
-                    navigate('/admin/tickets' + (tId ? `?id=${tId}` : ''));
-                  }}
-                  style={{ flex: 1.5, background: '#005D9C', color: '#FFFFFF', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                >
-                  <span>الانتقال للتذكرة والمحادثة ↵</span>
-                </button>
-              )}
+              {(() => {
+                const target = getNotificationTarget(previewModalOpen, 'admin');
+                if (!target || !target.url) return null;
+                return (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreviewModalOpen(null);
+                      navigate(target.url);
+                    }}
+                    style={{ flex: 1.5, background: '#005D9C', color: '#FFFFFF', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                  >
+                    <span>{target.label} ↵</span>
+                  </button>
+                );
+              })()}
               <button
                 type="button"
                 onClick={() => setPreviewModalOpen(null)}

@@ -119,8 +119,17 @@ const NOTIFICATION_TYPES = [
 
 export default function AdminSubscriptionsPage({ navigate }) {
   // Navigation tabs: 'dashboard', 'plans', 'subscribers', 'requests', 'orders', 'versions', 'planForm'
-  const [activeTab, setActiveTab] = useState('subscribers');
+  const initialUrlTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
+  const validTabs = ['dashboard', 'plans', 'subscribers', 'requests', 'orders', 'versions', 'planForm'];
+  const [activeTab, setActiveTab] = useState(validTabs.includes(initialUrlTab) ? initialUrlTab : 'subscribers');
   const [billing, setBilling] = useState('monthly');
+
+  useEffect(() => {
+    const currentUrlTab = new URLSearchParams(window.location.search).get('tab');
+    if (currentUrlTab && validTabs.includes(currentUrlTab) && currentUrlTab !== activeTab) {
+      setActiveTab(currentUrlTab);
+    }
+  }, [typeof window !== 'undefined' ? window.location.search : '']);
 
   // Datasets
   const [plans, setPlans] = useState(INITIAL_PLANS);

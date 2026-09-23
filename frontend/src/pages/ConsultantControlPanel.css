@@ -23,7 +23,7 @@
 
 .control-panel-root {
   direction: rtl;
-  font-family: 'Tajawal', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-family: 'Tajawal', sans-serif !important;
   color: var(--cp-ink);
   padding: 0 0 40px 0;
   background: transparent;

@@ -143,7 +143,7 @@ export default function AdminConsultantApplicationsPage({ navigate }) {
 
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: '1400px', margin: '0 auto', fontFamily: "'Tajawal', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+    <div style={{ padding: '24px 32px', maxWidth: '1400px', margin: '0 auto', fontFamily: "'Tajawal', sans-serif" }}>
       {/* ══════════════════════════════════════════════════════════════════
           HERO HEADER
           ══════════════════════════════════════════════════════════════════ */}

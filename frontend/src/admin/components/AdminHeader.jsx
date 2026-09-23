@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { notificationService } from '../../services/notificationService';
 import NotificationDropdown from '../../components/UserPortal/NotificationDropdown';
+import { getNotificationTarget } from '../../utils/notificationRouter';
 import {
   IconSearch,
   IconSparkles,
@@ -81,7 +82,12 @@ export default function AdminHeader({ navigate, onOpenAiModal, isSidebarCollapse
       }
     }
     setShowNotifications(false);
-    navigate('/admin/notifications');
+
+    // Resolve target page & tab dynamically
+    const target = getNotificationTarget(notif, 'admin');
+    if (target && target.url && navigate) {
+      navigate(target.url);
+    }
   };
 
   const firstLetter = user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'م';
