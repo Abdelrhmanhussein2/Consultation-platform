@@ -108,7 +108,13 @@ export default function UserSubscriptionsPage({ navigate }) {
   // Normalize plans from database
   const plans = useMemo(() => {
     if (!rawPlans || rawPlans.length === 0) return FALLBACK_PLANS;
+    const planOrder = { 'مجانية': 1, 'أساسية': 2, 'احترافية': 3 };
     const visiblePlans = rawPlans.filter(p => p.active !== false || (activeSub && activeSub.plan_name === p.name));
+    visiblePlans.sort((a, b) => {
+      const orderA = planOrder[a.name] || 99;
+      const orderB = planOrder[b.name] || 99;
+      return orderA - orderB;
+    });
     return visiblePlans.map(p => {
       const monthlyCycle = p.cycles?.monthly || { price: 0, cases: 5, points: 0, downloads: 5, consultations: 0 };
       const yearlyCycle = p.cycles?.yearly || { price: 0, cases: 60, points: 0, downloads: 60, consultations: 0 };

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import './ConfirmModal.css';
 
 export default function ConfirmModal({
@@ -25,7 +26,7 @@ export default function ConfirmModal({
 
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <div className="diwan-confirm-overlay" onClick={onCancel}>
       <div className="diwan-confirm-card" onClick={(e) => e.stopPropagation()} dir="rtl">
         <div className="diwan-confirm-header">
@@ -60,4 +61,6 @@ export default function ConfirmModal({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }

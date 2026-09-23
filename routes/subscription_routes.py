@@ -134,8 +134,8 @@ def approve_request(req_id: str, db: Session = Depends(get_db)):
     return {"success": success}
 
 @router.post("/requests/{req_id}/reject")
-def reject_request(req_id: str, payload: Dict[str, Any] = Body(...), db: Session = Depends(get_db)):
-    reason = payload.get("reason", "تم الرفض")
+def reject_request(req_id: str, payload: Optional[Dict[str, Any]] = Body(default={}), db: Session = Depends(get_db)):
+    reason = (payload or {}).get("reason", "تم الرفض")
     success = SubscriptionController.reject_request(db, req_id, reason)
     return {"success": success}
 

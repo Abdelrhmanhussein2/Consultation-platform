@@ -571,6 +571,7 @@ const CSS = `
     grid-column: 1;
     grid-row: 2;
     min-width: 0;
+    min-height: 0;
     height: 100%;
     max-height: 100%;
     overflow-y: auto;
@@ -578,13 +579,15 @@ const CSS = `
     overscroll-behavior: contain;
     scrollbar-width: thin;
     scrollbar-color: #CBD5E1 transparent;
-    padding-left: 4px;
+    padding-left: 6px;
+    box-sizing: border-box;
   }
 
   .profile-side-scroll {
     grid-column: 2;
     grid-row: 2;
     min-width: 0;
+    min-height: 0;
     height: 100%;
     max-height: 100%;
     overflow-y: auto;
@@ -592,7 +595,8 @@ const CSS = `
     overscroll-behavior: contain;
     scrollbar-width: thin;
     scrollbar-color: #CBD5E1 transparent;
-    padding-left: 4px;
+    padding-left: 6px;
+    box-sizing: border-box;
   }
 
   .profile-main-scroll::-webkit-scrollbar,

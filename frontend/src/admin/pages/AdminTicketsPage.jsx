@@ -1886,51 +1886,51 @@ export default function AdminTicketsPage({ navigate }) {
               {/* View Mode Toggle Switcher */}
               <div style={{ display: 'flex', alignItems: 'center', background: '#F1F5F9', padding: '4px', borderRadius: '999px' }}>
                 <button
+                  type="button"
+                  title="عرض الجدول"
                   onClick={() => setAdminView('table')}
                   style={{
-                    padding: '8px 16px',
+                    padding: '8px 12px',
                     borderRadius: '999px',
                     border: 'none',
-                    fontSize: '12.5px',
-                    fontWeight: '800',
                     cursor: 'pointer',
                     background: adminView === 'table' ? '#FFFFFF' : 'transparent',
                     color: adminView === 'table' ? '#0e3b5e' : '#64748B',
                     boxShadow: adminView === 'table' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px'
+                    justifyContent: 'center',
+                    transition: 'all 0.15s ease'
                   }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2" />
                     <path d="M3 9h18M3 15h18M9 3v18" />
                   </svg>
-                  <span>جدول</span>
                 </button>
                 <button
+                  type="button"
+                  title="عرض كانبان"
                   onClick={() => setAdminView('kanban')}
                   style={{
-                    padding: '8px 16px',
+                    padding: '8px 12px',
                     borderRadius: '999px',
                     border: 'none',
-                    fontSize: '12.5px',
-                    fontWeight: '800',
                     cursor: 'pointer',
                     background: adminView === 'kanban' ? '#FFFFFF' : 'transparent',
                     color: adminView === 'kanban' ? '#0e3b5e' : '#64748B',
                     boxShadow: adminView === 'kanban' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px'
+                    justifyContent: 'center',
+                    transition: 'all 0.15s ease'
                   }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="3" width="5" height="18" rx="1" />
                     <rect x="11" y="3" width="5" height="12" rx="1" />
                     <rect x="19" y="3" width="2" height="8" rx="1" />
                   </svg>
-                  <span>كانبان</span>
                 </button>
               </div>
             </div>
@@ -1939,20 +1939,25 @@ export default function AdminTicketsPage({ navigate }) {
           {/* TABLE VIEW */}
           {adminView === 'table' && (
             <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', direction: 'rtl', textAlign: 'right' }}>
-              <div style={{ overflowX: 'auto' }}>
+              <div style={{ overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                <style>{`
+                  div::-webkit-scrollbar {
+                    display: none;
+                  }
+                `}</style>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
                   <thead>
                     <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontSize: '12px', fontWeight: '700' }}>
-                      <th style={{ padding: '14px 16px', textAlign: 'right' }}>رقم الطلب</th>
-                      <th style={{ padding: '14px 16px', textAlign: 'right' }}>المستخدم</th>
-                      <th style={{ padding: '14px 16px', textAlign: 'right' }}>الموضوع</th>
-                      <th style={{ padding: '14px 16px', textAlign: 'right' }}>الفئة</th>
-                      <th style={{ padding: '14px 16px', textAlign: 'right' }}>الأولوية</th>
-                      <th style={{ padding: '14px 16px', textAlign: 'right' }}>الحالة</th>
-                      <th style={{ padding: '14px 16px', textAlign: 'right' }}>الموظف المعين</th>
-                      <th style={{ padding: '14px 16px', textAlign: 'right' }}>SLA</th>
-                      <th style={{ padding: '14px 16px', textAlign: 'right' }}>التاريخ</th>
-                      <th style={{ padding: '14px 16px', textAlign: 'center' }}>الإجراءات</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'right' }}>رقم الطلب</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'right' }}>المستخدم</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'right' }}>الموضوع</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'right' }}>الفئة</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'right' }}>الأولوية</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'right' }}>الحالة</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'right' }}>الموظف المعين</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'right' }}>SLA</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'right' }}>التاريخ</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'center' }}>الإجراءات</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1972,26 +1977,26 @@ export default function AdminTicketsPage({ navigate }) {
                           onMouseEnter={(e) => { e.currentTarget.style.background = '#F8FAFC'; }}
                           onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; }}
                         >
-                          <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontWeight: '900', color: '#0e3b5e' }}>{t.id}</td>
-                          <td style={{ padding: '14px 16px', fontWeight: '600', color: '#334155' }}>{t.user}</td>
-                          <td style={{ padding: '14px 16px', fontWeight: '500', color: '#1E293B', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <td style={{ padding: '12px 14px', fontFamily: 'monospace', fontWeight: '900', color: '#0e3b5e' }}>{t.id}</td>
+                          <td style={{ padding: '12px 14px', fontWeight: '600', color: '#334155' }}>{t.user}</td>
+                          <td style={{ padding: '12px 14px', fontWeight: '500', color: '#1E293B', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {t.subject}
                           </td>
-                          <td style={{ padding: '14px 16px', color: '#64748B' }}>{t.category}</td>
-                          <td style={{ padding: '14px 16px' }}>
+                          <td style={{ padding: '12px 14px', color: '#64748B' }}>{t.category}</td>
+                          <td style={{ padding: '12px 14px' }}>
                             <span className={`badge ${priorityInfo.color}`} style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700' }}>
                               {t.priority}
                             </span>
                           </td>
-                          <td style={{ padding: '14px 16px' }}>
+                          <td style={{ padding: '12px 14px' }}>
                             <span className={`badge ${statusInfo.color}`} style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700' }}>
                               {t.status}
                             </span>
                           </td>
-                          <td style={{ padding: '14px 16px', color: '#475569', fontWeight: '600' }}>{t.assignee}</td>
-                          <td style={{ padding: '14px 16px', fontSize: '11.5px', color: '#64748B' }}>{t.sla}</td>
-                          <td style={{ padding: '14px 16px', color: '#64748B', fontSize: '12px' }}>{t.created}</td>
-                          <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                          <td style={{ padding: '12px 14px', color: '#475569', fontWeight: '600' }}>{t.assignee}</td>
+                          <td style={{ padding: '12px 14px', fontSize: '11.5px', color: '#64748B' }}>{t.sla}</td>
+                          <td style={{ padding: '12px 14px', color: '#64748B', fontSize: '12px' }}>{t.created}</td>
+                          <td style={{ padding: '12px 14px', textAlign: 'center' }}>
                             <button
                               onClick={(e) => { e.stopPropagation(); setSelectedTicketId(t.id); }}
                               style={{ background: '#0e7490', color: '#FFFFFF', border: 'none', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}

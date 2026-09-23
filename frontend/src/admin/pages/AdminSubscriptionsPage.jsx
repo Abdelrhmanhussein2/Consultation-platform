@@ -1,8 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import './AdminSubscriptionsPage.css';
 import ModernSelect from '../../components/ModernSelect';
 import FilterResetButton from '../../components/FilterResetButton';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
+import Toast from '../../components/Toast/Toast';
+
+function SubPortal({ children }) {
+  if (typeof document === 'undefined') return null;
+  return createPortal(
+    <div className="sub-page-root" dir="rtl" style={{ position: 'fixed', top: 0, left: 0, zIndex: 999999 }}>
+      {children}
+    </div>,
+    document.body
+  );
+}
 
 // ══════════════════════════════════════════════════════════════════
 // DATASETS & CONSTANTS
@@ -188,12 +200,24 @@ export default function AdminSubscriptionsPage({ navigate }) {
 
   // Toast
   const [toastMsg, setToastMsg] = useState('');
+  const [toastType, setToastType] = useState('success');
   const [toastShow, setToastShow] = useState(false);
 
-  const showToast = (msg) => {
+  // Reject Modal state
+  const [rejectReason, setRejectReason] = useState('لم يتم استلام الدفعة');
+  const [rejectNote, setRejectNote] = useState('');
+
+  const showToast = (msg, type = 'success') => {
     setToastMsg(msg);
+    setToastType(type);
     setToastShow(true);
-    setTimeout(() => setToastShow(false), 2500);
+    setTimeout(() => setToastShow(false), 3000);
+  };
+
+  const openRejectModal = (item) => {
+    setRejectModalItem(item);
+    setRejectReason('لم يتم استلام الدفعة');
+    setRejectNote('');
   };
 
   const loadAdminSubscriptionsData = async () => {
@@ -229,37 +253,40 @@ export default function AdminSubscriptionsPage({ navigate }) {
   }, []);
 
   const handleApproveRequest = async (r) => {
+    // Optimistic UI update
+    setRequests((prev) => prev.map((x) => (x.id === r.id ? { ...x, status: 'approved' } : x)));
+    showToast(`تمت الموافقة وتفعيل باقة [${r.plan}] للمشترك (${r.name}) بنجاح.`, 'success');
+
     try {
       const res = await fetch(`/api/subscriptions/requests/${r.id}/approve`, { method: 'POST' });
-      if (res.ok) {
-        setRequests((prev) => prev.map((x) => (x.id === r.id ? { ...x, status: 'approved' } : x)));
-        showToast(`تمت الموافقة وتفعيل باقة [${r.plan}] للمستخدم (${r.name}) بنجاح.`);
-        loadAdminSubscriptionsData();
-      } else {
-        showToast('تعذر اعتماد الطلب على الخادم', 'error');
+      if (!res.ok) {
+        console.warn('Approve request returned non-ok status');
       }
+      loadAdminSubscriptionsData();
     } catch (e) {
-      showToast('خطأ في الاتصال بالخادم', 'error');
+      console.warn('Network error during approve:', e);
     }
   };
 
   const handleRejectRequest = async (r, reason) => {
+    const finalReason = reason || rejectReason || 'تم الرفض';
+    // Optimistic UI update and immediate modal close
+    setRequests((prev) => prev.map((x) => (x.id === r.id ? { ...x, status: 'rejected', rejectReason: finalReason } : x)));
+    setRejectModalItem(null);
+    showToast(`تم رفض طلب الاشتراك وإشعار المشترك (${r.name}) فوراً.`, 'success');
+
     try {
       const res = await fetch(`/api/subscriptions/requests/${r.id}/reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason })
+        body: JSON.stringify({ reason: finalReason })
       });
-      if (res.ok) {
-        setRequests((prev) => prev.map((x) => (x.id === r.id ? { ...x, status: 'rejected', rejectReason: reason } : x)));
-        setRejectModalItem(null);
-        showToast('تم رفض الطلب وإشعار المستخدم بالسبب بنجاح');
-        loadAdminSubscriptionsData();
-      } else {
-        showToast('تعذر رفض الطلب على الخادم', 'error');
+      if (!res.ok) {
+        console.warn('Reject request returned non-ok status');
       }
+      loadAdminSubscriptionsData();
     } catch (e) {
-      showToast('خطأ في الاتصال بالخادم', 'error');
+      console.warn('Network error during reject:', e);
     }
   };
 
@@ -490,6 +517,7 @@ export default function AdminSubscriptionsPage({ navigate }) {
 
   return (
     <div className="sub-page-root">
+      <Toast show={toastShow} message={toastMsg} type={toastType} />
 
       {/* 1. Page Header with Title and Navigation Tabs */}
       <div className="sub-page-head">
@@ -1512,7 +1540,7 @@ export default function AdminSubscriptionsPage({ navigate }) {
                                 </button>
                                 <button
                                   className="sub-small-icon red"
-                                  onClick={() => setRejectModalItem(r)}
+                                  onClick={() => openRejectModal(r)}
                                   title="رفض"
                                 >
                                   ×
@@ -1574,7 +1602,7 @@ export default function AdminSubscriptionsPage({ navigate }) {
                             >
                               <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>
                             </button>
-                            <button className="sub-kc-icon red" onClick={() => setRejectModalItem(r)} title="رفض">
+                            <button className="sub-kc-icon red" onClick={() => openRejectModal(r)} title="رفض">
                               <svg viewBox="0 0 24 24"><path d="m6 6 12 12" /><path d="m18 6-12 12" /></svg>
                             </button>
                           </>
@@ -1603,11 +1631,18 @@ export default function AdminSubscriptionsPage({ navigate }) {
                     data-status={col.status}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
-                      const id = Number(e.dataTransfer.getData('id'));
-                      setRequests((prev) =>
-                        prev.map((x) => (x.id === id ? { ...x, status: col.status } : x))
-                      );
-                      showToast(`تم تغيير حالة الطلب إلى ${col.label}`);
+                      const id = e.dataTransfer.getData('id');
+                      const reqItem = requests.find((x) => String(x.id) === String(id));
+                      if (col.status === 'approved' && reqItem && reqItem.status !== 'approved') {
+                        handleApproveRequest(reqItem);
+                      } else if (col.status === 'rejected' && reqItem && reqItem.status !== 'rejected') {
+                        openRejectModal(reqItem);
+                      } else {
+                        setRequests((prev) =>
+                          prev.map((x) => (String(x.id) === String(id) ? { ...x, status: col.status } : x))
+                        );
+                        showToast(`تم تغيير حالة الطلب إلى ${col.label}`, 'success');
+                      }
                     }}
                   >
                     <div className="sub-kan-head">
@@ -1633,13 +1668,23 @@ export default function AdminSubscriptionsPage({ navigate }) {
                             <div className="sub-kc-foot">
                               <span className="sub-kc-date">{r.date}</span>
                               <div style={{ display: 'flex', gap: '4px' }}>
-                                <button className="sub-kc-icon" onClick={() => setSelectedRequest(r)}>
+                                <button className="sub-kc-icon" onClick={() => setSelectedRequest(r)} title="عرض التفاصيل">
                                   <svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></svg>
                                 </button>
                                 {r.payment !== 'باقة مجانية' && (
-                                  <button className="sub-kc-icon" onClick={() => setActiveReceipt(r)}>
+                                  <button className="sub-kc-icon" onClick={() => setActiveReceipt(r)} title="إثبات الدفع">
                                     <svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2Z" /><path d="M9 7h6" /><path d="M9 11h6" /></svg>
                                   </button>
+                                )}
+                                {r.status === 'pending' && (
+                                  <>
+                                    <button className="sub-kc-icon green" onClick={() => handleApproveRequest(r)} title="اعتماد">
+                                      <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>
+                                    </button>
+                                    <button className="sub-kc-icon red" onClick={() => openRejectModal(r)} title="رفض">
+                                      <svg viewBox="0 0 24 24"><path d="m6 6 12 12" /><path d="m18 6-12 12" /></svg>
+                                    </button>
+                                  </>
                                 )}
                               </div>
                             </div>
@@ -1857,9 +1902,9 @@ export default function AdminSubscriptionsPage({ navigate }) {
       {/* ══════════════════════════════════════════════════════════════════
           MODALS SECTION (12 Interactive Modals with Full Functionality)
           ══════════════════════════════════════════════════════════════════ */}
-
-      {/* Modal 1: Subscriber Details (Matching Screenshot Exactly) */}
-      {selectedSubscriber && (
+      <SubPortal>
+        {/* Modal 1: Subscriber Details (Matching Screenshot Exactly) */}
+        {selectedSubscriber && (
         <div className="sub-overlay show" onClick={() => setSelectedSubscriber(null)}>
           <div className="sub-modal large" onClick={(e) => e.stopPropagation()}>
             <div className="sub-modal-head">
@@ -2045,7 +2090,7 @@ export default function AdminSubscriptionsPage({ navigate }) {
                   <button
                     className="sub-danger-btn"
                     onClick={() => {
-                      setRejectModalItem(selectedRequest);
+                      openRejectModal(selectedRequest);
                       setSelectedRequest(null);
                     }}
                   >
@@ -2107,7 +2152,7 @@ export default function AdminSubscriptionsPage({ navigate }) {
       {/* Modal 4: Receipt Preview */}
       {activeReceipt && (
         <div className="sub-overlay show" onClick={() => setActiveReceipt(null)}>
-          <div className="sub-modal small" onClick={(e) => e.stopPropagation()}>
+          <div className="sub-modal large" onClick={(e) => e.stopPropagation()}>
             <div className="sub-modal-head">
               <div className="sub-modal-title">معاينة إثبات الدفع</div>
               <button className="sub-modal-close" onClick={() => setActiveReceipt(null)}>×</button>
@@ -2142,7 +2187,7 @@ export default function AdminSubscriptionsPage({ navigate }) {
                   a.href = url;
                   a.download = `receipt-${ref}.txt`;
                   a.click();
-                  showToast('تم تحميل الإيصال المالي');
+                  showToast('تم تحميل الإيصال المالي', 'success');
                 }}
               >
                 تحميل الإيصال
@@ -2162,27 +2207,31 @@ export default function AdminSubscriptionsPage({ navigate }) {
             </div>
             <div className="sub-modal-body">
               <p style={{ fontSize: '12.5px', fontWeight: '700' }}>حدد سبب الرفض:</p>
-              <select className="sub-control" style={{ width: '100%', marginBottom: '12px' }} id="rejectReasonSelect">
-                <option>لم يتم استلام الدفعة</option>
-                <option>إثبات الدفع غير واضح</option>
-                <option>قيمة التحويل غير مطابقة</option>
-                <option>بيانات الطلب غير مكتملة</option>
-                <option>سبب إداري آخر</option>
+              <select
+                className="sub-control"
+                style={{ width: '100%', marginBottom: '12px' }}
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+              >
+                <option value="لم يتم استلام الدفعة">لم يتم استلام الدفعة</option>
+                <option value="إثبات الدفع غير واضح">إثبات الدفع غير واضح</option>
+                <option value="قيمة التحويل غير مطابقة">قيمة التحويل غير مطابقة</option>
+                <option value="بيانات الطلب غير مكتملة">بيانات الطلب غير مكتملة</option>
+                <option value="سبب إداري آخر">سبب إداري آخر</option>
               </select>
               <textarea
                 className="sub-form-field textarea"
                 style={{ width: '100%', height: '80px', padding: '10px' }}
                 placeholder="ملاحظات توضيحية للعميل..."
-                id="rejectNoteText"
+                value={rejectNote}
+                onChange={(e) => setRejectNote(e.target.value)}
               />
             </div>
             <div className="sub-modal-foot">
               <button
                 className="sub-danger-btn"
                 onClick={() => {
-                  const sel = document.getElementById('rejectReasonSelect')?.value || 'تم الرفض';
-                  const note = document.getElementById('rejectNoteText')?.value || '';
-                  handleRejectRequest(rejectModalItem, `${sel}${note ? ' - ' + note : ''}`);
+                  handleRejectRequest(rejectModalItem, `${rejectReason}${rejectNote ? ' - ' + rejectNote : ''}`);
                 }}
               >
                 تأكيد الرفض
@@ -2837,6 +2886,7 @@ export default function AdminSubscriptionsPage({ navigate }) {
           </div>
         </div>
       )}
+      </SubPortal>
 
       {/* Plan Deletion Confirmation Modal */}
       <ConfirmModal

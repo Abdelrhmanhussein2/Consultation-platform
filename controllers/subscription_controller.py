@@ -230,8 +230,25 @@ class SubscriptionController:
         return {"success": True, "plan_id": str(plan.id)}
 
     @staticmethod
+    def _find_plan(db: Session, plan_id: Any) -> Optional[SubscriptionPlan]:
+        if not plan_id:
+            return None
+        plan = None
+        try:
+            plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == uuid.UUID(str(plan_id))).first()
+        except (ValueError, TypeError):
+            plan = None
+        if not plan:
+            name_map = {"plan-1": "مجانية", "plan-2": "أساسية", "plan-3": "احترافية"}
+            target_name = name_map.get(str(plan_id), str(plan_id))
+            plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.name == target_name).first()
+        if not plan:
+            plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.name.ilike(f"%{str(plan_id)}%")).first()
+        return plan
+
+    @staticmethod
     def toggle_plan_active(db: Session, plan_id: str) -> bool:
-        plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == uuid.UUID(plan_id)).first()
+        plan = SubscriptionController._find_plan(db, plan_id)
         if plan:
             plan.is_active = not plan.is_active
             db.commit()
@@ -240,7 +257,7 @@ class SubscriptionController:
 
     @staticmethod
     def delete_plan(db: Session, plan_id: str) -> bool:
-        plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == uuid.UUID(plan_id)).first()
+        plan = SubscriptionController._find_plan(db, plan_id)
         if plan:
             db.delete(plan)
             db.commit()
@@ -477,9 +494,25 @@ class SubscriptionController:
 
     @staticmethod
     def approve_request(db: Session, req_id: str) -> bool:
-        r = db.query(SubscriptionRequest).filter(SubscriptionRequest.id == uuid.UUID(req_id)).first()
+        r = None
+        try:
+            req_uuid = uuid.UUID(str(req_id))
+            r = db.query(SubscriptionRequest).filter(SubscriptionRequest.id == req_uuid).first()
+        except Exception:
+            pass
+
+        if not r:
+            r = db.query(SubscriptionRequest).filter(SubscriptionRequest.request_no == str(req_id)).first()
+
+        if not r:
+            try:
+                r = db.query(SubscriptionRequest).filter(SubscriptionRequest.id.cast(String) == str(req_id)).first()
+            except Exception:
+                pass
+
         if not r:
             return False
+
         r.status = "approved"
 
         # Create or update user subscription
@@ -531,33 +564,92 @@ class SubscriptionController:
             existing_sub.consultations_total = consultations
             existing_sub.consultations_used = 0
 
-        # Dispatch Notification to User
-        notif = Notification(
+        # Create or update SubscriptionOrder record so it reflects in orders tab & database
+        order_count = db.query(SubscriptionOrder).count() + 1
+        order_no = f"ORD-2026-{order_count:04d}"
+        order = SubscriptionOrder(
+            order_no=order_no,
             user_id=r.user_id,
-            type=NotificationType.general,
-            title="تمت الموافقة على اشتراكك بنجاح",
-            message=f"تمت الموافقة على تفعيل باقة [{plan_name}] ({r.subscription}). تم تحديث باقتك ورصيدك الجديد تلقائياً ويمكنك استخدامه الآن."
+            plan_name=plan_name,
+            subscription=r.subscription,
+            amount=r.amount,
+            yearly_discount_pct=21 if is_yearly else 0,
+            payment_method=r.payment_method,
+            status="approved"
         )
-        db.add(notif)
+        db.add(order)
+
+        # Dispatch Notification to User with WebSocket delivery
+        try:
+            from services.notification_service import NotificationService
+            NotificationService.send(
+                db=db,
+                user_id=r.user_id,
+                notification_type=NotificationType.general,
+                title="تمت الموافقة على اشتراكك بنجاح 🎉",
+                message=f"تمت الموافقة على تفعيل باقة [{plan_name}] ({r.subscription}). تم تحديث باقتك ورصيدك الجديد تلقائياً ويمكنك استخدامه الآن.",
+                related_entity_type="subscription",
+                related_entity_id=r.plan_id
+            )
+        except Exception:
+            notif = Notification(
+                user_id=r.user_id,
+                type=NotificationType.general,
+                title="تمت الموافقة على اشتراكك بنجاح",
+                message=f"تمت الموافقة على تفعيل باقة [{plan_name}] ({r.subscription}). تم تحديث باقتك ورصيدك الجديد تلقائياً ويمكنك استخدامه الآن."
+            )
+            db.add(notif)
+
         db.commit()
         return True
 
     @staticmethod
     def reject_request(db: Session, req_id: str, reason: str) -> bool:
-        r = db.query(SubscriptionRequest).filter(SubscriptionRequest.id == uuid.UUID(req_id)).first()
+        r = None
+        try:
+            req_uuid = uuid.UUID(str(req_id))
+            r = db.query(SubscriptionRequest).filter(SubscriptionRequest.id == req_uuid).first()
+        except Exception:
+            pass
+
+        if not r:
+            r = db.query(SubscriptionRequest).filter(SubscriptionRequest.request_no == str(req_id)).first()
+
+        if not r:
+            try:
+                r = db.query(SubscriptionRequest).filter(SubscriptionRequest.id.cast(String) == str(req_id)).first()
+            except Exception:
+                pass
+
         if not r:
             return False
+
         r.status = "rejected"
         r.reject_reason = reason
 
         plan_name = r.plan.name if r.plan else "الباقة"
-        notif = Notification(
-            user_id=r.user_id,
-            type=NotificationType.general,
-            title=f"تحديث بخصوص طلب باقة [{plan_name}]",
-            message=f"نعتذر، لم يتم قبول طلب الاشتراك في باقة [{plan_name}]. السبب: {reason}"
-        )
-        db.add(notif)
+        
+        # Dispatch Notification to User with WebSocket delivery
+        try:
+            from services.notification_service import NotificationService
+            NotificationService.send(
+                db=db,
+                user_id=r.user_id,
+                notification_type=NotificationType.general,
+                title=f"تحديث بخصوص طلب باقة [{plan_name}]",
+                message=f"نعتذر، لم يتم قبول طلب الاشتراك في باقة [{plan_name}]. السبب: {reason}",
+                related_entity_type="subscription_request",
+                related_entity_id=r.id
+            )
+        except Exception:
+            notif = Notification(
+                user_id=r.user_id,
+                type=NotificationType.general,
+                title=f"تحديث بخصوص طلب باقة [{plan_name}]",
+                message=f"نعتذر، لم يتم قبول طلب الاشتراك في باقة [{plan_name}]. السبب: {reason}"
+            )
+            db.add(notif)
+
         db.commit()
         return True
 
@@ -662,9 +754,9 @@ class SubscriptionController:
         payment_method: str = "بطاقة بنكية",
         notes: str = ""
     ) -> Dict[str, Any]:
-        plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == uuid.UUID(plan_id)).first()
+        plan = SubscriptionController._find_plan(db, plan_id)
         if not plan:
-            raise ValueError("Plan not found")
+            raise ValueError(f"Plan not found: {plan_id}")
 
         # Check if user already has a pending request for this exact plan
         existing_pending = db.query(SubscriptionRequest).filter(

@@ -50,8 +50,8 @@
 }
 
 .expiring-soon-banner {
-  background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
-  border: 1.5px solid #F59E0B;
+  background: #FFFBEB;
+  border: 1.5px solid #FCD34D;
   border-radius: 14px;
   padding: 16px 20px;
   margin-bottom: 24px;
@@ -60,12 +60,6 @@
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
-  animation: pulse-glow 2.5s infinite;
-}
-
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.2); }
-  50% { box-shadow: 0 0 15px 3px rgba(245, 158, 11, 0.35); }
 }
 
 .expiring-banner-content {
@@ -100,14 +94,14 @@
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2);
   transition: all 0.2s;
   white-space: nowrap;
 }
 
 .expiring-renew-btn:hover {
   background: #B45309;
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .active-sub-head {
@@ -361,9 +355,16 @@
 /* 3 Unified Cards Grid */
 .admin-unified-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 24px;
   align-items: stretch;
+  width: 100%;
+}
+
+@media (max-width: 960px) {
+  .admin-unified-cards-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .admin-plan-card {
@@ -384,12 +385,12 @@
 }
 
 .admin-plan-card.recommended-border {
-  border: 2px solid #10B981;
+  border: 2px solid #0D3C5C;
 }
 
 .admin-plan-card.current-active-card {
   background: linear-gradient(180deg, #FFFFFF 0%, #F0FDF4 100%);
-  border-color: #005D9C;
+  border-color: #10B981;
 }
 
 .top-pill-recommended {
@@ -397,13 +398,13 @@
   top: -14px;
   left: 50%;
   transform: translateX(-50%);
-  background: #10B981;
+  background: #0D3C5C;
   color: #FFFFFF;
   font-size: 11.5px;
   font-weight: 900;
   padding: 4px 18px;
   border-radius: 20px;
-  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(13, 60, 92, 0.3);
 }
 
 .card-top-badges {
@@ -542,24 +543,24 @@
 }
 
 .plan-request-btn.recommended-btn {
-  background: #134B70;
+  background: #0D3C5C;
   color: #FFFFFF;
-  box-shadow: 0 4px 12px rgba(19, 75, 112, 0.25);
+  box-shadow: 0 4px 14px rgba(13, 60, 92, 0.25);
 }
 
 .plan-request-btn.recommended-btn:hover {
-  background: #0D3C5C;
+  background: #09283E;
   transform: translateY(-1px);
 }
 
 .plan-request-btn.standard-btn {
-  background: #134B70;
+  background: #0D3C5C;
   color: #FFFFFF;
-  box-shadow: 0 4px 12px rgba(19, 75, 112, 0.25);
+  box-shadow: 0 4px 14px rgba(13, 60, 92, 0.25);
 }
 
 .plan-request-btn.standard-btn:hover {
-  background: #0D3C5C;
+  background: #09283E;
   transform: translateY(-1px);
 }
 
