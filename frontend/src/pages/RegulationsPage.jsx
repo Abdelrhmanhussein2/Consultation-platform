@@ -1,110 +1,170 @@
-import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { RegulationsIcon, SearchIcon } from '../components/UserPortal/Icons';
+// frontend/src/pages/RegulationsPage.jsx
+import React, { useState, useEffect } from 'react';
+import '../components/Regulations/regulations.css';
+import {
+  RegulationsSearch,
+  TrendingSearches,
+  SearchResultCard,
+  AdvancedFiltersModal,
+  TextPreviewModal,
+  RelatedDrawer,
+  FullTextModal,
+  LegalReader
+} from '../components/Regulations';
+import { searchLegal } from '../services/legalService';
 
 export default function RegulationsPage() {
-  const { token } = useAuth();
-  const [query, setQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!query.trim()) return;
+  // Modals and Drawer States
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [filters, setFilters] = useState({ sector: "الكل", docType: "الكل", status: "الكل" });
+
+  const [previewLaw, setPreviewLaw] = useState(null);
+  const [relatedLaw, setRelatedLaw] = useState(null);
+  const [fullTextLaw, setFullTextLaw] = useState(null);
+  const [readerLawId, setReaderLawId] = useState(null);
+
+  useEffect(() => {
+    handleSearch('');
+  }, []);
+
+  const handleSearch = async (queryText, appliedFilters = filters) => {
     setLoading(true);
-    setSearched(true);
+    const data = await searchLegal(queryText !== undefined ? queryText : searchQuery);
+    
+    let filtered = [...data];
 
-    try {
-      const res = await fetch(`/api/rag/search?query=${encodeURIComponent(query.trim())}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setResults(data.results || data || []);
-      }
-    } catch (err) {
-      // Handle error
-    } finally {
-      setLoading(false);
+    if (appliedFilters.status && appliedFilters.status !== 'الكل') {
+      filtered = filtered.filter(l => l.status === appliedFilters.status);
     }
+
+    if (appliedFilters.type && appliedFilters.type !== 'الكل') {
+      filtered = filtered.filter(l => l.type === appliedFilters.type);
+    }
+
+    if (appliedFilters.dateFrom || appliedFilters.dateTo) {
+      filtered = filtered.filter(l => {
+        const lawYear = parseInt(l.year_short || (l.issue_date ? l.issue_date.split('-')[2] : '2014'), 10);
+        let fromOk = true;
+        let toOk = true;
+
+        if (appliedFilters.dateFrom) {
+          const fromYear = parseInt(appliedFilters.dateFrom.slice(-4), 10);
+          if (!isNaN(fromYear)) fromOk = lawYear >= fromYear;
+        }
+
+        if (appliedFilters.dateTo) {
+          const toYear = parseInt(appliedFilters.dateTo.slice(-4), 10);
+          if (!isNaN(toYear)) toOk = lawYear <= toYear;
+        }
+
+        return fromOk && toOk;
+      });
+    }
+
+    setResults(filtered);
+    setLoading(false);
+  };
+
+  const handleOpenReader = (law) => {
+    setReaderLawId(law.law_id || 'law_tax_34_2014');
+  };
+
+  const handleApplyFilters = () => {
+    setIsFilterModalOpen(false);
+    handleSearch(searchQuery, filters);
   };
 
   return (
-    <div className="fade-in">
-      <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div style={{ background: '#E5EFF5', padding: '10px', borderRadius: '12px', color: '#005D9C' }}>
-          <RegulationsIcon size={24} color="#005D9C" />
-        </div>
-        <div>
-          <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#1E293B', margin: 0 }}>
-            التشريعات والقوانين الضريبية
-          </h1>
-          <p style={{ color: '#64748B', fontSize: '13px', margin: '4px 0 0 0' }}>
-            استعراض ومحرك بحث دلالي في قانون ضريبة الدخل وقانون ضريبة المبيعات والتعليمات التنفيذية الصادرة.
-          </p>
-        </div>
-      </div>
+    <div className="regulations-page-wrap fade-in">
+      <div className="reg-content-container">
+        {/* Search Hero Banner */}
+        <RegulationsSearch
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          onSearch={(q) => handleSearch(q, filters)}
+          onOpenFilters={() => setIsFilterModalOpen(true)}
+        />
 
-      {/* Search Input Bar with Golden Button */}
-      <form onSubmit={handleSearch} style={{ display: 'flex', gap: '12px', marginBottom: '28px' }}>
-        <input
-          type="text"
-          placeholder="ابحث في نص القانون، المادة، أو موضوع ضريبي (مثل: الإعفاءات الضريبية، الخصم المباشر)..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          style={{
-            flex: 1,
-            padding: '14px 20px',
-            borderRadius: '25px',
-            border: '1px solid #CBD5E1',
-            fontSize: '14px',
-            background: '#FFFFFF',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+        {/* Trending Topics Bar */}
+        <TrendingSearches
+          onSelectTopic={(topicQuery) => {
+            setSearchQuery(topicQuery);
+            handleSearch(topicQuery, filters);
           }}
         />
-        <button
-          type="submit"
-          disabled={loading || !query.trim()}
-          style={{
-            background: 'linear-gradient(135deg, #F5A52A, #E0921B)',
-            color: '#FFFFFF',
-            border: 'none',
-            padding: '14px 32px',
-            borderRadius: '25px',
-            fontWeight: '700',
-            fontSize: '14px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            boxShadow: '0 4px 12px rgba(245, 165, 42, 0.3)'
-          }}
-        >
-          <SearchIcon size={18} color="#FFFFFF" />
-          <span>بحث دلالي</span>
-        </button>
-      </form>
 
-      {/* Search Results */}
-      {loading ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: '#005D9C' }}>جاري البحث الفائق في النصوص الضريبية...</div>
-      ) : searched && results.length > 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {results.map((res, i) => (
-            <div key={i} style={{ background: '#FFFFFF', padding: '24px', borderRadius: '20px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-              <div style={{ display: 'inline-block', background: '#E5EFF5', color: '#005D9C', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: '700', marginBottom: '10px' }}>
-                مادة قانونية / نص تشريعي
+        {/* Results List */}
+        {loading ? (
+          <div style={{ background: '#fff', padding: '40px', borderRadius: '16px', textAlign: 'center', color: '#0D3C5C', fontWeight: 700 }}>
+            جاري البحث الفائق في النصوص والتشريعات الضريبية...
+          </div>
+        ) : (
+          <div>
+            {results.length === 0 ? (
+              <div style={{ background: '#fff', padding: '40px', borderRadius: '16px', textAlign: 'center', color: '#64748B', fontWeight: 700 }}>
+                لا توجد تشريعات مطابقة لشروط البحث والفلترة المحددة.
               </div>
-              <p style={{ color: '#1E293B', fontSize: '14px', lineHeight: '1.7', margin: 0 }}>{res.content || res.text || JSON.stringify(res)}</p>
-            </div>
-          ))}
-        </div>
-      ) : searched ? (
-        <div style={{ background: '#FFFFFF', padding: '48px', borderRadius: '20px', textAlign: 'center', border: '1px solid #E2E8F0', color: '#64748B' }}>
-          لم يتم العثور على نتائج مطابقة لاستعلامك.
-        </div>
-      ) : null}
+            ) : (
+              results.map((law, idx) => (
+                <SearchResultCard
+                  key={law.law_id || idx}
+                  law={law}
+                  onOpenReader={handleOpenReader}
+                  onOpenPreview={(l) => setPreviewLaw(l)}
+                  onOpenRelated={(l) => setRelatedLaw(l)}
+                  onOpenFilters={() => setIsFilterModalOpen(true)}
+                />
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Advanced Filters Modal */}
+      <AdvancedFiltersModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        filters={filters}
+        setFilters={setFilters}
+        onApply={handleApplyFilters}
+      />
+
+      {/* Quick Text Preview Modal */}
+      <TextPreviewModal
+        isOpen={!!previewLaw}
+        onClose={() => setPreviewLaw(null)}
+        law={previewLaw}
+        onOpenFullReader={(l) => {
+          setPreviewLaw(null);
+          handleOpenReader(l);
+        }}
+      />
+
+      {/* Related Drawer Sliding from left */}
+      <RelatedDrawer
+        isOpen={!!relatedLaw}
+        onClose={() => setRelatedLaw(null)}
+        law={relatedLaw}
+      />
+
+      {/* Printable Full Text Modal */}
+      <FullTextModal
+        isOpen={!!fullTextLaw}
+        onClose={() => setFullTextLaw(null)}
+        law={fullTextLaw}
+      />
+
+      {/* Full Screen Interactive Reader Workspace */}
+      {readerLawId && (
+        <LegalReader
+          lawId={readerLawId}
+          onClose={() => setReaderLawId(null)}
+        />
+      )}
     </div>
   );
 }

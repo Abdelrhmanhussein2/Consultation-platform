@@ -15,6 +15,7 @@ import MyAppointmentsPage from './pages/MyAppointmentsPage';
 import QuickConsultationPage from './pages/QuickConsultationPage';
 import ChatPage from './pages/ChatPage';
 import RegulationsPage from './pages/RegulationsPage';
+import DateDesignPage from './pages/DateDesignPage';
 import AiAssistantPage from './pages/AiAssistantPage';
 import InvoicesPage from './pages/InvoicesPage';
 import PolicyCenterPage from './pages/PolicyCenterPage';
@@ -172,6 +173,9 @@ function MainApp() {
     }
     if (pathname.startsWith('/regulations')) {
       return <RegulationsPage />;
+    }
+    if (pathname === '/dates-design') {
+      return <DateDesignPage />;
     }
     if (pathname === '/ai-assistant') {
       return <AiAssistantPage />;
