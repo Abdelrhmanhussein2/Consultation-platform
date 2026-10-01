@@ -101,9 +101,12 @@ select:focus, input:focus, textarea:focus { border-color: var(--primary); box-sh
 
 .section { display: none; }
 .section.active { display: block; }
-.section-title { display: flex; justify-content: space-between; align-items: center; margin: 7px 0 12px; }
-.section-title h3 { font-size: 14px; margin: 0; font-weight: 700; color: var(--primary-dark); }
-.section-title span { font-size: 11px; color: var(--muted); }
+.control-center-view .section-title,
+.control-center-layout .section-title { display: flex; justify-content: space-between; align-items: center; margin: 7px 0 12px; }
+.control-center-view .section-title h3,
+.control-center-layout .section-title h3 { font-size: 14px; margin: 0; font-weight: 700; color: var(--primary-dark); }
+.control-center-view .section-title span,
+.control-center-layout .section-title span { font-size: 11px; color: var(--muted); }
 
 .table-wrap { overflow-x: hidden; width: 100%; }
 table { width: 100%; border-collapse: collapse; min-width: 100%; table-layout: auto; }

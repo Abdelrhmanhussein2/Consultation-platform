@@ -12,8 +12,10 @@ import {
   LegalReader
 } from '../components/Regulations';
 import { searchLegal } from '../services/legalService';
+import { useAuth } from '../context/AuthContext';
 
 export default function RegulationsPage() {
+  const { token } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -29,12 +31,12 @@ export default function RegulationsPage() {
 
   useEffect(() => {
     handleSearch('');
-  }, []);
+  }, [token]);
 
   const handleSearch = async (queryText, appliedFilters = filters) => {
     setLoading(true);
-    const data = await searchLegal(queryText !== undefined ? queryText : searchQuery);
-    
+    const data = await searchLegal(queryText !== undefined ? queryText : searchQuery, 20, token);
+
     let filtered = [...data];
 
     if (appliedFilters.status && appliedFilters.status !== 'الكل') {
@@ -78,6 +80,15 @@ export default function RegulationsPage() {
     handleSearch(searchQuery, filters);
   };
 
+  const handleRemoveFilter = (filterKey) => {
+    const updated = {
+      ...filters,
+      [filterKey]: (filterKey === 'status' || filterKey === 'type') ? 'الكل' : ''
+    };
+    setFilters(updated);
+    handleSearch(searchQuery, updated);
+  };
+
   return (
     <div className="regulations-page-wrap fade-in">
       <div className="reg-content-container">
@@ -87,6 +98,8 @@ export default function RegulationsPage() {
           setSearchQuery={setSearchQuery}
           onSearch={(q) => handleSearch(q, filters)}
           onOpenFilters={() => setIsFilterModalOpen(true)}
+          filters={filters}
+          onRemoveFilter={handleRemoveFilter}
         />
 
         {/* Trending Topics Bar */}

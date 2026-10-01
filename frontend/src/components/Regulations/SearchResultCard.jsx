@@ -1,63 +1,65 @@
 // frontend/src/components/Regulations/SearchResultCard.jsx
 import React from 'react';
 
-export default function SearchResultCard({ law, onOpenReader, onOpenPreview, onOpenRelated, onOpenFilters }) {
+export default function SearchResultCard({ law, onOpenReader, onOpenPreview, onOpenRelated }) {
   return (
-    <div className="reg-result-card-item">
-      <div className="reg-card-badges-row">
-        <span className="reg-badge-tag">{law.type || 'قانون'}</span>
-        <span className="reg-badge-tag green">{law.status || 'ساري'}</span>
-        <span className="reg-badge-tag">{law.year_short || '2014'}</span>
+    <article className="reg-result-card-item">
+      {/* Badges */}
+      <div className="badges" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+        <span className="badge">{law.type || 'قانون'}</span>
+        <span className="badge good">{law.status || 'ساري'}</span>
+        <span className="badge">{law.year_short || '2014'}</span>
       </div>
 
-      <h3 className="reg-card-main-title" onClick={() => onOpenPreview(law)}>
-        {law.title || "قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته"}
-      </h3>
+      {/* Title */}
+      <h2
+        style={{ margin: '3px 0 7px', color: 'var(--reg-navy)', fontSize: '21px', cursor: 'pointer' }}
+        onClick={() => onOpenPreview && onOpenPreview(law)}
+      >
+        {law.title || 'قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته'}
+      </h2>
 
-      {/* 4 Grey Metadata Boxes */}
-      <div className="reg-card-meta-grid">
-        <div className="reg-meta-box">
-          <span className="reg-meta-box-label">سنة الإصدار</span>
-          <span className="reg-meta-box-val">{law.issue_date || '30-12-2014'}</span>
+      {/* 4 Meta Boxes - exact match to HTML reference */}
+      <div className="result-law-meta">
+        <div>
+          <span>تاريخ الإصدار</span>
+          <strong>{law.issue_date || '30-12-2014'}</strong>
         </div>
-        <div className="reg-meta-box">
-          <span className="reg-meta-box-label">تاريخ النفاذ</span>
-          <span className="reg-meta-box-val">{law.effective_date || '01-01-2015'}</span>
+        <div>
+          <span>تاريخ السريان</span>
+          <strong>{law.effective_date || '01-01-2015'}</strong>
         </div>
-        <div className="reg-meta-box">
-          <span className="reg-meta-box-label">تعديل الساري</span>
-          <span className="reg-meta-box-val">{law.amended_date || '01-01-2019'}</span>
+        <div>
+          <span>آخر تعديل</span>
+          <strong>{law.amended_date || '01-01-2019'}</strong>
         </div>
-        <div className="reg-meta-box">
-          <span className="reg-meta-box-label">عدد المواد</span>
-          <span className="reg-meta-box-val">{law.total_articles || 82} مادة</span>
+        <div>
+          <span>عدد المواد</span>
+          <strong>{law.total_articles || 82} مادة</strong>
         </div>
       </div>
 
-      {/* Bottom Action Buttons */}
-      <div className="reg-card-action-row">
-        <button
-          type="button"
-          className="reg-action-btn"
-          onClick={() => onOpenFilters && onOpenFilters()}
-        >
+      {/* Action Buttons - same as HTML reference */}
+      <div className="actions result-actions-v3">
+        <button className="btn" onClick={() => onOpenReader && onOpenReader(law)}>
           البحث المتقدم
         </button>
-        <button
-          type="button"
-          className="reg-action-btn"
-          onClick={() => onOpenPreview(law)}
-        >
+        <button className="btn" onClick={() => onOpenPreview && onOpenPreview(law)}>
           نص القانون
         </button>
+        <button className="btn" onClick={() => onOpenRelated && onOpenRelated(law)}>
+          اسأل ديوان عن القانون
+        </button>
         <button
-          type="button"
-          className="reg-action-btn"
-          onClick={() => onOpenRelated(law)}
+          className="btn"
+          onClick={() => {
+            const url = law.source_url || 'https://www.istd.gov.jo';
+            window.open(url, '_blank');
+          }}
         >
-          اسأل ديوان من القانون
+          المصدر الرسمي ↗
         </button>
       </div>
-    </div>
+    </article>
   );
 }

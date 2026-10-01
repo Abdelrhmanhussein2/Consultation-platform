@@ -881,3 +881,268 @@
   background: #F1F5F9;
 }
 
+/* Active Filter Summary Chips Under Search Bar */
+.active-filter-summary {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+.active-filter-summary span {
+  background: #F09A24 !important;
+  border: 1px solid #F09A24 !important;
+  color: #ffffff !important;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(240, 154, 36, 0.25);
+}
+
+.active-filter-summary span:hover {
+  background: #D98214 !important;
+  border-color: #D98214 !important;
+  transform: translateY(-1px);
+}
+
+/* ======================================================
+   HTML-REFERENCE EXACT MATCH: badges, result meta, btn
+   ====================================================== */
+
+/* Badges - matching .badge and .badge.good from HTML */
+.regulations-page-wrap .badge {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #F2F5F7;
+  border: 1px solid #E1E7EA;
+  font-size: 10px;
+  font-family: 'Tajawal', sans-serif;
+}
+.regulations-page-wrap .badge.good {
+  background: #E8F8F1;
+  color: #149B6D;
+}
+
+/* Result Law Meta - 4-column grid matching HTML .result-law-meta */
+.result-law-meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 13px 0 3px;
+}
+.result-law-meta > div {
+  border: 1px solid #E0E7EB;
+  background: #F9FBFC;
+  border-radius: 9px;
+  padding: 8px 10px;
+}
+.result-law-meta span {
+  display: block;
+  color: #82939D;
+  font-size: 8.5px;
+  margin-bottom: 3px;
+}
+.result-law-meta strong {
+  display: block;
+  color: #0D3C5C;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+@media (max-width: 700px) {
+  .result-law-meta { grid-template-columns: 1fr 1fr; }
+}
+
+/* Actions row - matching .actions.result-actions-v3 from HTML */
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+/* Base .btn - exact from HTML reference */
+.regulations-page-wrap .btn {
+  border: 1px solid #D9E2E7;
+  background: #ffffff;
+  color: #0D3C5C;
+  border-radius: 9px;
+  padding: 9px 12px;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: 'Tajawal', sans-serif;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.regulations-page-wrap .btn:hover,
+.regulations-page-wrap .result-actions-v3 .btn:hover {
+  background: #F09A24 !important;
+  color: #ffffff !important;
+  border-color: #F09A24 !important;
+}
+.regulations-page-wrap .btn.primary {
+  background: #0D3C5C;
+  border-color: #0D3C5C;
+  color: #ffffff;
+}
+
+/* ======================================================
+   HTML-REFERENCE: Searchbar v3 exact CSS
+   ====================================================== */
+
+/* Semantic kicker (pill label above heading) */
+.regulations-page-wrap .semantic-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 13px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(255,255,255,.28);
+  background: rgba(255,255,255,.07);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #F2F8FB;
+}
+.regulations-page-wrap .semantic-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #F09A24;
+  box-shadow: 0 0 0 4px rgba(240,154,36,.14);
+}
+
+/* Search wrap */
+.regulations-page-wrap .home-search-wrap-v3 {
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+/* Searchbar v3 container - exact match */
+.regulations-page-wrap .home-searchbar-v3 {
+  display: flex;
+  align-items: stretch;
+  background: #fff;
+  border: 0;
+  box-shadow: 0 12px 30px rgba(5,35,53,.18);
+  border-radius: 13px;
+  overflow: hidden;
+}
+.regulations-page-wrap .home-searchbar-v3 input {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  padding: 0 16px;
+  border: none;
+  outline: none;
+  font-family: 'Tajawal', sans-serif;
+  color: #1E293B;
+  height: 56px;
+}
+
+/* Tool buttons in searchbar */
+.regulations-page-wrap .search-tool-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 0;
+  border-right: 1px solid #E3E9ED;
+  background: #fff;
+  color: #385366;
+  min-width: 120px;
+  padding: 0 12px;
+  font-size: 11.5px;
+  font-weight: 800;
+  font-family: 'Tajawal', sans-serif;
+  cursor: pointer;
+  transition: .16s ease;
+  height: 56px;
+}
+.regulations-page-wrap .search-tool-btn:hover,
+.regulations-page-wrap .search-tool-btn.active {
+  background: #F09A24 !important;
+  color: #fff !important;
+}
+.regulations-page-wrap .search-tool-btn .tool-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+.regulations-page-wrap .search-tool-btn.improve-tool {
+  min-width: 132px;
+}
+
+/* Search go button */
+.regulations-page-wrap .search-go {
+  background: #0D3C5C;
+  color: #fff;
+  border: 0;
+  padding: 0 28px;
+  font-size: 14px;
+  font-weight: 800;
+  font-family: 'Tajawal', sans-serif;
+  cursor: pointer;
+  transition: .16s ease;
+  white-space: nowrap;
+}
+.regulations-page-wrap .search-go:hover {
+  background: #F09A24 !important;
+}
+
+/* Improve suggestion bar */
+.regulations-page-wrap .improve-suggestion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 10px 0 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,.28);
+  background: rgba(255,255,255,.13);
+  border-radius: 10px;
+  color: #fff;
+}
+.regulations-page-wrap .improve-suggestion small {
+  display: block;
+  opacity: .75;
+  font-size: 9.5px;
+  margin-bottom: 2px;
+}
+.regulations-page-wrap .improve-suggestion strong {
+  font-size: 12px;
+}
+.regulations-page-wrap .improve-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.regulations-page-wrap .improve-actions button {
+  border: 1px solid rgba(255,255,255,.35);
+  background: transparent;
+  color: #fff;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 10px;
+  font-family: 'Tajawal', sans-serif;
+  cursor: pointer;
+}
+.regulations-page-wrap .improve-actions button:hover,
+.regulations-page-wrap .improve-actions .accept {
+  background: #F09A24;
+  border-color: #F09A24;
+}
+
+@media (max-width: 760px) {
+  .regulations-page-wrap .search-tool-btn span:last-child { display: none; }
+  .regulations-page-wrap .search-tool-btn { min-width: 48px; }
+  .regulations-page-wrap .search-tool-btn.improve-tool { min-width: 48px; }
+}
+

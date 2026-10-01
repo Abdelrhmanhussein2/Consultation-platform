@@ -81,7 +81,7 @@
 .searchWrap input::placeholder {
   color: #8799a5;
 }
-.advanced {
+.searchWrap .advanced {
   border: 0;
   background: transparent;
   color: var(--ink2);
@@ -93,7 +93,8 @@
   white-space: nowrap;
   transition: all 0.15s ease;
 }
-.advanced:hover, .advanced.active {
+.searchWrap .advanced:hover,
+.searchWrap .advanced.active {
   background: #f8fbfc;
   border-radius: 99px;
   color: #0f4666;
