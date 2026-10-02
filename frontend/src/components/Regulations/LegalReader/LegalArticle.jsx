@@ -1,15 +1,108 @@
 // frontend/src/components/Regulations/LegalReader/LegalArticle.jsx
 import React, { useState } from 'react';
 
+// Helper to render text with highlight marks
+export function renderHighlightedText(text, highlights) {
+  if (!text || typeof text !== 'string' || !Array.isArray(highlights) || highlights.length === 0) {
+    return text;
+  }
+
+  const rawMatches = [];
+  highlights.forEach(h => {
+    if (!h || !h.text || typeof h.text !== 'string' || h.text.trim().length === 0) return;
+    const cleanHl = h.text.trim();
+    let startIdx = text.indexOf(cleanHl);
+    let guard = 0;
+    while (startIdx !== -1 && guard < 100) {
+      guard++;
+      rawMatches.push({
+        id: h.id,
+        start: startIdx,
+        end: startIdx + cleanHl.length,
+        color: h.color || '#3B82F6',
+        bgTint: h.bgTint || '#DBEAFE',
+        note: h.note,
+        text: cleanHl
+      });
+      startIdx = text.indexOf(cleanHl, startIdx + Math.max(1, cleanHl.length));
+    }
+  });
+
+  if (rawMatches.length === 0) return text;
+
+  // Sort by start position
+  rawMatches.sort((a, b) => a.start - b.start || b.end - a.end);
+
+  // Merge identical ranges so multiple notes on the same text accumulate without duplicating DOM nodes
+  const mergedMatches = [];
+  rawMatches.forEach(m => {
+    const existing = mergedMatches.find(em => em.start === m.start && em.end === m.end);
+    if (existing) {
+      if (m.note) {
+        if (!existing.notes) existing.notes = existing.note ? [existing.note] : [];
+        existing.notes.push(m.note);
+        existing.note = existing.notes.join(' | ');
+        existing.color = '#F59E0B';
+        existing.bgTint = '#FEF3C7';
+      }
+    } else {
+      mergedMatches.push({
+        ...m,
+        notes: m.note ? [m.note] : []
+      });
+    }
+  });
+
+  const parts = [];
+  let lastIndex = 0;
+
+  mergedMatches.forEach((m, mIdx) => {
+    if (m.start < lastIndex) {
+      return;
+    }
+    if (m.start > lastIndex) {
+      parts.push(text.slice(lastIndex, m.start));
+    }
+    parts.push(
+      <mark
+        key={`hl-${m.id}-${mIdx}`}
+        className={`art-text-mark ${m.note ? 'has-note' : ''}`}
+        style={{
+          backgroundColor: m.bgTint,
+          color: 'inherit',
+          borderRadius: '4px',
+          padding: '1px 3px',
+          boxDecorationBreak: 'clone',
+          WebkitBoxDecorationBreak: 'clone',
+          border: m.note ? '1px solid #F59E0B' : 'none'
+        }}
+        title={m.notes && m.notes.length > 1 ? `الملاحظات: ${m.notes.join(' ، ')}` : (m.note ? `ملاحظة: ${m.note}` : 'نص محدد')}
+      >
+        {text.slice(m.start, m.end)}
+      </mark>
+    );
+    lastIndex = m.end;
+  });
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts;
+}
+
 export default function LegalArticle({
   article,
   lawTitle = "قانون ضريبة الدخل رقم 34 لسنة 2014",
   onCompareVersion,
   onShare,
-  onCopy
+  onCopy,
+  highlights = []
 }) {
   const [showRelated, setShowRelated] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  if (!article) return null;
 
   // Normalize display title (ensure "المادة X: " prefix exists)
   const fullTitle = article.title?.startsWith('المادة')
@@ -67,13 +160,13 @@ export default function LegalArticle({
         {article.has_definitions && article.definitions ? (
           <>
             {article.intro_text && (
-              <p className="definition-intro">{article.intro_text}</p>
+              <p className="definition-intro">{renderHighlightedText(article.intro_text, highlights)}</p>
             )}
             <div className="definitions-v12">
               {article.definitions.map((def, idx) => (
                 <div className="definition-pair" key={idx}>
-                  <div className="definition-term">{def.term}</div>
-                  <div className="definition-value">{def.value}</div>
+                  <div className="definition-term">{renderHighlightedText(def.term, highlights)}</div>
+                  <div className="definition-value">{renderHighlightedText(def.value, highlights)}</div>
                 </div>
               ))}
             </div>
@@ -87,12 +180,12 @@ export default function LegalArticle({
                 key={idx}
                 className={`legal-clause ${isNumbered ? 'numbered' : ''}`}
               >
-                {text}
+                {renderHighlightedText(text, highlights)}
               </p>
             );
           })
         ) : (
-          <p className="legal-clause">{article.content}</p>
+          <p className="legal-clause">{renderHighlightedText(article.content, highlights)}</p>
         )}
       </div>
 

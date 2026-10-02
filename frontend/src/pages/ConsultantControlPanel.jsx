@@ -388,7 +388,7 @@ export default function ConsultantControlPanel({ navigate }) {
                 key={law.id || idx}
                 className="cp-card cp-leg-card"
                 style={{ cursor: 'pointer' }}
-                onClick={() => handleNavigate('/regulations')}
+                onClick={() => handleNavigate('/consultant/semantic-search')}
               >
                 <div>
                   <div className="cp-leg-top">
@@ -496,8 +496,8 @@ export default function ConsultantControlPanel({ navigate }) {
               <div className="cp-workflow-steps">
                 <div
                   className="cp-step-item"
-                  onClick={() => handleNavigate('/regulations')}
-                  title="الانتقال إلى مركز التشريعات الضريبية"
+                  onClick={() => handleNavigate('/consultant/semantic-search')}
+                  title="الانتقال إلى البحث الدلالي والتشريعات الضريبية"
                 >
                   <span className="cp-step-text">اقرأ المستجد المؤثر</span>
                   <span className="cp-step-num">1</span>
@@ -561,7 +561,7 @@ export default function ConsultantControlPanel({ navigate }) {
 
               <div
                 className="cp-tool-card"
-                onClick={() => handleNavigate('/regulations')}
+                onClick={() => handleNavigate('/consultant/semantic-search')}
               >
                 <span className="cp-tool-icon"><BookLegislationIcon size={24} /></span>
                 <span className="cp-tool-title">التشريعات</span>

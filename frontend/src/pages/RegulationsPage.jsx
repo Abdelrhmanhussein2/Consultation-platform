@@ -11,6 +11,7 @@ import {
   FullTextModal,
   LegalReader
 } from '../components/Regulations';
+import ErrorBoundary from '../components/common/ErrorBoundary';
 import { searchLegal } from '../services/legalService';
 import { useAuth } from '../context/AuthContext';
 
@@ -173,10 +174,15 @@ export default function RegulationsPage() {
 
       {/* Full Screen Interactive Reader Workspace */}
       {readerLawId && (
-        <LegalReader
-          lawId={readerLawId}
+        <ErrorBoundary
+          title="تعذر فتح مساحة القراءة المتقدمة"
           onClose={() => setReaderLawId(null)}
-        />
+        >
+          <LegalReader
+            lawId={readerLawId}
+            onClose={() => setReaderLawId(null)}
+          />
+        </ErrorBoundary>
       )}
     </div>
   );

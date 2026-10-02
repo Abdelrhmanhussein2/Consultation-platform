@@ -48,13 +48,6 @@ const SemanticSearchIcon = ({ size = 20, color = 'currentColor' }) => (
   </svg>
 );
 
-const LegislationCenterIcon = ({ size = 20, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-  </svg>
-);
-
 const ClientsGroupIcon = ({ size = 20, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -250,7 +243,6 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
     { path: '/consultant/control-panel', label: 'لوحة التحكم', IconComponent: ControlPanelIcon },
     { path: '/ai-assistant', label: 'المساعد الذكي', IconComponent: SparklesAiIcon },
     { path: '/consultant/semantic-search', label: 'البحث الدلالي', IconComponent: SemanticSearchIcon },
-    { path: '/regulations', label: 'مركز التشريعات', IconComponent: LegislationCenterIcon },
     { path: '/consultant/clients', label: 'العملاء', IconComponent: ClientsGroupIcon },
     { path: '/consultant/colleagues', label: 'زملاء المنصة', IconComponent: PlatformColleaguesIcon },
     {
@@ -316,6 +308,14 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
     }
     if (item.path === '/settings') {
       return currentPath === '/settings' || currentPath.startsWith('/consultant/settings');
+    }
+    if (item.path === '/consultant/semantic-search') {
+      return (
+        currentPath === '/consultant/semantic-search' ||
+        currentPath.startsWith('/consultant/semantic-search') ||
+        currentPath === '/regulations' ||
+        currentPath.startsWith('/regulations')
+      );
     }
     if (item.path === '/tickets') {
       return currentPath === '/tickets';

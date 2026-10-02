@@ -174,7 +174,7 @@ export async function getCitations(targetId) {
   }
 }
 
-function getMockLawDetail(lawId) {
+export function getMockLawDetail(lawId) {
   const definitionsList = [
     { term: "الوزير", value: "وزير المالية ." },
     { term: "الدائرة", value: "دائرة ضريبــة الدخل والمبيعات ." },

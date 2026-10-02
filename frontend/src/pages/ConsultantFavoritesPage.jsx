@@ -302,7 +302,7 @@ export default function ConsultantFavoritesPage({ navigate }) {
                     } else if (item.item_type === 'template') {
                       navigate('/consultant/templates');
                     } else if (item.item_type === 'regulation') {
-                      navigate('/regulations');
+                      navigate('/consultant/semantic-search');
                     } else if (item.item_type === 'document') {
                       navigate('/consultant/documents');
                     } else {

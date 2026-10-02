@@ -242,8 +242,8 @@ function MainApp() {
       if (pathname === '/consultant/earnings') {
         return <ConsultantEarningsPage navigate={navigate} />;
       }
-      if (pathname === '/consultant/semantic-search') {
-        return <PlaceholderPage title="البحث الدلالي للمستشار" />;
+      if (pathname === '/consultant/semantic-search' || pathname.startsWith('/consultant/semantic-search/')) {
+        return <RegulationsPage />;
       }
       if (pathname === '/consultant/document-analysis') {
         return <DocumentAnalysisPage navigate={navigate} />;
