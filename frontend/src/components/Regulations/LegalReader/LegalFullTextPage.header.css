@@ -1,0 +1,169 @@
+/* LegalFullTextPage.header.css - Header Bar & Tools Row */
+
+/* ── Top Header Bar ────────────────────────── */
+.lft-header {
+  height: 54px;
+  padding: 0 20px;
+  border-bottom: 1px solid #E5EBEE;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  flex-shrink: 0;
+  direction: rtl;
+}
+
+.lft-header-right {
+  display: flex;
+  align-items: center;
+}
+
+.lft-header-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0D3C5C;
+  margin: 0;
+  font-family: 'Tajawal', sans-serif;
+}
+
+.lft-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Quota Badges (matching screenshot top left pills) */
+.lft-quota-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #F8FAFC;
+  border: 1px solid #DCE5EA;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #475569;
+  font-family: 'Tajawal', sans-serif;
+}
+
+.lft-pill-rem {
+  color: #64748B;
+  font-weight: 600;
+}
+
+.lft-pill-close {
+  border: none;
+  background: transparent;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 0 0 0 2px;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lft-pill-close:hover {
+  color: #1E293B;
+}
+
+.lft-header-close-btn {
+  border: 1px solid #DCE5EA;
+  background: #ffffff;
+  color: #475569;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  margin-right: 4px;
+  transition: all 0.15s ease;
+}
+
+.lft-header-close-btn:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+/* ── Tools Row ─────────────────────────────── */
+.lft-tools-row {
+  height: 52px;
+  padding: 0 20px;
+  border-bottom: 1px solid #E5EBEE;
+  background: #FAFBFC;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  direction: rtl;
+}
+
+.lft-tools-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lft-tools-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Toggle Buttons (الفهرس, بحث داخل النص) */
+.lft-nav-toggle-btn {
+  border: 1px solid #CBD5E1;
+  background: #ffffff;
+  color: #1E293B;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Tajawal', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.lft-nav-toggle-btn:hover,
+.lft-nav-toggle-btn.active {
+  background: #0D3C5C;
+  color: #ffffff;
+  border-color: #0D3C5C;
+}
+
+.lft-nav-toggle-btn svg {
+  stroke: currentColor;
+}
+
+/* Action Buttons (طباعة, نسخ النص, مشاركة, تحميل PDF) */
+.lft-action-btn {
+  border: 1px solid #CBD5E1;
+  background: #ffffff;
+  color: #334155;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: 'Tajawal', sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.lft-action-btn:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+  border-color: #94A3B8;
+}
+

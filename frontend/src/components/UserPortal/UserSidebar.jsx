@@ -229,7 +229,7 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
     { path: '/quick-consultation', label: 'استشارة سريعة', IconComponent: SparklesAiIcon },
     { path: '/consultants', label: 'المستشارون', IconComponent: ConsultantsIcon },
     { path: '/my-appointments', label: 'استشاراتي والمواعيد', IconComponent: AppointmentsIcon },
-    { path: '/regulations', label: 'التشريعات والقوانين', IconComponent: RegulationsIcon },
+    { path: '/regulations', label: 'البحث الدلالي', IconComponent: RegulationsIcon },
     { path: '/ai-assistant', label: 'المساعد الذكي', IconComponent: AiIcon },
     { path: '/invoices', label: 'الفواتير والمدفوعات', IconComponent: InvoicesIcon },
     { path: '/tickets', label: 'الدعم والمساعدة', IconComponent: TicketsIcon },

@@ -1,0 +1,152 @@
+/* LegalFullTextPage.content.css - Document Content & Articles */
+
+/* ── Document Title ────────────────────────── */
+.lft-doc-title {
+  font-size: 26px;
+  font-weight: 900;
+  color: #0D3C5C;
+  text-align: center;
+  margin: 12px 0 24px 0;
+}
+
+/* ── 8 Metadata Boxes ──────────────────────── */
+.lft-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.lft-meta-box {
+  border: 1px solid #E0E7EB;
+  background: #FAFBFC;
+  border-radius: 10px;
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.lft-meta-label {
+  display: block;
+  color: #82939D;
+  font-size: 10.5px;
+  margin-bottom: 4px;
+}
+
+.lft-meta-val {
+  display: block;
+  color: #0D3C5C;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+/* ── Preamble ──────────────────────────────── */
+.lft-preamble {
+  border: 1px solid #E1E8EC;
+  border-radius: 12px;
+  padding: 16px 20px;
+  background: #F8FAFB;
+  margin-bottom: 28px;
+  font-size: 13px;
+  line-height: 2;
+  color: #334A58;
+}
+
+/* ── Section Title ─────────────────────────── */
+.lft-section-title {
+  color: #0D3C5C;
+  font-size: 18px;
+  font-weight: 800;
+  margin: 28px 0 16px;
+  border-bottom: 1.5px solid #1D6FA4;
+  padding-bottom: 6px;
+}
+
+/* ── Article Item ──────────────────────────── */
+.lft-article-item {
+  padding: 24px 0;
+  border-top: 1px solid #E8EDF0;
+  scroll-margin-top: 80px;
+}
+
+.lft-article-item:first-child {
+  border-top: none;
+}
+
+.lft-article-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.lft-article-head h3 {
+  margin: 0;
+  color: #0D3C5C;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.lft-article-date {
+  font-size: 11px;
+  color: #82939D;
+}
+
+.lft-article-content {
+  font-size: 15px;
+  line-height: 2.05;
+  color: #354F5E;
+}
+
+.lft-intro-p {
+  margin-bottom: 12px;
+  font-size: 14.5px;
+  line-height: 1.8;
+  color: #334A58;
+}
+
+.lft-defs-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 18px 0;
+  padding: 14px 16px;
+  background: #F8FAFC;
+  border-radius: 8px;
+  border-right: 3.5px solid #0D3C5C;
+}
+
+.lft-def-row {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #1E293B;
+}
+
+.lft-def-term {
+  color: #0D3C5C;
+  font-weight: 800;
+}
+
+.lft-def-val {
+  color: #334155;
+}
+
+.lft-clause-p {
+  margin: 8px 0;
+  font-size: 14.5px;
+  line-height: 1.95;
+  color: #334155;
+}
+
+/* ── Search Highlights ─────────────────────── */
+mark.lft-search-hit {
+  background: #FFE29A !important;
+  color: inherit !important;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+mark.lft-search-hit.current {
+  background: #F2A93B !important;
+  box-shadow: 0 0 0 2px rgba(13, 60, 92, 0.25);
+  font-weight: 800;
+}

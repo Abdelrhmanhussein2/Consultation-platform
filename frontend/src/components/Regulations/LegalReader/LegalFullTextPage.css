@@ -1,0 +1,596 @@
+/* frontend/src/components/Regulations/LegalReader/LegalFullTextPage.css */
+
+.lft-overlay,
+.lft-overlay * {
+  font-family: 'Tajawal', sans-serif !important;
+}
+
+.lft-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: #ffffff !important;
+  z-index: 99999 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  direction: rtl;
+  animation: lftFadeIn 0.2s ease;
+}
+
+@keyframes lftFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.lft-modal {
+  background: #ffffff !important;
+  border-radius: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-shadow: none !important;
+  border: none !important;
+  overflow: hidden !important;
+  position: relative !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ─── Top Header Bar ─────────────────────────────── */
+.lft-header {
+  height: 58px;
+  padding: 0 20px;
+  border-bottom: 1px solid #E5EBEE;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.lft-header-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0D3C5C;
+}
+
+.lft-header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lft-toggle-btn {
+  border: 1px solid #DCE5EA;
+  background: #FAFBFC;
+  color: #0D3C5C;
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Tajawal', sans-serif;
+  transition: all 0.15s ease;
+}
+
+.lft-toggle-btn:hover,
+.lft-toggle-btn.active {
+  background: #0D3C5C;
+  color: #ffffff;
+  border-color: #0D3C5C;
+}
+
+/* ─── Tools Row ──────────────────────────────────── */
+.lft-tools-row {
+  padding: 10px 24px;
+  border-bottom: 1px solid #E7ECEF;
+  background: #FAFBFC;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.lft-tools-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lft-tool-btn {
+  border: 1px solid #CBD5E1;
+  background: #ffffff;
+  color: #0D3C5C;
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Tajawal', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lft-tool-btn:hover {
+  background: #F09A24;
+  color: #ffffff;
+  border-color: #F09A24;
+  box-shadow: 0 4px 12px rgba(240, 154, 36, 0.3);
+}
+
+.lft-quota-tag {
+  border: 1px solid #DDE5EA;
+  background: #ffffff;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  color: #64748B;
+  font-weight: 700;
+}
+
+/* ─── Scroll Body ─────────────────────────────────── */
+.lft-scroll-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 40px 80px 40px;
+  background: #ffffff;
+  position: relative;
+  scroll-behavior: smooth;
+}
+
+.lft-scroll-body.with-toc {
+  /* will be compensated by center-container padding */
+}
+
+.lft-center-container {
+  max-width: 1050px;
+  margin: 0 auto;
+  transition: padding-left 0.25s ease;
+}
+
+.lft-scroll-body.with-toc .lft-center-container {
+  padding-left: 270px;
+}
+
+/* ─── Document Title ─────────────────────────────── */
+.lft-doc-title {
+  font-size: 26px;
+  font-weight: 900;
+  color: #0D3C5C;
+  text-align: center;
+  margin: 12px 0 24px 0;
+}
+
+/* ─── 8 Metadata Boxes ───────────────────────────── */
+.lft-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.lft-meta-box {
+  border: 1px solid #E0E7EB;
+  background: #FAFBFC;
+  border-radius: 10px;
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.lft-meta-label {
+  display: block;
+  color: #82939D;
+  font-size: 10.5px;
+  margin-bottom: 4px;
+}
+
+.lft-meta-val {
+  display: block;
+  color: #0D3C5C;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+/* ─── Preamble ───────────────────────────────────── */
+.lft-preamble {
+  border: 1px solid #E1E8EC;
+  border-radius: 12px;
+  padding: 16px 20px;
+  background: #F8FAFB;
+  margin-bottom: 28px;
+  font-size: 13px;
+  line-height: 2;
+  color: #334A58;
+}
+
+/* ─── Section Title ──────────────────────────────── */
+.lft-section-title {
+  color: #0D3C5C;
+  font-size: 18px;
+  font-weight: 800;
+  margin: 28px 0 16px;
+  border-bottom: 1.5px solid #1D6FA4;
+  padding-bottom: 6px;
+}
+
+/* ─── Article Item ───────────────────────────────── */
+.lft-article-item {
+  padding: 24px 0;
+  border-top: 1px solid #E8EDF0;
+  scroll-margin-top: 80px;
+}
+
+.lft-article-item:first-child {
+  border-top: none;
+}
+
+.lft-article-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.lft-article-head h3 {
+  margin: 0;
+  color: #0D3C5C;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.lft-article-date {
+  font-size: 11px;
+  color: #82939D;
+}
+
+.lft-article-content {
+  font-size: 15px;
+  line-height: 2.05;
+  color: #354F5E;
+  white-space: pre-line;
+}
+
+/* ─── Inline Search Bar ──────────────────────────── */
+.lft-inline-search {
+  position: sticky;
+  top: 10px;
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(640px, 95%);
+  margin: 0 auto 20px auto;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1px solid #DCE5EA;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(13, 60, 92, 0.15);
+  direction: rtl;
+}
+
+.lft-inline-search input {
+  flex: 1;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  outline: none;
+  padding: 8px 14px;
+  font-family: 'Tajawal', sans-serif;
+  color: #1E293B;
+  font-size: 13.5px;
+}
+
+.lft-search-btn {
+  background: #0D3C5C;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-weight: 800;
+  font-size: 13px;
+  font-family: 'Tajawal', sans-serif;
+  cursor: pointer;
+}
+
+.lft-match-count {
+  direction: ltr;
+  font-size: 11px;
+  font-weight: 800;
+  color: #64748B;
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+.lft-nav-btn {
+  background: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  color: #0D3C5C;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.lft-nav-btn:hover {
+  background: #E2E8F0;
+}
+
+mark.lft-search-hit {
+  background: #FFE29A !important;
+  color: inherit !important;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+mark.lft-search-hit.current {
+  background: #F2A93B !important;
+  box-shadow: 0 0 0 2px rgba(13, 60, 92, 0.25);
+  font-weight: 800;
+}
+
+/* ─── TOC Panel ──────────────────────────────────── */
+.lft-toc-panel {
+  position: fixed !important;
+  top: 130px !important;
+  left: 28px !important;
+  right: auto !important;
+  bottom: 30px !important;
+  width: 260px !important;
+  z-index: 1000000 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: #ffffff !important;
+  border: 1px solid #DCE5EA !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 35px rgba(13, 60, 92, 0.15) !important;
+  overflow: hidden !important;
+  animation: lftFadeIn 0.2s ease;
+}
+
+.lft-toc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 14px;
+  border-bottom: 1px solid #E7ECEF;
+  background: #FAFBFC;
+}
+
+.lft-toc-head strong {
+  color: #0D3C5C;
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+.lft-toc-head button {
+  border: 1px solid #CBD5E1;
+  background: #F1F5F9;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.lft-toc-head button:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.lft-toc-list {
+  overflow-y: auto !important;
+  flex: 1;
+  padding: 4px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 #F8FAFC;
+}
+
+.lft-toc-list::-webkit-scrollbar { width: 5px; }
+.lft-toc-list::-webkit-scrollbar-track { background: #F8FAFC; }
+.lft-toc-list::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+
+.lft-toc-item {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #F1F5F9;
+  background: #ffffff;
+  text-align: right;
+  padding: 10px 14px;
+  color: #475569;
+  font-family: 'Tajawal', sans-serif !important;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.4;
+}
+
+.lft-toc-item:hover {
+  background: #F8FAFC;
+  color: #0D3C5C;
+}
+
+.lft-toc-item.active {
+  background: #EFF6FF;
+  color: #1D4ED8;
+  font-weight: 800;
+  border-right: 4px solid #1D4ED8;
+}
+
+/* ─── Scroll to Top Button ───────────────────────── */
+.lft-scroll-top {
+  position: fixed;
+  bottom: 35px;
+  right: 35px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #0D3C5C;
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 8px 24px rgba(13, 60, 92, 0.3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+  z-index: 250;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.lft-scroll-top:hover {
+  background: #F09A24;
+  transform: translateY(-2px);
+}
+
+/* ─── Loading State ──────────────────────────────── */
+.lft-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lft-spinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid #E2E8F0;
+  border-top-color: #0D3C5C;
+  border-radius: 50%;
+  animation: lftSpin 0.8s linear infinite;
+}
+
+@keyframes lftSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── @media print ───────────────────────────────── */
+@media print {
+  html, body, #root,
+  .portal-container, .portal-wrapper, .portal-content-body,
+  .app-container, .main-content,
+  .regulations-page-wrap, .reg-content-container {
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+    position: static !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  nav, header, footer, aside, .sidebar,
+  .portal-sidebar, .portal-header,
+  .admin-sidebar, .admin-header,
+  .reg-hero-banner, .reg-result-card-item,
+  .lft-header, .lft-tools-row, .lft-toc-panel,
+  .lft-inline-search, .lft-scroll-top {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .lft-overlay {
+    position: static !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .lft-modal {
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    border: none !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  .lft-scroll-body {
+    overflow: visible !important;
+    padding: 10mm 15mm !important;
+    height: auto !important;
+  }
+
+  .lft-center-container {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .lft-doc-title {
+    font-size: 20pt !important;
+    color: #000000 !important;
+    font-weight: bold !important;
+  }
+
+  .lft-meta-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6pt !important;
+    border: 1pt solid #000000 !important;
+    padding: 6pt !important;
+    page-break-inside: avoid;
+  }
+
+  .lft-meta-box {
+    border: 1pt solid #CCCCCC !important;
+    background: #ffffff !important;
+    padding: 6pt !important;
+  }
+
+  .lft-meta-label { color: #555555 !important; font-size: 9pt !important; }
+  .lft-meta-val   { color: #000000 !important; font-size: 10pt !important; font-weight: bold !important; }
+
+  .lft-preamble {
+    border: 1pt solid #000000 !important;
+    padding: 10pt !important;
+    font-size: 11pt !important;
+    line-height: 1.8 !important;
+    page-break-inside: avoid;
+  }
+
+  .lft-article-item {
+    page-break-inside: avoid;
+    border-top: 1pt solid #CCCCCC !important;
+    padding: 12pt 0 !important;
+  }
+
+  .lft-article-head h3 {
+    color: #000000 !important;
+    font-size: 14pt !important;
+    font-weight: bold !important;
+  }
+
+  mark.lft-search-hit {
+    background: transparent !important;
+    font-weight: normal !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .lft-meta-grid { grid-template-columns: 1fr 1fr; }
+  .lft-toc-panel { left: 10px; width: min(300px, calc(100vw - 20px)); }
+}

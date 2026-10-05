@@ -1,0 +1,310 @@
+/* LegalFullTextPage.toc.css - TOC Panel & Inline Search & Print */
+
+/* ── Inline Search Bar ─────────────────────── */
+.lft-inline-search {
+  position: sticky;
+  top: 10px;
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(640px, 95%);
+  margin: 0 auto 20px auto;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1px solid #DCE5EA;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(13, 60, 92, 0.15);
+  direction: rtl;
+}
+
+.lft-inline-search input {
+  flex: 1;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  outline: none;
+  padding: 8px 14px;
+  font-family: 'Tajawal', sans-serif;
+  color: #1E293B;
+  font-size: 13.5px;
+}
+
+.lft-search-btn {
+  background: #0D3C5C;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-weight: 800;
+  font-size: 13px;
+  font-family: 'Tajawal', sans-serif;
+  cursor: pointer;
+}
+
+.lft-match-count {
+  direction: ltr;
+  font-size: 11px;
+  font-weight: 800;
+  color: #64748B;
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+.lft-nav-btn {
+  background: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  color: #0D3C5C;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.lft-nav-btn:hover { background: #E2E8F0; }
+
+/* ══════════════════════════════════════════════
+   TOC PANEL (Exact floating design from original commit)
+   ══════════════════════════════════════════════ */
+.lft-toc-panel {
+  position: fixed !important;
+  top: 130px !important;
+  left: 28px !important;
+  bottom: 30px !important;
+  width: 260px !important;
+  z-index: 1000000 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+  overflow: hidden !important;
+  direction: rtl !important;
+  animation: lftFadeIn 0.2s ease;
+}
+
+/* ── Head ──────────────────────────────────── */
+.lft-toc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 14px;
+  border-bottom: 1px solid #E2E8F0;
+  background: #F8FAFC;
+  flex-shrink: 0;
+}
+
+.lft-toc-head strong {
+  font-size: 13.5px;
+  color: #0F172A;
+  font-weight: 700;
+  font-family: 'Tajawal', sans-serif;
+}
+
+.lft-toc-head button {
+  border: 1px solid #CBD5E1;
+  background: #F1F5F9;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.lft-toc-head button:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+/* ── List ──────────────────────────────────── */
+.lft-toc-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 #F8FAFC;
+}
+
+.lft-toc-list::-webkit-scrollbar { width: 4px; }
+.lft-toc-list::-webkit-scrollbar-track { background: #F8FAFC; }
+.lft-toc-list::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+
+.lft-toc-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: right;
+  padding: 9px 12px;
+  font-size: 12.5px;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: 'Tajawal', sans-serif !important;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  direction: rtl;
+}
+
+.lft-toc-item:hover {
+  background: #F8FAFC;
+}
+
+.lft-toc-item.active {
+  background: transparent;
+}
+
+/* Circle indicator */
+.lft-toc-circle {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #94A3B8;
+  background: transparent;
+  transition: all 0.15s ease;
+}
+
+.lft-toc-circle.active {
+  border-color: #1D4ED8;
+  background: #1D4ED8;
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.2);
+}
+
+.lft-toc-label {
+  flex: 1;
+  text-align: right;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+  line-height: 1.5;
+  transition: transform 0.2s ease, font-weight 0.2s ease, color 0.2s ease;
+}
+
+.lft-toc-item:hover .lft-toc-label {
+  color: #0F172A;
+}
+
+.lft-toc-item.active .lft-toc-label {
+  color: #0F172A;
+  font-weight: 700;
+  transform: translateX(-4px);
+}
+
+/* ── Adjust scroll body when TOC is open ───── */
+.lft-scroll-body.with-toc .lft-center-container {
+  padding-left: 270px;
+}
+
+@media (max-width: 900px) {
+  .lft-toc-panel {
+    width: min(280px, 85vw) !important;
+  }
+}
+
+/* ── @media print ──────────────────────────── */
+@media print {
+  html, body, #root,
+  .portal-container, .portal-wrapper, .portal-content-body,
+  .app-container, .main-content,
+  .regulations-page-wrap, .reg-content-container {
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+    position: static !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  nav, header, footer, aside, .sidebar,
+  .portal-sidebar, .portal-header,
+  .admin-sidebar, .admin-header,
+  .reg-hero-banner, .reg-result-card-item,
+  .lft-header, .lft-tools-row, .lft-toc-panel,
+  .lft-inline-search, .lft-scroll-top {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .lft-overlay {
+    position: static !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .lft-modal {
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    border: none !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  .lft-scroll-body {
+    overflow: visible !important;
+    padding: 10mm 15mm !important;
+    height: auto !important;
+  }
+
+  .lft-center-container {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .lft-doc-title {
+    font-size: 20pt !important;
+    color: #000000 !important;
+    font-weight: bold !important;
+  }
+
+  .lft-meta-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6pt !important;
+    border: 1pt solid #000000 !important;
+    padding: 6pt !important;
+    page-break-inside: avoid;
+  }
+
+  .lft-meta-box { border: 1pt solid #CCCCCC !important; background: #ffffff !important; padding: 6pt !important; }
+  .lft-meta-label { color: #555555 !important; font-size: 9pt !important; }
+  .lft-meta-val   { color: #000000 !important; font-size: 10pt !important; font-weight: bold !important; }
+
+  .lft-preamble {
+    border: 1pt solid #000000 !important;
+    padding: 10pt !important;
+    font-size: 11pt !important;
+    line-height: 1.8 !important;
+    page-break-inside: avoid;
+  }
+
+  .lft-article-item {
+    page-break-inside: avoid;
+    border-top: 1pt solid #CCCCCC !important;
+    padding: 12pt 0 !important;
+  }
+
+  .lft-article-head h3 { color: #000000 !important; font-size: 14pt !important; font-weight: bold !important; }
+  mark.lft-search-hit { background: transparent !important; font-weight: normal !important; }
+}

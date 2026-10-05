@@ -11,6 +11,7 @@ import {
   FullTextModal,
   LegalReader
 } from '../components/Regulations';
+import LegalFullTextPage from '../components/Regulations/LegalReader/LegalFullTextPage';
 import ErrorBoundary from '../components/common/ErrorBoundary';
 import { searchLegal } from '../services/legalService';
 import { useAuth } from '../context/AuthContext';
@@ -154,7 +155,8 @@ export default function RegulationsPage() {
         law={previewLaw}
         onOpenFullReader={(l) => {
           setPreviewLaw(null);
-          handleOpenReader(l);
+          // فتح صفحة النص الكامل الجديدة بدل LegalReader
+          setFullTextLaw(l);
         }}
       />
 
@@ -165,12 +167,13 @@ export default function RegulationsPage() {
         law={relatedLaw}
       />
 
-      {/* Printable Full Text Modal */}
-      <FullTextModal
-        isOpen={!!fullTextLaw}
-        onClose={() => setFullTextLaw(null)}
-        law={fullTextLaw}
-      />
+      {/* صفحة النص الكامل الجديدة - تفتح من زر "عرض النص الكامل" في TextPreviewModal */}
+      {fullTextLaw && (
+        <LegalFullTextPage
+          lawId={fullTextLaw.law_id || 'law_tax_34_2014'}
+          onClose={() => setFullTextLaw(null)}
+        />
+      )}
 
       {/* Full Screen Interactive Reader Workspace */}
       {readerLawId && (
