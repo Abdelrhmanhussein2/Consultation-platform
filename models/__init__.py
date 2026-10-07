@@ -37,6 +37,7 @@ from models.platform_setting import PlatformSetting
 from models.user_document import UserDocument
 from models.official_template import OfficialTemplate
 from models.favorite import Favorite
+from models.user_folder import UserFolder, UserFolderItem, UserFolderFile
 from models.subscription_plan import SubscriptionPlan, SubscriptionPlanCycle, SubscriptionPlanVersion
 from models.user_subscription import UserSubscription, SubscriptionUsageLog, SubscriptionTimeline
 from models.subscription_request import SubscriptionRequest, SubscriptionOrder

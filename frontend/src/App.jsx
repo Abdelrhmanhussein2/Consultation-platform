@@ -46,6 +46,7 @@ import ConsultantDetailPage from './pages/ConsultantDetailPage';
 import ConsultantServicesPage from './pages/ConsultantServicesPage';
 import ConsultantSchedulePage from './pages/ConsultantSchedulePage';
 import DiwanAppointmentsPage from './pages/DiwanAppointmentsPage';
+import MyFoldersPage from './pages/MyFoldersPage';
 
 function MainApp() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -109,6 +110,7 @@ function MainApp() {
     '/subscriptions',
     '/invoices',
     '/tickets',
+    '/my-folders',
     '/support',
     '/settings',
     '/policies-portal',
@@ -203,6 +205,10 @@ function MainApp() {
       const ticketId = parts[parts.length - 1];
       return <SupportTicketDetailPage ticketId={ticketId} navigate={navigate} />;
     }
+    if (pathname === '/my-folders') {
+      return <MyFoldersPage navigate={navigate} />;
+    }
+
     if (pathname === '/policies-portal') {
       return <PolicyCenterPage openPolicy={openPolicy} />;
     }

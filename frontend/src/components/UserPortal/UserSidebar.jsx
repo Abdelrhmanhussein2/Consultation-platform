@@ -234,6 +234,7 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
     { path: '/invoices', label: 'الفواتير والمدفوعات', IconComponent: InvoicesIcon },
     { path: '/tickets', label: 'الدعم والمساعدة', IconComponent: TicketsIcon },
     { path: '/policies-portal', label: 'مركز السياسات', IconComponent: PolicyIcon },
+    { path: '/my-folders', label: 'مجلداتي', IconComponent: MyFoldersIcon },
     { path: '/settings', label: 'الإعدادات والملف الشخصي', IconComponent: SettingsIcon }
   ];
 
@@ -260,8 +261,6 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
     { path: '/tickets', label: 'مساعدة الأعمال', IconComponent: BusinessHelpIcon },
     { path: '/consultant/earnings', label: 'التقارير المالية', IconComponent: FinancialReportsIcon },
     { path: '/consultant/templates', label: 'النماذج الضريبية', IconComponent: TaxFormsIcon },
-    { path: '/consultant/documents', label: 'مجلداتي', IconComponent: MyFoldersIcon },
-    { path: '/consultant/favorites', label: 'المفضلة', IconComponent: FavoritesHeartIcon },
     { path: '/invoices', label: 'الفواتير والمدفوعات', IconComponent: InvoicesPaymentsIcon },
     { path: '/consultant/subscriptions', label: 'الإشتراكات', IconComponent: SubscriptionsCrownIcon },
     {
@@ -276,6 +275,7 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
       ]
     },
     { path: '/consultant/profile', label: 'الملف الشخصي', IconComponent: UserCircleIcon },
+    { path: '/my-folders', label: 'مجلداتي', IconComponent: MyFoldersIcon },
     { path: '/settings', label: 'الإعدادات', IconComponent: SettingsIcon }
   ];
 

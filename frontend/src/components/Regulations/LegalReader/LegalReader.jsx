@@ -5,9 +5,12 @@ import './LegalReader.css';
 import LegalArticle from './LegalArticle';
 import LegalArticleCompare from './LegalArticleCompare';
 import LegalStageSplitReader, { STAGES_CONFIG, getArticlesForStage } from './LegalStageSplitReader';
+import AddToFolderModal from '../../UserPortal/AddToFolderModal';
+import { useAuth } from '../../../context/AuthContext';
 import { getLawTree, getMockLawDetail } from '../../../services/legalService';
 
 export default function LegalReader({ lawId, onClose }) {
+  const { token } = useAuth();
   const [lawTree, setLawTree] = useState(() => getMockLawDetail(lawId));
   const [leftTab, setLeftTab] = useState('content'); // 'content' | 'highlights'
   const [fileTab, setFileTab] = useState('info'); // 'info' | 'origin' | 'description' | 'related' | 'timeline'
@@ -18,10 +21,26 @@ export default function LegalReader({ lawId, onClose }) {
   const [activeArticleId, setActiveArticleId] = useState(1);
   const [compareArticleNum, setCompareArticleNum] = useState(null);
   const [isSavedInFolders, setIsSavedInFolders] = useState(false);
+  const [showFolderModal, setShowFolderModal] = useState(false);
+  const [showOriginModal, setShowOriginModal] = useState(false);
   const [splitStage, setSplitStage] = useState(null); // null | '2014_original' | '2018_amending' | '2019_current'
   const [mainStageId, setMainStageId] = useState('2019_current');
   const [showRelatedDrawer, setShowRelatedDrawer] = useState(false);
   const [selectedRelatedFile, setSelectedRelatedFile] = useState(null);
+
+  // Check if saved in folders on mount
+  useEffect(() => {
+    if (!token) return;
+    const currentLawId = String(lawId || lawTree?.id || '34-2014');
+    fetch(`/api/folders/check-status?item_type=regulation&item_id=${encodeURIComponent(currentLawId)}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data) setIsSavedInFolders(data.is_saved);
+      })
+      .catch(() => {});
+  }, [token, lawId, lawTree?.id]);
 
   // Static related files — replace with API data later
   const RELATED_FILES = [
@@ -805,7 +824,7 @@ export default function LegalReader({ lawId, onClose }) {
               <div className="floating">
                 <button className={showFilePane ? 'on' : ''} onClick={() => setShowFilePane(!showFilePane)}>ⓘ معلومات الوثيقة</button>
                 <button className={showSearchInline ? 'on' : ''} onClick={() => setShowSearchInline(!showSearchInline)}>⌕ بحث</button>
-                <button className={isSavedInFolders ? 'on saved' : ''} onClick={() => setIsSavedInFolders(!isSavedInFolders)}>
+                <button className={isSavedInFolders ? 'on saved' : ''} onClick={() => setShowFolderModal(true)}>
                   {isSavedInFolders ? '✓ في مجلداتي' : '＋ أضف إلى مجلداتي'}
                 </button>
                 <button className={readingMode ? 'on' : ''} onClick={() => setReadingMode(!readingMode)}>◉ وضع القراءة</button>
@@ -855,9 +874,24 @@ export default function LegalReader({ lawId, onClose }) {
                       </div>
                     )}
                     {fileTab === 'origin' && (
-                      <div style={{ padding: '18px' }}>
-                        <h3 style={{ margin: '0 0 8px 0', color: 'var(--reg-navy)' }}>أصل الوثيقة الرسمية</h3>
-                        <p style={{ fontSize: '12px', color: 'var(--reg-muted)', margin: 0 }}>عرض النسخة الرسمية المنشورة في الجريدة الرسمية وبيانات العدد.</p>
+                      <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '14px' }}>
+                        <div>
+                          <h3 style={{ margin: '0 0 6px 0', color: 'var(--reg-navy)', fontSize: '18px', fontWeight: '800' }}>أصل الوثيقة</h3>
+                          <p style={{ fontSize: '13px', color: 'var(--reg-muted)', margin: 0 }}>عرض النسخة الرسمية المنشورة وبيانات العدد وتاريخ النشر.</p>
+                        </div>
+                        <button
+                          onClick={() => setShowOriginModal(true)}
+                          style={{
+                            background: '#0D3C5C', color: '#FFFFFF', border: 'none', borderRadius: '10px',
+                            padding: '10px 22px', fontSize: '14px', fontWeight: '800', cursor: 'pointer',
+                            fontFamily: 'Tajawal, sans-serif', display: 'inline-flex', alignItems: 'center', gap: '8px',
+                            boxShadow: '0 2px 8px rgba(13,60,92,0.25)', transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                          onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                        >
+                          فتح أصل الوثيقة
+                        </button>
                       </div>
                     )}
                     {fileTab === 'description' && (
@@ -1212,6 +1246,113 @@ export default function LegalReader({ lawId, onClose }) {
             onSetAsMain={handleSetStageAsMain}
           />
         </aside>
+      )}
+
+      {/* ADD TO FOLDER / FAVORITES MODAL */}
+      <AddToFolderModal
+        isOpen={showFolderModal}
+        onClose={() => setShowFolderModal(false)}
+        item={{
+          item_type: 'regulation',
+          item_id: String(lawId || lawTree?.id || '34-2014'),
+          title: lawTree?.title || 'قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته',
+          subtitle: 'تشريع ضريبي',
+        }}
+        onStatusChange={(saved) => setIsSavedInFolders(saved)}
+      />
+
+      {/* OFFICIAL DOCUMENT MODAL (أصل الوثيقة) */}
+      {showOriginModal && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(13, 60, 92, 0.55)', backdropFilter: 'blur(4px)',
+            zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+          }}
+          onClick={() => setShowOriginModal(false)}
+        >
+          <div
+            style={{
+              background: '#FFFFFF', borderRadius: '20px', padding: '32px', width: '100%', maxWidth: '680px',
+              maxHeight: '85vh', overflowY: 'auto', direction: 'rtl', fontFamily: 'Tajawal, sans-serif',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', boxSizing: 'border-box'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Gazette Header */}
+            <div style={{ textAlign: 'center', borderBottom: '2px solid #0D3C5C', paddingBottom: '18px', marginBottom: '20px' }}>
+              <div style={{ fontSize: '18px', fontWeight: '900', color: '#0D3C5C' }}>المملكة الأردنية الهاشمية</div>
+              <div style={{ fontSize: '15px', fontWeight: '800', color: '#F5A52A', marginTop: '2px' }}>الجريدة الرسمية</div>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', fontSize: '12px', color: '#64748B', fontWeight: '700', marginTop: '8px' }}>
+                <span>العدد: 5320</span>
+                <span>•</span>
+                <span>تاريخ النشر: 31-12-2014</span>
+                <span>•</span>
+                <span>الصفحة: 7390</span>
+              </div>
+            </div>
+
+            {/* Law Heading */}
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: '900', color: '#0D3C5C', margin: '0 0 6px 0' }}>
+                قانون ضريبة الدخل رقم (34) لسنة 2014
+              </h2>
+              <span style={{ fontSize: '12px', background: '#F1F5F9', color: '#0D3C5C', padding: '4px 12px', borderRadius: '12px', fontWeight: '700' }}>
+                النسخة الأصلية المنشورة في الجريدة الرسمية
+              </span>
+            </div>
+
+            {/* Decree Box */}
+            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px 20px', marginBottom: '20px', lineHeight: '1.8', fontSize: '13.5px', color: '#1E293B', fontStyle: 'italic', textAlign: 'justify' }}>
+              "نحن عبد الله الثاني ابن الحسين، ملك المملكة الأردنية الهاشمية، بمقتضى المادة (31) من الدستور، وبناءً على ما قرره مجلسا الأعيان والنواب، نصادق على القانون الآتي ونأمر بإصداره وإضافته إلى قوانين الدولة:"
+            </div>
+
+            {/* Preview of Law Articles */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
+              <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '14px 18px' }}>
+                <div style={{ fontSize: '14px', fontWeight: '800', color: '#0D3C5C', marginBottom: '6px' }}>المادة (1)</div>
+                <div style={{ fontSize: '13px', color: '#334155', lineHeight: '1.6' }}>
+                  يسمى هذا القانون (قانون ضريبة الدخل لسنة 2014) ويعمل به من تاريخ 1 / 1 / 2015.
+                </div>
+              </div>
+              <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '14px 18px' }}>
+                <div style={{ fontSize: '14px', fontWeight: '800', color: '#0D3C5C', marginBottom: '6px' }}>المادة (2) - التعاريف</div>
+                <div style={{ fontSize: '13px', color: '#334155', lineHeight: '1.6' }}>
+                  يكون للكلمات والعبارات التالية حيثما وردت في هذا القانون المعاني المخصصة لها أدناه ما لم تدل القرينة على غير ذلك:
+                  <ul style={{ margin: '6px 0 0 0', paddingRight: '20px' }}>
+                    <li><strong>الوزارة:</strong> وزارة المالية.</li>
+                    <li><strong>الوزير:</strong> وزير المالية.</li>
+                    <li><strong>الدائرة:</strong> دائرة ضريبة الدخل والمبيعات.</li>
+                    <li><strong>المدير:</strong> مدير عام الدائرة.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions Footer */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => {
+                  window.open('https://www.istd.gov.jo', '_blank');
+                }}
+                style={{
+                  background: '#F1F5F9', color: '#0D3C5C', border: '1px solid #CBD5E1', borderRadius: '10px',
+                  padding: '10px 18px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif'
+                }}
+              >
+                المصدر الرسمي ↗
+              </button>
+              <button
+                onClick={() => setShowOriginModal(false)}
+                style={{
+                  background: '#0D3C5C', color: '#FFFFFF', border: 'none', borderRadius: '10px',
+                  padding: '10px 24px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif'
+                }}
+              >
+                إغلاق
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>,
     document.body
