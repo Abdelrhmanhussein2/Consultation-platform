@@ -70,6 +70,7 @@ const FileDocIcon = ({ size = 20 }) => (
 
 const ITEM_TYPE_LABELS = {
   regulation: 'تشريع',
+  highlight: 'تحديد / ملاحظة',
   consultant: 'مستشار',
   template: 'نموذج',
   document: 'وثيقة',
@@ -77,6 +78,7 @@ const ITEM_TYPE_LABELS = {
 
 const ITEM_TYPE_COLORS = {
   regulation: { bg: 'rgba(59,130,246,0.1)', color: '#3B82F6' },
+  highlight: { bg: 'rgba(245,158,11,0.1)', color: '#F59E0B' },
   consultant: { bg: 'rgba(16,185,129,0.1)', color: '#10B981' },
   template: { bg: 'rgba(139,92,246,0.1)', color: '#8B5CF6' },
   document: { bg: 'rgba(245,165,42,0.1)', color: '#F5A52A' },
@@ -375,7 +377,7 @@ export default function FolderDetailView({ folder, onBack, onDeleteItem, onFileA
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
                     onClick={() => {
-                      if (item.item_type === 'regulation') navigate('/regulations');
+                      if (item.item_type === 'regulation' || item.item_type === 'highlight') navigate('/regulations');
                       else if (item.item_type === 'consultant') navigate(`/consultants/${item.item_id}`);
                       else if (item.item_type === 'template') navigate('/consultant/templates');
                       else if (item.item_type === 'document') navigate('/consultant/documents');

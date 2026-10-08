@@ -20,6 +20,7 @@ from routes.subscription_routes import router as subscription_router
 from routes.chat_ai_routes import router as chat_ai_router
 from routes.recurring_invoice_routes import router as recurring_invoice_router
 from routes.refunded_invoice_routes import router as refunded_invoice_router
+from routes.highlight_routes import router as highlight_router
 
 api_router = APIRouter(prefix="/api")
 
@@ -45,6 +46,7 @@ api_router.include_router(favorite_router)
 api_router.include_router(folder_router)
 api_router.include_router(subscription_router)
 api_router.include_router(chat_ai_router)
+api_router.include_router(highlight_router)
 
 
 

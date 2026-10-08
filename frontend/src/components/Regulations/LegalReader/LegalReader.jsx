@@ -31,7 +31,7 @@ export default function LegalReader({ lawId, onClose }) {
   // Check if saved in folders on mount
   useEffect(() => {
     if (!token) return;
-    const currentLawId = String(lawId || lawTree?.id || '34-2014');
+    const currentLawId = String(lawId || lawTree?.law_id || lawTree?.id || '34-2014');
     fetch(`/api/folders/check-status?item_type=regulation&item_id=${encodeURIComponent(currentLawId)}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -40,6 +40,34 @@ export default function LegalReader({ lawId, onClose }) {
         if (data) setIsSavedInFolders(data.is_saved);
       })
       .catch(() => {});
+  }, [token, lawId, lawTree?.law_id, lawTree?.id]);
+
+  // Fetch highlights from database on mount / when law changes
+  useEffect(() => {
+    if (!token) return;
+    const currentLawId = String(lawId || lawTree?.law_id || lawTree?.id || '34-2014');
+    fetch(`/api/highlights?law_id=${encodeURIComponent(currentLawId)}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        if (Array.isArray(data)) {
+          setHighlights(data.map(h => ({
+            id: h.id,
+            text: h.text,
+            color: h.color || '#3B82F6',
+            bgTint: h.bg_tint || '#DBEAFE',
+            artNum: h.art_num,
+            artTitle: h.art_title,
+            date: h.created_at ? new Date(h.created_at).toLocaleDateString('en-CA') : new Date().toLocaleDateString('en-CA'),
+            note: h.note,
+            starred: !!h.starred
+          })));
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching highlights:', err);
+      });
   }, [token, lawId, lawTree?.id]);
 
   // Static related files — replace with API data later
@@ -442,23 +470,60 @@ export default function LegalReader({ lawId, onClose }) {
   };
 
   // Apply Highlight with Color
-  const handleApplyHighlight = (color) => {
+  const handleApplyHighlight = async (color) => {
     if (!selectionPopup.text) return;
+    const text = selectionPopup.text;
+    const artNum = selectionPopup.artNum;
+    const artTitle = selectionPopup.artTitle;
+    const colorHex = color.hex;
+    const bgHex = color.bg;
+    const currentLawId = String(lawId || lawTree?.id || '34-2014');
+    const tempId = 'temp_' + Date.now();
+
     const newHl = {
-      id: Date.now() + Math.random(),
-      text: selectionPopup.text,
-      color: color.hex,
-      bgTint: color.bg,
-      artNum: selectionPopup.artNum,
-      artTitle: selectionPopup.artTitle,
+      id: tempId,
+      text,
+      color: colorHex,
+      bgTint: bgHex,
+      artNum,
+      artTitle,
       date: new Date().toLocaleDateString('en-CA'),
       note: null,
       starred: false
     };
+
     setHighlights(prev => [newHl, ...prev]);
     setLeftTab('highlights');
     setSelectionPopup(prev => ({ ...prev, visible: false }));
     window.getSelection()?.removeAllRanges();
+
+    if (token) {
+      try {
+        const res = await fetch('/api/highlights', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            law_id: currentLawId,
+            art_num: artNum,
+            art_title: artTitle,
+            text,
+            color: colorHex,
+            bg_tint: bgHex,
+            note: null,
+            starred: false
+          })
+        });
+        if (res.ok) {
+          const saved = await res.json();
+          setHighlights(prev => prev.map(h => h.id === tempId ? { ...h, id: saved.id } : h));
+        }
+      } catch (err) {
+        console.error('Failed to save highlight to database:', err);
+      }
+    }
   };
 
   // Open Add Note Modal
@@ -477,36 +542,92 @@ export default function LegalReader({ lawId, onClose }) {
   };
 
   // Save Note (supports multiple notes on the exact same phrase)
-  const handleSaveNote = () => {
+  const handleSaveNote = async () => {
     if (!noteModal.text) return;
     const chosenColor = noteModal.color || '#F59E0B';
     const chosenBg = noteModal.bgTint || '#FEF3C7';
+    const text = noteModal.text;
+    const artNum = noteModal.artNum;
+    const artTitle = noteModal.artTitle;
+    const noteText = noteInput.trim() || 'ملاحظة';
+    const currentLawId = String(lawId || lawTree?.id || '34-2014');
+    const tempId = 'temp_' + Date.now();
+
     const newHl = {
-      id: Date.now() + Math.random(),
-      text: noteModal.text,
+      id: tempId,
+      text,
       color: chosenColor,
       bgTint: chosenBg,
-      artNum: noteModal.artNum,
-      artTitle: noteModal.artTitle,
+      artNum,
+      artTitle,
       date: new Date().toLocaleDateString('en-CA'),
-      note: noteInput.trim() || 'ملاحظة',
+      note: noteText,
       starred: false
     };
+
     setHighlights(prev => [newHl, ...prev]);
     setLeftTab('highlights');
     setNoteModal({ open: false, text: '', artNum: 1, artTitle: '', color: '#F59E0B', bgTint: '#FEF3C7' });
     setNoteInput('');
     window.getSelection()?.removeAllRanges();
+
+    if (token) {
+      try {
+        const res = await fetch('/api/highlights', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            law_id: currentLawId,
+            art_num: artNum,
+            art_title: artTitle,
+            text,
+            color: chosenColor,
+            bg_tint: chosenBg,
+            note: noteText,
+            starred: false
+          })
+        });
+        if (res.ok) {
+          const saved = await res.json();
+          setHighlights(prev => prev.map(h => h.id === tempId ? { ...h, id: saved.id } : h));
+        }
+      } catch (err) {
+        console.error('Failed to save note to database:', err);
+      }
+    }
   };
 
   // Delete Highlight or Note
-  const handleDeleteHighlight = (id) => {
+  const handleDeleteHighlight = async (id) => {
     setHighlights(prev => prev.filter(h => h.id !== id));
+    if (token && id && !String(id).startsWith('temp_')) {
+      try {
+        await fetch(`/api/highlights/${id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } catch (err) {
+        console.error('Failed to delete highlight from database:', err);
+      }
+    }
   };
 
   // Toggle Starred
-  const handleToggleStarHighlight = (id) => {
+  const handleToggleStarHighlight = async (id) => {
     setHighlights(prev => prev.map(h => h.id === id ? { ...h, starred: !h.starred } : h));
+    if (token && id && !String(id).startsWith('temp_')) {
+      try {
+        await fetch(`/api/highlights/${id}/toggle-star`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } catch (err) {
+        console.error('Failed to toggle star highlight in database:', err);
+      }
+    }
   };
 
   // Inline Search
@@ -1254,7 +1375,7 @@ export default function LegalReader({ lawId, onClose }) {
         onClose={() => setShowFolderModal(false)}
         item={{
           item_type: 'regulation',
-          item_id: String(lawId || lawTree?.id || '34-2014'),
+          item_id: String(lawId || lawTree?.law_id || lawTree?.id || '34-2014'),
           title: lawTree?.title || 'قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته',
           subtitle: 'تشريع ضريبي',
         }}

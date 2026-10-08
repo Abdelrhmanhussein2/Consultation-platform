@@ -41,6 +41,7 @@ from models.user_folder import UserFolder, UserFolderItem, UserFolderFile
 from models.subscription_plan import SubscriptionPlan, SubscriptionPlanCycle, SubscriptionPlanVersion
 from models.user_subscription import UserSubscription, SubscriptionUsageLog, SubscriptionTimeline
 from models.subscription_request import SubscriptionRequest, SubscriptionOrder
+from models.user_highlight import UserHighlight
 
 
 

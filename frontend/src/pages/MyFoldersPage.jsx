@@ -56,6 +56,7 @@ const ExternalLinkIcon = ({ size = 16 }) => (
 
 const ITEM_TYPE_LABELS = {
   regulation: 'تشريع',
+  highlight: 'تحديد / ملاحظة',
   consultant: 'مستشار',
   template: 'نموذج',
   document: 'وثيقة',
@@ -63,6 +64,7 @@ const ITEM_TYPE_LABELS = {
 
 const ITEM_TYPE_COLORS = {
   regulation: { bg: 'rgba(59,130,246,0.1)', color: '#3B82F6' },
+  highlight: { bg: 'rgba(245,158,11,0.1)', color: '#F59E0B' },
   consultant: { bg: 'rgba(16,185,129,0.1)', color: '#10B981' },
   template: { bg: 'rgba(139,92,246,0.1)', color: '#8B5CF6' },
   document: { bg: 'rgba(245,165,42,0.1)', color: '#F5A52A' },
@@ -94,6 +96,11 @@ const ItemTypeIcon = ({ type, size = 20 }) => {
       {type === 'template' && (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
+        </svg>
+      )}
+      {type === 'highlight' && (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="#F59E0B" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
         </svg>
       )}
       {(type === 'document' || !ITEM_TYPE_LABELS[type]) && (
@@ -305,6 +312,7 @@ export default function MyFoldersPage({ navigate }) {
   const renderFavorites = () => {
     const counts = {
       regulation: favorites.filter(f => f.item_type === 'regulation').length,
+      highlight: favorites.filter(f => f.item_type === 'highlight').length,
       consultant: favorites.filter(f => f.item_type === 'consultant').length,
       template: favorites.filter(f => f.item_type === 'template').length,
       document: favorites.filter(f => f.item_type === 'document').length,
@@ -452,7 +460,7 @@ function FavoriteCard({ item, onDelete, navigate }) {
   const handleView = () => {
     if (item.item_type === 'consultant') navigate(`/consultants/${item.item_id}`);
     else if (item.item_type === 'template') navigate('/consultant/templates');
-    else if (item.item_type === 'regulation') navigate('/regulations');
+    else if (item.item_type === 'regulation' || item.item_type === 'highlight') navigate('/regulations');
     else if (item.item_type === 'document') navigate('/consultant/documents');
   };
 

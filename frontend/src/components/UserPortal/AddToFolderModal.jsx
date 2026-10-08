@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 
 const FolderIcon = ({ size = 20, color = 'currentColor' }) => (
@@ -25,17 +25,17 @@ const PlusIcon = ({ size = 15, color = 'currentColor' }) => (
   </svg>
 );
 
-const FOLDER_COLORS = ['#F5A52A', '#0D3C5C', '#3B82F6', '#10B981', '#8B5CF6', '#64748B'];
-
 export default function AddToFolderModal({ item, isOpen, onClose, onStatusChange }) {
   const { token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [statusData, setStatusData] = useState({ is_favorite: false, folders: [] });
   const [showCreate, setShowCreate] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
-  const [newFolderColor, setNewFolderColor] = useState('#F5A52A');
+  const [newFolderColor] = useState('#0D3C5C');
   const [creating, setCreating] = useState(false);
+  const [nameError, setNameError] = useState('');
   const [toastMsg, setToastMsg] = useState(null);
+  const nameInputRef = useRef(null);
 
   const notify = (msg) => {
     setToastMsg(msg);
@@ -66,6 +66,7 @@ export default function AddToFolderModal({ item, isOpen, onClose, onStatusChange
       fetchStatus();
       setShowCreate(false);
       setNewFolderName('');
+      setNameError('');
       setToastMsg(null);
     }
   }, [isOpen, fetchStatus]);
@@ -142,15 +143,15 @@ export default function AddToFolderModal({ item, isOpen, onClose, onStatusChange
   };
 
   // Create new folder and add item
-  const handleCreateAndAdd = async (e) => {
-    e.preventDefault();
-    if (!newFolderName.trim() || !token) return;
+  const submitCreateAndAdd = async (folderName) => {
+    if (!folderName || !token) return;
     setCreating(true);
+    setNameError('');
     try {
       const res = await fetch('/api/folders/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: newFolderName.trim(), color: newFolderColor }),
+        body: JSON.stringify({ name: folderName, color: newFolderColor }),
       });
       if (res.status === 201) {
         const createdFolder = await res.json();
@@ -164,16 +165,44 @@ export default function AddToFolderModal({ item, isOpen, onClose, onStatusChange
             subtitle: item.subtitle || null,
           })
         });
-        notify(`تم إنشاء مجلد "${createdFolder.name}" وإضافة التشريع`);
+        if (onStatusChange) onStatusChange(true);
         setNewFolderName('');
         setShowCreate(false);
-        fetchStatus();
+        onClose();
+      } else {
+        setNameError('تعذر إنشاء المجلد، يرجى المحاولة مرة أخرى');
       }
     } catch {
-      notify('فشل إنشاء المجلد');
+      setNameError('تعذر إنشاء المجلد، يرجى المحاولة مرة أخرى');
     } finally {
       setCreating(false);
     }
+  };
+
+  // Handle "تم" (Done) button
+  const handleDone = async () => {
+    // If item is already saved in a folder or favorites, close immediately
+    if (statusData.is_in_any_folder || statusData.is_favorite) {
+      if (onStatusChange) onStatusChange(true);
+      onClose();
+      return;
+    }
+
+    // If user has already entered a folder name in the inline form
+    const folderName = newFolderName.trim();
+    if (folderName) {
+      await submitCreateAndAdd(folderName);
+      return;
+    }
+
+    // If not saved and no name entered: show inline prompt in the exact same place
+    setShowCreate(true);
+    setNameError('اكتب اسم المجلد');
+    setTimeout(() => {
+      if (nameInputRef.current) {
+        nameInputRef.current.focus();
+      }
+    }, 60);
   };
 
   return (
@@ -288,44 +317,108 @@ export default function AddToFolderModal({ item, isOpen, onClose, onStatusChange
 
         {/* Create Folder Inline */}
         {showCreate ? (
-          <form onSubmit={handleCreateAndAdd} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '12px', marginBottom: '14px' }}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleDone();
+            }}
+            style={{
+              background: '#F8FAFC',
+              border: `1.5px solid ${nameError ? '#EF4444' : '#E2E8F0'}`,
+              borderRadius: '12px',
+              padding: '12px',
+              marginBottom: '14px',
+              transition: 'all 0.2s ease',
+              boxShadow: nameError ? '0 0 0 3px rgba(239, 68, 68, 0.15)' : 'none'
+            }}
+          >
+            {nameError && (
+              <div style={{
+                color: '#EF4444',
+                fontSize: '11px',
+                fontWeight: '700',
+                marginBottom: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                animation: 'fadeIn 0.2s ease'
+              }}>
+                <span style={{ fontSize: '13px' }}>⚠️</span>
+                <span>{nameError}</span>
+              </div>
+            )}
             <input
+              ref={nameInputRef}
               value={newFolderName}
-              onChange={e => setNewFolderName(e.target.value)}
-              placeholder="اسم المجلد الجديد..."
+              onChange={e => {
+                setNewFolderName(e.target.value);
+                if (nameError) setNameError('');
+              }}
+              placeholder="اكتب اسم المجلد هنا..."
               maxLength={60}
               autoFocus
-              required
-              style={{ width: '100%', border: '1px solid #CBD5E1', borderRadius: '8px', padding: '7px 10px', fontSize: '12px', fontFamily: 'Tajawal, sans-serif', outline: 'none', boxSizing: 'border-box', marginBottom: '8px' }}
+              style={{
+                width: '100%',
+                border: `1px solid ${nameError ? '#EF4444' : '#CBD5E1'}`,
+                borderRadius: '8px',
+                padding: '8px 10px',
+                fontSize: '12px',
+                fontFamily: 'Tajawal, sans-serif',
+                outline: 'none',
+                boxSizing: 'border-box',
+                marginBottom: '8px',
+                background: '#FFFFFF'
+              }}
             />
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', gap: '6px' }}>
-                {FOLDER_COLORS.map(c => (
-                  <button
-                    key={c} type="button" onClick={() => setNewFolderColor(c)}
-                    style={{ width: '18px', height: '18px', borderRadius: '50%', background: c, border: newFolderColor === c ? '2px solid #0D3C5C' : 'none', cursor: 'pointer' }}
-                  />
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <button
-                  type="button" onClick={() => setShowCreate(false)}
-                  style={{ background: '#E2E8F0', color: '#64748B', border: 'none', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif' }}
-                >
-                  إلغاء
-                </button>
-                <button
-                  type="submit" disabled={creating || !newFolderName.trim()}
-                  style={{ background: '#0D3C5C', color: '#FFFFFF', border: 'none', borderRadius: '6px', padding: '5px 12px', fontSize: '11px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif' }}
-                >
-                  {creating ? '...' : 'إنشاء وحفظ'}
-                </button>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreate(false);
+                  setNameError('');
+                }}
+                style={{
+                  background: '#E2E8F0',
+                  color: '#64748B',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '5px 10px',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  fontFamily: 'Tajawal, sans-serif'
+                }}
+              >
+                إلغاء
+              </button>
+              <button
+                type="submit"
+                disabled={creating}
+                style={{
+                  background: '#0D3C5C',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '5px 12px',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  fontFamily: 'Tajawal, sans-serif'
+                }}
+              >
+                {creating ? '...' : 'إنشاء وحفظ'}
+              </button>
             </div>
           </form>
         ) : (
           <button
-            onClick={() => setShowCreate(true)}
+            onClick={() => {
+              setShowCreate(true);
+              setNameError('');
+              setTimeout(() => {
+                if (nameInputRef.current) nameInputRef.current.focus();
+              }, 50);
+            }}
             style={{
               width: '100%', background: '#F8FAFC', border: '1px dashed #CBD5E1', borderRadius: '10px',
               padding: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
@@ -340,7 +433,7 @@ export default function AddToFolderModal({ item, isOpen, onClose, onStatusChange
 
         {/* Footer Done Button */}
         <button
-          onClick={onClose}
+          onClick={handleDone}
           style={{
             width: '100%', background: '#0D3C5C', color: '#FFFFFF', border: 'none', borderRadius: '11px',
             padding: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif'

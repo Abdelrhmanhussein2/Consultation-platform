@@ -81,6 +81,16 @@ def delete_favorite(
             detail="العنصر غير موجود في المفضلة"
         )
 
+    if fav.item_type == "highlight":
+        try:
+            from models.user_highlight import UserHighlight
+            hl_id = uuid.UUID(fav.item_id)
+            hl = db.query(UserHighlight).filter(UserHighlight.id == hl_id, UserHighlight.user_id == current_user.id).first()
+            if hl:
+                hl.starred = False
+        except Exception:
+            pass
+
     db.delete(fav)
     db.commit()
     return

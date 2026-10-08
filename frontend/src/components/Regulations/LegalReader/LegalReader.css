@@ -1756,8 +1756,8 @@ div.advanced:hover {
 }
 
 .stage-inner-card.active {
-  border-color: #1D4ED8;
-  background: #F8FAFF;
+  border-color: #EEF2F6;
+  background: #ffffff;
 }
 
 .stage-inner-card.active .stage-action-badge {
