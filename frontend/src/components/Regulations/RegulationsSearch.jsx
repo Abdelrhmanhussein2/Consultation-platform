@@ -77,7 +77,7 @@ export default function RegulationsSearch({
               setSearchQuery(e.target.value);
               if (isAiActive) setSuggestionData(getLegalSuggestion(e.target.value));
             }}
-            style={{ borderColor: inputError ? '#EF4444' : 'transparent' }}
+            style={inputError ? { borderColor: '#EF4444' } : undefined}
           />
 
           {/* Advanced Search Button - exact from HTML */}

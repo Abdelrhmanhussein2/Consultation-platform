@@ -5,6 +5,8 @@ import './LegalReader.css';
 import LegalArticle from './LegalArticle';
 import LegalArticleCompare from './LegalArticleCompare';
 import LegalStageSplitReader, { STAGES_CONFIG, getArticlesForStage } from './LegalStageSplitReader';
+import RelatedFilesGrid from './RelatedFilesGrid';
+import { RELATED_FILES_DATA, FILTER_HIERARCHY } from './relatedFilesData';
 import AddToFolderModal from '../../UserPortal/AddToFolderModal';
 import { useAuth } from '../../../context/AuthContext';
 import { getLawTree, getMockLawDetail } from '../../../services/legalService';
@@ -13,7 +15,9 @@ export default function LegalReader({ lawId, onClose }) {
   const { token } = useAuth();
   const [lawTree, setLawTree] = useState(() => getMockLawDetail(lawId));
   const [leftTab, setLeftTab] = useState('content'); // 'content' | 'highlights'
-  const [fileTab, setFileTab] = useState('info'); // 'info' | 'origin' | 'description' | 'related' | 'timeline'
+  const [fileTab, setFileTab] = useState('info'); // 'info' | 'description' | 'related' | 'timeline'
+  const [showFileInfoModal, setShowFileInfoModal] = useState(false);
+  const [modalFileTab, setModalFileTab] = useState('info'); // 'info' | 'description' | 'related' | 'timeline'
   const [showFilePane, setShowFilePane] = useState(true);
   const [showSearchInline, setShowSearchInline] = useState(false);
   const [showPreamble, setShowPreamble] = useState(false);
@@ -22,11 +26,15 @@ export default function LegalReader({ lawId, onClose }) {
   const [compareArticleNum, setCompareArticleNum] = useState(null);
   const [isSavedInFolders, setIsSavedInFolders] = useState(false);
   const [showFolderModal, setShowFolderModal] = useState(false);
-  const [showOriginModal, setShowOriginModal] = useState(false);
   const [splitStage, setSplitStage] = useState(null); // null | '2014_original' | '2018_amending' | '2019_current'
   const [mainStageId, setMainStageId] = useState('2019_current');
   const [showRelatedDrawer, setShowRelatedDrawer] = useState(false);
   const [selectedRelatedFile, setSelectedRelatedFile] = useState(null);
+  const [showRelatedFilter, setShowRelatedFilter] = useState(true);
+  const [selectedFilterCategory, setSelectedFilterCategory] = useState('all');
+  const [filterSortOrder, setFilterSortOrder] = useState('relevance');
+  const [relatedFilterSearch, setRelatedFilterSearch] = useState('');
+  const [isDocPaneMaximized, setIsDocPaneMaximized] = useState(false);
 
   // Check if saved in folders on mount
   useEffect(() => {
@@ -70,218 +78,32 @@ export default function LegalReader({ lawId, onClose }) {
       });
   }, [token, lawId, lawTree?.id]);
 
-  // Static related files — replace with API data later
-  const RELATED_FILES = [
-    {
-      id: 1,
-      title: 'وثيقة لسنة 2015 (إرشادات عامة لتعبئة إقرار ضريبة الدخل للفترة عام 2015م وما بعدها لسنة 2015)',
-      meta: {
-        type: 'قرار / حكم',
-        numberLabel: 'رقم الحكم',
-        number: 'VI-2020-02',
-        date: '1441-06-29',
-        source: 'لجان الفصل في المخالفات والمنازعات الضريبية',
-        summary: 'يتناول القرار مسألة إجرائية مرتبطة بالتسجيل والالتزام الضريبي، وآثارها على المكلف.'
-      },
-      docTitle: 'قانون ضريبة الدخل رقم 34 لسنة 2014 — كما صدر'
-    },
-    {
-      id: 2,
-      title: 'نظام رقم 40 لسنة 2021 (نظام الأسعار التحويلية لغايات ضريبة الدخل لسنة 2021)',
-      meta: {
-        type: 'نظام',
-        numberLabel: 'رقم النظام',
-        number: '40 لسنة 2021',
-        date: '2021-09-15',
-        source: 'مجلس الوزراء',
-        summary: 'تحديد القواعد والتعليمات الواجب اتباعها في تحديد أسعار المعاملات بين الأشخاص ذوي العلاقة.'
-      },
-      docTitle: 'نظام الأسعار التحويلية رقم 40 لسنة 2021'
-    },
-    {
-      id: 3,
-      title: 'قرار لسنة 2018 (قرار بتعيين مدع عام ضريبي لسنة 2018)',
-      meta: {
-        type: 'قرار',
-        numberLabel: 'رقم القرار',
-        number: '2018/12',
-        date: '2018-05-20',
-        source: 'وزارة المالية - دائرة ضريبة الدخل والمبيعات',
-        summary: 'قرار بتعيين مدع عام ضريبي لمتابعة القضايا والجرائم الضريبية أمام المحاكم المختصة.'
-      },
-      docTitle: 'قرار تعيين مدع عام ضريبي لسنة 2018'
-    },
-    {
-      id: 4,
-      title: 'تعليمات رقم 4 لسنة 2019 (التعليمات التنفيذية احتساب ضريبة الدخل على الأساس النقدي للشخص الطبيعي المتأتي دخله من المهنة أو الحرفة لسنة 2019)',
-      meta: {
-        type: 'تعليمات تنفيذية',
-        numberLabel: 'رقم التعليمات',
-        number: '4 لسنة 2019',
-        date: '2019-03-12',
-        source: 'دائرة ضريبة الدخل والمبيعات',
-        summary: 'تعليمات احتساب ضريبة الدخل على الأساس النقدي لأصحاب المهن والحرف الحرة.'
-      },
-      docTitle: 'التعليمات التنفيذية رقم 4 لسنة 2019'
-    },
-    {
-      id: 5,
-      title: 'جدول لسنة 2010 (جدول نسب الأرباح القائمة لسنة 2010)',
-      meta: {
-        type: 'جدول نسب',
-        numberLabel: 'رقم الجدول',
-        number: 'جدول 2010',
-        date: '2010-01-01',
-        source: 'دائرة ضريبة الدخل والمبيعات',
-        summary: 'جدول يحدد نسب الأرباح الإجمالية القائمة لمختلف الأنشطة التجارية والصناعية.'
-      },
-      docTitle: 'جدول نسب الأرباح القائمة لسنة 2010'
-    },
-    {
-      id: 6,
-      title: 'قانون مؤقت رقم 28 لسنة 2009 (قانون ضريبة الدخل المؤقت لسنة 2009) ملغى',
-      meta: {
-        type: 'قانون مؤقت',
-        numberLabel: 'رقم القانون',
-        number: '28 لسنة 2009',
-        date: '2009-12-30',
-        source: 'الجريدة الرسمية',
-        summary: 'قانون ضريبة الدخل المؤقت الذي تم إلغاؤه وحل محله قانون ضريبة الدخل رقم 34 لسنة 2014.'
-      },
-      docTitle: 'قانون ضريبة الدخل المؤقت رقم 28 لسنة 2009 ملغى'
-    },
-    {
-      id: 7,
-      title: 'الحكم رقم 193 لسنة 2025 محكمة تمييز حقوق',
-      meta: {
-        type: 'حكم قضائي',
-        numberLabel: 'رقم الحكم',
-        number: '193 لسنة 2025',
-        date: '2025-02-10',
-        source: 'محكمة التمييز بصفتها الحقوقية',
-        summary: 'بيان شروط استحقاق الرديات الضريبية ومدد التقادم المسقط للحق في المطالبة بها.'
-      },
-      docTitle: 'حكم محكمة التمييز حقوق رقم 193 لسنة 2025'
-    },
-    {
-      id: 8,
-      title: 'الحكم رقم 10424 لسنة 2024 محكمة تمييز جزاء',
-      meta: {
-        type: 'حكم قضائي',
-        numberLabel: 'رقم الحكم',
-        number: '10424 لسنة 2024',
-        date: '2024-11-18',
-        source: 'محكمة التمييز بصفتها الجزائية',
-        summary: 'أركان جريمة التهرب الضريبي والعقوبات المقررة وتطبيقات المادة 66 من القانون.'
-      },
-      docTitle: 'حكم محكمة التمييز جزاء رقم 10424 لسنة 2024'
-    },
-    {
-      id: 9,
-      title: 'الحكم رقم 1 لسنة 2024 - طعون دستورية',
-      meta: {
-        type: 'حكم دستوري',
-        numberLabel: 'رقم الحكم',
-        number: '1 لسنة 2024',
-        date: '2024-04-05',
-        source: 'المحكمة الدستورية',
-        summary: 'دستورية فرض الضريبة التصاعدية وعدم تعارضها مع أحكام الدستور الأردني.'
-      },
-      docTitle: 'حكم المحكمة الدستورية رقم 1 لسنة 2024'
-    },
-    {
-      id: 10,
-      title: 'الحكم رقم 101 لسنة 2024 المحكمة الإدارية العليا',
-      meta: {
-        type: 'حكم قضائي',
-        numberLabel: 'رقم الحكم',
-        number: '101 لسنة 2024',
-        date: '2024-08-22',
-        source: 'المحكمة الإدارية العليا',
-        summary: 'إلغاء قرار تقدير إداري صادر عن مقدر الضريبة لمخالفته الأصول القانونية.'
-      },
-      docTitle: 'حكم المحكمة الإدارية العليا رقم 101 لسنة 2024'
-    },
-    {
-      id: 11,
-      title: 'الحكم رقم 152 لسنة 2021 بداية حقوق ضريبية',
-      meta: {
-        type: 'حكم قضائي',
-        numberLabel: 'رقم الحكم',
-        number: '152 لسنة 2021',
-        date: '2021-06-14',
-        source: 'محكمة بداية حقوق ضريبية',
-        summary: 'تحديد المصاريف المقبولة تنزيلاً من الدخل الإجمالي وفق المادة 9 من القانون.'
-      },
-      docTitle: 'حكم محكمة بداية حقوق ضريبية رقم 152 لسنة 2021'
-    },
-    {
-      id: 12,
-      title: 'الحكم رقم 152 لسنة 2021 بداية حقوق ضريبية',
-      meta: {
-        type: 'حكم قضائي',
-        numberLabel: 'رقم الحكم',
-        number: '152 لسنة 2021',
-        date: '2021-06-14',
-        source: 'محكمة بداية حقوق ضريبية',
-        summary: 'تحديد المصاريف المقبولة تنزيلاً من الدخل الإجمالي وفق المادة 9 من القانون.'
-      },
-      docTitle: 'حكم محكمة بداية حقوق ضريبية رقم 152 لسنة 2021'
-    },
-    {
-      id: 13,
-      title: 'نظام رقم 11 لسنة 2021 (نظام ضريبة الدخل في المناطق التنموية لسنة 2021)',
-      meta: {
-        type: 'نظام',
-        numberLabel: 'رقم النظام',
-        number: '11 لسنة 2021',
-        date: '2021-03-01',
-        source: 'الجريدة الرسمية',
-        summary: 'حوافز وإعفاءات ضريبة الدخل للأنشطة الاقتصادية داخل المناطق التنموية والحرة.'
-      },
-      docTitle: 'نظام ضريبة الدخل في المناطق التنموية رقم 11 لسنة 2021'
-    },
-    {
-      id: 14,
-      title: 'قرار لسنة 2018 (قرار بإلغاء وتعيين ثانيا عاما ضريبيا لسنة 2018)',
-      meta: {
-        type: 'قرار',
-        numberLabel: 'رقم القرار',
-        number: '2018/45',
-        date: '2018-09-11',
-        source: 'المجلس القضائي',
-        summary: 'قرار تشكيل النيابة العامة الضريبية وتعيين نائب عام ضريبي.'
-      },
-      docTitle: 'قرار تشكيل النيابة العامة الضريبية لسنة 2018'
-    },
-    {
-      id: 15,
-      title: 'تعليمات رقم 3 لسنة 2020 (تعليمات تسوية الديون الضريبية المتنازع عليها)',
-      meta: {
-        type: 'تعليمات تنفيذية',
-        numberLabel: 'رقم التعليمات',
-        number: '3 لسنة 2020',
-        date: '2020-05-18',
-        source: 'دائرة ضريبة الدخل والمبيعات',
-        summary: 'تعليمات وإجراءات تسوية ومطابقة المطالبات الضريبية العالقة مع المكلفين.'
-      },
-      docTitle: 'تعليمات تسوية الديون الضريبية لسنة 2020'
-    },
-    {
-      id: 16,
-      title: 'قانون رقم 1 لسنة 2016 (قانون ضريبة الدخل لسنة 2016)',
-      meta: {
-        type: 'قانون',
-        numberLabel: 'رقم القانون',
-        number: '1 لسنة 2016',
-        date: '2016-01-10',
-        source: 'الجريدة الرسمية',
-        summary: 'تعديلات متعلقة بضريبة الدخل والمناطق الخاصة والتنموية.'
-      },
-      docTitle: 'قانون ضريبة الدخل لسنة 2016'
-    }
-  ];
+  // Related files data source
+  const RELATED_FILES = RELATED_FILES_DATA;
   const RELATED_PREVIEW = RELATED_FILES.slice(0, 10); // first 10 for preview
+
+  // Filtered related files based on selectedFilterCategory and search
+  const filteredRelatedFiles = RELATED_FILES.filter((file) => {
+    const q = relatedFilterSearch.trim().toLowerCase();
+    const matchesSearch = !q ||
+      file.title.toLowerCase().includes(q) ||
+      (file.meta?.summary && file.meta.summary.toLowerCase().includes(q));
+
+    if (!matchesSearch) return false;
+
+    if (selectedFilterCategory === 'all') return true;
+    return file.meta?.subCategory === selectedFilterCategory ||
+           file.meta?.category?.includes(selectedFilterCategory) ||
+           file.meta?.type?.includes(selectedFilterCategory);
+  }).sort((a, b) => {
+    if (filterSortOrder === 'newest') {
+      return (parseInt(b.year) || 0) - (parseInt(a.year) || 0);
+    }
+    if (filterSortOrder === 'oldest') {
+      return (parseInt(a.year) || 0) - (parseInt(b.year) || 0);
+    }
+    return 0; // relevance / default order
+  });
 
   // Promote a stage version or related document to become the main document
   const handleSetStageAsMain = (docOrStageId) => {
@@ -943,7 +765,7 @@ export default function LegalReader({ lawId, onClose }) {
             <div className="right-inner">
               {/* Sticky Floating Capsule Toolbar */}
               <div className="floating">
-                <button className={showFilePane ? 'on' : ''} onClick={() => setShowFilePane(!showFilePane)}>ⓘ معلومات الوثيقة</button>
+                <button className={showFileInfoModal ? 'on' : ''} onClick={() => { setShowFileInfoModal(true); setModalFileTab('info'); }}>ⓘ معلومات الوثيقة</button>
                 <button className={showSearchInline ? 'on' : ''} onClick={() => setShowSearchInline(!showSearchInline)}>⌕ بحث</button>
                 <button className={isSavedInFolders ? 'on saved' : ''} onClick={() => setShowFolderModal(true)}>
                   {isSavedInFolders ? '✓ في مجلداتي' : '＋ أضف إلى مجلداتي'}
@@ -974,7 +796,6 @@ export default function LegalReader({ lawId, onClose }) {
                 <>
                   <div className="file-tabs">
                     <button className={fileTab === 'info' ? 'active' : ''} onClick={() => setFileTab('info')}>معلومات الوثيقة</button>
-                    <button className={fileTab === 'origin' ? 'active' : ''} onClick={() => setFileTab('origin')}>أصل الوثيقة</button>
                     <button className={fileTab === 'description' ? 'active' : ''} onClick={() => setFileTab('description')}>وصف الوثيقة</button>
                     <button className={fileTab === 'related' ? 'active' : ''} onClick={() => setFileTab('related')}>ملفات ذات صلة</button>
                     <button className={fileTab === 'timeline' ? 'active' : ''} onClick={() => setFileTab('timeline')}>مراحل التشريع</button>
@@ -994,27 +815,6 @@ export default function LegalReader({ lawId, onClose }) {
                         <div>عدد المواد</div><div>{lawTree.sections?.reduce((acc, s) => acc + (s.articles?.length || 0), 0) || 82}</div>
                       </div>
                     )}
-                    {fileTab === 'origin' && (
-                      <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '14px' }}>
-                        <div>
-                          <h3 style={{ margin: '0 0 6px 0', color: 'var(--reg-navy)', fontSize: '18px', fontWeight: '800' }}>أصل الوثيقة</h3>
-                          <p style={{ fontSize: '13px', color: 'var(--reg-muted)', margin: 0 }}>عرض النسخة الرسمية المنشورة وبيانات العدد وتاريخ النشر.</p>
-                        </div>
-                        <button
-                          onClick={() => setShowOriginModal(true)}
-                          style={{
-                            background: '#0D3C5C', color: '#FFFFFF', border: 'none', borderRadius: '10px',
-                            padding: '10px 22px', fontSize: '14px', fontWeight: '800', cursor: 'pointer',
-                            fontFamily: 'Tajawal, sans-serif', display: 'inline-flex', alignItems: 'center', gap: '8px',
-                            boxShadow: '0 2px 8px rgba(13,60,92,0.25)', transition: 'all 0.2s'
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                          onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-                        >
-                          فتح أصل الوثيقة
-                        </button>
-                      </div>
-                    )}
                     {fileTab === 'description' && (
                       <div className="document-description-text">
                         {lawTree.title} وتعديلاته المنشور في الجريدة الرسمية بالعدد 5320 على الصفحة 7390 بتاريخ 31-12-2014 والساري بتاريخ 01-01-2015.
@@ -1022,21 +822,13 @@ export default function LegalReader({ lawId, onClose }) {
                     )}
                     {fileTab === 'related' && (
                       <div className="related-section">
-                        <div className="related-grid">
-                          {RELATED_PREVIEW.map((f, idx) => (
-                            <a
-                              key={f.id}
-                              href="javascript:void(0)"
-                              className="related-grid-item"
-                              onClick={() => {
-                                setShowRelatedDrawer(true);
-                                setSelectedRelatedFile(f);
-                              }}
-                            >
-                              {idx + 1}- {f.title}
-                            </a>
-                          ))}
-                        </div>
+                        <RelatedFilesGrid
+                          selectedFileId={selectedRelatedFile?.id}
+                          onSelectFile={(doc) => {
+                            setSelectedRelatedFile(doc);
+                            setShowRelatedDrawer(true);
+                          }}
+                        />
                         <button
                           className="related-all-btn"
                           onClick={() => setShowRelatedDrawer(true)}
@@ -1165,75 +957,176 @@ export default function LegalReader({ lawId, onClose }) {
         )}
 
         {/* OVERLAY: RELATED FILES DRAWER & SPLIT READER OVER BACKGROUND */}
+        {/* OVERLAY: RELATED FILES DRAWER & SPLIT READER OVER BACKGROUND */}
         {showRelatedDrawer && (
           <div
-            className={`related-overlay-container ${selectedRelatedFile ? 'has-doc-open' : ''}`}
-            onClick={(e) => e.stopPropagation()}
+            className={`related-overlay-backdrop ${selectedRelatedFile ? 'has-doc-open' : ''} ${isDocPaneMaximized ? 'is-maximized' : ''}`}
+            onClick={() => {
+              setShowRelatedDrawer(false);
+              setSelectedRelatedFile(null);
+              setIsDocPaneMaximized(false);
+            }}
           >
-            {/* If a file is selected, open its document reader on the left */}
-            {selectedRelatedFile && (
-              <div className="related-overlay-doc-pane">
-                <LegalStageSplitReader
-                  stageId="2014_original"
-                  relatedDoc={selectedRelatedFile}
-                  lawTree={lawTree}
-                  onClose={() => setSelectedRelatedFile(null)}
-                  onSetAsMain={handleSetStageAsMain}
-                />
-              </div>
-            )}
-
-            {/* The Related Files List Pane */}
-            <div className="related-overlay-list-pane">
-              <div className="left-related-full-head">
-                <div className="left-related-head-right">
-                  <button
-                    className="left-related-full-close"
-                    onClick={() => {
-                      setShowRelatedDrawer(false);
+            <div
+              className={`related-overlay-container ${selectedRelatedFile ? 'has-doc-open' : ''} ${isDocPaneMaximized ? 'is-maximized' : ''}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Left Halve: Document Reader Pane */}
+              {selectedRelatedFile && (
+                <div
+                  className={`related-overlay-doc-pane ${isDocPaneMaximized ? 'maximized' : ''}`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <LegalStageSplitReader
+                    stageId="2014_original"
+                    relatedDoc={selectedRelatedFile}
+                    lawTree={lawTree}
+                    isMaximized={isDocPaneMaximized}
+                    onToggleMaximize={() => setIsDocPaneMaximized(!isDocPaneMaximized)}
+                    onClose={() => {
                       setSelectedRelatedFile(null);
+                      setIsDocPaneMaximized(false);
                     }}
-                    title="إغلاق"
-                  >
-                    ✕
-                  </button>
-                  <h3 className="left-related-full-title">ملفات ذات صلة</h3>
+                    onSetAsMain={handleSetStageAsMain}
+                  />
                 </div>
-                <div className="left-related-head-left">
-                  <span className="left-related-filter-icon" title="تصفية">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="4" y1="6" x2="20" y2="6"></line>
-                      <line x1="7" y1="12" x2="17" y2="12"></line>
-                      <line x1="10" y1="18" x2="14" y2="18"></line>
-                    </svg>
-                  </span>
-                  <div className="left-related-full-meta">319</div>
-                </div>
-              </div>
+              )}
 
-              <div className="left-related-full-list">
-                {RELATED_FILES.map((f) => {
-                  const isSelected = selectedRelatedFile?.id === f.id;
-                  return (
-                    <div
-                      key={f.id}
-                      className={`left-related-full-item ${isSelected ? 'active' : ''}`}
-                      onClick={() => setSelectedRelatedFile(f)}
-                    >
-                      <a
-                        href="javascript:void(0)"
-                        className={`left-related-full-link ${isSelected ? 'active' : ''}`}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setSelectedRelatedFile(f);
-                        }}
-                      >
-                        {f.title}
-                      </a>
+              {/* Right Halve: Separated Drawer Card */}
+              {!isDocPaneMaximized && (
+                <div
+                  className="related-overlay-drawer-wrap"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* The Related Files List Pane */}
+                  <div className="related-overlay-list-pane">
+                    <div className="left-related-full-head">
+                      <div className="left-related-head-right">
+                        <button
+                          className="left-related-full-close"
+                          onClick={() => {
+                            setShowRelatedDrawer(false);
+                            setSelectedRelatedFile(null);
+                            setIsDocPaneMaximized(false);
+                          }}
+                          title="إغلاق"
+                        >
+                          ✕
+                        </button>
+                        <h3 className="left-related-full-title">ملفات ذات صلة</h3>
+                      </div>
+                      <div className="left-related-head-left">
+                        <div className="left-related-full-meta">
+                          {selectedFilterCategory === 'all' && !relatedFilterSearch ? '319' : filteredRelatedFiles.length}
+                        </div>
+                        <button
+                          type="button"
+                          className={`left-related-filter-btn ${showRelatedFilter ? 'active' : ''}`}
+                          onClick={() => setShowRelatedFilter(!showRelatedFilter)}
+                          title="تصفية الملفات"
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="4" y1="6" x2="20" y2="6"></line>
+                            <line x1="7" y1="12" x2="17" y2="12"></line>
+                            <line x1="10" y1="18" x2="14" y2="18"></line>
+                          </svg>
+                        </button>
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
+
+                    <div className="left-related-full-list">
+                      {filteredRelatedFiles.length === 0 ? (
+                        <div className="related-filter-empty">لا توجد ملفات مطابقة لشروط التصفية</div>
+                      ) : (
+                        filteredRelatedFiles.map((f) => {
+                          const isSelected = selectedRelatedFile?.id === f.id;
+                          const docYear = f.year || (f.meta?.date ? f.meta.date.split('-')[0] : '');
+                          return (
+                            <div
+                              key={f.id}
+                              className={`left-related-full-item ${isSelected ? 'active' : ''}`}
+                              onClick={() => setSelectedRelatedFile(f)}
+                            >
+                              {docYear && (
+                                <span className="left-related-item-year">({docYear}</span>
+                              )}
+                              <a
+                                href="javascript:void(0)"
+                                className={`left-related-full-link ${isSelected ? 'active' : ''}`}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setSelectedRelatedFile(f);
+                                }}
+                              >
+                                {f.title}
+                              </a>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+
+                  {/* The Dedicated Filter Sidebar Panel (Matching Image 2) */}
+                  {showRelatedFilter && (
+                    <div className="related-filter-sidebar-panel">
+                      <div className="filter-panel-header">
+                        <h3 className="filter-panel-title">تصفية الملفات</h3>
+                      </div>
+
+                      <div className="filter-panel-body">
+                        {/* All Button */}
+                        <button
+                          type="button"
+                          className={`filter-cat-btn all-btn ${selectedFilterCategory === 'all' ? 'active' : ''}`}
+                          onClick={() => setSelectedFilterCategory('all')}
+                        >
+                          <span>الكل</span>
+                          <span>(319)</span>
+                        </button>
+
+                        {/* Hierarchy Groups */}
+                        {FILTER_HIERARCHY.map((grp, gIdx) => (
+                          <div className="filter-group" key={gIdx}>
+                            <h4 className="filter-group-title">{grp.group}</h4>
+                            {grp.sections.map((sec, sIdx) => (
+                              <div className="filter-subgroup" key={sIdx}>
+                                <h5 className="filter-subgroup-title">{sec.subTitle}</h5>
+                                <div className="filter-items-list">
+                                  {sec.items.map((item) => (
+                                    <button
+                                      key={item.key}
+                                      type="button"
+                                      className={`filter-item-btn ${selectedFilterCategory === item.key ? 'active' : ''}`}
+                                      onClick={() => setSelectedFilterCategory(item.key)}
+                                    >
+                                      <span className="filter-item-name">{item.label}</span>
+                                      <span className="filter-item-count">({item.count})</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Footer Sort Dropdown */}
+                      <div className="filter-panel-footer">
+                        <select
+                          className="filter-sort-select"
+                          value={filterSortOrder}
+                          onChange={(e) => setFilterSortOrder(e.target.value)}
+                        >
+                          <option value="relevance">ترتيب: الأكثر صلة</option>
+                          <option value="newest">ترتيب: الأحدث تاريخاً</option>
+                          <option value="oldest">ترتيب: الأقدم تاريخاً</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1382,95 +1275,148 @@ export default function LegalReader({ lawId, onClose }) {
         onStatusChange={(saved) => setIsSavedInFolders(saved)}
       />
 
-      {/* OFFICIAL DOCUMENT MODAL (أصل الوثيقة) */}
-      {showOriginModal && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(13, 60, 92, 0.55)', backdropFilter: 'blur(4px)',
-            zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
-          }}
-          onClick={() => setShowOriginModal(false)}
-        >
-          <div
-            style={{
-              background: '#FFFFFF', borderRadius: '20px', padding: '32px', width: '100%', maxWidth: '680px',
-              maxHeight: '85vh', overflowY: 'auto', direction: 'rtl', fontFamily: 'Tajawal, sans-serif',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', boxSizing: 'border-box'
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Gazette Header */}
-            <div style={{ textAlign: 'center', borderBottom: '2px solid #0D3C5C', paddingBottom: '18px', marginBottom: '20px' }}>
-              <div style={{ fontSize: '18px', fontWeight: '900', color: '#0D3C5C' }}>المملكة الأردنية الهاشمية</div>
-              <div style={{ fontSize: '15px', fontWeight: '800', color: '#F5A52A', marginTop: '2px' }}>الجريدة الرسمية</div>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', fontSize: '12px', color: '#64748B', fontWeight: '700', marginTop: '8px' }}>
-                <span>العدد: 5320</span>
-                <span>•</span>
-                <span>تاريخ النشر: 31-12-2014</span>
-                <span>•</span>
-                <span>الصفحة: 7390</span>
-              </div>
-            </div>
-
-            {/* Law Heading */}
-            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '20px', fontWeight: '900', color: '#0D3C5C', margin: '0 0 6px 0' }}>
-                قانون ضريبة الدخل رقم (34) لسنة 2014
-              </h2>
-              <span style={{ fontSize: '12px', background: '#F1F5F9', color: '#0D3C5C', padding: '4px 12px', borderRadius: '12px', fontWeight: '700' }}>
-                النسخة الأصلية المنشورة في الجريدة الرسمية
-              </span>
-            </div>
-
-            {/* Decree Box */}
-            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px 20px', marginBottom: '20px', lineHeight: '1.8', fontSize: '13.5px', color: '#1E293B', fontStyle: 'italic', textAlign: 'justify' }}>
-              "نحن عبد الله الثاني ابن الحسين، ملك المملكة الأردنية الهاشمية، بمقتضى المادة (31) من الدستور، وبناءً على ما قرره مجلسا الأعيان والنواب، نصادق على القانون الآتي ونأمر بإصداره وإضافته إلى قوانين الدولة:"
-            </div>
-
-            {/* Preview of Law Articles */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
-              <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '14px 18px' }}>
-                <div style={{ fontSize: '14px', fontWeight: '800', color: '#0D3C5C', marginBottom: '6px' }}>المادة (1)</div>
-                <div style={{ fontSize: '13px', color: '#334155', lineHeight: '1.6' }}>
-                  يسمى هذا القانون (قانون ضريبة الدخل لسنة 2014) ويعمل به من تاريخ 1 / 1 / 2015.
-                </div>
-              </div>
-              <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '14px 18px' }}>
-                <div style={{ fontSize: '14px', fontWeight: '800', color: '#0D3C5C', marginBottom: '6px' }}>المادة (2) - التعاريف</div>
-                <div style={{ fontSize: '13px', color: '#334155', lineHeight: '1.6' }}>
-                  يكون للكلمات والعبارات التالية حيثما وردت في هذا القانون المعاني المخصصة لها أدناه ما لم تدل القرينة على غير ذلك:
-                  <ul style={{ margin: '6px 0 0 0', paddingRight: '20px' }}>
-                    <li><strong>الوزارة:</strong> وزارة المالية.</li>
-                    <li><strong>الوزير:</strong> وزير المالية.</li>
-                    <li><strong>الدائرة:</strong> دائرة ضريبة الدخل والمبيعات.</li>
-                    <li><strong>المدير:</strong> مدير عام الدائرة.</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            {/* Actions Footer */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+      {/* DOCUMENT INFO MODAL (معلومات الوثيقة) matching واجهة البحث الدلالي.html */}
+      {showFileInfoModal && (
+        <div className="file-info-modal-backdrop" onClick={() => setShowFileInfoModal(false)}>
+          <div className="file-info-modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="file-info-modal-head">
+              <strong>معلومات الوثيقة</strong>
               <button
-                onClick={() => {
-                  window.open('https://www.istd.gov.jo', '_blank');
-                }}
-                style={{
-                  background: '#F1F5F9', color: '#0D3C5C', border: '1px solid #CBD5E1', borderRadius: '10px',
-                  padding: '10px 18px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif'
-                }}
+                type="button"
+                className="modal-x"
+                onClick={() => setShowFileInfoModal(false)}
+                title="إغلاق"
               >
-                المصدر الرسمي ↗
+                ×
               </button>
-              <button
-                onClick={() => setShowOriginModal(false)}
-                style={{
-                  background: '#0D3C5C', color: '#FFFFFF', border: 'none', borderRadius: '10px',
-                  padding: '10px 24px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif'
-                }}
-              >
-                إغلاق
-              </button>
+            </div>
+            <div className="file-info-modal-body">
+              <div className="file-info-modal-tabs">
+                <button
+                  className={modalFileTab === 'info' ? 'active' : ''}
+                  onClick={() => setModalFileTab('info')}
+                >
+                  معلومات الوثيقة
+                </button>
+                <button
+                  className={modalFileTab === 'description' ? 'active' : ''}
+                  onClick={() => setModalFileTab('description')}
+                >
+                  وصف الوثيقة
+                </button>
+                <button
+                  className={modalFileTab === 'related' ? 'active' : ''}
+                  onClick={() => setModalFileTab('related')}
+                >
+                  ملفات ذات صلة
+                </button>
+                <button
+                  className={modalFileTab === 'timeline' ? 'active' : ''}
+                  onClick={() => setModalFileTab('timeline')}
+                >
+                  مراحل التشريع
+                </button>
+              </div>
+
+              {modalFileTab === 'info' && (
+                <div className="file-info-modal-pane">
+                  <div className="meta">
+                    <div>الجريدة الرسمية</div>
+                    <div>عدد 5320 — ص 7390 — تاريخ النشر: 31-12-2014</div>
+                    <div>الرقم</div>
+                    <div>{lawTree.number || '34'}</div>
+                    <div>السنة</div>
+                    <div>2014</div>
+                    <div>حل محل</div>
+                    <div>قانون مؤقت رقم 28 لسنة 2009 (قانون ضريبة الدخل المؤقت لسنة 2009)</div>
+                    <div>تاريخ الصدور</div>
+                    <div>30-12-2014</div>
+                    <div>تاريخ السريان</div>
+                    <div>01-01-2015</div>
+                    <div>تاريخ آخر تعديل</div>
+                    <div>01-01-2019</div>
+                    <div>عدد التعديلات</div>
+                    <div>1</div>
+                    <div>عدد المواد</div>
+                    <div>{lawTree.sections?.reduce((acc, s) => acc + (s.articles?.length || 0), 0) || 82}</div>
+                  </div>
+                </div>
+              )}
+
+              {modalFileTab === 'description' && (
+                <div className="file-info-modal-pane">
+                  <div className="document-description-text" style={{ padding: '20px 22px', lineHeight: 2.1 }}>
+                    <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#1F303B' }}>
+                      قانون رقم 34 لسنة 2014 (قانون ضريبة الدخل لسنة 2014) وتعديلاته المنشور في العدد 5320 على الصفحة 7390 بتاريخ 31-12-2014 والساري بتاريخ 01-01-2015 المعدل بقانون معدل رقم 38 لسنة 2018 (قانون معدل لقانون ضريبة الدخل لسنة 2018) المنشور في العدد 5547 على الصفحة 7285 بتاريخ 02-12-2018 والساري بتاريخ 01-01-2019 (تصحيح الخطأ فيه بموجب إعلان تصحيح خطأ المنشور في العدد 5561 على الصفحة 674 بتاريخ 17-02-2019).
+                    </p>
+                    <p style={{ margin: 0, fontSize: '14px', color: '#1F303B' }}>
+                      والمشار إليه هنا وفيما بعد بالاسم المختصر: <strong>قانون رقم 34 لسنة 2014 (قانون ضريبة الدخل لسنة 2014) وتعديلاته</strong>.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {modalFileTab === 'related' && (
+                <div className="file-info-modal-pane modal-related-grid-wrap">
+                  <RelatedFilesGrid
+                    selectedFileId={selectedRelatedFile?.id}
+                    onSelectFile={(doc) => {
+                      setShowFileInfoModal(false);
+                      setSelectedRelatedFile(doc);
+                      setShowRelatedDrawer(true);
+                    }}
+                  />
+                </div>
+              )}
+
+              {modalFileTab === 'timeline' && (
+                <div className="file-info-modal-pane">
+                  <div className="timeline">
+                    <div
+                      className="timeline-row clickable"
+                      onClick={() => {
+                        setShowFileInfoModal(false);
+                        setReadingMode(false);
+                        setSplitStage('2014_original');
+                      }}
+                    >
+                      <time>2014</time>
+                      <div>
+                        <b>الإصدار الأصلي — قانون رقم 34 لسنة 2014</b>
+                        <span className="version-tag">كما صدر (01-01-2015)</span>
+                      </div>
+                    </div>
+                    <div
+                      className="timeline-row clickable"
+                      onClick={() => {
+                        setShowFileInfoModal(false);
+                        setReadingMode(false);
+                        setSplitStage('2018_amending');
+                      }}
+                    >
+                      <time>2018</time>
+                      <div>
+                        <b>قانون معدل رقم 38 لسنة 2018</b>
+                        <span className="version-tag">نشر التعديل (02-12-2018)</span>
+                      </div>
+                    </div>
+                    <div
+                      className="timeline-row clickable"
+                      onClick={() => {
+                        setShowFileInfoModal(false);
+                        setReadingMode(false);
+                        setSplitStage('2019_current');
+                      }}
+                    >
+                      <time>2019</time>
+                      <div>
+                        <b>نفاذ التعديل — النص المدمج النافذ</b>
+                        <span className="version-tag">النص النافذ (01-01-2019)</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

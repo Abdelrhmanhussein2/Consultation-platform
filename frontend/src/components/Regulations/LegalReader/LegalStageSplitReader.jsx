@@ -1,6 +1,7 @@
 // frontend/src/components/Regulations/LegalReader/LegalStageSplitReader.jsx
 import React, { useState } from 'react';
 import { ARTICLE_DIFFS } from './articleDiffs';
+import RelatedFilesGrid from './RelatedFilesGrid';
 
 export const STAGES_CONFIG = {
   '2014_original': {
@@ -200,7 +201,15 @@ export function getArticlesForStage(stageId, lawTree) {
   return list;
 }
 
-export default function LegalStageSplitReader({ stageId, lawTree, onClose, onSetAsMain, relatedDoc }) {
+export default function LegalStageSplitReader({
+  stageId,
+  lawTree,
+  onClose,
+  onSetAsMain,
+  relatedDoc,
+  isMaximized,
+  onToggleMaximize
+}) {
   const [sideTab, setSideTab] = useState('info'); // 'info' | 'origin' | 'description' | 'related' | 'timeline'
   const isRelated = Boolean(relatedDoc);
   const stage = STAGES_CONFIG[stageId] || STAGES_CONFIG['2014_original'];
@@ -209,8 +218,16 @@ export default function LegalStageSplitReader({ stageId, lawTree, onClose, onSet
   const articles = getArticlesForStage(stageId || '2014_original', lawTree);
   const meta = isRelated ? relatedDoc.meta : stage.meta;
 
+  const handlePopoutClick = () => {
+    if (onToggleMaximize) {
+      onToggleMaximize();
+    } else if (onSetAsMain) {
+      onSetAsMain(isRelated ? relatedDoc : stageId);
+    }
+  };
+
   return (
-    <div className="side-reader-pane" id="stagePopupReader">
+    <div className={`side-reader-pane ${isMaximized ? 'is-maximized' : ''}`} id="stagePopupReader">
       {/* Top Header with Close and Popout */}
       <div className="side-reader-head">
         <div className="side-reader-head-actions">
@@ -221,18 +238,23 @@ export default function LegalStageSplitReader({ stageId, lawTree, onClose, onSet
             </svg>
           </button>
           <button
-            className="side-reader-icon-btn popout-btn"
-            onClick={() => {
-              if (onSetAsMain) {
-                onSetAsMain(isRelated ? relatedDoc : stageId);
-              }
-            }}
-            title="جعل هذا الإصدار الشاشة الرئيسية"
+            className={`side-reader-icon-btn popout-btn ${isMaximized ? 'active' : ''}`}
+            onClick={handlePopoutClick}
+            title={isMaximized ? "استعادة الحجم الطبيعي" : "تكبير الشاشة بالكامل"}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#005D9C" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="7" y1="17" x2="17" y2="7"></line>
-              <polyline points="7 7 17 7 17 17"></polyline>
-            </svg>
+            {isMaximized ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#005D9C" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="4 14 10 14 10 20"></polyline>
+                <polyline points="20 10 14 10 14 4"></polyline>
+                <line x1="14" y1="10" x2="21" y2="3"></line>
+                <line x1="3" y1="21" x2="10" y2="14"></line>
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#005D9C" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="7" y1="17" x2="17" y2="7"></line>
+                <polyline points="7 7 17 7 17 17"></polyline>
+              </svg>
+            )}
           </button>
         </div>
         <h3 className="side-reader-head-title" title={title}>{title}</h3>
@@ -242,7 +264,6 @@ export default function LegalStageSplitReader({ stageId, lawTree, onClose, onSet
       <div className="side-reader-tabs-wrap">
         <div className="side-reader-tabs">
           <button className={sideTab === 'info' ? 'active' : ''} onClick={() => setSideTab('info')}>معلومات الوثيقة</button>
-          <button className={sideTab === 'origin' ? 'active' : ''} onClick={() => setSideTab('origin')}>أصل الوثيقة</button>
           <button className={sideTab === 'description' ? 'active' : ''} onClick={() => setSideTab('description')}>وصف الوثيقة</button>
           <button className={sideTab === 'related' ? 'active' : ''} onClick={() => setSideTab('related')}>ملفات ذات صلة</button>
           <button className={sideTab === 'timeline' ? 'active' : ''} onClick={() => setSideTab('timeline')}>مراحل التشريع</button>
@@ -253,137 +274,163 @@ export default function LegalStageSplitReader({ stageId, lawTree, onClose, onSet
       <div className="side-reader-body">
         {/* Tab-Specific Top Section */}
         {sideTab === 'info' && (
-          <table className="side-reader-meta-table">
-            <tbody>
-              {isRelated ? (
-                <>
-                  <tr>
-                    <td className="meta-label">النوع</td>
-                    <td className="meta-value">{meta?.type || 'قرار / حكم'}</td>
-                  </tr>
-                  <tr>
-                    <td className="meta-label">{meta?.numberLabel || 'رقم الحكم'}</td>
-                    <td className="meta-value">{meta?.number || 'VI-2020-02'}</td>
-                  </tr>
-                  <tr>
-                    <td className="meta-label">التاريخ</td>
-                    <td className="meta-value">{meta?.date || '1441-06-29'}</td>
-                  </tr>
-                  <tr>
-                    <td className="meta-label">المصدر</td>
-                    <td className="meta-value">{meta?.source || 'لجان الفصل في المخالفات والمنازعات الضريبية'}</td>
-                  </tr>
-                  <tr>
-                    <td className="meta-label">الملخص</td>
-                    <td className="meta-value">{meta?.summary || 'يتناول القرار مسألة إجرائية مرتبطة بالتسجيل والالتزام الضريبي، وآثارها على المكلف.'}</td>
-                  </tr>
-                </>
-              ) : (
-                <>
-                  <tr>
-                    <td className="meta-label">النوع</td>
-                    <td className="meta-value">{stage.meta.type}</td>
-                  </tr>
-                  <tr>
-                    <td className="meta-label">الرقم</td>
-                    <td className="meta-value">{stage.meta.number}</td>
-                  </tr>
-                  <tr>
-                    <td className="meta-label">تاريخ الصدور</td>
-                    <td className="meta-value">{stage.meta.issueDate}</td>
-                  </tr>
-                  <tr>
-                    <td className="meta-label">تاريخ السريان</td>
-                    <td className="meta-value">{stage.meta.effectiveDate}</td>
-                  </tr>
-                  <tr>
-                    <td className="meta-label">الجريدة الرسمية</td>
-                    <td className="meta-value">{stage.meta.gazette}</td>
-                  </tr>
-                  <tr>
-                    <td className="meta-label">الحالة</td>
-                    <td className="meta-value">{stage.meta.status}</td>
-                  </tr>
-                </>
-              )}
-            </tbody>
-          </table>
-        )}
+          <div className="side-reader-tab-page">
+            <table className="side-reader-meta-table">
+              <tbody>
+                {isRelated ? (
+                  <>
+                    <tr>
+                      <td className="meta-label">النوع</td>
+                      <td className="meta-value">{meta?.type || 'قرار / حكم'}</td>
+                    </tr>
+                    <tr>
+                      <td className="meta-label">{meta?.numberLabel || 'رقم الحكم'}</td>
+                      <td className="meta-value">{meta?.number || 'VI-2020-02'}</td>
+                    </tr>
+                    <tr>
+                      <td className="meta-label">التاريخ</td>
+                      <td className="meta-value">{meta?.date || '1441-06-29'}</td>
+                    </tr>
+                    <tr>
+                      <td className="meta-label">المصدر</td>
+                      <td className="meta-value">{meta?.source || 'لجان الفصل في المخالفات والمنازعات الضريبية'}</td>
+                    </tr>
+                    <tr>
+                      <td className="meta-label">الملخص</td>
+                      <td className="meta-value">{meta?.summary || 'يتناول القرار مسألة إجرائية مرتبطة بالتسجيل والالتزام الضريبي، وآثارها على المكلف.'}</td>
+                    </tr>
+                  </>
+                ) : (
+                  <>
+                    <tr>
+                      <td className="meta-label">النوع</td>
+                      <td className="meta-value">{stage.meta.type}</td>
+                    </tr>
+                    <tr>
+                      <td className="meta-label">الرقم</td>
+                      <td className="meta-value">{stage.meta.number}</td>
+                    </tr>
+                    <tr>
+                      <td className="meta-label">تاريخ الصدور</td>
+                      <td className="meta-value">{stage.meta.issueDate}</td>
+                    </tr>
+                    <tr>
+                      <td className="meta-label">تاريخ السريان</td>
+                      <td className="meta-value">{stage.meta.effectiveDate}</td>
+                    </tr>
+                    <tr>
+                      <td className="meta-label">الجريدة الرسمية</td>
+                      <td className="meta-value">{stage.meta.gazette}</td>
+                    </tr>
+                    <tr>
+                      <td className="meta-label">الحالة</td>
+                      <td className="meta-value">{stage.meta.status}</td>
+                    </tr>
+                  </>
+                )}
+              </tbody>
+            </table>
 
-        {sideTab === 'origin' && (
-          <div className="side-reader-origin-box">
-            <h3>{title}</h3>
-            <p>{isRelated ? 'النسخة المعتمدة الرسمية الصادرة عن الجهة المختصة.' : 'أصل الوثيقة المرتبط بهذا الإصدار.'}</p>
+            {/* In Image 2: Title Card + Document Content Preview Block */}
+            {isRelated && (
+              <>
+                <div className="side-reader-title-card">
+                  {title}
+                </div>
+
+                <div className="side-reader-content-block">
+                  <h3 className="side-reader-section-heading">محتوى الوثيقة</h3>
+                  <p className="side-reader-doc-summary">
+                    هذه مساحة عرض نموذجية لمحتوى الوثيقة المرتبطة. عند ربط بيانات المصدر الفعلية يُعرض النص الكامل هنا بنفس آلية عرض الوثائق الحالية.
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         )}
 
+
         {sideTab === 'description' && (
-          <div className="side-reader-desc-box">
-            <p>{isRelated ? (meta?.summary || title) : `${stage.title} — ${stage.subtitle || 'النسخة السارية عند بدء العمل بالقانون'}.`}</p>
+          <div className="side-reader-tab-page">
+            <div className="side-reader-title-card" style={{ marginBottom: '16px' }}>
+              {title}
+            </div>
+            <div className="side-reader-desc-box">
+              <p>{meta?.summary || `${title} — وثيقة تشريعية / إجرائية ذات صلة بقانون ضريبة الدخل وتطبيقاته التنفيذية والإجرائية.`}</p>
+            </div>
           </div>
         )}
 
         {sideTab === 'related' && (
-          <div className="side-reader-related-box">
-            <div>التعليمات التنفيذية الصادرة بموجب أحكام هذا القانون</div>
-            <div>القرارات التفسيرية الصادرة عن ديوان تفسير القوانين</div>
+          <div className="side-reader-tab-page">
+            <RelatedFilesGrid
+              selectedFileId={relatedDoc?.id}
+              onSelectFile={(doc) => {
+                if (onSetAsMain) onSetAsMain(doc);
+              }}
+            />
           </div>
         )}
 
         {sideTab === 'timeline' && (
-          <div className="side-reader-timeline-box">
-            <div className="side-timeline-item">
-              <span className="side-t-date">01-01-2015</span>
-              <strong className="side-t-title">كما صدر</strong>
-            </div>
-            <div className="side-timeline-item">
-              <span className="side-t-date">02-12-2018</span>
-              <strong className="side-t-title">قانون معدل رقم 38 لسنة 2018</strong>
-            </div>
-            <div className="side-timeline-item">
-              <span className="side-t-date">01-01-2019</span>
-              <strong className="side-t-title">النص النافذ بعد التعديل</strong>
+          <div className="side-reader-tab-page">
+            <div className="side-reader-timeline-box">
+              <div className="side-timeline-item">
+                <span className="side-t-date">01-01-2015</span>
+                <strong className="side-t-title">كما صدر</strong>
+              </div>
+              <div className="side-timeline-item">
+                <span className="side-t-date">02-12-2018</span>
+                <strong className="side-t-title">قانون معدل رقم 38 لسنة 2018</strong>
+              </div>
+              <div className="side-timeline-item">
+                <span className="side-t-date">01-01-2019</span>
+                <strong className="side-t-title">النص النافذ بعد التعديل</strong>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Document Title Header - Always visible below whatever tab is active */}
-        <div className="side-reader-doc-title">
-          <h2>{docTitle}</h2>
-        </div>
-
-        {/* Articles List - Always visible below whatever tab is active */}
-        <div className="side-reader-articles">
-          {articles.map(art => (
-            <div className="side-reader-art-item" key={art.num}>
-              <div className="side-reader-art-header">
-                <h3 className="side-reader-art-num">{art.title}</h3>
-                <span className="side-reader-art-date">{art.date}</span>
-              </div>
-
-              {art.introText && (
-                <p className="side-reader-art-intro">{art.introText}</p>
-              )}
-
-              {art.definitions && art.definitions.length > 0 ? (
-                <div className="definitions-v12 side-reader-defs">
-                  {art.definitions.map((d, dIdx) => (
-                    <div className="definition-pair" key={dIdx}>
-                      <div className="definition-term">{d.term}</div>
-                      <div className="definition-value">{d.value}</div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="side-reader-art-body">
-                  {art.content?.split('\n').map((line, lIdx) => (
-                    <p key={lIdx} style={{ margin: '0 0 8px 0' }}>{line}</p>
-                  ))}
-                </div>
-              )}
+        {/* Document Title Header & Articles List - Only shown when viewing an actual law stage, NOT related doc */}
+        {!isRelated && (
+          <>
+            <div className="side-reader-doc-title">
+              <h2>{docTitle}</h2>
             </div>
-          ))}
-        </div>
+
+            <div className="side-reader-articles">
+              {articles.map(art => (
+                <div className="side-reader-art-item" key={art.num}>
+                  <div className="side-reader-art-header">
+                    <h3 className="side-reader-art-num">{art.title}</h3>
+                    <span className="side-reader-art-date">{art.date}</span>
+                  </div>
+
+                  {art.introText && (
+                    <p className="side-reader-art-intro">{art.introText}</p>
+                  )}
+
+                  {art.definitions && art.definitions.length > 0 ? (
+                    <div className="definitions-v12 side-reader-defs">
+                      {art.definitions.map((d, dIdx) => (
+                        <div className="definition-pair" key={dIdx}>
+                          <div className="definition-term">{d.term}</div>
+                          <div className="definition-value">{d.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="side-reader-art-body">
+                      {art.content?.split('\n').map((line, lIdx) => (
+                        <p key={lIdx} style={{ margin: '0 0 8px 0' }}>{line}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

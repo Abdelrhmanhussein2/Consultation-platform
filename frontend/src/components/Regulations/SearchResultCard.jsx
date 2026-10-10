@@ -50,15 +50,6 @@ export default function SearchResultCard({ law, onOpenReader, onOpenPreview, onO
         <button className="btn" onClick={() => onOpenRelated && onOpenRelated(law)}>
           اسأل ديوان عن القانون
         </button>
-        <button
-          className="btn"
-          onClick={() => {
-            const url = law.source_url || 'https://www.istd.gov.jo';
-            window.open(url, '_blank');
-          }}
-        >
-          المصدر الرسمي ↗
-        </button>
       </div>
     </article>
   );
