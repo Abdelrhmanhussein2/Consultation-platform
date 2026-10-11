@@ -49,16 +49,38 @@ const isTokenExpiringSoon = (tokenStr) => {
   }
 };
 
-let isRefreshingPromise = null;
+// ---------------------------------------------------------------------------
+// Singleton Refresh Mutex
+// ---------------------------------------------------------------------------
+// Only ONE refresh request runs at a time. ALL callers share the SAME promise
+// until it resolves. The promise is cleared ONLY after a small delay to avoid
+// a race where a second caller sees null right as the first is resolving.
+//
+// Additionally: if the server returns 429 (rate-limited), we impose a cooldown
+// so we don't keep hammering the endpoint and making the situation worse.
+// ---------------------------------------------------------------------------
 
-export const refreshAccessTokenSilently = async () => {
-  if (isRefreshingPromise) {
-    return isRefreshingPromise;
+let _refreshPromise = null;           // Shared in-flight promise
+let _refreshCooldownUntil = 0;        // Timestamp: don't retry before this time
+const REFRESH_COOLDOWN_MS = 10_000;   // 10 seconds cooldown after a 429
+
+export const refreshAccessTokenSilently = () => {
+  // If we're still in cooldown from a previous 429, return null immediately
+  if (Date.now() < _refreshCooldownUntil) {
+    return Promise.resolve(null);
   }
 
-  isRefreshingPromise = (async () => {
+  // If a refresh is already in flight, ALL callers share the same promise
+  if (_refreshPromise) {
+    return _refreshPromise;
+  }
+
+  _refreshPromise = (async () => {
     const refreshToken = getCookie('refresh_token');
-    if (!refreshToken) return null;
+    if (!refreshToken) {
+      _refreshPromise = null;
+      return null;
+    }
 
     try {
       const refreshRes = await fetch('/api/auth/refresh', {
@@ -75,15 +97,24 @@ export const refreshAccessTokenSilently = async () => {
         setCookie('refresh_token', newRefresh);
         return newAccess;
       }
+
+      // 429: Rate limited → impose cooldown so we stop hammering the server
+      if (refreshRes.status === 429) {
+        _refreshCooldownUntil = Date.now() + REFRESH_COOLDOWN_MS;
+        console.warn('[Auth] Refresh rate-limited (429). Waiting 10s before retrying.');
+      }
+
       return null;
     } catch {
       return null;
     } finally {
-      isRefreshingPromise = null;
+      // Clear the shared promise so the NEXT refresh cycle can start fresh.
+      // Small delay to handle any micro-race between concurrent callers.
+      setTimeout(() => { _refreshPromise = null; }, 100);
     }
   })();
 
-  return isRefreshingPromise;
+  return _refreshPromise;
 };
 
 export const apiFetch = async (url, options = {}, token = null) => {
@@ -118,7 +149,7 @@ export const apiFetch = async (url, options = {}, token = null) => {
 
   let response = await fetch(url, { ...options, headers: buildHeaders(currentToken), body });
 
-  // 401 Interceptor: Try silent token refresh once if unauthorized (using mutex lock)
+  // 401 Interceptor: Try silent token refresh once if unauthorized
   if (response.status === 401 && !url.includes('/api/auth/')) {
     const newAccess = await refreshAccessTokenSilently();
     if (newAccess) {

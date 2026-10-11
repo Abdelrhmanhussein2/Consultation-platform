@@ -68,14 +68,14 @@
 .lft-nav-btn:hover { background: #E2E8F0; }
 
 /* ══════════════════════════════════════════════
-   TOC PANEL (Exact floating design from original commit)
+   TOC PANEL (Wide comfortable layout matching screenshot)
    ══════════════════════════════════════════════ */
 .lft-toc-panel {
   position: fixed !important;
   top: 130px !important;
-  left: 28px !important;
+  left: 24px !important;
   bottom: 30px !important;
-  width: 260px !important;
+  width: 280px !important;
   z-index: 1000000 !important;
   display: flex !important;
   flex-direction: column !important;
@@ -142,104 +142,114 @@
 .lft-toc-item {
   width: 100%;
   border: none;
-  background: transparent;
+  border-bottom: 1px solid #EDF2F6;
+  background: #ffffff;
   text-align: right;
-  padding: 9px 12px;
+  padding: 10px 16px;
   font-size: 12.5px;
-  color: #475569;
+  color: #5D717F;
   cursor: pointer;
   transition: all 0.15s ease;
   font-family: 'Tajawal', sans-serif !important;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   direction: rtl;
 }
 
 .lft-toc-item:hover {
   background: #F8FAFC;
+  color: #0D3C5C;
 }
 
+/* Active Highlight: Soft blue background only, NO blue strip or border */
 .lft-toc-item.active {
-  background: transparent;
-}
-
-/* Circle indicator */
-.lft-toc-circle {
-  flex-shrink: 0;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 2px solid #94A3B8;
-  background: transparent;
-  transition: all 0.15s ease;
-}
-
-.lft-toc-circle.active {
-  border-color: #1D4ED8;
-  background: #1D4ED8;
-  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.2);
+  background: #EDF4F9 !important;
+  color: #0D3C5C !important;
+  font-weight: 700;
+  border-left: none !important;
 }
 
 .lft-toc-label {
-  flex: 1;
+  display: block;
   text-align: right;
   font-size: 12.5px;
-  font-weight: 500;
-  color: #475569;
-  line-height: 1.5;
-  transition: transform 0.2s ease, font-weight 0.2s ease, color 0.2s ease;
+  font-weight: inherit;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .lft-toc-item:hover .lft-toc-label {
-  color: #0F172A;
+  color: #0D3C5C;
 }
 
 .lft-toc-item.active .lft-toc-label {
-  color: #0F172A;
+  color: #0D3C5C;
   font-weight: 700;
-  transform: translateX(-4px);
 }
 
-/* ── Adjust scroll body when TOC is open ───── */
+/* ── Adjust scroll body when TOC is open: remove huge empty gap ───── */
 .lft-scroll-body.with-toc .lft-center-container {
-  padding-left: 270px;
+  padding-left: 310px !important;
 }
 
 @media (max-width: 900px) {
   .lft-toc-panel {
-    width: min(280px, 85vw) !important;
+    width: min(300px, 85vw) !important;
   }
 }
 
 /* ── @media print ──────────────────────────── */
 @media print {
-  html, body, #root,
-  .portal-container, .portal-wrapper, .portal-content-body,
-  .app-container, .main-content,
-  .regulations-page-wrap, .reg-content-container {
-    background: #ffffff !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    width: 100% !important;
-    height: auto !important;
-    overflow: visible !important;
-    display: block !important;
-    position: static !important;
-    box-shadow: none !important;
-    border: none !important;
-  }
-
+  /* ── 1. Hide the entire web app background outside the modal ── */
+  #root,
+  body > *:not(.lft-overlay),
+  .portal-container,
+  .portal-wrapper,
+  .portal-content-body,
+  .app-container,
+  .main-content,
+  .regulations-page-wrap,
+  .reg-content-container,
   nav, header, footer, aside, .sidebar,
   .portal-sidebar, .portal-header,
   .admin-sidebar, .admin-header,
-  .reg-hero-banner, .reg-result-card-item,
-  .lft-header, .lft-tools-row, .lft-toc-panel,
-  .lft-inline-search, .lft-scroll-top {
+  .reg-hero-banner, .reg-result-card-item {
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* ── 2. Hide reader interactive controls ──────────────────── */
+  .lft-header,
+  .lft-tools-row,
+  .lft-toc-panel,
+  .lft-inline-search,
+  .lft-scroll-top,
+  .lft-reading-progress-bar-container {
     display: none !important;
     visibility: hidden !important;
     height: 0 !important;
     overflow: hidden !important;
+  }
+
+  /* ── 3. Page setup for print ──────────────────────────────── */
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    direction: rtl !important;
   }
 
   .lft-overlay {

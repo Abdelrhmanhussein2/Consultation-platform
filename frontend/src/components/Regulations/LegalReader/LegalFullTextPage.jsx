@@ -1,5 +1,5 @@
 // frontend/src/components/Regulations/LegalReader/LegalFullTextPage.jsx
-// ── Orchestrator: state + logic only, UI delegated to sub-components ──────────
+// Orchestrator: state + logic only, UI delegated to sub-components
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import './LegalFullTextPage.layout.css';
@@ -9,6 +9,9 @@ import './LegalFullTextPage.toc.css';
 import LegalFullTextHeader from './LegalFullTextHeader';
 import LegalFullTextBody   from './LegalFullTextBody';
 import LegalFullTextTOC    from './LegalFullTextTOC';
+import LegalReadingProgressBar from './LegalReadingProgressBar';
+import { useReadingProgress }  from './useReadingProgress';
+import { useDocumentSearch }   from './useDocumentSearch';
 import { getLawTree }      from '../../../services/legalService';
 
 export default function LegalFullTextPage({ lawId, onClose }) {
@@ -17,22 +20,32 @@ export default function LegalFullTextPage({ lawId, onClose }) {
   const [loading, setLoading]       = useState(true);
 
   // ── TOC ───────────────────────────────────────────────────────────────────
-  const [showToc, setShowToc]               = useState(true);
+  const [showToc, setShowToc]               = useState(false);
   const [activeArticleId, setActiveArticleId] = useState(1);
 
-  // ── Inline Search ─────────────────────────────────────────────────────────
+  // ── Inline Search & Scroll Ref ────────────────────────────────────────────
   const [showSearch, setShowSearch] = useState(false);
-  const [findText, setFindText]     = useState('');
-  const [matches, setMatches]       = useState([]);
-  const [matchIndex, setMatchIndex] = useState(0);
+  const scrollRef = useRef(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // ── Modular In-Document Search Hook ───────────────────────────────────────
+  const {
+    findText,
+    setFindText,
+    matchCount,
+    matchIndex,
+    doSearch,
+    goToNext,
+    goToPrev,
+    clearSearch,
+  } = useDocumentSearch(scrollRef);
 
   // ── Usage counters ────────────────────────────────────────────────────────
   const [printCount, setPrintCount]       = useState(0);
   const [downloadCount, setDownloadCount] = useState(0);
 
-  // ── Scroll state ──────────────────────────────────────────────────────────
-  const [showScrollTop, setShowScrollTop] = useState(false);
-  const scrollRef = useRef(null);
+  // ── Modular Reading Progress ──────────────────────────────────────────────
+  const { progressPercent, currentArticleNum, totalArticles } = useReadingProgress(scrollRef, lawTree);
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -69,38 +82,20 @@ export default function LegalFullTextPage({ lawId, onClose }) {
     if (scrollRef.current) scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // ── Inline search ─────────────────────────────────────────────────────────
-  const doSearch = () => {
-    if (!findText?.trim()) { setMatches([]); setMatchIndex(0); return; }
-    const q = findText.trim().toLowerCase();
-    const found = [];
-    lawTree?.sections?.forEach(section => {
-      (section.articles || []).forEach(article => {
-        if (
-          article.content?.toLowerCase().includes(q) ||
-          article.title?.toLowerCase().includes(q)
-        ) found.push(article.num);
-      });
-    });
-    setMatches(found);
-    if (found.length > 0) { setMatchIndex(0); scrollToArticle(found[0]); }
+  // ── Inline search handlers ────────────────────────────────────────────────
+  const handleToggleSearch = () => {
+    if (showSearch) {
+      clearSearch();
+      setShowSearch(false);
+    } else {
+      setShowSearch(true);
+    }
   };
 
-  const goNext = () => {
-    if (!matches.length) return;
-    const next = (matchIndex + 1) % matches.length;
-    setMatchIndex(next);
-    scrollToArticle(matches[next]);
+  const handleCloseSearch = () => {
+    clearSearch();
+    setShowSearch(false);
   };
-
-  const goPrev = () => {
-    if (!matches.length) return;
-    const prev = (matchIndex - 1 + matches.length) % matches.length;
-    setMatchIndex(prev);
-    scrollToArticle(matches[prev]);
-  };
-
-  const closeSearch = () => { setShowSearch(false); setMatches([]); setFindText(''); };
 
   // ── Actions ───────────────────────────────────────────────────────────────
   const handlePrint = () => {
@@ -167,7 +162,7 @@ export default function LegalFullTextPage({ lawId, onClose }) {
           showToc={showToc}
           onToggleToc={() => setShowToc(!showToc)}
           showSearch={showSearch}
-          onToggleSearch={() => setShowSearch(!showSearch)}
+          onToggleSearch={handleToggleSearch}
           onClose={onClose}
           printCount={printCount}
           downloadCount={downloadCount}
@@ -184,10 +179,10 @@ export default function LegalFullTextPage({ lawId, onClose }) {
           setFindText={setFindText}
           onSearch={doSearch}
           matchIndex={matchIndex}
-          matches={matches}
-          onPrevMatch={goPrev}
-          onNextMatch={goNext}
-          onCloseSearch={closeSearch}
+          matchCount={matchCount}
+          onPrevMatch={goToPrev}
+          onNextMatch={goToNext}
+          onCloseSearch={handleCloseSearch}
           showToc={showToc}
           scrollRef={scrollRef}
           onScroll={handleScroll}
@@ -207,6 +202,13 @@ export default function LegalFullTextPage({ lawId, onClose }) {
             ↑
           </button>
         )}
+
+        {/* Reusable Bottom Reading Progress Bar */}
+        <LegalReadingProgressBar
+          progressPercent={progressPercent}
+          currentArticleNum={currentArticleNum || activeArticleId}
+          totalArticles={totalArticles}
+        />
       </div>
     </div>,
     document.body

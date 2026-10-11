@@ -9,3 +9,6 @@ export { default as FullTextModal } from './FullTextModal';
 export { default as NoteModal } from './NoteModal';
 export { default as SelectionMenu } from './SelectionMenu';
 export { default as LegalReader } from './LegalReader/LegalReader';
+export { default as LegalReadingProgressBar } from './LegalReader/LegalReadingProgressBar';
+export { useReadingProgress, calculateReadingProgress } from './LegalReader/useReadingProgress';
+export { useDocumentSearch } from './LegalReader/useDocumentSearch';

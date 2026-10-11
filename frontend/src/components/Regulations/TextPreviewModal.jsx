@@ -3,13 +3,12 @@ import ReactDOM from 'react-dom';
 
 export default function TextPreviewModal({ isOpen, onClose, law, onOpenFullReader }) {
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
 
   if (!isOpen || !law) return null;
 
-  const handleCopyText = () => {
-    const textToCopy = `${law.title}\nالمادة 1: اسم القانون وبدء العمل به\nيسمى هذا القانون (${law.title}) ويعمل به اعتبارا من ${law.effective_date || '01-01-2015'}.`;
-    navigator.clipboard.writeText(textToCopy);
-    alert('تم نسخ نص القانون إلى الحافظة');
+  const handleSave = () => {
+    setIsSaved(prev => !prev);
   };
 
   return ReactDOM.createPortal(
@@ -112,21 +111,45 @@ export default function TextPreviewModal({ isOpen, onClose, law, onOpenFullReade
 
         {/* Footer Bar */}
         <div className="text-preview-footer">
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="preview-footer-actions">
             <button
-              className="preview-icon-btn"
+              type="button"
+              className="preview-action-card-btn"
               onClick={() => setIsFavorite(!isFavorite)}
-              style={{ color: isFavorite ? '#F09A24' : '#506976' }}
+              title="المفضلة"
             >
-              <small>المفضلة</small>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+              <span>المفضلة</span>
             </button>
 
-            <button className="preview-icon-btn" onClick={handleCopyText}>
-              <small>نسخ</small>
+            <button
+              type="button"
+              className="preview-action-card-btn"
+              onClick={handleSave}
+              title="حفظ التشريع"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                <polyline points="17 21 17 13 7 13 7 21" />
+                <polyline points="7 3 7 8 15 8" />
+              </svg>
+              <span>{isSaved ? 'تم الحفظ' : 'حفظ'}</span>
             </button>
 
-            <button className="preview-icon-btn" onClick={() => onOpenFullReader(law)}>
-              <small>فتح النص الكامل</small>
+            <button
+              type="button"
+              className="preview-action-card-btn"
+              onClick={() => onOpenFullReader(law)}
+              title="فتح النص الكامل"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+              <span>فتح النص الكامل</span>
             </button>
           </div>
         </div>

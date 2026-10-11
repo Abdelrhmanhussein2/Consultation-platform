@@ -482,26 +482,29 @@ mark.lft-search-hit.current {
 
 /* ─── @media print ───────────────────────────────── */
 @media print {
-  html, body, #root,
-  .portal-container, .portal-wrapper, .portal-content-body,
-  .app-container, .main-content,
-  .regulations-page-wrap, .reg-content-container {
-    background: #ffffff !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    width: 100% !important;
-    height: auto !important;
-    overflow: visible !important;
-    display: block !important;
-    position: static !important;
-    box-shadow: none !important;
-    border: none !important;
-  }
-
+  /* ── 1. Hide the entire web app background outside the modal ── */
+  #root,
+  body > *:not(.lft-overlay),
+  .portal-container,
+  .portal-wrapper,
+  .portal-content-body,
+  .app-container,
+  .main-content,
+  .regulations-page-wrap,
+  .reg-content-container,
   nav, header, footer, aside, .sidebar,
   .portal-sidebar, .portal-header,
   .admin-sidebar, .admin-header,
-  .reg-hero-banner, .reg-result-card-item,
+  .reg-hero-banner, .reg-result-card-item {
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
   .lft-header, .lft-tools-row, .lft-toc-panel,
   .lft-inline-search, .lft-scroll-top {
     display: none !important;

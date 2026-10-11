@@ -220,16 +220,36 @@ export default function MyAppointmentsPage({ navigate }) {
   const getStatusBadge = (status, appt = null) => {
     if (appt) {
       if (appt.attendance_status === 'consultant_no_show' || appt.no_show_party === 'consultant') {
-        return <span style={{ background: '#FEF2F2', color: '#991B1B', border: '1px solid #FECACA', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '800' }}>⚠️ غياب المستشار</span>;
+        return (
+          <span style={{ background: '#FEF2F2', color: '#991B1B', border: '1px solid #FECACA', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>غياب المستشار</span>
+          </span>
+        );
       }
       if (appt.attendance_status === 'user_no_show' || appt.no_show_party === 'user') {
-        return <span style={{ background: '#FFFBEB', color: '#92400E', border: '1px solid #FDE68A', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '800' }}>⚠️ غياب العميل</span>;
+        return (
+          <span style={{ background: '#FFFBEB', color: '#92400E', border: '1px solid #FDE68A', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>غياب العميل</span>
+          </span>
+        );
       }
       if (appt.attendance_status === 'both_attended') {
-        return <span style={{ background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '800' }}>✓ حضر الطرفان</span>;
+        return (
+          <span style={{ background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>حضر الطرفان</span>
+          </span>
+        );
       }
       if (appt.room_opened_at && appt.status === 'confirmed' && !appt.user_joined_at) {
-        return <span style={{ background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '800' }}>🟢 المستشار بالغرفة</span>;
+        return (
+          <span style={{ background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10B981', display: 'inline-block', boxShadow: '0 0 6px #10B981' }}></span>
+            <span>المستشار بالغرفة</span>
+          </span>
+        );
       }
     }
 
@@ -291,16 +311,32 @@ export default function MyAppointmentsPage({ navigate }) {
   }
 
   return (
-    <div style={{ direction: 'rtl', textAlign: 'right', fontFamily: 'Tajawal, sans-serif', maxWidth: '1180px', margin: '0 auto', padding: '16px 20px 60px' }}>
+    <div style={{ direction: 'rtl', textAlign: 'right', fontFamily: 'Tajawal, sans-serif', width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '24px 32px 80px', boxSizing: 'border-box' }}>
 
       {/* Scoped CSS styling for calm aesthetics */}
       <style dangerouslySetInnerHTML={{
         __html: `
+        .map-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 16px;
+          margin-bottom: 28px;
+        }
+        @media (max-width: 1024px) {
+          .map-stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        @media (max-width: 540px) {
+          .map-stats-grid {
+            grid-template-columns: 1fr;
+          }
+        }
         .map-btn-main {
           background: #0B2E4B;
           color: #FFFFFF;
           border: none;
-          padding: 10px 20px;
+          padding: 11px 22px;
           border-radius: 12px;
           font-weight: 800;
           font-size: 13.5px;
@@ -338,65 +374,66 @@ export default function MyAppointmentsPage({ navigate }) {
         .map-stat-box {
           background: #FFFFFF;
           border: 1px solid #E2E8F0;
-          border-radius: 16px;
-          padding: 16px 20px;
+          border-radius: 18px;
+          padding: 20px 22px;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          box-shadow: 0 1px 3px rgba(11, 46, 75, 0.02);
-          transition: all 0.2s;
+          box-shadow: 0 2px 6px rgba(11, 46, 75, 0.02);
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .map-stat-box:hover {
           transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(11, 46, 75, 0.05);
+          box-shadow: 0 8px 20px rgba(11, 46, 75, 0.06);
           border-color: #CBD5E1;
         }
         .map-tab-item {
           background: transparent;
           border: none;
           color: #64748B;
-          font-weight: 700;
-          font-size: 13px;
+          font-weight: 750;
+          font-size: 13.5px;
           cursor: pointer;
-          padding: 8px 14px;
+          padding: 9px 18px;
           border-radius: 10px;
           transition: all 0.15s;
           white-space: nowrap;
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 8px;
           font-family: inherit;
         }
         .map-tab-item.active {
           background: #FFFFFF;
           color: #0B2E4B;
           font-weight: 850;
-          box-shadow: 0 2px 6px rgba(11, 46, 75, 0.06);
+          box-shadow: 0 2px 8px rgba(11, 46, 75, 0.07);
         }
         .map-card-item {
           background: #FFFFFF;
           border: 1px solid #E2E8F0;
-          border-radius: 16px;
-          padding: 18px 22px;
+          border-radius: 18px;
+          padding: 22px 28px;
           display: flex;
           justify-content: space-between;
           align-items: center;
           flex-wrap: wrap;
-          gap: 16px;
-          box-shadow: 0 1px 3px rgba(11, 46, 75, 0.02);
-          transition: all 0.2s;
+          gap: 20px;
+          box-shadow: 0 2px 8px rgba(11, 46, 75, 0.02);
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .map-card-item:hover {
           border-color: #CBD5E1;
-          box-shadow: 0 6px 18px rgba(11, 46, 75, 0.04);
+          box-shadow: 0 8px 22px rgba(11, 46, 75, 0.05);
+          transform: translateY(-1px);
         }
       `}} />
 
       {/* Header Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '28px' }}>
         <div>
-          <h1 style={{ fontSize: '22px', fontWeight: '900', color: '#0B2E4B', margin: '0 0 4px 0' }}>استشاراتي ومواعيدي</h1>
-          <p style={{ color: '#64748B', fontSize: '13px', margin: 0 }}>متابعة المواعيد والجلسات الاستشارية وسجل الجلسات السابقة.</p>
+          <h1 style={{ fontSize: '24px', fontWeight: '900', color: '#0B2E4B', margin: '0 0 6px 0' }}>استشاراتي ومواعيدي</h1>
+          <p style={{ color: '#64748B', fontSize: '13.5px', margin: 0 }}>متابعة المواعيد والجلسات الاستشارية وسجل الجلسات السابقة.</p>
         </div>
 
         {/* Header Action Buttons */}
@@ -421,46 +458,61 @@ export default function MyAppointmentsPage({ navigate }) {
         </div>
       </div>
 
-      {/* Stats Cards - Calm & Balanced */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px', marginBottom: '26px' }}>
+      {/* Stats Cards - Always 4 side-by-side in one row on desktop */}
+      <div className="map-stats-grid">
 
         <div className="map-stat-box">
           <div>
-            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '700', display: 'block', marginBottom: '2px' }}>إجمالي الجلسات</span>
-            <span style={{ fontSize: '24px', fontWeight: '900', color: '#0B2E4B' }}>{appointments.length}</span>
+            <span style={{ fontSize: '13px', color: '#64748B', fontWeight: '750', display: 'block', marginBottom: '4px' }}>إجمالي الجلسات</span>
+            <span style={{ fontSize: '26px', fontWeight: '900', color: '#0B2E4B' }}>{appointments.length}</span>
           </div>
-          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#F1F5F9', color: '#0B2E4B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
-            📋
+          <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: '#F1F5F9', color: '#0B2E4B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+              <line x1="9" y1="12" x2="15" y2="12" />
+              <line x1="9" y1="16" x2="13" y2="16" />
+            </svg>
           </div>
         </div>
 
         <div className="map-stat-box">
           <div>
-            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '700', display: 'block', marginBottom: '2px' }}>الجلسات النشطة</span>
-            <span style={{ fontSize: '24px', fontWeight: '900', color: '#047857' }}>{activeCount}</span>
+            <span style={{ fontSize: '13px', color: '#64748B', fontWeight: '750', display: 'block', marginBottom: '4px' }}>الجلسات النشطة</span>
+            <span style={{ fontSize: '26px', fontWeight: '900', color: '#047857' }}>{activeCount}</span>
           </div>
-          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#ECFDF5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
-            🟢
-          </div>
-        </div>
-
-        <div className="map-stat-box">
-          <div>
-            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '700', display: 'block', marginBottom: '2px' }}>الجلسات المكتملة</span>
-            <span style={{ fontSize: '24px', fontWeight: '900', color: '#0B2E4B' }}>{completedCount}</span>
-          </div>
-          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#EEF4F8', color: '#0B2E4B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
-            ✅
+          <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: '#ECFDF5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
           </div>
         </div>
 
         <div className="map-stat-box">
           <div>
-            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '700', display: 'block', marginBottom: '2px' }}>الملغاة / المرفوضة</span>
-            <span style={{ fontSize: '24px', fontWeight: '900', color: '#64748B' }}>{cancelledCount}</span>
+            <span style={{ fontSize: '13px', color: '#64748B', fontWeight: '750', display: 'block', marginBottom: '4px' }}>الجلسات المكتملة</span>
+            <span style={{ fontSize: '26px', fontWeight: '900', color: '#0B2E4B' }}>{completedCount}</span>
           </div>
-          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#F8FAFC', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
-            ✕
+          <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: '#EFF6FF', color: '#1D4ED8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          </div>
+        </div>
+
+        <div className="map-stat-box">
+          <div>
+            <span style={{ fontSize: '13px', color: '#64748B', fontWeight: '750', display: 'block', marginBottom: '4px' }}>الملغاة / المرفوضة</span>
+            <span style={{ fontSize: '26px', fontWeight: '900', color: '#64748B' }}>{cancelledCount}</span>
+          </div>
+          <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: '#FEF2F2', color: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
           </div>
         </div>
 
@@ -490,36 +542,39 @@ export default function MyAppointmentsPage({ navigate }) {
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    padding: '12px 14px',
+                    padding: '14px 18px',
                     background: '#F8FAFC',
-                    borderRadius: '12px',
+                    borderRadius: '14px',
                     border: '1px solid #EDF2F7',
                     flexWrap: 'wrap',
-                    gap: '12px'
+                    gap: '14px'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div style={{
-                      width: '38px',
-                      height: '38px',
+                      width: '42px',
+                      height: '42px',
                       borderRadius: '50%',
                       background: 'linear-gradient(135deg, #164D70 0%, #0B2E4B 100%)',
                       color: '#FFFFFF',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '14px',
+                      fontSize: '15px',
                       fontWeight: '800',
                       flexShrink: 0
                     }}>
                       {getPartnerInitial(getPartnerName(appt))}
                     </div>
                     <div>
-                      <div style={{ fontSize: '13px', fontWeight: '800', color: '#0B2E4B', marginBottom: '2px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '800', color: '#0B2E4B', marginBottom: '3px' }}>
                         {getPartnerName(appt)}
                       </div>
-                      <div style={{ fontSize: '11.5px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span>🕒 {formatDateStr(appt.scheduled_at)}</span>
+                      <div style={{ fontSize: '12px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                          {formatDateStr(appt.scheduled_at)}
+                        </span>
                         <span>•</span>
                         <span>{appt.service_name || 'استشارة مهنية'}</span>
                       </div>
@@ -541,10 +596,14 @@ export default function MyAppointmentsPage({ navigate }) {
                           fontSize: '11.5px',
                           fontWeight: '800',
                           cursor: 'pointer',
-                          fontFamily: 'inherit'
+                          fontFamily: 'inherit',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px'
                         }}
                       >
-                        ⭐ بلاغ غياب المستشار
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <span>بلاغ غياب المستشار</span>
                       </button>
                     ) : (
                       <button
@@ -554,7 +613,7 @@ export default function MyAppointmentsPage({ navigate }) {
                           backgroundColor: isConfirmed ? (appt.room_opened_at ? '#059669' : '#0B2E4B') : '#CBD5E1',
                           color: '#FFFFFF',
                           border: 'none',
-                          padding: '7px 16px',
+                          padding: '8px 16px',
                           borderRadius: '8px',
                           fontSize: '12px',
                           fontWeight: '800',
@@ -566,7 +625,9 @@ export default function MyAppointmentsPage({ navigate }) {
                           transition: 'all 0.15s'
                         }}
                       >
-                        {appt.room_opened_at && <span>🟢</span>}
+                        {appt.room_opened_at && (
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#34D399', display: 'inline-block', boxShadow: '0 0 6px #34D399' }}></span>
+                        )}
                         <span>{appt.room_opened_at ? 'دخول الغرفة (المستشار بانتظارك)' : 'دخول الغرفة'}</span>
                       </button>
                     )}
@@ -585,7 +646,7 @@ export default function MyAppointmentsPage({ navigate }) {
         background: '#F1F5F9',
         padding: '5px',
         borderRadius: '12px',
-        marginBottom: '20px',
+        marginBottom: '22px',
         overflowX: 'auto',
         scrollbarWidth: 'none'
       }}>
@@ -607,9 +668,9 @@ export default function MyAppointmentsPage({ navigate }) {
               <span>{tab.label}</span>
               {tab.count > 0 && (
                 <span style={{
-                  fontSize: '10.5px',
+                  fontSize: '11px',
                   fontWeight: '800',
-                  padding: '1px 6px',
+                  padding: '1px 7px',
                   borderRadius: '999px',
                   background: isActive ? '#EEF4F8' : '#E2E8F0',
                   color: isActive ? '#0B2E4B' : '#64748B'
@@ -624,22 +685,27 @@ export default function MyAppointmentsPage({ navigate }) {
 
       {/* Filtered Appointments List */}
       {filteredAppointments.length === 0 ? (
-        <div style={{ background: '#FFFFFF', padding: '48px 24px', borderRadius: '16px', textAlign: 'center', border: '1px solid #E2E8F0', color: '#64748B' }}>
-          <div style={{ width: '56px', height: '56px', background: '#F1F5F9', color: '#0B2E4B', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px auto', fontSize: '24px' }}>
-            📅
+        <div style={{ background: '#FFFFFF', padding: '56px 24px', borderRadius: '18px', textAlign: 'center', border: '1px solid #E2E8F0', color: '#64748B', boxShadow: '0 2px 8px rgba(11, 46, 75, 0.02)' }}>
+          <div style={{ width: '60px', height: '60px', background: '#F1F5F9', color: '#0B2E4B', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
           </div>
-          <h3 style={{ color: '#0B2E4B', marginBottom: '6px', fontWeight: '850', fontSize: '16px' }}>لا توجد استشارات في هذا التبويب</h3>
-          <p style={{ fontSize: '13px', margin: '0 0 16px', color: '#64748B' }}>يمكنك حجز موعد جديد واختيار المستشار المناسب من دليل المنصة.</p>
+          <h3 style={{ color: '#0B2E4B', marginBottom: '8px', fontWeight: '850', fontSize: '17px' }}>لا توجد استشارات في هذا التبويب</h3>
+          <p style={{ fontSize: '13.5px', margin: '0 0 20px', color: '#64748B' }}>يمكنك حجز موعد جديد واختيار المستشار المناسب من دليل المنصة.</p>
           <button
             onClick={() => navigate('/consultants')}
             className="map-btn-main"
-            style={{ fontSize: '12.5px', padding: '8px 18px' }}
+            style={{ fontSize: '13px', padding: '9px 20px' }}
           >
             تصفح دليل المستشارين
           </button>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {filteredAppointments.map((appt) => {
             const isConfirmed = appt.status === 'confirmed';
             const isPendingPayment = appt.status === 'pending_payment';
@@ -653,46 +719,66 @@ export default function MyAppointmentsPage({ navigate }) {
                 className="map-card-item"
               >
 
-                {/* Right Side: Partner Info & Service */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', flex: 1, minWidth: '280px' }}>
+                {/* Right Side: Partner Info & Service - Spacious & Comfortably Aligned to Right */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', flex: 1, minWidth: '300px' }}>
                   <div style={{
-                    width: '44px',
-                    height: '44px',
+                    width: '48px',
+                    height: '48px',
                     borderRadius: '50%',
                     background: 'linear-gradient(135deg, #164D70 0%, #0B2E4B 100%)',
                     color: '#FFFFFF',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '16px',
+                    fontSize: '17px',
                     fontWeight: '800',
-                    flexShrink: 0
+                    flexShrink: 0,
+                    boxShadow: '0 2px 8px rgba(11, 46, 75, 0.12)'
                   }}>
                     {getPartnerInitial(getPartnerName(appt))}
                   </div>
 
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px', flexWrap: 'wrap' }}>
                       {getStatusBadge(appt.status, appt)}
                       <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '600' }}>#{appt.id.substring(0, 8)}</span>
                     </div>
 
-                    <h4 style={{ fontSize: '14.5px', fontWeight: '850', color: '#0B2E4B', margin: '0 0 3px 0' }}>
+                    <h4 style={{ fontSize: '15.5px', fontWeight: '850', color: '#0B2E4B', margin: '0 0 3px 0' }}>
                       {getPartnerName(appt)}
                     </h4>
 
-                    <div style={{ fontSize: '12.5px', color: '#475569', fontWeight: '600', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '13px', color: '#475569', fontWeight: '600', marginBottom: '6px' }}>
                       {appt.service_name || 'جلسة استشارية متخصصة'}
                     </div>
 
-                    <div style={{ fontSize: '11.5px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>📅 {formatDateStr(appt.scheduled_at)}</span>
-                      {appt.amount ? <span>• 💰 {appt.amount} د.أ</span> : null}
+                    <div style={{ fontSize: '12px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                          <line x1="16" y1="2" x2="16" y2="6"/>
+                          <line x1="8" y1="2" x2="8" y2="6"/>
+                          <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        <span>{formatDateStr(appt.scheduled_at)}</span>
+                      </span>
+                      {appt.amount ? (
+                        <>
+                          <span style={{ color: '#CBD5E1' }}>•</span>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: '700', color: '#0F172A' }}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect width="20" height="14" x="2" y="5" rx="2"/>
+                              <line x1="2" x2="22" y1="10" y2="10"/>
+                            </svg>
+                            <span>{appt.amount} د.أ</span>
+                          </span>
+                        </>
+                      ) : null}
                     </div>
 
                     {/* Attendance hints */}
                     {appt.room_opened_at && !appt.user_joined_at && isConfirmed && (
-                      <div style={{ marginTop: '6px', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '700' }}>
+                      <div style={{ marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '700' }}>
                         <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }}></span>
                         <span>المستشار فتح الغرفة وبانتظارك</span>
                       </div>
@@ -711,15 +797,19 @@ export default function MyAppointmentsPage({ navigate }) {
                         backgroundColor: '#DC2626',
                         color: '#FFFFFF',
                         border: 'none',
-                        padding: '8px 16px',
+                        padding: '9px 16px',
                         borderRadius: '10px',
                         fontWeight: '800',
                         fontSize: '12px',
                         cursor: 'pointer',
-                        fontFamily: 'inherit'
+                        fontFamily: 'inherit',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
                       }}
                     >
-                      ⭐ تقييم المستشار / بلاغ
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                      <span>بلاغ غياب المستشار</span>
                     </button>
                   )}
 
@@ -731,7 +821,7 @@ export default function MyAppointmentsPage({ navigate }) {
                         backgroundColor: appt.room_opened_at ? '#059669' : '#0B2E4B',
                         color: '#FFFFFF',
                         border: 'none',
-                        padding: '8px 18px',
+                        padding: '9px 18px',
                         borderRadius: '10px',
                         fontWeight: '800',
                         fontSize: '12px',
@@ -743,7 +833,9 @@ export default function MyAppointmentsPage({ navigate }) {
                         transition: 'all 0.15s'
                       }}
                     >
-                      {appt.room_opened_at && <span>🟢</span>}
+                      {appt.room_opened_at && (
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#34D399', display: 'inline-block', boxShadow: '0 0 6px #34D399' }}></span>
+                      )}
                       <span>{appt.room_opened_at ? 'دخول الغرفة (بانتظارك)' : 'دخول الغرفة'}</span>
                     </button>
                   )}
@@ -757,7 +849,7 @@ export default function MyAppointmentsPage({ navigate }) {
                           backgroundColor: '#F59A23',
                           color: '#FFFFFF',
                           border: 'none',
-                          padding: '8px 16px',
+                          padding: '9px 18px',
                           borderRadius: '10px',
                           fontWeight: '800',
                           fontSize: '12px',
@@ -768,11 +860,17 @@ export default function MyAppointmentsPage({ navigate }) {
                           fontFamily: 'inherit'
                         }}
                       >
-                        <span>⭐ تقييم الجلسة</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                        </svg>
+                        <span>تقييم الجلسة</span>
                       </button>
                     ) : (
-                      <span style={{ fontSize: '11.5px', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '5px 12px', borderRadius: '10px', fontWeight: '800' }}>
-                        ✓ تم التقييم ({appt.rating?.stars || '★'})
+                      <span style={{ fontSize: '11.5px', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '5px 12px', borderRadius: '10px', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>تم التقييم ({appt.rating?.stars || '★'})</span>
                       </span>
                     )
                   )}
@@ -785,7 +883,7 @@ export default function MyAppointmentsPage({ navigate }) {
                         backgroundColor: '#0B2E4B',
                         color: '#FFFFFF',
                         border: 'none',
-                        padding: '8px 18px',
+                        padding: '9px 18px',
                         borderRadius: '10px',
                         fontWeight: '800',
                         fontSize: '12px',
@@ -804,7 +902,10 @@ export default function MyAppointmentsPage({ navigate }) {
                       className="map-btn-outline"
                       style={{ padding: '8px 14px', fontSize: '12px' }}
                     >
-                      <span>💬 {user?.role === 'consultant' ? 'العميل' : 'المستشار'}</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                      </svg>
+                      <span>{user?.role === 'consultant' ? 'محادثة العميل' : 'محادثة المستشار'}</span>
                     </button>
                   )}
 
@@ -989,7 +1090,7 @@ export default function MyAppointmentsPage({ navigate }) {
                 alignItems: 'center',
                 gap: '8px'
               }}>
-                <span>⚠️</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                 <span>{ratingValidationError}</span>
               </div>
             )}
@@ -1166,11 +1267,18 @@ export default function MyAppointmentsPage({ navigate }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '34px',
               margin: '0 auto 16px',
               boxShadow: ratingSuccessModal.isComplaint ? '0 8px 24px rgba(239, 68, 68, 0.15)' : '0 8px 24px rgba(245, 158, 11, 0.15)'
             }}>
-              {ratingSuccessModal.isComplaint ? '🛡️' : '🌟'}
+              {ratingSuccessModal.isComplaint ? (
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+              ) : (
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="#F59A23" stroke="#F59A23" strokeWidth="1.5">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+              )}
             </div>
 
             <h2 style={{ fontSize: '19px', fontWeight: '900', color: '#0B2E4B', margin: '0 0 8px' }}>

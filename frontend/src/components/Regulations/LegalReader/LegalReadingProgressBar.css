@@ -1,0 +1,51 @@
+/* LegalReadingProgressBar.css - Reusable reading progress bar matching Image 1 */
+.lft-reading-progress-bar-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 180;
+  background: #ffffff;
+  padding-top: 8px;
+  padding-bottom: 16px; /* White area underneath the line and text matching Image 1 */
+  direction: rtl;
+  user-select: none;
+}
+
+/* 1. Horizontal Track on top */
+.lft-progress-track {
+  width: 100%;
+  height: 3px;
+  background: #E8EEF2;
+  overflow: hidden;
+  direction: rtl;
+}
+
+.lft-progress-fill {
+  height: 100%;
+  background: #0D3C5C;
+  transition: width 0.08s linear;
+}
+
+/* 2. Labels Row below the track */
+.lft-progress-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 36px 0 36px;
+}
+
+.lft-progress-article-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #82939D;
+  font-family: 'Tajawal', sans-serif;
+}
+
+.lft-progress-percent-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #82939D;
+  direction: ltr;
+  font-family: 'Tajawal', sans-serif;
+}

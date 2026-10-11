@@ -91,7 +91,7 @@ export function renderHighlightedText(text, highlights) {
   return parts;
 }
 
-export default function LegalArticle({
+const LegalArticle = React.memo(function LegalArticle({
   article,
   lawTitle = "قانون ضريبة الدخل رقم 34 لسنة 2014",
   onCompareVersion,
@@ -243,4 +243,6 @@ export default function LegalArticle({
       </div>
     </section>
   );
-}
+});
+
+export default LegalArticle;

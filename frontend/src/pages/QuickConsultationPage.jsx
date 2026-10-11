@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { consultantService } from '../services/consultantService';
 import { appointmentService } from '../services/appointmentService';
 import { OFFICIAL_15_SPECIALIZATIONS } from '../utils/specializations';
+import ModernSelect from '../components/ModernSelect';
 import '../components/QuickConsultation/QuickConsultationWizard.css';
 
 // Custom Icons matching system
@@ -313,43 +314,48 @@ export default function QuickConsultationPage({ navigate }) {
             <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0d3c5c', margin: '0 0 8px 0' }}>
               كيف تود التواصل مع المستشار؟
             </h3>
-            <p style={{ color: '#64748B', fontSize: '13px', margin: 0 }}>
-              اختر طريقة إجراء الجلسة المفضلة لديك:
+            <p style={{ color: '#64748B', fontSize: '13px', margin: '0 0 20px 0' }}>
+              اختر طريقة إجراء الجلسة المفضلة لديك من القائمة المنسدلة:
             </p>
-            <div className="grid-cards">
-              <div 
-                className={`option-card ${sessionType === 'video_call' ? 'selected' : ''}`}
-                onClick={() => setSessionType('video_call')}
-              >
-                <div style={{ color: '#005d9c', marginBottom: '4px' }}>
-                  <VideoIcon />
-                </div>
-                <span className="option-card-title">مكالمة فيديو</span>
-                <span className="option-card-desc">مقابلة مرئية وصوتية تفاعلية مباشرة مع مستشار المنصة</span>
-              </div>
 
-              <div 
-                className={`option-card ${sessionType === 'audio_call' ? 'selected' : ''}`}
-                onClick={() => setSessionType('audio_call')}
-              >
-                <div style={{ color: '#005d9c', marginBottom: '4px' }}>
-                  <SoundIcon />
-                </div>
-                <span className="option-card-title">مكالمة صوتية</span>
-                <span className="option-card-desc">اتصال صوتي فقط للاستماع والمناقشة السريعة</span>
-              </div>
-
-              <div 
-                className={`option-card ${sessionType === 'chat' ? 'selected' : ''}`}
-                onClick={() => setSessionType('chat')}
-              >
-                <div style={{ color: '#005d9c', marginBottom: '4px' }}>
-                  <ChatIcon />
-                </div>
-                <span className="option-card-title">محادثة نصية</span>
-                <span className="option-card-desc">غرفة دردشة فورية مع إمكانية إرفاق الملفات والمستندات</span>
-              </div>
+            <div className="wizard-select-wrapper">
+              <label className="wizard-select-label">طريقة التواصل المطلوبة:</label>
+              <ModernSelect
+                options={[
+                  { value: 'video_call', label: 'مكالمة فيديو (مرئية وصوتية تفاعلية مباشرة)' },
+                  { value: 'audio_call', label: 'مكالمة صوتية (اتصال صوتي فقط للمناقشة)' },
+                  { value: 'chat', label: 'محادثة نصية (غرفة دردشة فورية مع إرفاق الملفات)' }
+                ]}
+                value={sessionType}
+                onChange={(val) => setSessionType(val)}
+                placeholder="اختر طريقة التواصل..."
+                className="quick-consult-select"
+                dropdownWidth="100%"
+              />
             </div>
+
+            {/* Selected Method Details Card */}
+            {sessionType && (
+              <div className="wizard-selected-card">
+                <div className="wizard-selected-icon">
+                  {sessionType === 'video_call' && <VideoIcon />}
+                  {sessionType === 'audio_call' && <SoundIcon />}
+                  {sessionType === 'chat' && <ChatIcon />}
+                </div>
+                <div className="wizard-selected-info">
+                  <span className="wizard-selected-title">
+                    {sessionType === 'video_call' && 'مكالمة فيديو'}
+                    {sessionType === 'audio_call' && 'مكالمة صوتية'}
+                    {sessionType === 'chat' && 'محادثة نصية'}
+                  </span>
+                  <span className="wizard-selected-desc">
+                    {sessionType === 'video_call' && 'مقابلة مرئية وصوتية تفاعلية مباشرة مع مستشار المنصة'}
+                    {sessionType === 'audio_call' && 'اتصال صوتي فقط للاستماع والمناقشة السريعة'}
+                    {sessionType === 'chat' && 'غرفة دردشة فورية مع إمكانية إرفاق الملفات والمستندات'}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -359,22 +365,53 @@ export default function QuickConsultationPage({ navigate }) {
             <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0d3c5c', margin: '0 0 8px 0' }}>
               ما هو مجال الاستشارة المطلوبة؟
             </h3>
-            <p style={{ color: '#64748B', fontSize: '13px', margin: 0 }}>
-              اختر تخصص الموضوع أو المشكلة التي ترغب في حلها:
+            <p style={{ color: '#64748B', fontSize: '13px', margin: '0 0 20px 0' }}>
+              اختر تخصص الموضوع أو المشكلة التي ترغب في حلها من القائمة المنسدلة:
             </p>
-            <div className="grid-cards">
-              {specializations.map(spec => (
-                <div 
-                  key={spec.id}
-                  className={`option-card ${selectedSpec?.id === spec.id ? 'selected' : ''}`}
-                  onClick={() => setSelectedSpec(spec)}
-                  style={{ minHeight: '120px' }}
-                >
-                  <span className="option-card-title" style={{ fontSize: '15px' }}>{spec.name}</span>
-                  <span className="option-card-desc">{spec.description || 'استشارات متخصصة'}</span>
-                </div>
-              ))}
+
+            <div className="wizard-select-wrapper">
+              <label className="wizard-select-label">مجال وتخصص الاستشارة:</label>
+              <ModernSelect
+                options={specializations.map(spec => ({
+                  value: String(spec.id),
+                  label: spec.name
+                }))}
+                value={selectedSpec ? String(selectedSpec.id) : ''}
+                onChange={(val) => {
+                  const found = specializations.find(s => String(s.id) === String(val));
+                  setSelectedSpec(found || null);
+                }}
+                placeholder="اختر مجال الاستشارة المطلوب..."
+                className="quick-consult-select"
+                dropdownWidth="100%"
+              />
             </div>
+
+            {/* Selected Specialization Details Card */}
+            {selectedSpec ? (
+              <div className="wizard-selected-card">
+                <div className="wizard-selected-badge">
+                  <span>المجال المختار</span>
+                </div>
+                <div className="wizard-selected-info">
+                  <span className="wizard-selected-title">
+                    {selectedSpec.name}
+                  </span>
+                  <span className="wizard-selected-desc">
+                    {selectedSpec.description || 'استشارات ضريبية متخصصة ومعتمدة من خبراء ديوان'}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="wizard-select-hint">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#005d9c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                <span>يرجى فتح القائمة المنسدلة أعلاه واختيار التخصص المناسب للمتابعة.</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -408,9 +445,20 @@ export default function QuickConsultationPage({ navigate }) {
                       <div>
                         <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#1E293B', fontWeight: '700' }}>{c.full_name}</h4>
                         <p style={{ margin: 0, fontSize: '12px', color: '#64748B', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.bio}</p>
-                        <div style={{ display: 'flex', gap: '16px', marginTop: '8px', fontSize: '12px', fontWeight: '700', color: '#005d9c' }}>
-                          <span>⭐ {c.average_rating} ({c.ratings_count || 0} تقييم)</span>
-                          <span>⏱️ {c.price_per_hour || 0} د.أ / ساعة</span>
+                        <div style={{ display: 'flex', gap: '16px', marginTop: '8px', fontSize: '12px', fontWeight: '700', color: '#005d9c', alignItems: 'center' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="#F59E0B" stroke="#F59E0B" strokeWidth="1.5">
+                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            </svg>
+                            {c.average_rating} ({c.ratings_count || 0} تقييم)
+                          </span>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="12" cy="12" r="10" />
+                              <polyline points="12 6 12 12 16 14" />
+                            </svg>
+                            {c.price_per_hour || 0} د.أ / ساعة
+                          </span>
                         </div>
                         <button
                           type="button"
@@ -661,8 +709,10 @@ export default function QuickConsultationPage({ navigate }) {
         {/* STEP 8: Success screen */}
         {currentStep === 8 && (
           <div className="wizard-step-content" style={{ textAlign: 'center', padding: '16px' }}>
-            <div style={{ width: '64px', height: '64px', background: '#DCFCE7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyItems: 'center', margin: '0 auto 20px auto', justifyContent: 'center' }}>
-              <span style={{ fontSize: '32px', color: '#16A34A' }}>✓</span>
+            <div style={{ width: '64px', height: '64px', background: '#DCFCE7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px auto' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
             </div>
             <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#1E293B', margin: '0 0 8px 0' }}>
               تم إرسال طلب الحجز بنجاح

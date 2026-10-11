@@ -429,3 +429,167 @@
   from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ModernSelect Dropdown Customization (Quick Consultation Page)
+   Customized specifically here without modifying the base ModernSelect
+   ══════════════════════════════════════════════════════════════ */
+.wizard-select-wrapper {
+  margin-top: 14px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.wizard-select-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #334155;
+  text-align: right;
+}
+
+/* Override ModernSelect layout specifically for QuickConsultation */
+.quick-consult-select.modern-select-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: block !important;
+}
+
+.quick-consult-select .modern-select-trigger {
+  width: 100% !important;
+  height: 50px !important;
+  padding: 0 16px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
+  border: 1.5px solid #CBD5E1 !important;
+  background: #FFFFFF !important;
+  color: #0D3C5C !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.2s ease !important;
+}
+
+.quick-consult-select:hover .modern-select-trigger {
+  border-color: #005D9C !important;
+  box-shadow: 0 2px 8px rgba(0, 93, 156, 0.08) !important;
+}
+
+.quick-consult-select.is-open .modern-select-trigger {
+  border-color: #005D9C !important;
+  box-shadow: 0 0 0 3px rgba(0, 93, 156, 0.12) !important;
+  background: #F8FAFC !important;
+}
+
+.quick-consult-select .modern-select-label {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #1E293B !important;
+}
+
+.quick-consult-select .modern-select-dropdown {
+  width: 100% !important;
+  min-width: 100% !important;
+  border-radius: 12px !important;
+  border: 1.5px solid #E2E8F0 !important;
+  box-shadow: 0 14px 34px rgba(13, 60, 92, 0.14) !important;
+  max-height: 280px !important;
+  padding: 6px !important;
+  background: #FFFFFF !important;
+  z-index: 1000 !important;
+}
+
+.quick-consult-select .modern-select-option {
+  padding: 11px 14px !important;
+  font-size: 13.5px !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+  transition: all 0.15s ease !important;
+}
+
+.quick-consult-select .modern-select-option:hover {
+  background: #F1F5F9 !important;
+  color: #005D9C !important;
+}
+
+.quick-consult-select .modern-select-option.selected {
+  background: #E5EFF5 !important;
+  color: #005D9C !important;
+  font-weight: 800 !important;
+}
+
+/* Selected Item Visual Preview Card */
+.wizard-selected-card {
+  border: 2px solid #005D9C;
+  border-radius: 16px;
+  background: #E5EFF5;
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 16px;
+  animation: fadeIn 0.3s ease;
+  transition: all 0.25s ease;
+}
+
+.wizard-selected-icon {
+  color: #005D9C;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  background: #FFFFFF;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 93, 156, 0.15);
+  box-shadow: 0 2px 6px rgba(0, 93, 156, 0.08);
+}
+
+.wizard-selected-badge {
+  background: #005D9C;
+  color: #FFFFFF;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.wizard-selected-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.wizard-selected-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0D3C5C;
+}
+
+.wizard-selected-desc {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.wizard-select-hint {
+  border: 1.5px dashed #CBD5E1;
+  border-radius: 14px;
+  padding: 24px;
+  text-align: center;
+  background: #F8FAFC;
+  color: #64748B;
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+

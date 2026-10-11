@@ -10,6 +10,7 @@ import { RELATED_FILES_DATA, FILTER_HIERARCHY } from './relatedFilesData';
 import AddToFolderModal from '../../UserPortal/AddToFolderModal';
 import { useAuth } from '../../../context/AuthContext';
 import { getLawTree, getMockLawDetail } from '../../../services/legalService';
+import { useDocumentSearch } from './useDocumentSearch';
 
 export default function LegalReader({ lawId, onClose }) {
   const { token } = useAuth();
@@ -452,13 +453,20 @@ export default function LegalReader({ lawId, onClose }) {
     }
   };
 
-  // Inline Search
-  const [findText, setFindText] = useState('');
-  const [matches, setMatches] = useState([]);
-  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
-
   const rightPaneRef = useRef(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // ── Modular In-Document Search Hook ───────────────────────────────────────
+  const {
+    findText,
+    setFindText,
+    matchCount,
+    matchIndex,
+    doSearch,
+    goToNext,
+    goToPrev,
+    clearSearch,
+  } = useDocumentSearch(rightPaneRef);
 
   useEffect(() => {
     getLawTree(lawId)
@@ -500,46 +508,19 @@ export default function LegalReader({ lawId, onClose }) {
     }
   };
 
-  // Inline Find inside Document
-  const handleSearchText = () => {
-    if (!findText || !findText.trim()) {
-      setMatches([]);
-      setCurrentMatchIndex(0);
-      return;
-    }
-    const query = findText.trim().toLowerCase();
-    const found = [];
-    lawTree?.sections?.forEach(section => {
-      section.articles?.forEach(article => {
-        if (
-          article.content?.toLowerCase().includes(query) ||
-          article.title?.toLowerCase().includes(query) ||
-          article.definitions?.some(d => d.term?.toLowerCase().includes(query) || d.value?.toLowerCase().includes(query)) ||
-          article.clauses?.some(c => (typeof c === 'string' ? c : c.text)?.toLowerCase().includes(query))
-        ) {
-          found.push(article.num);
-        }
-      });
-    });
-    setMatches(found);
-    if (found.length > 0) {
-      setCurrentMatchIndex(0);
-      jumpTo(`art-item-${found[0]}`, found[0]);
+  // Inline Search Handlers
+  const handleToggleSearch = () => {
+    if (showSearchInline) {
+      clearSearch();
+      setShowSearchInline(false);
+    } else {
+      setShowSearchInline(true);
     }
   };
 
-  const handleNextMatch = () => {
-    if (matches.length === 0) return;
-    const nextIdx = (currentMatchIndex + 1) % matches.length;
-    setCurrentMatchIndex(nextIdx);
-    jumpTo(`art-item-${matches[nextIdx]}`, matches[nextIdx]);
-  };
-
-  const handlePrevMatch = () => {
-    if (matches.length === 0) return;
-    const prevIdx = (currentMatchIndex - 1 + matches.length) % matches.length;
-    setCurrentMatchIndex(prevIdx);
-    jumpTo(`art-item-${matches[prevIdx]}`, matches[prevIdx]);
+  const handleCloseSearch = () => {
+    clearSearch();
+    setShowSearchInline(false);
   };
 
   const handleCompareVersion = (artNum) => {
@@ -766,7 +747,7 @@ export default function LegalReader({ lawId, onClose }) {
               {/* Sticky Floating Capsule Toolbar */}
               <div className="floating">
                 <button className={showFileInfoModal ? 'on' : ''} onClick={() => { setShowFileInfoModal(true); setModalFileTab('info'); }}>ⓘ معلومات الوثيقة</button>
-                <button className={showSearchInline ? 'on' : ''} onClick={() => setShowSearchInline(!showSearchInline)}>⌕ بحث</button>
+                <button className={showSearchInline ? 'on' : ''} onClick={handleToggleSearch}>⌕ بحث</button>
                 <button className={isSavedInFolders ? 'on saved' : ''} onClick={() => setShowFolderModal(true)}>
                   {isSavedInFolders ? '✓ في مجلداتي' : '＋ أضف إلى مجلداتي'}
                 </button>
@@ -781,13 +762,20 @@ export default function LegalReader({ lawId, onClose }) {
                     placeholder="ابحث داخل نص القانون..."
                     value={findText}
                     onChange={(e) => setFindText(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearchText()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        doSearch();
+                      }
+                    }}
                   />
-                  <button onClick={handleSearchText}>بحث</button>
-                  <span className="find-count">{matches.length > 0 ? `${currentMatchIndex + 1} / ${matches.length}` : '0 / 0'}</span>
-                  <button className="find-nav" onClick={handlePrevMatch} title="السابق">↑</button>
-                  <button className="find-nav" onClick={handleNextMatch} title="التالي">↓</button>
-                  <button className="find-clear" onClick={() => setShowSearchInline(false)}>×</button>
+                  <button type="button" onClick={() => doSearch()}>بحث</button>
+                  <span className="find-count">
+                    {matchCount > 0 ? `${matchIndex + 1} / ${matchCount}` : '0 / 0'}
+                  </span>
+                  <button type="button" className="find-nav" onClick={goToPrev} title="السابق">↑</button>
+                  <button type="button" className="find-nav" onClick={goToNext} title="التالي">↓</button>
+                  <button type="button" className="find-clear" onClick={handleCloseSearch} title="إغلاق">×</button>
                 </div>
               )}
 

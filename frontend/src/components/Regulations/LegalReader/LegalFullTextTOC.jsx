@@ -14,17 +14,18 @@ export default function LegalFullTextTOC({ lawTree, activeArticleId, onSelectArt
       </div>
       <div className="lft-toc-list">
         {articles.map((art) => {
-          const isActive = activeArticleId === art.num;
+          const isActive = Number(activeArticleId) === Number(art.num);
           const label = art.title?.startsWith('المادة')
             ? art.title
             : `المادة ${art.num}: ${art.title || ''}`;
           return (
             <button
               key={art.num}
+              type="button"
               className={`lft-toc-item ${isActive ? 'active' : ''}`}
               onClick={() => onSelectArticle(art.num)}
+              title={label}
             >
-              <span className={`lft-toc-circle ${isActive ? 'active' : ''}`} />
               <span className="lft-toc-label">{label}</span>
             </button>
           );

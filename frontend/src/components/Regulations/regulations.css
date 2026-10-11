@@ -443,8 +443,9 @@
 .text-preview-modal {
   background: #ffffff;
   border-radius: 18px;
-  width: min(780px, 94vw);
-  max-height: 88vh;
+  width: min(1080px, 95vw);
+  max-height: 90vh;
+  height: min(840px, 90vh);
   display: flex;
   flex-direction: column;
   box-shadow: 0 28px 80px rgba(13, 60, 92, 0.28);
@@ -642,15 +643,74 @@
   line-height: 1.9;
 }
 
-/* Footer with bottom icon buttons */
+/* Footer with bottom icon buttons matching Image 1 */
 .text-preview-footer {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 16px;
+  direction: ltr !important; /* Positions buttons at the bottom-left corner matching Image 1 */
   border-top: 1px solid #E5EBEE;
-  background: #FAFBFC;
+  background: #ffffff;
   padding: 10px 20px;
+}
+
+.preview-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  direction: ltr; /* Keeps buttons left-to-right: [المفضلة] [نسخ] [فتح النص الكامل] */
+}
+
+.preview-action-card-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 68px;
+  min-height: 56px;
+  padding: 8px 16px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #506976;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.preview-action-card-btn span {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  transition: color 0.18s ease;
+}
+
+.preview-action-card-btn svg {
+  display: block;
+  stroke: currentColor;
+  transition: stroke 0.18s ease, transform 0.18s ease;
+}
+
+/* Dynamic Golden Color on Hover/Focus: whichever button you are standing on turns golden! */
+.preview-action-card-btn:hover,
+.preview-action-card-btn:focus-visible {
+  background: #F09A24 !important;
+  border-color: #F09A24 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(240, 154, 36, 0.32);
+  transform: translateY(-1px);
+}
+
+.preview-action-card-btn:hover svg,
+.preview-action-card-btn:focus-visible svg {
+  stroke: #ffffff !important;
+}
+
+.preview-action-card-btn:hover span,
+.preview-action-card-btn:focus-visible span {
+  color: #ffffff !important;
 }
 
 .preview-icon-btn {
