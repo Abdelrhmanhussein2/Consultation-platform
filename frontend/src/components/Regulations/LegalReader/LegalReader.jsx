@@ -9,8 +9,29 @@ import RelatedFilesGrid from './RelatedFilesGrid';
 import { RELATED_FILES_DATA, FILTER_HIERARCHY } from './relatedFilesData';
 import AddToFolderModal from '../../UserPortal/AddToFolderModal';
 import { useAuth } from '../../../context/AuthContext';
-import { getLawTree, getMockLawDetail } from '../../../services/legalService';
+import { getLawTree, getMockLawDetail, getRelatedFiles, getLawStages } from '../../../services/legalService';
 import { useDocumentSearch } from './useDocumentSearch';
+
+const DEFAULT_STAGES = [
+  {
+    id: '2014_original',
+    law_id: 'قانون_34_2014_الأصلية',
+    title: 'قانون ضريبة الدخل رقم 34 لسنة 2014 — كما صدر',
+    subtitle: 'النسخة الأصلية السارية منذ 01-01-2015',
+    date: '01-01-2015',
+    buttonText: 'عرض النسخة الأصلية'
+  },
+  {
+    id: '2019_current',
+    law_id: 'قانون_34_2014_وتعديلاته',
+    title: 'قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته',
+    subtitle: 'النص المدمج النافذ بعد تعديل 2018 — ساري منذ 01-01-2019',
+    date: '01-01-2019',
+    buttonText: 'عرض النسخة النافذة'
+  }
+];
+
+
 
 export default function LegalReader({ lawId, onClose }) {
   const { token } = useAuth();
@@ -36,6 +57,9 @@ export default function LegalReader({ lawId, onClose }) {
   const [filterSortOrder, setFilterSortOrder] = useState('relevance');
   const [relatedFilterSearch, setRelatedFilterSearch] = useState('');
   const [isDocPaneMaximized, setIsDocPaneMaximized] = useState(false);
+  const [stagesList, setStagesList] = useState(DEFAULT_STAGES);
+  const [backendRelatedFiles, setBackendRelatedFiles] = useState([]);
+
 
   // Check if saved in folders on mount
   useEffect(() => {
@@ -79,9 +103,31 @@ export default function LegalReader({ lawId, onClose }) {
       });
   }, [token, lawId, lawTree?.id]);
 
+  // Fetch stages and related files from backend
+
+  useEffect(() => {
+    const curId = lawId || lawTree?.law_id || 'قانون_34_2014_وتعديلاته';
+    getLawStages(curId)
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setStagesList(data);
+        }
+      })
+      .catch(() => {});
+
+    getRelatedFiles(curId)
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setBackendRelatedFiles(data);
+        }
+      })
+      .catch(() => {});
+  }, [lawId]);
+
   // Related files data source
-  const RELATED_FILES = RELATED_FILES_DATA;
+  const RELATED_FILES = backendRelatedFiles.length > 0 ? backendRelatedFiles : RELATED_FILES_DATA;
   const RELATED_PREVIEW = RELATED_FILES.slice(0, 10); // first 10 for preview
+
 
   // Filtered related files based on selectedFilterCategory and search
   const filteredRelatedFiles = RELATED_FILES.filter((file) => {
@@ -106,8 +152,18 @@ export default function LegalReader({ lawId, onClose }) {
     return 0; // relevance / default order
   });
 
+  // Switch stage — always opens in the LEFT split panel
+  const handleStageClick = (stage) => {
+    const stageId = typeof stage === 'string' ? stage : stage.id;
+    setMainStageId(stageId);
+    setReadingMode(false);
+    setSplitStage(stageId);
+  };
+
+
   // Promote a stage version or related document to become the main document
   const handleSetStageAsMain = (docOrStageId) => {
+
     if (typeof docOrStageId === 'string') {
       const stageId = docOrStageId;
       const stage = STAGES_CONFIG[stageId];
@@ -812,6 +868,7 @@ export default function LegalReader({ lawId, onClose }) {
                       <div className="related-section">
                         <RelatedFilesGrid
                           selectedFileId={selectedRelatedFile?.id}
+                          files={RELATED_FILES}
                           onSelectFile={(doc) => {
                             setSelectedRelatedFile(doc);
                             setShowRelatedDrawer(true);
@@ -821,62 +878,28 @@ export default function LegalReader({ lawId, onClose }) {
                           className="related-all-btn"
                           onClick={() => setShowRelatedDrawer(true)}
                         >
-                          كل الملفات ذات الصلة (319)
+                          كل الملفات ذات الصلة ({RELATED_FILES.length})
                         </button>
                       </div>
                     )}
                     {fileTab === 'timeline' && (
                       <div className="stages-outer-box">
-                        <div
-                          className={`stage-inner-card ${mainStageId === '2014_original' ? 'active' : ''}`}
-                          onClick={() => {
-                            setReadingMode(false);
-                            setSplitStage('2014_original');
-                          }}
-                        >
-                          <div className="stage-date-col">01-01-2015</div>
-                          <div className="stage-content-col">
-                            <h4 className="stage-col-title">قانون ضريبة الدخل رقم 34 لسنة 2014 — كما صدر</h4>
-                            <p className="stage-col-sub">النسخة السارية عند بدء العمل بالقانون</p>
-                            <div className={`stage-action-badge ${mainStageId === '2014_original' ? 'active' : ''}`}>
-                              عرض الإصدار
+                        {(stagesList.length > 0 ? stagesList : DEFAULT_STAGES).map((stg) => (
+                          <div
+                            key={stg.id}
+                            className={`stage-inner-card ${mainStageId === stg.id ? 'active' : ''}`}
+                            onClick={() => handleStageClick(stg)}
+                          >
+                            <div className="stage-date-col">{stg.date}</div>
+                            <div className="stage-content-col">
+                              <h4 className="stage-col-title">{stg.title}</h4>
+                              <p className="stage-col-sub">{stg.subtitle}</p>
+                              <div className={`stage-action-badge ${mainStageId === stg.id ? 'active' : ''}`}>
+                                {stg.buttonText || 'عرض الإصدار'}
+                              </div>
                             </div>
                           </div>
-                        </div>
-
-                        <div
-                          className={`stage-inner-card ${mainStageId === '2018_amending' ? 'active' : ''}`}
-                          onClick={() => {
-                            setReadingMode(false);
-                            setSplitStage('2018_amending');
-                          }}
-                        >
-                          <div className="stage-date-col">02-12-2018</div>
-                          <div className="stage-content-col">
-                            <h4 className="stage-col-title">قانون معدل رقم 38 لسنة 2018</h4>
-                            <p className="stage-col-sub">التشريع المعدل لقانون ضريبة الدخل</p>
-                            <div className={`stage-action-badge ${mainStageId === '2018_amending' ? 'active' : ''}`}>
-                              عرض الإصدار
-                            </div>
-                          </div>
-                        </div>
-
-                        <div
-                          className={`stage-inner-card ${mainStageId === '2019_current' ? 'active' : ''}`}
-                          onClick={() => {
-                            setReadingMode(false);
-                            setSplitStage('2019_current');
-                          }}
-                        >
-                          <div className="stage-date-col">01-01-2019</div>
-                          <div className="stage-content-col">
-                            <h4 className="stage-col-title">قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته</h4>
-                            <p className="stage-col-sub">النص المدمج النافذ بعد التعديل</p>
-                            <div className={`stage-action-badge ${mainStageId === '2019_current' ? 'active' : ''}`}>
-                              عرض الإصدار
-                            </div>
-                          </div>
-                        </div>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -1005,7 +1028,7 @@ export default function LegalReader({ lawId, onClose }) {
                       </div>
                       <div className="left-related-head-left">
                         <div className="left-related-full-meta">
-                          {selectedFilterCategory === 'all' && !relatedFilterSearch ? '319' : filteredRelatedFiles.length}
+                          {selectedFilterCategory === 'all' && !relatedFilterSearch ? RELATED_FILES_DATA.length : filteredRelatedFiles.length}
                         </div>
                         <button
                           type="button"
@@ -1070,7 +1093,7 @@ export default function LegalReader({ lawId, onClose }) {
                           onClick={() => setSelectedFilterCategory('all')}
                         >
                           <span>الكل</span>
-                          <span>(319)</span>
+                          <span>({RELATED_FILES_DATA.length})</span>
                         </button>
 
                         {/* Hierarchy Groups */}
@@ -1348,6 +1371,7 @@ export default function LegalReader({ lawId, onClose }) {
                 <div className="file-info-modal-pane modal-related-grid-wrap">
                   <RelatedFilesGrid
                     selectedFileId={selectedRelatedFile?.id}
+                    files={RELATED_FILES}
                     onSelectFile={(doc) => {
                       setShowFileInfoModal(false);
                       setSelectedRelatedFile(doc);
@@ -1360,48 +1384,22 @@ export default function LegalReader({ lawId, onClose }) {
               {modalFileTab === 'timeline' && (
                 <div className="file-info-modal-pane">
                   <div className="timeline">
-                    <div
-                      className="timeline-row clickable"
-                      onClick={() => {
-                        setShowFileInfoModal(false);
-                        setReadingMode(false);
-                        setSplitStage('2014_original');
-                      }}
-                    >
-                      <time>2014</time>
-                      <div>
-                        <b>الإصدار الأصلي — قانون رقم 34 لسنة 2014</b>
-                        <span className="version-tag">كما صدر (01-01-2015)</span>
+                    {(stagesList.length > 0 ? stagesList : DEFAULT_STAGES).map((stg) => (
+                      <div
+                        key={stg.id}
+                        className="timeline-row clickable"
+                        onClick={() => {
+                          setShowFileInfoModal(false);
+                          handleStageClick(stg);
+                        }}
+                      >
+                        <time>{stg.date ? (stg.date.split('-')[2] || stg.date.split('-')[0]) : '2019'}</time>
+                        <div>
+                          <b>{stg.title}</b>
+                          <span className="version-tag">{stg.subtitle || stg.date}</span>
+                        </div>
                       </div>
-                    </div>
-                    <div
-                      className="timeline-row clickable"
-                      onClick={() => {
-                        setShowFileInfoModal(false);
-                        setReadingMode(false);
-                        setSplitStage('2018_amending');
-                      }}
-                    >
-                      <time>2018</time>
-                      <div>
-                        <b>قانون معدل رقم 38 لسنة 2018</b>
-                        <span className="version-tag">نشر التعديل (02-12-2018)</span>
-                      </div>
-                    </div>
-                    <div
-                      className="timeline-row clickable"
-                      onClick={() => {
-                        setShowFileInfoModal(false);
-                        setReadingMode(false);
-                        setSplitStage('2019_current');
-                      }}
-                    >
-                      <time>2019</time>
-                      <div>
-                        <b>نفاذ التعديل — النص المدمج النافذ</b>
-                        <span className="version-tag">النص النافذ (01-01-2019)</span>
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
               )}

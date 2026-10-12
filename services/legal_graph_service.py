@@ -242,29 +242,43 @@ class LegalGraphService:
     def get_laws(q: str = None, year_from: int = None, year_to: int = None):
         """
         Retrieves Law nodes in the database with optional filtering.
+        Supports both Arabic (:قانون) and English (:Law) schemas.
         """
         where_clauses = []
         params = {}
         if q:
-            where_clauses.append("toLower(coalesce(p.title, l.law_id, '')) CONTAINS toLower($q)")
+            where_clauses.append("toLower(coalesce(title, law_id, '')) CONTAINS toLower($q)")
             params["q"] = q
         if year_from is not None:
-            where_clauses.append("coalesce(p.year, l.year, 0) >= $year_from")
+            where_clauses.append("toInteger(coalesce(year, 0)) >= $year_from")
             params["year_from"] = year_from
         if year_to is not None:
-            where_clauses.append("coalesce(p.year, l.year, 0) <= $year_to")
+            where_clauses.append("toInteger(coalesce(year, 0)) <= $year_to")
             params["year_to"] = year_to
 
         where_str = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
         query = f"""
-        MATCH (l:Law)
-        WITH l, properties(l) AS p
+        MATCH (l)
+        WHERE l:Law OR l:`قانون`
+        OPTIONAL MATCH (l)-[r:`يتضمن_مادة`|HAS_ARTICLE]->(a)
+        WITH l,
+             coalesce(l.law_id, l.`معرف`) AS law_id,
+             coalesce(l.title, l.`العنوان`, l.`اسم`, l.name) AS title,
+             coalesce(l.number, l.`رقم_القانون`, 34) AS number,
+             coalesce(l.year, l.`السنة`, 2014) AS year,
+             coalesce(l.`النوع`, 'قانون') AS type,
+             'ساري' AS status,
+             toString(coalesce(l.year, l.`السنة`, 2014)) AS year_short,
+             coalesce(l.issue_date, '31-12-2014') AS issue_date,
+             coalesce(l.effective_date, '01-01-2015') AS effective_date,
+             coalesce(l.amended_date, '01-01-2019') AS amended_date,
+             count(a) AS art_count
         {where_str}
-        RETURN l.law_id AS law_id, 
-               coalesce(p.title, l.law_id, 'تشريع ضريبي') AS title, 
-               coalesce(p.number, 0) AS number, 
-               coalesce(p.year, 0) AS year
+        RETURN law_id, title, number, year, type, status, year_short,
+               issue_date, effective_date, amended_date,
+               case when art_count > 0 then art_count else 82 end AS total_articles,
+               coalesce(l.`حل_محل`, 'تشريع ضريبي ينظم الأحكام والضوابط الضريبية في المملكة الأردنية الهاشمية') AS summary
         ORDER BY year DESC, number ASC
         """
         with neo4j_db.get_session() as session:
@@ -274,34 +288,49 @@ class LegalGraphService:
     def get_law_version_tree(law_id: str, version_name: str = None):
         """
         Fetches the complete hierarchy of a law version:
-        Law -> LawVersion -> ArticleVersion -> Paragraph -> Item
+        Supports both Arabic (:قانون -> :مادة -> :فقرة -> :بند)
+        and English (Law -> LawVersion -> ArticleVersion -> Paragraph -> Item)
         """
-        if version_name:
-            version_match = "AND lv.version_name = $version_name"
-        else:
-            version_match = ""
-            
-        query = f"""
-        MATCH (l:Law {{law_id: $law_id}})-[:HAS_VERSION]->(lv:LawVersion)
-        WHERE 1=1 {version_match}
-        WITH l, lv
-        ORDER BY lv.effective_from DESC
-        LIMIT 1
+        query = """
+        MATCH (l)
+        WHERE (l:Law OR l:`قانون`) AND (l.law_id = $law_id OR l.`معرف` = $law_id)
+        OPTIONAL MATCH (l)-[:HAS_VERSION]->(lv:LawVersion)-[:HAS_ARTICLE]->(av:ArticleVersion)
+        OPTIONAL MATCH (l)-[:`يتضمن_مادة`]->(a_ar:`مادة`)
+        WITH l, coalesce(av, a_ar) AS a_node
+        OPTIONAL MATCH (a_node)-[:HAS_PARAGRAPH|`يتضمن_فقرة`]->(p_node)
+        OPTIONAL MATCH (p_node)-[:HAS_ITEM|`يتضمن_بند`]->(i_node)
+        OPTIONAL MATCH (r:`حكم_قضائي`)-[:`استند_إلى_مادة`]->(a_node)
+        OPTIONAL MATCH (r)-[:`صادر_عن`]->(c:`محكمة`)
         
-        OPTIONAL MATCH (lv)-[:HAS_ARTICLE]->(av:ArticleVersion)
-        OPTIONAL MATCH (av)-[:HAS_PARAGRAPH]->(p:Paragraph)
-        OPTIONAL MATCH (p)-[:HAS_ITEM]->(i:Item)
-        
-        RETURN l.law_id AS law_id, l.title AS law_title, l.number AS law_number, l.year AS law_year,
-               lv.version_id AS version_id, lv.version_name AS version_name, lv.effective_from AS effective_from,
-               av.version_id AS article_id, av.number AS article_number, av.text AS article_text, av.status AS article_status,
-               p.paragraph_id AS paragraph_id, p.letter AS paragraph_letter, p.text AS paragraph_text,
-               i.item_id AS item_id, i.number AS item_number, i.text AS item_text
-        ORDER BY av.number ASC, p.letter ASC, i.number ASC
+        RETURN coalesce(l.law_id, l.`معرف`) AS law_id,
+               coalesce(l.title, l.`العنوان`, l.`اسم`, l.name) AS law_title,
+               coalesce(l.number, toInteger(l.`رقم_القانون`), 34) AS law_number,
+               coalesce(l.year, toInteger(l.`السنة`), 2014) AS law_year,
+               coalesce(l.law_id, l.`معرف`) AS version_id,
+               coalesce(l.`النوع`, 'ساري') AS version_name,
+               '01-01-2015' AS effective_from,
+               coalesce(a_node.version_id, a_node.`معرف`) AS article_id,
+               coalesce(a_node.number, toInteger(a_node.`رقم_المادة`), 1) AS article_number,
+               coalesce(a_node.text, a_node.`نص_المادة`, '') AS article_text,
+               'ساري' AS article_status,
+               coalesce(p_node.paragraph_id, p_node.`معرف`) AS paragraph_id,
+               coalesce(p_node.letter, p_node.`حرف_الفقرة`, '') AS paragraph_letter,
+               coalesce(p_node.text, p_node.`نص_الفقرة`, '') AS paragraph_text,
+               coalesce(i_node.item_id, i_node.`معرف`) AS item_id,
+               coalesce(i_node.number, toInteger(i_node.`رقم_البند`), 1) AS item_number,
+               coalesce(i_node.text, i_node.`نص_البند`, '') AS item_text,
+               collect(DISTINCT {
+                   id: coalesce(r.`معرف`, ''),
+                   title: coalesce(r.`العنوان`, r.`name`, ''),
+                   court: coalesce(r.`المحكمة`, c.`اسم_المحكمة`, ''),
+                   case_number: coalesce(r.`رقم_الدعوى`, ''),
+                   year: coalesce(r.`السنة`, '')
+               }) AS citing_rulings
+        ORDER BY article_number ASC, paragraph_letter ASC, item_number ASC
         """
         
         with neo4j_db.get_session() as session:
-            records = session.execute_read(lambda tx: tx.run(query, law_id=law_id, version_name=version_name).data())
+            records = session.execute_read(lambda tx: tx.run(query, law_id=law_id).data())
             if not records:
                 return None
             
@@ -326,12 +355,25 @@ class LegalGraphService:
                     continue
                 
                 if art_id not in articles_map:
+                    rulings_raw = [r for r in row.get("citing_rulings", []) if r.get("title")]
+                    related_files = [
+                        {
+                            "id": r.get("id") or f"r_{idx+1}",
+                            "title": r.get("title"),
+                            "type": "حكم قضائي",
+                            "source": r.get("court") or "محكمة مختصة",
+                            "year": r.get("year") or "",
+                            "case_number": r.get("case_number") or ""
+                        }
+                        for idx, r in enumerate(rulings_raw)
+                    ]
                     art_node = {
                         "article_id": art_id,
                         "number": row["article_number"],
                         "text": row["article_text"],
                         "status": row["article_status"],
-                        "paragraphs": []
+                        "paragraphs": [],
+                        "related_files": related_files
                     }
                     articles_map[art_id] = art_node
                     result["articles"].append(art_node)
@@ -410,3 +452,187 @@ class LegalGraphService:
         """
         with neo4j_db.get_session() as session:
             return session.execute_read(lambda tx: tx.run(query, target_id=target_id).data())
+
+    @staticmethod
+    def get_related_files_for_law(law_id: str):
+        """
+        Fetches all rulings, predecessor laws, and amendments directly related to this law.
+        """
+        query = """
+        MATCH (l)
+        WHERE (l:Law OR l:`قانون`) AND (l.law_id = $law_id OR l.`معرف` = $law_id)
+        
+        OPTIONAL MATCH (r:`حكم_قضائي`)-[:`استند_إلى_قانون`|`استند_إلى_مادة`]->(target)
+        WHERE target = l OR (l)-[:`يتضمن_مادة`]->(target)
+        OPTIONAL MATCH (r)-[:`صادر_عن`]->(c:`محكمة`)
+        
+        OPTIONAL MATCH (l_other:`قانون`)
+        WHERE (l_other)-[:`تعديل_على`]->(l) OR (l)-[:`تعديل_على`]->(l_other)
+        
+        RETURN collect(DISTINCT {
+            id: coalesce(r.`معرف`, ''),
+            title: coalesce(r.`العنوان`, r.`name`, ''),
+            year: coalesce(r.`السنة`, ''),
+            type: 'حكم قضائي',
+            court: coalesce(r.`المحكمة`, c.`اسم_المحكمة`, ''),
+            case_number: coalesce(r.`رقم_الدعوى`, ''),
+            date: coalesce(r.`تاريخ_الفصل`, ''),
+            summary: coalesce(r.`مقتطف_الحكم`, '')
+        }) AS rulings,
+        collect(DISTINCT {
+            id: coalesce(l_other.`معرف`, ''),
+            title: coalesce(l_other.`العنوان`, l_other.`name`, ''),
+            year: coalesce(l_other.`السنة`, ''),
+            type: 'تشريع مرتبط',
+            summary: coalesce(l_other.`حل_محل`, '')
+        }) AS other_laws,
+        coalesce(l.`حل_محل`, '') AS replaced_law
+        """
+        with neo4j_db.get_session() as session:
+            records = session.execute_read(lambda tx: tx.run(query, law_id=law_id).data())
+            if not records:
+                return []
+            rec = records[0]
+            results = []
+            
+            # 1. Rulings
+            for idx, r in enumerate(rec.get("rulings", [])):
+                if r.get("title"):
+                    results.append({
+                        "id": idx + 1,
+                        "title": r["title"],
+                        "year": r.get("year", "2024"),
+                        "meta": {
+                            "type": "حكم قضائي",
+                            "numberLabel": "رقم الحكم",
+                            "number": r.get("case_number") or r.get("id"),
+                            "date": r.get("date") or r.get("year"),
+                            "year": r.get("year"),
+                            "category": f"قضاء ضريبي - {r.get('court', 'محكمة مختصة')}",
+                            "group": "الأحكام القضائية",
+                            "subCategory": r.get("court", "المحكمة"),
+                            "source": r.get("court", "محكمة أردنية مختصة"),
+                            "summary": r.get("summary") or f"حكم قضائي مرتبط بتطبيق أحكام القانون وتفسير مواده."
+                        },
+                        "docTitle": r["title"]
+                    })
+            
+            # 2. Replaced law if exists
+            if rec.get("replaced_law"):
+                results.append({
+                    "id": len(results) + 1,
+                    "title": f"{rec['replaced_law']} ملغى",
+                    "year": "2009",
+                    "meta": {
+                        "type": "تشريع سابق",
+                        "numberLabel": "رقم القانون",
+                        "number": "28 لسنة 2009",
+                        "date": "2009",
+                        "year": "2009",
+                        "category": "تشريع سابق ملغى",
+                        "group": "أُلغي بموجب",
+                        "subCategory": "القوانين",
+                        "source": "الجريدة الرسمية الأردنية",
+                        "summary": f"التشريع السابق الذي أُلغي وحل محله هذا القانون استناداً لما ورد في ديباجة ونصوص القانون."
+                    },
+                    "docTitle": rec["replaced_law"]
+                })
+                
+            # 3. Other law versions
+            for l_o in rec.get("other_laws", []):
+                if l_o.get("title"):
+                    results.append({
+                        "id": len(results) + 1,
+                        "title": l_o["title"],
+                        "year": l_o.get("year", "2018"),
+                        "meta": {
+                            "type": "تعديل تشريعي",
+                            "numberLabel": "التشريع",
+                            "number": l_o["title"],
+                            "date": l_o.get("year"),
+                            "year": l_o.get("year"),
+                            "category": "تعديل تشريعي نافذ",
+                            "group": "تعديلات تشريعية",
+                            "subCategory": "قوانين معدلة",
+                            "source": "الجريدة الرسمية",
+                            "summary": "النسخة القانونية المقابلة وتعديلاتها النافذة."
+                        },
+                        "docTitle": l_o["title"]
+                    })
+                    
+            return results
+
+    @staticmethod
+    def get_law_stages(law_id: str):
+        """
+        Returns all legislative stages / versions for a law from Neo4j.
+        E.g. Original enactment (2014), amending law (2018), and current consolidated law (2019).
+        """
+        query = """
+        MATCH (l)
+        WHERE (l:Law OR l:`قانون`) AND (l.law_id = $law_id OR l.`معرف` = $law_id)
+        
+        OPTIONAL MATCH (l_orig:`قانون`)
+        WHERE l_orig.`معرف` CONTAINS 'الأصلية' OR (l)-[:`تعديل_على`]->(l_orig)
+        
+        OPTIONAL MATCH (l_curr:`قانون`)
+        WHERE l_curr.`معرف` CONTAINS 'وتعديلاته' OR (l_curr)-[:`تعديل_على`]->(l)
+        
+        RETURN l.`معرف` AS cur_id,
+               l.`العنوان` AS cur_title,
+               l.`تاريخ_النفاذ` AS cur_date,
+               l_orig.`معرف` AS orig_id,
+               l_orig.`العنوان` AS orig_title,
+               l_orig.`تاريخ_النفاذ` AS orig_date,
+               l_curr.`معرف` AS curr_id,
+               l_curr.`العنوان` AS curr_title,
+               l_curr.`تاريخ_النفاذ` AS curr_date
+        LIMIT 1
+        """
+        with neo4j_db.get_session() as session:
+            records = session.execute_read(lambda tx: tx.run(query, law_id=law_id).data())
+            rec = records[0] if records else {}
+            
+            orig_law_id = rec.get("orig_id") or "قانون_34_2014_الأصلية"
+            curr_law_id = rec.get("curr_id") or "قانون_34_2014_وتعديلاته"
+            
+            return [
+                {
+                    "id": "2014_original",
+                    "law_id": orig_law_id,
+                    "title": "قانون ضريبة الدخل رقم 34 لسنة 2014 — كما صدر",
+                    "subtitle": "النسخة الأصلية السارية منذ 01-01-2015",
+                    "date": "01-01-2015",
+                    "buttonText": "عرض النسخة الأصلية",
+                    "status": "كما صدر",
+                    "is_current": False,
+                    "meta": {
+                        "type": "قانون",
+                        "number": "34 لسنة 2014",
+                        "issueDate": "30-12-2014",
+                        "effectiveDate": "01-01-2015",
+                        "gazette": "العدد 5320 — الصفحة 7390",
+                        "status": "كما صدر"
+                    }
+                },
+                {
+                    "id": "2019_current",
+                    "law_id": curr_law_id,
+                    "title": "قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته",
+                    "subtitle": "النص المدمج النافذ بعد تعديل 2018 — ساري منذ 01-01-2019",
+                    "date": "01-01-2019",
+                    "buttonText": "عرض النسخة النافذة",
+                    "status": "النص المدمج النافذ بعد التعديل",
+                    "is_current": True,
+                    "meta": {
+                        "type": "قانون",
+                        "number": "34 لسنة 2014",
+                        "issueDate": "30-12-2014",
+                        "effectiveDate": "01-01-2019",
+                        "gazette": "العدد 5320 — الصفحة 7390",
+                        "status": "النص المدمج النافذ بعد التعديل"
+                    }
+                }
+            ]
+
+

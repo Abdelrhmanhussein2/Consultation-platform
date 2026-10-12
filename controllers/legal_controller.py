@@ -253,3 +253,12 @@ class LegalController:
     def search(query: str, limit: int = 5):
         from services.hybrid_search_service import HybridSearchService
         return HybridSearchService.search(query, limit)
+
+    @staticmethod
+    def get_related_files(law_id: str):
+        return LegalGraphService.get_related_files_for_law(law_id)
+
+    @staticmethod
+    def get_law_stages(law_id: str):
+        return LegalGraphService.get_law_stages(law_id)
+

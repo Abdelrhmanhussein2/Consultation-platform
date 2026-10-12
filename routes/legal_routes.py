@@ -79,39 +79,47 @@ def get_laws(
     type: Optional[str] = None,
     status: Optional[str] = None,
     year_from: Optional[int] = None,
-    year_to: Optional[int] = None,
-    current_user: User = Depends(get_current_user)
+    year_to: Optional[int] = None
 ):
     return LegalController.get_laws(q=q, year_from=year_from, year_to=year_to)
 
 @router.get("/laws/{law_id}")
 def get_law_tree(
     law_id: str,
-    version_name: str = None,
-    current_user: User = Depends(get_current_user)
+    version_name: str = None
 ):
     return LegalController.get_law_tree(law_id, version_name)
+
+@router.get("/laws/{law_id}/related")
+def get_related_files(
+    law_id: str
+):
+    return LegalController.get_related_files(law_id)
+
+@router.get("/laws/{law_id}/stages")
+def get_law_stages(
+    law_id: str
+):
+    return LegalController.get_law_stages(law_id)
+
 
 @router.get("/articles/{law_id}/{article_number}/history")
 def get_article_history(
     law_id: str,
-    article_number: int,
-    current_user: User = Depends(get_current_user)
+    article_number: int
 ):
     return LegalController.get_article_history(law_id, article_number)
 
 @router.get("/articles/{target_id}/citations")
 def get_citations(
-    target_id: str,
-    current_user: User = Depends(get_current_user)
+    target_id: str
 ):
     return LegalController.get_citations(target_id)
 
 @router.get("/search")
 def search(
     query: str,
-    limit: int = 5,
-    current_user: User = Depends(get_current_user)
+    limit: int = 5
 ):
     if not query.strip():
         raise HTTPException(

@@ -1,7 +1,9 @@
 // frontend/src/components/Regulations/LegalReader/LegalStageSplitReader.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ARTICLE_DIFFS } from './articleDiffs';
 import RelatedFilesGrid from './RelatedFilesGrid';
+import { getLawTree } from '../../../services/legalService';
+
 
 export const STAGES_CONFIG = {
   '2014_original': {
@@ -210,13 +212,64 @@ export default function LegalStageSplitReader({
   isMaximized,
   onToggleMaximize
 }) {
-  const [sideTab, setSideTab] = useState('info'); // 'info' | 'origin' | 'description' | 'related' | 'timeline'
+  const [sideTab, setSideTab] = useState('info');
+  const [fetchedTree, setFetchedTree] = useState(null);
+  const [loading, setLoading] = useState(false);
+
   const isRelated = Boolean(relatedDoc);
   const stage = STAGES_CONFIG[stageId] || STAGES_CONFIG['2014_original'];
   const title = isRelated ? relatedDoc.title : stage.title;
   const docTitle = isRelated ? (relatedDoc.docTitle || 'قانون ضريبة الدخل رقم 34 لسنة 2014 — كما صدر') : stage.title;
-  const articles = getArticlesForStage(stageId || '2014_original', lawTree);
   const meta = isRelated ? relatedDoc.meta : stage.meta;
+
+  // Stage-to-law-id mapping
+  const STAGE_LAW_IDS = {
+    '2014_original': 'قانون_34_2014_الأصلية',
+    '2019_current': 'قانون_34_2014_وتعديلاته',
+    '2018_amending': null // use local static articles
+  };
+
+  // Fetch law from backend when stage is not related doc
+  useEffect(() => {
+    if (isRelated || !stageId) return;
+    const targetLawId = STAGE_LAW_IDS[stageId];
+    if (!targetLawId) {
+      // For amending law, use local static articles
+      setFetchedTree(null);
+      return;
+    }
+    setLoading(true);
+    getLawTree(targetLawId)
+      .then(data => {
+        if (data && (data.sections || data.articles)) {
+          setFetchedTree(data);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [stageId, isRelated]);
+
+  // Build articles list: prefer fetched backend data, else fall back to local
+  let articles;
+  if (!isRelated) {
+    if (fetchedTree) {
+      // Flatten sections -> articles from backend
+      articles = (fetchedTree.sections || []).flatMap(s =>
+        (s.articles || []).map(a => ({
+          num: a.num,
+          title: a.title || `المادة ${a.num}`,
+          date: a.date || stage.versionDate || stage.date || '',
+          content: a.content || a.text || '',
+          introText: a.intro_text || null,
+          definitions: a.definitions || []
+        }))
+      );
+    } else {
+      articles = getArticlesForStage(stageId || '2014_original', lawTree);
+    }
+  }
+
+
 
   const handlePopoutClick = () => {
     if (onToggleMaximize) {
@@ -399,12 +452,17 @@ export default function LegalStageSplitReader({
             </div>
 
             <div className="side-reader-articles">
-              {articles.map(art => (
+              {loading ? (
+                <div style={{ padding: '32px', textAlign: 'center', color: '#64748b', fontSize: '14px' }}>
+                  جاري تحميل نصوص القانون من قاعدة البيانات...
+                </div>
+              ) : articles?.map(art => (
                 <div className="side-reader-art-item" key={art.num}>
                   <div className="side-reader-art-header">
                     <h3 className="side-reader-art-num">{art.title}</h3>
                     <span className="side-reader-art-date">{art.date}</span>
                   </div>
+
 
                   {art.introText && (
                     <p className="side-reader-art-intro">{art.introText}</p>

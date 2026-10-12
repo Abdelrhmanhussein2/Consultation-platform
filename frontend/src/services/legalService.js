@@ -3,10 +3,10 @@
 
 const API_BASE = '/api/legal';
 
-// Fallback mock data matching exact tax law design
+// Fallback mock data matching exact laws in data
 const MOCK_LAWS = [
   {
-    law_id: "law_tax_34_2014",
+    law_id: "قانون_34_2014_وتعديلاته",
     title: "قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته",
     type: "قانون",
     status: "ساري",
@@ -20,18 +20,18 @@ const MOCK_LAWS = [
     match_reason: "تطابق تام مع نصوص ضريبة الدخل والإعفاءات المعتمدة"
   },
   {
-    law_id: "law_sales_tax_1994",
-    title: "قانون الضريبة العامة على المبيعات رقم 6 لسنة 1994 وتعديلاته",
+    law_id: "قانون_34_2014_الأصلية",
+    title: "قانون رقم 34 لسنة 2014 قانون ضريبة الدخل (النسخة الأصلية)",
     type: "قانون",
-    status: "ساري",
-    year_short: "1994",
-    issue_date: "15-05-1994",
-    effective_date: "01-06-1994",
-    amended_date: "15-02-2021",
-    total_articles: 64,
-    summary: "يحدد ضوابط الخضوع لضريبة المبيعات والتسجيل والإعفاءات والرد الضريبي للمصدرين والخدمات المستثناة.",
-    score: "91%",
-    match_reason: "تطابق مع ضوابط التسجيل والإقرارات الضريبية"
+    status: "أصلي",
+    year_short: "2014",
+    issue_date: "31-12-2014",
+    effective_date: "01-01-2015",
+    amended_date: "01-01-2015",
+    total_articles: 82,
+    summary: "النسخة الأصلية المنشورة في الجريدة الرسمية لقانون ضريبة الدخل رقم 34 لسنة 2014 قبل التعديلات اللاحقة.",
+    score: "95%",
+    match_reason: "النسخة التشريعية الأصلية الأساسية"
   }
 ];
 
@@ -173,6 +173,41 @@ export async function getCitations(targetId) {
     ];
   }
 }
+
+export async function getRelatedFiles(lawId, token = null) {
+  try {
+    const headers = {};
+    const authToken = token || (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+    const res = await fetch(`${API_BASE}/laws/${encodeURIComponent(lawId)}/related`, { headers });
+    if (!res.ok) throw new Error("Server error");
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) return data;
+    return [];
+  } catch (err) {
+    return [];
+  }
+}
+
+export async function getLawStages(lawId, token = null) {
+  try {
+    const headers = {};
+    const authToken = token || (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+    const res = await fetch(`${API_BASE}/laws/${encodeURIComponent(lawId)}/stages`, { headers });
+    if (!res.ok) throw new Error("Server error");
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) return data;
+    return [];
+  } catch (err) {
+    return [];
+  }
+}
+
 
 export function getMockLawDetail(lawId) {
   const definitionsList = [
