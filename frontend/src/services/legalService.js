@@ -64,70 +64,299 @@ export async function searchLegal(query, limit = 20, token = null) {
 }
 
 export async function getLawTree(lawId, token = null) {
+  const ALIASES = {
+    'law_tax_34_2014': 'قانون_34_2014_وتعديلاته',
+    'law_tax_34_2014_amended': 'قانون_34_2014_وتعديلاته',
+    '34-2014': 'قانون_34_2014_وتعديلاته',
+    '34_2014': 'قانون_34_2014_وتعديلاته',
+    'law_tax_34_2014_original': 'قانون_34_2014_الأصلية'
+  };
+  const targetId = ALIASES[lawId] || lawId || 'قانون_34_2014_وتعديلاته';
+
   try {
     const headers = {};
     const authToken = token || (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
     if (authToken) {
       headers['Authorization'] = `Bearer ${authToken}`;
     }
-    const res = await fetch(`${API_BASE}/laws/${lawId}`, { headers });
-    if (!res.ok) throw new Error("Server error");
+    const res = await fetch(`${API_BASE}/laws/${encodeURIComponent(targetId)}`, { headers });
+    if (!res.ok) throw new Error(`Server returned status ${res.status}`);
     const data = await res.json();
-    if (data && (data.sections || data.articles)) return normalizeLawTree(data, lawId);
+    if (data && (data.sections || data.articles)) return normalizeLawTree(data, targetId);
     throw new Error("Incomplete law tree");
   } catch (err) {
-    return getMockLawDetail(lawId);
+    console.warn("Falling back to mock law tree detail:", err);
+    return getMockLawDetail(targetId);
   }
+}
+
+export function extractArticleSubject(text, num) {
+  if (!text) return '';
+  const clean = text.replace(/^المادة\s*\(?\d+\)?[\-\:\s\.]*/, '').trim();
+  const firstLine = clean.split('\n')[0]?.trim() || '';
+
+  // 1. Short standalone first-line heading
+  if (firstLine && firstLine.length <= 45 && !/^[أ-ي0-9]\s*[\-\:\)\.]/.test(firstLine)) {
+    if (!/^(إذا|على|مع|كل|لا يجوز|يحظر|يعاقب|ان |إن )\s/.test(firstLine)) {
+      const cleanHeading = firstLine.replace(/[\:\-\.]+$/, '').trim();
+      if (cleanHeading.length > 3) return cleanHeading;
+    }
+  }
+
+  // 2. Known Legal Conceptual Anchors (common across Jordan & Arab legislations)
+  if (/يسمى هذا القانون|يعمل به اعتبارا|نفاذ هذا القانون/.test(clean)) return 'اسم القانون وبدء العمل به';
+  if (/يكون للكلمات والعبارات|المعاني المخصصة لها أدناه/.test(clean)) return 'التعريفات والأحكام العامة';
+  if (/نشاط زراعي|القطاع الزراعي/.test(clean) && clean.includes('يعفى')) return 'إعفاءات النشاط الزراعي';
+  if (/المصاريف المقبولة|تنزل للمكلف المصاريف/.test(clean)) return 'المصاريف المقبولة';
+  if (/غير المقبول تنزيلها|المصاريف غير المقبولة|لا يجوز للمكلف تنزيل/.test(clean)) return 'المبالغ والمصاريف غير المقبولة';
+  if (/تنزيل الخسائر|تدوير الخسائر|تدور خسائر/.test(clean)) return 'تنزيل الخسائر وتدويرها';
+  if (/إعفاءات الشخص الطبيعي|إعفاء شخصيا|المعالين/.test(clean)) return 'إعفاءات المكلف والمعالين';
+  if (/التبرعات|الاشتراكات المدفوعة/.test(clean)) return 'التبرعات والاشتراكات';
+  if (/نسب الضريبة|نسبة الضريبة المستوفاة|الشرائح/.test(clean)) return 'نسب الضريبة والشرائح';
+  if (/اقتطاع|تقتطع الضريبة|توريد المبالغ المقتطعة/.test(clean)) return 'الاقتطاع والتوريد من المصدر';
+  if (/تعديل الإقرار|تعديل إقرار|تعديل إقراره/.test(clean)) return 'تعديل الإقرار الضريبي';
+  if (/إقرار ضريبي|تقديم الإقرار|الإقرارات الضريبية/.test(clean)) return 'الإقرارات الضريبية ومواعيدها';
+  if (/يصحح من تلقاء|تصحيح الأخطاء/.test(clean)) return 'تصحيح الأخطاء المادية';
+  if (/يستمر تحصيل الضرائب|استمرار تحصيل/.test(clean)) return 'تحصيل الضرائب والرسوم السابقة';
+  if (/فرض اي عقوبة|فرض أي عقوبة|فرض عقوبة/.test(clean)) return 'فرض العقوبات والغرامات';
+  if (/التهرب الضريبي|عقوبة|يعاقب|حبس|غرامة تعويضية/.test(clean)) return 'العقوبات ومكافحة التهرب';
+  if (/مصالحة|المصالحة/.test(clean)) return 'إجراءات المصالحة في الدعاوى';
+  if (/حفظ السجلات|إتلاف السجلات|الدفاتر المحاسبية/.test(clean)) return 'حفظ السجلات والدفاتر المحاسبية';
+  if (/اعتراض|الطعن|محكمة البداية|محكمة الاستئناف|الطعن في القرار/.test(clean)) return 'الاعتراض والطعن القضائي';
+  if (/وزير المالية|المدير العام|صلاحيات الوزير|صلاحيات المدير|تفويض|الموظف المفوض|للمدير أو الموظف/.test(clean)) return 'صلاحيات وتفويضات الإدارة';
+  if (/إلغاء|يلغى قانون|تحل محل/.test(clean)) return 'الإلغاءات والأحكام الانتقالية';
+  if (/مكلفون بتنفيذ|رئيس الوزراء والوزراء/.test(clean)) return 'إنفاذ القانون والأحكام الختامية';
+  if (/حوافز ضريبية|منح حوافز/.test(clean)) return 'الحوافز والتشجيع';
+  if (/المواعيد المعينة|التقويم الميلادي/.test(clean)) return 'حساب المواعيد القانونية';
+  if (/يخضع للضريبة|الدخل الخاضع/.test(clean)) return 'الدخل الخاضع للضريبة';
+  if (/يعفى من الضريبة|يعفى الدخل|الإعفاءات/.test(clean)) return 'الإعفاءات والأنشطة المعفاة';
+
+  // 3. Dynamic generic extraction for ANY law (Labor, Companies, Civil, Criminal, etc.)
+  let lead = clean.replace(/^(?:أ|ب|ج|د|هـ|\d+)[\-\:\)\.]*\s*/, '');
+  lead = lead.replace(/^(?:مع مراعاة|على الرغم مما ورد في)[^،\.]+[،\.]\s*/, '');
+  lead = lead.replace(/^(?:إن|ان|أن|إذا|اذا)\s+/, '');
+
+  const firstPhrase = (lead.split('\n')[0] || '').split(/[،\.\;]/)[0].trim();
+  const words = (firstPhrase || lead).split(/\s+/).slice(0, 5);
+
+  const DANGLING = new Set([
+    'إذا', 'اذا', 'وأي', 'واي', 'أي', 'اي', 'أو', 'او', 'و', 'في', 'من', 'على', 'عن', 'مع',
+    'إلى', 'الي', 'أن', 'ان', 'إن', 'حتى', 'كل', 'غير', 'بما', 'حيث', 'كما', 'دون', 'لدى',
+    'بعد', 'قبل', 'بين', 'عند', 'نحو', 'بموجب', 'وفق', 'بحسب', 'تجاه', 'خلال', 'بشأن', 'بخصوص',
+    'حيال', 'التي', 'الذي', 'الذين', 'ما', 'مهما', 'حيثما', 'إلا', 'الا', 'سواء', 'كان', 'كانت',
+    'منه', 'منها', 'له', 'لها', 'فيه', 'فيها', 'بناء'
+  ]);
+
+  while (words.length > 0) {
+    const lastWord = words[words.length - 1].replace(/[\:\-\.\،]+$/, '');
+    if (DANGLING.has(lastWord)) {
+      words.pop();
+    } else {
+      break;
+    }
+  }
+
+  if (words.length > 0) {
+    const candidate = words.join(' ').replace(/[\:\-\.\،]+$/, '').trim();
+    if (candidate.length > 4 && candidate.length <= 45) return candidate;
+  }
+
+  return '';
+}
+
+export function parseArticleClauses(a) {
+  if (!a) return { clauses: [], introText: '', definitions: [], hasDefinitions: false };
+
+  const cleanZW = s => (s || '').replace(/[\u200B-\u200F\uFEFF]/g, '').trim();
+  const clauses = [];
+  let introText = cleanZW(a.intro_text || a.introText || '');
+  let definitions = Array.isArray(a.definitions) ? [...a.definitions] : [];
+  let hasDefinitions = Boolean(a.has_definitions || a.hasDefinitions || definitions.length > 0);
+
+  // Markers for numbered list items or letters: (أ- , ب- , 1- , 2- , أولاً: , etc.)
+  const splitMarkerRegex = /(?<=\S)\s+(?=(?:(?:[أ-ي]|هـ)\s*[-–—\.]\s+|\d+\s*[-–—\.]\s+|(?:أولاً|ثانياً|ثالثاً|رابعاً|خامساً|سادساً|سابعاً|ثامناً|تاسعاً|عاشراً)\s*[:\-]))/g;
+
+  function pushSegments(textBlock, forceNumbered = false) {
+    if (!textBlock) return;
+    const cleanBlock = cleanZW(textBlock);
+    if (!cleanBlock) return;
+    const lines = cleanBlock.split(/\r?\n/).map(cleanZW).filter(Boolean);
+    for (const line of lines) {
+      const parts = line.split(splitMarkerRegex).map(cleanZW).filter(Boolean);
+      for (const pt of parts) {
+        const isNum = forceNumbered || /^(?:(?:[أ-ي]|هـ)\s*[-–—\.]|\d+\s*[-–—\.]|\((?:[أ-ي]|هـ|\d+)\)|(?:أولاً|ثانياً|ثالثاً|رابعاً|خامساً|سادساً|سابعاً|ثامناً|تاسعاً|عاشراً)\s*[:\-])/.test(pt);
+        clauses.push({ text: pt, isNumbered: isNum });
+      }
+    }
+  }
+
+  // 1. Structured backend paragraphs & items (Primary source of truth)
+  if (Array.isArray(a.paragraphs) && a.paragraphs.length > 0) {
+    const rawIntro = cleanZW(a.text || a.content || '');
+    if (rawIntro) {
+      const cleanIntro = rawIntro.replace(/^المادة\s*\(?\d+\)?[:\-\s]*/, '').trim();
+      if (cleanIntro && !cleanIntro.startsWith('المادة')) {
+        pushSegments(cleanIntro, false);
+        if (!introText) introText = cleanIntro;
+      }
+    }
+
+    for (const p of a.paragraphs) {
+      let pText = cleanZW(p.text);
+      const letter = cleanZW(p.letter);
+      if (letter && pText) {
+        const hasLetterPrefix = new RegExp(`^(?:${letter}\\s*[-–—\\.:\\)]|\\(${letter}\\))`, 'i').test(pText);
+        if (!hasLetterPrefix) {
+          pText = `${letter}- ${pText}`;
+        }
+      }
+      if (pText) {
+        pushSegments(pText, !!letter);
+      }
+
+      if (Array.isArray(p.items) && p.items.length > 0) {
+        for (const itm of p.items) {
+          let itmText = cleanZW(itm.text);
+          if (!itmText) continue;
+          const itmNum = itm.number;
+          if (itmNum != null) {
+            const hasNumPrefix = /^(?:\d+\s*[-–—\\.:\)]|\(\d+\))/.test(itmText);
+            if (!hasNumPrefix) {
+              itmText = `${itmNum}- ${itmText}`;
+            }
+          }
+          pushSegments(itmText, true);
+        }
+      }
+    }
+
+    if (clauses.length > 0) {
+      return { clauses, introText, definitions, hasDefinitions };
+    }
+  }
+
+  // 2. Fallback: Parse definitions format (lines containing :::, : : :, or :--)
+  const raw = cleanZW(a.text || a.content || (Array.isArray(a.clauses) && a.clauses[0]?.text) || '');
+  if (raw) {
+    const rawLines = raw.split(/\r?\n/).map(cleanZW).filter(Boolean);
+    const defRegex = /^([^:\-]+?)\s*(?:::|:\s*:\s*:|:--|:\s*-\s*-)\s*(.+)$/;
+    const foundDefs = [];
+    let foundIntro = '';
+
+    for (const line of rawLines) {
+      const match = line.match(defRegex);
+      if (match) {
+        foundDefs.push({ term: match[1].trim(), value: match[2].trim() });
+      } else if (!foundIntro && foundDefs.length === 0) {
+        foundIntro = line;
+      }
+    }
+
+    if (foundDefs.length >= 2) {
+      hasDefinitions = true;
+      definitions = foundDefs;
+      if (foundIntro) introText = foundIntro;
+      if (foundIntro) clauses.push({ text: foundIntro, isNumbered: false, isIntro: true });
+      for (const d of foundDefs) {
+        clauses.push({ text: `${d.term} :-- ${d.value}`, isNumbered: false, isDefinition: true });
+      }
+      return { clauses, introText, definitions, hasDefinitions };
+    }
+  }
+
+  // 3. Existing clauses array (expand any multi-line or inline numbered items)
+  if (Array.isArray(a.clauses) && a.clauses.length > 0) {
+    for (const c of a.clauses) {
+      const cText = typeof c === 'string' ? c : (c.text || '');
+      pushSegments(cText, typeof c === 'object' ? c.isNumbered : false);
+    }
+    if (clauses.length > 0) {
+      return { clauses, introText, definitions, hasDefinitions };
+    }
+  }
+
+  // 4. Fallback: Split raw text by newlines and markers (letters أ-, ب- and numbers 1-, 2-)
+  if (raw) {
+    const rawLines = raw.split(/\r?\n/).map(cleanZW).filter(Boolean);
+    for (const line of rawLines) {
+      const cleanLine = line.replace(/^المادة\s*\(?\d+\)?[:\-\s]*/, '').trim();
+      if (!cleanLine) continue;
+      pushSegments(cleanLine);
+    }
+  }
+
+  return {
+    clauses: clauses.length > 0 ? clauses : (raw ? [{ text: raw, isNumbered: false }] : []),
+    introText,
+    definitions,
+    hasDefinitions
+  };
 }
 
 function normalizeArticle(a, lawTitle) {
   const num = a.number || a.num || 1;
-  const title = a.title || (a.number ? `المادة ${a.number}` : (a.text ? a.text.substring(0, 40) : `المادة ${num}`));
-  const clauses = a.clauses || (a.paragraphs && a.paragraphs.length > 0
-    ? a.paragraphs.map(p => ({ text: p.text || "", isNumbered: !!p.letter }))
-    : [{ text: a.text || a.content || "" }]);
+  const rawText = a.text || a.content || (a.paragraphs?.map(p => p.text).join('\n')) || '';
+  
+  let subject = a.title || a.subject || '';
+  if (!subject || subject === `المادة ${num}` || subject === `المادة (${num})`) {
+    subject = extractArticleSubject(rawText, num);
+  }
+  subject = subject.replace(new RegExp(`^المادة\\s*\\(?${num}\\)?[:\\-\\s]*`), '').trim();
+
+  const title = subject ? `المادة ${num}: ${subject}` : `المادة ${num}`;
+  const parsed = parseArticleClauses(a);
 
   return {
     num: num,
     title: title,
+    subject: subject,
     path: a.path || `${lawTitle || 'التشريع'} /`,
     date: a.effective_from || a.date || "01-01-2019",
-    content: a.text || a.content || "",
-    clauses: clauses,
-    has_definitions: !!(a.has_definitions || a.definitions?.length),
-    definitions: a.definitions || [],
+    content: rawText,
+    clauses: parsed.clauses,
+    intro_text: parsed.introText,
+    has_definitions: parsed.hasDefinitions,
+    definitions: parsed.definitions,
+    paragraphs: a.paragraphs || [],
+    items: a.items || [],
     related_files: a.related_files || []
   };
 }
 
 function normalizeLawTree(data, lawId) {
   if (!data) return getMockLawDetail(lawId);
+  const commonMeta = {
+    law_id: data.law_id || lawId,
+    title: data.title || data.law_title || "قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته",
+    number: data.number || data.law_number || "34",
+    year: data.year || data.law_year || "2014",
+    gazette: data.gazette || data.official_gazette || "عدد 5320 — ص 7390 — تاريخ النشر: 31-12-2014",
+    replaced_law: data.replaced_law || data.replaced || "قانون مؤقت رقم 28 لسنة 2009 (قانون ضريبة الدخل المؤقت لسنة 2009)",
+    issue_date: data.issue_date || data.issueDate || "30-12-2014",
+    effective_date: data.effective_date || data.effective_from || "01-01-2015",
+    amended_date: data.amended_date || data.amendedDate || "01-01-2019",
+    amendments_count: data.amendments_count || 1,
+    summary: data.summary || data.description || ""
+  };
+
   if (Array.isArray(data.sections) && data.sections.length > 0) {
     return {
-      law_id: data.law_id || lawId,
-      title: data.title || "تشريع قانوني",
-      number: data.number || data.law_number || "",
-      year: data.year || data.law_year || "",
-      effective_date: data.effective_date || data.effective_from || "",
+      ...commonMeta,
       sections: data.sections.map((s, sIdx) => ({
         section_id: s.section_id || `sec_${sIdx + 1}`,
         title: s.title || `الفصل ${sIdx + 1}`,
-        articles: (s.articles || []).map(a => normalizeArticle(a, data.title))
+        articles: (s.articles || []).map(a => normalizeArticle(a, commonMeta.title))
       }))
     };
   }
   if (Array.isArray(data.articles) && data.articles.length > 0) {
     return {
-      law_id: data.law_id || lawId,
-      title: data.title || data.law_title || "تشريع قانوني",
-      number: data.number || data.law_number || "",
-      year: data.year || data.law_year || "",
-      effective_date: data.effective_date || data.effective_from || "",
+      ...commonMeta,
       sections: [
         {
           section_id: "sec_all",
           title: "مواد التشريع",
-          articles: data.articles.map(a => normalizeArticle(a, data.title || data.law_title))
+          articles: data.articles.map(a => normalizeArticle(a, commonMeta.title))
         }
       ]
     };
@@ -253,10 +482,14 @@ export function getMockLawDetail(lawId) {
     law_id: lawId || "law_tax_34_2014",
     title: "قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته",
     type: "قانون",
-    number: "34 لسنة 2014",
+    number: "34",
+    year: "2014",
+    gazette: "عدد 5320 — ص 7390 — تاريخ النشر: 31-12-2014",
+    replaced_law: "قانون مؤقت رقم 28 لسنة 2009 (قانون ضريبة الدخل المؤقت لسنة 2009)",
     issue_date: "30-12-2014",
     effective_date: "01-01-2015",
     amended_date: "01-01-2019",
+    amendments_count: 1,
     status: "ساري",
     sections: [
       {

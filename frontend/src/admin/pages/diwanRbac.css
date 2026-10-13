@@ -59,10 +59,10 @@
 .activeFilterLabel, .usersActiveFilterLabel { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: #EFF1F2; color: #0D3C5C; font-size: 11px; font-weight: 700; }
 .activeFilterLabel button, .usersActiveFilterLabel button { border: 0; background: transparent; color: #DC2626; font-size: 14px; cursor: pointer; padding: 0; }
 .tableWrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-th { background: #F5F8F9; color: #586B77; text-align: right; padding: 12px 14px; border-bottom: 1px solid #E2E8EB; font-weight: 800; font-size: 11.5px; }
-td { padding: 12px 14px; border-bottom: 1px solid #EDF1F3; vertical-align: middle; color: #2A414F; }
-tr:hover td { background: #FBFCFD; }
+.tableWrap table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.tableWrap th { background: #F5F8F9; color: #586B77; text-align: right; padding: 12px 14px; border-bottom: 1px solid #E2E8EB; font-weight: 800; font-size: 11.5px; }
+.tableWrap td { padding: 12px 14px; border-bottom: 1px solid #EDF1F3; vertical-align: middle; color: #2A414F; }
+.tableWrap tr:hover td { background: #FBFCFD; }
 .roleCell, .userNameCell { display: flex; gap: 10px; align-items: center; }
 .roleAvatar, .avatar { width: 34px; height: 34px; border-radius: 8px; background: #0D3C5C; color: #FFFFFF; display: grid; place-items: center; font-weight: 800; font-size: 13px; flex-shrink: 0; }
 .roleCell b, .userNameCell b { display: block; font-size: 13px; color: #0D3C5C; }

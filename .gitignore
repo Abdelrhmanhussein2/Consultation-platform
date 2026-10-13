@@ -79,3 +79,28 @@ project_photo
 frontend/nul.css
 nul.css
 واجهة البحث الدلالي.html
+
+# Office & Temporary Lock Files
+~$*
+~$*.docx
+~$*.xlsx
+~$*.pptx
+*.tmp
+
+# Scratch & Temporary Scripts
+scratch/
+
+# IDE & Editor Files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+

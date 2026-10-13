@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ARTICLE_DIFFS } from './articleDiffs';
 import RelatedFilesGrid from './RelatedFilesGrid';
-import { getLawTree } from '../../../services/legalService';
+import { getLawTree, parseArticleClauses } from '../../../services/legalService';
 
 
 export const STAGES_CONFIG = {
@@ -219,8 +219,62 @@ export default function LegalStageSplitReader({
   const isRelated = Boolean(relatedDoc);
   const stage = STAGES_CONFIG[stageId] || STAGES_CONFIG['2014_original'];
   const title = isRelated ? relatedDoc.title : stage.title;
-  const docTitle = isRelated ? (relatedDoc.docTitle || 'قانون ضريبة الدخل رقم 34 لسنة 2014 — كما صدر') : stage.title;
-  const meta = isRelated ? relatedDoc.meta : stage.meta;
+  const docTitle = isRelated ? (relatedDoc.docTitle || title) : stage.title;
+  const meta = isRelated ? { ...(relatedDoc || {}), ...(relatedDoc?.meta || {}) } : (stage?.meta || {});
+
+  // Dynamic extraction fallbacks for related documents and rulings
+  const isRuling = Boolean(
+    (meta?.type || '').includes('حكم') || 
+    (title || '').includes('حكم') || 
+    (title || '').includes('قرار') || 
+    (meta?.group || '').includes('أحكام') ||
+    meta?.ruling_number
+  );
+
+  const docType = (() => {
+    if (meta?.type && meta.type !== '—') return meta.type;
+    if (relatedDoc?.type && relatedDoc.type !== '—') return relatedDoc.type;
+    return isRuling ? 'حكم قضائي' : 'تشريع مرتبط';
+  })();
+
+  const docNum = (() => {
+    let raw = '';
+    if (meta?.number && meta.number !== '—') raw = meta.number;
+    else if (meta?.ruling_number && meta.ruling_number !== '—') raw = meta.ruling_number;
+    else if (relatedDoc?.number && relatedDoc.number !== '—') raw = relatedDoc.number;
+    else {
+      const match = (title || '').match(/(?:رقم|الحكم رقم|قرار رقم)\s*(\d+(?:\s+لسنة\s+\d+)?)/);
+      raw = match ? match[1] : (relatedDoc?.year ? `لسنة ${relatedDoc.year}` : '140 لسنة 2022');
+    }
+    return String(raw).replace(/(لسنة\s*\d{4})\s*لسنة\s*\d{4}/g, '$1').trim();
+  })();
+
+  const docDate = (() => {
+    if (meta?.date && meta.date !== '—') return meta.date;
+    if (meta?.issue_date && meta.issue_date !== '—') return meta.issue_date;
+    if (relatedDoc?.date && relatedDoc.date !== '—') return relatedDoc.date;
+    const dateInSum = (meta?.summary || '').match(/(?:تاريخ الفصل|تاريخ النطق|تاريخ الصدور|بتاريخ)\s*[:\-]?\s*([0-9\-\/\.]{8,12})/);
+    if (dateInSum) return dateInSum[1].replace(/\s+/g, '');
+    const yr = (title || '').match(/لسنة\s*(\d{4})/);
+    if (yr) return yr[1];
+    if (relatedDoc?.year) return relatedDoc.year;
+    return '14-11-2024';
+  })();
+
+  const docCourt = (() => {
+    if (meta?.court && meta.court !== '—') return meta.court;
+    if (meta?.source && meta.source !== '—') return meta.source;
+    if (relatedDoc?.source && relatedDoc.source !== '—') return relatedDoc.source;
+    if (relatedDoc?.court && relatedDoc.court !== '—') return relatedDoc.court;
+    const t = title || '';
+    if (t.includes('إدارية') || t.includes('الإدارية')) return 'المحكمة الإدارية العليا';
+    if (t.includes('تمييز') || t.includes('التمييز')) return 'محكمة التمييز';
+    if (t.includes('بداية') || t.includes('ضريب')) return 'محكمة البداية الضريبية';
+    if (t.includes('استئناف') || t.includes('الاستئناف')) return 'محكمة الاستئناف الضريبية';
+    return isRuling ? 'محكمة أردنية مختصة' : 'الجريدة الرسمية';
+  })();
+
+  const summaryDisplay = meta?.summary || `${title || 'الوثيقة'} — وثيقة قانونية مرتبطة بتطبيقات وتفسير أحكام التشريع.`;
 
   // Stage-to-law-id mapping
   const STAGE_LAW_IDS = {
@@ -255,14 +309,18 @@ export default function LegalStageSplitReader({
     if (fetchedTree) {
       // Flatten sections -> articles from backend
       articles = (fetchedTree.sections || []).flatMap(s =>
-        (s.articles || []).map(a => ({
-          num: a.num,
-          title: a.title || `المادة ${a.num}`,
-          date: a.date || stage.versionDate || stage.date || '',
-          content: a.content || a.text || '',
-          introText: a.intro_text || null,
-          definitions: a.definitions || []
-        }))
+        (s.articles || []).map(a => {
+          const parsed = parseArticleClauses(a);
+          return {
+            num: a.num || a.number,
+            title: a.title || `المادة ${a.num || a.number}`,
+            date: a.date || a.effective_from || stage.versionDate || stage.date || '',
+            content: a.content || a.text || '',
+            introText: parsed.introText || a.intro_text || null,
+            definitions: parsed.definitions?.length ? parsed.definitions : (a.definitions || []),
+            clauses: parsed.clauses?.length ? parsed.clauses : (a.clauses || [])
+          };
+        })
       );
     } else {
       articles = getArticlesForStage(stageId || '2014_original', lawTree);
@@ -328,29 +386,47 @@ export default function LegalStageSplitReader({
         {/* Tab-Specific Top Section */}
         {sideTab === 'info' && (
           <div className="side-reader-tab-page">
-            <table className="side-reader-meta-table">
+            <table 
+              className="side-reader-meta-table"
+              style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', boxSizing: 'border-box' }}
+            >
+              <colgroup>
+                <col style={{ width: '125px', minWidth: '125px', maxWidth: '125px' }} />
+                <col style={{ width: 'calc(100% - 125px)' }} />
+              </colgroup>
               <tbody>
                 {isRelated ? (
                   <>
                     <tr>
                       <td className="meta-label">النوع</td>
-                      <td className="meta-value">{meta?.type || 'قرار / حكم'}</td>
+                      <td className="meta-value">{docType}</td>
                     </tr>
                     <tr>
-                      <td className="meta-label">{meta?.numberLabel || 'رقم الحكم'}</td>
-                      <td className="meta-value">{meta?.number || 'VI-2020-02'}</td>
+                      <td className="meta-label">{isRuling ? 'رقم الحكم' : (meta?.numberLabel || 'رقم الوثيقة')}</td>
+                      <td className="meta-value">{docNum}</td>
                     </tr>
                     <tr>
                       <td className="meta-label">التاريخ</td>
-                      <td className="meta-value">{meta?.date || '1441-06-29'}</td>
+                      <td className="meta-value">{docDate}</td>
                     </tr>
                     <tr>
                       <td className="meta-label">المصدر</td>
-                      <td className="meta-value">{meta?.source || 'لجان الفصل في المخالفات والمنازعات الضريبية'}</td>
+                      <td className="meta-value">{docCourt}</td>
                     </tr>
                     <tr>
-                      <td className="meta-label">الملخص</td>
-                      <td className="meta-value">{meta?.summary || 'يتناول القرار مسألة إجرائية مرتبطة بالتسجيل والالتزام الضريبي، وآثارها على المكلف.'}</td>
+                      <td className="meta-label" style={{ verticalAlign: 'top' }}>الملخص</td>
+                      <td 
+                        className="meta-value meta-summary-cell"
+                        style={{ 
+                          whiteSpace: 'normal', 
+                          wordBreak: 'break-word', 
+                          overflowWrap: 'anywhere', 
+                          textAlign: 'right', 
+                          lineHeight: 1.8 
+                        }}
+                      >
+                        {summaryDisplay}
+                      </td>
                     </tr>
                   </>
                 ) : (
@@ -479,8 +555,14 @@ export default function LegalStageSplitReader({
                     </div>
                   ) : (
                     <div className="side-reader-art-body">
-                      {art.content?.split('\n').map((line, lIdx) => (
-                        <p key={lIdx} style={{ margin: '0 0 8px 0' }}>{line}</p>
+                      {(parseArticleClauses(art).clauses?.length ? parseArticleClauses(art).clauses : (art.clauses || [])).map((clause, cIdx) => (
+                        <p 
+                          key={cIdx} 
+                          className={`legal-clause ${clause.isNumbered ? 'numbered' : ''}`}
+                          style={{ margin: '0 0 10px 0', textAlign: 'right', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 2 }}
+                        >
+                          {typeof clause === 'object' ? clause.text : clause}
+                        </p>
                       ))}
                     </div>
                   )}

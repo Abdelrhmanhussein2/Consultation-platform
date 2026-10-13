@@ -1,5 +1,6 @@
 // LegalFullTextTOC.jsx - Table of Contents panel with circle active indicators
 import React from 'react';
+import { extractArticleSubject } from '../../../services/legalService';
 
 export default function LegalFullTextTOC({ lawTree, activeArticleId, onSelectArticle, onClose }) {
   if (!lawTree) return null;
@@ -15,9 +16,16 @@ export default function LegalFullTextTOC({ lawTree, activeArticleId, onSelectArt
       <div className="lft-toc-list">
         {articles.map((art) => {
           const isActive = Number(activeArticleId) === Number(art.num);
-          const label = art.title?.startsWith('المادة')
-            ? art.title
-            : `المادة ${art.num}: ${art.title || ''}`;
+          let label = art.title;
+          const isGeneric = !label || label === `المادة ${art.num}` || label === `المادة (${art.num})`;
+          if (isGeneric) {
+            const rawText = art.content || art.text || (art.clauses?.[0]?.text) || '';
+            const sub = art.subject || extractArticleSubject(rawText, art.num);
+            label = sub ? `المادة ${art.num}: ${sub}` : `المادة ${art.num}`;
+          } else if (!label.startsWith('المادة')) {
+            label = `المادة ${art.num}: ${label}`;
+          }
+
           return (
             <button
               key={art.num}

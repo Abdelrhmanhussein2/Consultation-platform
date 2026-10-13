@@ -9,7 +9,7 @@ import RelatedFilesGrid from './RelatedFilesGrid';
 import { RELATED_FILES_DATA, FILTER_HIERARCHY } from './relatedFilesData';
 import AddToFolderModal from '../../UserPortal/AddToFolderModal';
 import { useAuth } from '../../../context/AuthContext';
-import { getLawTree, getMockLawDetail, getRelatedFiles, getLawStages } from '../../../services/legalService';
+import { getLawTree, getMockLawDetail, getRelatedFiles, getLawStages, extractArticleSubject } from '../../../services/legalService';
 import { useDocumentSearch } from './useDocumentSearch';
 
 const DEFAULT_STAGES = [
@@ -29,6 +29,13 @@ const DEFAULT_STAGES = [
     date: '01-01-2019',
     buttonText: 'عرض النسخة النافذة'
   }
+];
+
+const SORT_OPTIONS = [
+  { value: 'relevance', label: 'الأكثر صلة' },
+  { value: 'newest', label: 'الأحدث' },
+  { value: 'oldest', label: 'الأقدم' },
+  { value: 'alphabetical', label: 'أبجدياً' }
 ];
 
 
@@ -55,10 +62,23 @@ export default function LegalReader({ lawId, onClose }) {
   const [showRelatedFilter, setShowRelatedFilter] = useState(true);
   const [selectedFilterCategory, setSelectedFilterCategory] = useState('all');
   const [filterSortOrder, setFilterSortOrder] = useState('relevance');
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const sortDropdownRef = useRef(null);
   const [relatedFilterSearch, setRelatedFilterSearch] = useState('');
   const [isDocPaneMaximized, setIsDocPaneMaximized] = useState(false);
   const [stagesList, setStagesList] = useState(DEFAULT_STAGES);
   const [backendRelatedFiles, setBackendRelatedFiles] = useState([]);
+
+  // Close sort dropup on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(e.target)) {
+        setIsSortOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
 
   // Check if saved in folders on mount
@@ -124,10 +144,71 @@ export default function LegalReader({ lawId, onClose }) {
       .catch(() => {});
   }, [lawId]);
 
-  // Related files data source
-  const RELATED_FILES = backendRelatedFiles.length > 0 ? backendRelatedFiles : RELATED_FILES_DATA;
+  // Related files data source with guaranteed field enrichment
+  const rawRelated = backendRelatedFiles.length > 0 ? backendRelatedFiles : RELATED_FILES_DATA;
+  const RELATED_FILES = rawRelated.map(f => {
+    const t = f.title || '';
+    const yr = f.year || (f.meta?.date ? f.meta.date.split('-')[0] : '2024');
+    const isR = Boolean((f.meta?.type || '').includes('حكم') || t.includes('حكم') || t.includes('قرار'));
+    const num = f.meta?.number || f.number || (t.match(/\d+/) ? `${t.match(/\d+/)[0]} لسنة ${yr}` : '—');
+    const dt = f.meta?.date || f.date || yr;
+    const src = f.meta?.source || f.source || f.meta?.court || (t.includes('إدارية') ? 'المحكمة الإدارية العليا' : t.includes('تمييز') ? 'محكمة التمييز' : t.includes('بداية') ? 'محكمة البداية الضريبية' : (isR ? 'محكمة مختصة' : 'الجريدة الرسمية'));
+    const tp = f.meta?.type || f.type || (isR ? 'حكم قضائي' : 'تشريع مرتبط');
+    return {
+      ...f,
+      type: tp,
+      number: num,
+      date: dt,
+      source: src,
+      meta: {
+        ...(f.meta || {}),
+        type: tp,
+        number: num,
+        date: dt,
+        source: src
+      }
+    };
+  });
   const RELATED_PREVIEW = RELATED_FILES.slice(0, 10); // first 10 for preview
 
+
+  // Dynamic helper matching any filter category key against a file
+  const matchesFilterCategory = (file, catKey) => {
+    if (!catKey || catKey === 'all') return true;
+    const meta = file?.meta || {};
+    const title = file?.title || '';
+    const norm = (str) => (str || '').toLowerCase();
+    const k = norm(catKey);
+
+    // 1. Direct exact matches
+    if (meta.subCategory === catKey || meta.group === catKey || meta.type === catKey) return true;
+    if (meta.category && meta.category.includes(catKey)) return true;
+
+    // 2. Court category matches
+    if (k.includes('إدارية') && (norm(meta.subCategory).includes('إدارية') || norm(meta.source).includes('إدارية') || norm(title).includes('إدارية'))) return true;
+    if (k.includes('تمييز') && (norm(meta.subCategory).includes('تمييز') || norm(meta.source).includes('تمييز') || norm(title).includes('تمييز'))) return true;
+    if (k.includes('بداية') && (norm(meta.subCategory).includes('بداية') || norm(meta.source).includes('بداية') || norm(title).includes('بداية'))) return true;
+
+    // 3. Predecessor / Repealed law matches
+    if ((k.includes('ملغ') || k.includes('ألغي') || k.includes('أُلغي') || k.includes('سابق')) && 
+        (norm(meta.group).includes('ألغي') || norm(meta.group).includes('أُلغي') || norm(meta.category).includes('ملغ') || norm(meta.type).includes('سابق') || norm(title).includes('ملغ'))) {
+      return true;
+    }
+
+    // 4. Amendments matches
+    if (k.includes('تعديل') && 
+        (norm(meta.group).includes('تعديل') || norm(meta.category).includes('تعديل') || norm(meta.type).includes('تعديل') || norm(title).includes('معدل') || norm(title).includes('تعديل'))) {
+      return true;
+    }
+
+    // 5. Executive instructions matches
+    if ((k.includes('تعليمات') || k.includes('صادر بموجب') || k.includes('صدر بموجب')) && 
+        (norm(meta.group).includes('صدر بموجب') || norm(meta.subCategory).includes('تعليمات') || norm(meta.type).includes('تعليمات') || norm(title).includes('تعليمات'))) {
+      return true;
+    }
+
+    return false;
+  };
 
   // Filtered related files based on selectedFilterCategory and search
   const filteredRelatedFiles = RELATED_FILES.filter((file) => {
@@ -138,16 +219,20 @@ export default function LegalReader({ lawId, onClose }) {
 
     if (!matchesSearch) return false;
 
-    if (selectedFilterCategory === 'all') return true;
-    return file.meta?.subCategory === selectedFilterCategory ||
-           file.meta?.category?.includes(selectedFilterCategory) ||
-           file.meta?.type?.includes(selectedFilterCategory);
+    return matchesFilterCategory(file, selectedFilterCategory);
   }).sort((a, b) => {
     if (filterSortOrder === 'newest') {
-      return (parseInt(b.year) || 0) - (parseInt(a.year) || 0);
+      const yB = parseInt(b.year) || parseInt(b.meta?.date) || 0;
+      const yA = parseInt(a.year) || parseInt(a.meta?.date) || 0;
+      return yB - yA;
     }
     if (filterSortOrder === 'oldest') {
-      return (parseInt(a.year) || 0) - (parseInt(b.year) || 0);
+      const yB = parseInt(b.year) || parseInt(b.meta?.date) || 0;
+      const yA = parseInt(a.year) || parseInt(a.meta?.date) || 0;
+      return yA - yB;
+    }
+    if (filterSortOrder === 'alphabetical') {
+      return (a.title || '').localeCompare(b.title || '', 'ar');
     }
     return 0; // relevance / default order
   });
@@ -217,11 +302,12 @@ export default function LegalReader({ lawId, onClose }) {
         ...prev,
         id: `related_${doc.id}`,
         title: doc.title,
-        number: doc.meta?.number || 'VI-2020-02',
-        issueDate: doc.meta?.date || '1441-06-29',
-        effectiveDate: doc.meta?.date || '1441-06-29',
-        gazette: doc.meta?.source || 'لجان الفصل في المخالفات والمنازعات الضريبية',
-        status: doc.meta?.type || 'قرار / حكم',
+        number: doc.meta?.number || doc.meta?.case_number || '—',
+        year: doc.meta?.year || doc.year || '—',
+        issueDate: doc.meta?.date || doc.meta?.year || '—',
+        effectiveDate: doc.meta?.date || '—',
+        gazette: doc.meta?.source || doc.meta?.court || 'محكمة مختصة',
+        status: doc.meta?.type || 'قرار / حكم قضائي',
         sections: [
           {
             id: 1,
@@ -647,7 +733,14 @@ export default function LegalReader({ lawId, onClose }) {
                         </button>
                         {lawTree.sections?.map(sec =>
                           sec.articles?.map(art => {
-                            const label = art.title?.startsWith('المادة') ? art.title : `المادة ${art.num}: ${art.title}`;
+                            let label = art.title;
+                            const isGeneric = !label || label === `المادة ${art.num}` || label === `المادة (${art.num})`;
+                            if (isGeneric) {
+                              const sub = art.subject || extractArticleSubject(art.content || (art.clauses?.[0]?.text), art.num);
+                              label = sub ? `المادة ${art.num}: ${sub}` : `المادة ${art.num}`;
+                            } else if (!label.startsWith('المادة')) {
+                              label = `المادة ${art.num}: ${label}`;
+                            }
                             return (
                               <button
                                 key={art.num}
@@ -848,20 +941,32 @@ export default function LegalReader({ lawId, onClose }) {
                   <div className={`file-pane ${fileTab === 'timeline' ? 'has-stages' : ''}`}>
                     {fileTab === 'info' && (
                       <div className="info-grid">
-                        <div>الجريدة الرسمية</div><div>عدد 5320 — ص 7390 — تاريخ النشر: 31-12-2014</div>
-                        <div>الرقم</div><div>{lawTree.number || '34'}</div>
-                        <div>السنة</div><div>2014</div>
-                        <div>حل محل</div><div>قانون مؤقت رقم 28 لسنة 2009 (قانون ضريبة الدخل المؤقت لسنة 2009)</div>
-                        <div>تاريخ الصدور</div><div>30-12-2014</div>
-                        <div>تاريخ السريان</div><div>01-01-2015</div>
-                        <div>تاريخ آخر تعديل</div><div>01-01-2019</div>
-                        <div>عدد التعديلات</div><div>1</div>
-                        <div>عدد المواد</div><div>{lawTree.sections?.reduce((acc, s) => acc + (s.articles?.length || 0), 0) || 82}</div>
+                        {String(lawTree.id || '').startsWith('related_') ? (
+                          <>
+                            <div>النوع</div><div>{lawTree.status || 'حكم قضائي'}</div>
+                            <div>رقم الحكم</div><div>{lawTree.number || '—'}</div>
+                            <div>السنة</div><div>{lawTree.year || '—'}</div>
+                            <div>التاريخ</div><div>{lawTree.effectiveDate || lawTree.issueDate || '—'}</div>
+                            <div>المصدر</div><div>{lawTree.gazette || 'المحكمة المختصة'}</div>
+                          </>
+                        ) : (
+                          <>
+                            <div>الجريدة الرسمية</div><div>{lawTree.gazette || 'عدد 5320 — ص 7390 — تاريخ النشر: 31-12-2014'}</div>
+                            <div>الرقم</div><div>{lawTree.number || '34'}</div>
+                            <div>السنة</div><div>{lawTree.year || '2014'}</div>
+                            <div>حل محل</div><div>{lawTree.replaced_law || 'قانون مؤقت رقم 28 لسنة 2009 (قانون ضريبة الدخل المؤقت لسنة 2009)'}</div>
+                            <div>تاريخ الصدور</div><div>{lawTree.issue_date || '30-12-2014'}</div>
+                            <div>تاريخ السريان</div><div>{lawTree.effective_date || '01-01-2015'}</div>
+                            <div>تاريخ آخر تعديل</div><div>{lawTree.amended_date || '01-01-2019'}</div>
+                            <div>عدد التعديلات</div><div>{lawTree.amendments_count || 1}</div>
+                            <div>عدد المواد</div><div>{lawTree.sections?.reduce((acc, s) => acc + (s.articles?.length || 0), 0) || 82}</div>
+                          </>
+                        )}
                       </div>
                     )}
                     {fileTab === 'description' && (
                       <div className="document-description-text">
-                        {lawTree.title} وتعديلاته المنشور في الجريدة الرسمية بالعدد 5320 على الصفحة 7390 بتاريخ 31-12-2014 والساري بتاريخ 01-01-2015.
+                        {lawTree.summary || `${lawTree.title} ${lawTree.gazette ? `المنشور في الجريدة الرسمية (${lawTree.gazette})` : ''} ${lawTree.effective_date ? `والساري بتاريخ ${lawTree.effective_date}` : ''}.`}
                       </div>
                     )}
                     {fileTab === 'related' && (
@@ -1028,7 +1133,7 @@ export default function LegalReader({ lawId, onClose }) {
                       </div>
                       <div className="left-related-head-left">
                         <div className="left-related-full-meta">
-                          {selectedFilterCategory === 'all' && !relatedFilterSearch ? RELATED_FILES_DATA.length : filteredRelatedFiles.length}
+                          {selectedFilterCategory === 'all' && !relatedFilterSearch ? RELATED_FILES.length : filteredRelatedFiles.length}
                         </div>
                         <button
                           type="button"
@@ -1093,7 +1198,7 @@ export default function LegalReader({ lawId, onClose }) {
                           onClick={() => setSelectedFilterCategory('all')}
                         >
                           <span>الكل</span>
-                          <span>({RELATED_FILES_DATA.length})</span>
+                          <span>({RELATED_FILES.length})</span>
                         </button>
 
                         {/* Hierarchy Groups */}
@@ -1104,17 +1209,20 @@ export default function LegalReader({ lawId, onClose }) {
                               <div className="filter-subgroup" key={sIdx}>
                                 <h5 className="filter-subgroup-title">{sec.subTitle}</h5>
                                 <div className="filter-items-list">
-                                  {sec.items.map((item) => (
-                                    <button
-                                      key={item.key}
-                                      type="button"
-                                      className={`filter-item-btn ${selectedFilterCategory === item.key ? 'active' : ''}`}
-                                      onClick={() => setSelectedFilterCategory(item.key)}
-                                    >
-                                      <span className="filter-item-name">{item.label}</span>
-                                      <span className="filter-item-count">({item.count})</span>
-                                    </button>
-                                  ))}
+                                  {sec.items.map((item) => {
+                                    const realCount = RELATED_FILES.filter(f => matchesFilterCategory(f, item.key)).length;
+                                    return (
+                                      <button
+                                        key={item.key}
+                                        type="button"
+                                        className={`filter-item-btn ${selectedFilterCategory === item.key ? 'active' : ''}`}
+                                        onClick={() => setSelectedFilterCategory(item.key)}
+                                      >
+                                        <span className="filter-item-name">{item.label}</span>
+                                        <span className="filter-item-count">({realCount})</span>
+                                      </button>
+                                    );
+                                  })}
                                 </div>
                               </div>
                             ))}
@@ -1122,17 +1230,55 @@ export default function LegalReader({ lawId, onClose }) {
                         ))}
                       </div>
 
-                      {/* Footer Sort Dropdown */}
+                      {/* Footer Sort Custom Dropdown matching Image */}
                       <div className="filter-panel-footer">
-                        <select
-                          className="filter-sort-select"
-                          value={filterSortOrder}
-                          onChange={(e) => setFilterSortOrder(e.target.value)}
-                        >
-                          <option value="relevance">ترتيب: الأكثر صلة</option>
-                          <option value="newest">ترتيب: الأحدث تاريخاً</option>
-                          <option value="oldest">ترتيب: الأقدم تاريخاً</option>
-                        </select>
+                        <div className="filter-sort-wrapper" ref={sortDropdownRef}>
+                          <span className="filter-sort-label">ترتيب</span>
+                          <div className="filter-sort-control">
+                            <button
+                              type="button"
+                              className={`filter-sort-btn ${isSortOpen ? 'open' : ''}`}
+                              onClick={() => setIsSortOpen(prev => !prev)}
+                            >
+                              <svg 
+                                className={`filter-sort-chevron ${isSortOpen ? 'rotate' : ''}`} 
+                                width="14" 
+                                height="14" 
+                                viewBox="0 0 24 24" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                strokeWidth="2.2" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round"
+                              >
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                              </svg>
+                              <span className="filter-sort-current">
+                                {SORT_OPTIONS.find(o => o.value === filterSortOrder)?.label || 'الأكثر صلة'}
+                              </span>
+                            </button>
+
+                            {isSortOpen && (
+                              <div className="filter-sort-menu">
+                                {SORT_OPTIONS.map((opt) => {
+                                  const isSelected = filterSortOrder === opt.value;
+                                  return (
+                                    <div
+                                      key={opt.value}
+                                      className={`filter-sort-option ${isSelected ? 'active' : ''}`}
+                                      onClick={() => {
+                                        setFilterSortOrder(opt.value);
+                                        setIsSortOpen(false);
+                                      }}
+                                    >
+                                      {opt.label}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1332,24 +1478,27 @@ export default function LegalReader({ lawId, onClose }) {
               {modalFileTab === 'info' && (
                 <div className="file-info-modal-pane">
                   <div className="meta">
-                    <div>الجريدة الرسمية</div>
-                    <div>عدد 5320 — ص 7390 — تاريخ النشر: 31-12-2014</div>
-                    <div>الرقم</div>
-                    <div>{lawTree.number || '34'}</div>
-                    <div>السنة</div>
-                    <div>2014</div>
-                    <div>حل محل</div>
-                    <div>قانون مؤقت رقم 28 لسنة 2009 (قانون ضريبة الدخل المؤقت لسنة 2009)</div>
-                    <div>تاريخ الصدور</div>
-                    <div>30-12-2014</div>
-                    <div>تاريخ السريان</div>
-                    <div>01-01-2015</div>
-                    <div>تاريخ آخر تعديل</div>
-                    <div>01-01-2019</div>
-                    <div>عدد التعديلات</div>
-                    <div>1</div>
-                    <div>عدد المواد</div>
-                    <div>{lawTree.sections?.reduce((acc, s) => acc + (s.articles?.length || 0), 0) || 82}</div>
+                    {String(lawTree.id || '').startsWith('related_') ? (
+                      <>
+                        <div>النوع</div><div>{lawTree.status || 'حكم قضائي'}</div>
+                        <div>رقم الحكم</div><div>{lawTree.number || '—'}</div>
+                        <div>السنة</div><div>{lawTree.year || '—'}</div>
+                        <div>التاريخ</div><div>{lawTree.effectiveDate || lawTree.issueDate || '—'}</div>
+                        <div>المصدر</div><div>{lawTree.gazette || 'المحكمة المختصة'}</div>
+                      </>
+                    ) : (
+                      <>
+                        <div>الجريدة الرسمية</div><div>{lawTree.gazette || 'عدد 5320 — ص 7390 — تاريخ النشر: 31-12-2014'}</div>
+                        <div>الرقم</div><div>{lawTree.number || '34'}</div>
+                        <div>السنة</div><div>{lawTree.year || '2014'}</div>
+                        <div>حل محل</div><div>{lawTree.replaced_law || 'قانون مؤقت رقم 28 لسنة 2009 (قانون ضريبة الدخل المؤقت لسنة 2009)'}</div>
+                        <div>تاريخ الصدور</div><div>{lawTree.issue_date || '30-12-2014'}</div>
+                        <div>تاريخ السريان</div><div>{lawTree.effective_date || '01-01-2015'}</div>
+                        <div>تاريخ آخر تعديل</div><div>{lawTree.amended_date || '01-01-2019'}</div>
+                        <div>عدد التعديلات</div><div>{lawTree.amendments_count || 1}</div>
+                        <div>عدد المواد</div><div>{lawTree.sections?.reduce((acc, s) => acc + (s.articles?.length || 0), 0) || 82}</div>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -1358,10 +1507,10 @@ export default function LegalReader({ lawId, onClose }) {
                 <div className="file-info-modal-pane">
                   <div className="document-description-text" style={{ padding: '20px 22px', lineHeight: 2.1 }}>
                     <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#1F303B' }}>
-                      قانون رقم 34 لسنة 2014 (قانون ضريبة الدخل لسنة 2014) وتعديلاته المنشور في العدد 5320 على الصفحة 7390 بتاريخ 31-12-2014 والساري بتاريخ 01-01-2015 المعدل بقانون معدل رقم 38 لسنة 2018 (قانون معدل لقانون ضريبة الدخل لسنة 2018) المنشور في العدد 5547 على الصفحة 7285 بتاريخ 02-12-2018 والساري بتاريخ 01-01-2019 (تصحيح الخطأ فيه بموجب إعلان تصحيح خطأ المنشور في العدد 5561 على الصفحة 674 بتاريخ 17-02-2019).
+                      {lawTree.summary || `${lawTree.title} ${lawTree.gazette ? `المنشور في الجريدة الرسمية (${lawTree.gazette})` : ''} ${lawTree.effective_date ? `والساري بتاريخ ${lawTree.effective_date}` : ''}.`}
                     </p>
                     <p style={{ margin: 0, fontSize: '14px', color: '#1F303B' }}>
-                      والمشار إليه هنا وفيما بعد بالاسم المختصر: <strong>قانون رقم 34 لسنة 2014 (قانون ضريبة الدخل لسنة 2014) وتعديلاته</strong>.
+                      الاسم المعتمد: <strong>{lawTree.title}</strong>
                     </p>
                   </div>
                 </div>

@@ -93,9 +93,14 @@ class DocxParserService:
                 art_num = int(art_match.group(1))
                 art_version_id = f"{law_id}_art_{art_num}_v_{version_name}"
                 
+                # Check for explicit title on the same line after "المادة 1: ..."
+                remainder = line[art_match.end():].strip()
+                remainder_clean = re.sub(r'^[\-\:\.\s]+', '', remainder).strip()
+                
                 current_article = {
                     "version_id": art_version_id,
                     "text": line,
+                    "title": remainder_clean if len(remainder_clean) > 2 else f"المادة {art_num}",
                     "effective_from": effective_from,
                     "status": "active",
                     "number": art_num,
@@ -179,26 +184,38 @@ class DocxParserService:
         }
         
         # 1. Extract metadata via Regex
-        case_match = re.search(r'(?:قضية رقم|رقم القضية|الدعوى رقم)\s*([\d\s]+/[\s\d]+)', text)
+        case_match = re.search(r'(?:قضية رقم|رقم القضية|الدعوى رقم|رقم الدعوى)\s*[:\-]?\s*([\d\s]+/[\s\d]+)', text)
         if case_match:
             extracted["case_number"] = case_match.group(1).replace(" ", "")
             
-        ruling_match = re.search(r'(?:حكم رقم|قرار رقم)\s*(\d+)(?:\s*/\s*|\s+لسنة\s+)(\d+)', text)
+        ruling_match = re.search(r'(?:حكم رقم|قرار رقم|الحكم رقم|القرار رقم|رقم الحكم)\s*[:\-]?\s*(\d+)(?:\s*/\s*|\s+لسنة\s+)(\d+)', text)
+        if not ruling_match:
+            ruling_match = re.search(r'رقم\s*(\d+)\s+لسنة\s+(\d+)', text)
         if ruling_match:
             extracted["ruling_number"] = int(ruling_match.group(1))
             extracted["ruling_year"] = int(ruling_match.group(2))
             
-        court_match = re.search(r'محكمة\s+([^\s،؛\.][^،؛\.]+)', text)
-        if court_match:
-            extracted["court"] = "محكمة " + court_match.group(1).strip()
+        court_std_match = re.search(r'(المحكمة\s+الإدارية\s+العليا|محكمة\s+التمييز\s+الأردنية|محكمة\s+التمييز|محكمة\s+البداية\s+الضريبية|محكمة\s+الاستئناف\s+الضريبية)', text)
+        if court_std_match:
+            extracted["court"] = court_std_match.group(1).strip()
+        else:
+            court_match = re.search(r'محكمة\s+([^\s،؛\.\n\r][^،؛\.\n\r]+)', text)
+            if court_match:
+                extracted["court"] = "محكمة " + court_match.group(1).strip()
             
-        date_match = re.search(r'(?:تاريخ|تاريخ النطق|بتاريخ)\s*([\d\-\/]{8,10})', text)
+        date_match = re.search(r'(?:تاريخ الفصل|تاريخ النطق|تاريخ الصدور|تاريخ)\s*[:\-]?\s*([\d\-\/\.\s]{8,12})', text)
+        if not date_match:
+            date_match = re.search(r'بتاريخ\s*(\d{1,2}\s*[\/\-]\s*\d{1,2}\s*[\/\-]\s*\d{2,4})', text)
         if date_match:
-            extracted["date"] = date_match.group(1)
+            extracted["date"] = date_match.group(1).replace(" ", "").strip()
             
-        subject_match = re.search(r'(?:الموضوع|موضوع الدعوى)\s*[:\-]\s*([^\n\r]+)', text)
+        subject_match = re.search(r'(?:الموضوع|موضوع الدعوى|موضوع الدعــوى)\s*[:\-]?\s*([^\n\r]+)', text)
         if subject_match:
             extracted["subject"] = subject_match.group(1).strip()
+        else:
+            filing_match = re.search(r'(بتاريخ\s+[\d\s\/]+(?:تقدم|قدم|أقامت|أقام)[^\n\r]+)', text)
+            if filing_match:
+                extracted["subject"] = filing_match.group(1).strip()
             
         outcome_match = re.search(r'(?:القرار|النتيجة)\s*[:\-]\s*([^\n\r]+)', text)
         if outcome_match:

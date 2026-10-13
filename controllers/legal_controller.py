@@ -251,8 +251,22 @@ class LegalController:
 
     @staticmethod
     def search(query: str, limit: int = 5):
-        from services.hybrid_search_service import HybridSearchService
-        return HybridSearchService.search(query, limit)
+        # Try hybrid/vector search first
+        try:
+            from services.hybrid_search_service import HybridSearchService
+            results = HybridSearchService.search(query, limit)
+            if results:
+                return results
+        except Exception as e:
+            print(f"Warning: Hybrid search failed: {e}")
+        
+        # Fallback: graph-based text search in Neo4j
+        graph_results = LegalGraphService.get_laws(q=query)
+        if graph_results:
+            return graph_results[:limit]
+        
+        # Last resort: return all laws
+        return LegalGraphService.get_laws()[:limit]
 
     @staticmethod
     def get_related_files(law_id: str):

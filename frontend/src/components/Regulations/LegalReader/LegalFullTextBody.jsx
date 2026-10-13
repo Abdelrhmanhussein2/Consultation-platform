@@ -1,6 +1,5 @@
-// frontend/src/components/Regulations/LegalReader/LegalFullTextBody.jsx
-// Document content: metadata, preamble, sections, articles + inline search bar
 import React from 'react';
+import { parseArticleClauses } from '../../../services/legalService';
 
 function InlineSearchBar({
   findText,
@@ -84,10 +83,13 @@ const DocumentCenterContent = React.memo(function DocumentCenterContent({ lawTre
             <h3 className="lft-section-title">{section.title}</h3>
           )}
           {(section.articles || []).map((article) => {
-            const clausesList = article.clauses && article.clauses.length > 0 ? article.clauses : [];
-            const hasDefs = article.has_definitions && article.definitions && article.definitions.length > 0;
+            const parsed = parseArticleClauses(article);
+            const clausesList = (parsed.clauses && parsed.clauses.length > 0) ? parsed.clauses : (article.clauses || []);
+            const displayDefs = (parsed.definitions && parsed.definitions.length > 0) ? parsed.definitions : (article.definitions || []);
+            const hasDefs = (parsed.hasDefinitions || article.has_definitions) && displayDefs.length > 0;
             const hasClauses = clausesList.length > 0;
             const mainContent = article.content || article.text || '';
+            const introText = parsed.introText || article.intro_text;
 
             return (
               <div
@@ -107,14 +109,14 @@ const DocumentCenterContent = React.memo(function DocumentCenterContent({ lawTre
 
                 <div className="lft-article-content">
                   {/* Intro text if present */}
-                  {article.intro_text && (
-                    <p className="lft-intro-p">{article.intro_text}</p>
+                  {introText && (
+                    <p className="lft-intro-p">{introText}</p>
                   )}
 
                   {/* Definitions list if present */}
                   {hasDefs && (
                     <div className="lft-defs-container">
-                      {article.definitions.map((def, dIdx) => (
+                      {displayDefs.map((def, dIdx) => (
                         <div key={dIdx} className="lft-def-row">
                           <strong className="lft-def-term">{def.term}: </strong>
                           <span className="lft-def-val">{def.value || ''}</span>

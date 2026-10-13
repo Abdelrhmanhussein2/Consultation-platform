@@ -1,5 +1,6 @@
 // frontend/src/components/Regulations/LegalReader/LegalArticle.jsx
 import React, { useState } from 'react';
+import { parseArticleClauses } from '../../../services/legalService';
 
 // Helper to render text with highlight marks
 export function renderHighlightedText(text, highlights) {
@@ -112,15 +113,23 @@ const LegalArticle = React.memo(function LegalArticle({
   const articlePath = article.path || `${lawTitle} /`;
   const articleDate = article.date || (article.num === 1 ? '01-01-2015' : '01-01-2019');
 
+  // Dynamic clause and definition parsing (always extracts complete sub-items and lines)
+  const parsed = parseArticleClauses(article);
+
+  const displayDefinitions = (parsed.definitions && parsed.definitions.length > 0) ? parsed.definitions : (article.definitions || []);
+  const hasDefs = Boolean((parsed.hasDefinitions || article.has_definitions) && displayDefinitions && displayDefinitions.length > 0);
+  const displayClauses = (parsed.clauses && parsed.clauses.length > 0) ? parsed.clauses : (article.clauses || []);
+  const introToDisplay = parsed.introText || article.intro_text;
+
   const handleCopy = () => {
     let textToCopy = `${fullTitle}\n`;
-    if (article.has_definitions && article.definitions) {
-      if (article.intro_text) textToCopy += `${article.intro_text}\n`;
-      article.definitions.forEach(d => {
+    if (hasDefs && displayDefinitions) {
+      if (introToDisplay) textToCopy += `${introToDisplay}\n`;
+      displayDefinitions.forEach(d => {
         textToCopy += `${d.term}: ${d.value}\n`;
       });
-    } else if (article.clauses && article.clauses.length > 0) {
-      article.clauses.forEach(c => {
+    } else if (displayClauses && displayClauses.length > 0) {
+      displayClauses.forEach(c => {
         textToCopy += `${typeof c === 'string' ? c : c.text}\n`;
       });
     } else if (article.content) {
@@ -157,13 +166,13 @@ const LegalArticle = React.memo(function LegalArticle({
 
       {/* Legal Content */}
       <div className="legal-text">
-        {article.has_definitions && article.definitions ? (
+        {hasDefs ? (
           <>
-            {article.intro_text && (
-              <p className="definition-intro">{renderHighlightedText(article.intro_text, highlights)}</p>
+            {introToDisplay && (
+              <p className="definition-intro">{renderHighlightedText(introToDisplay, highlights)}</p>
             )}
             <div className="definitions-v12">
-              {article.definitions.map((def, idx) => (
+              {displayDefinitions.map((def, idx) => (
                 <div className="definition-pair" key={idx}>
                   <div className="definition-term">{renderHighlightedText(def.term, highlights)}</div>
                   <div className="definition-value">{renderHighlightedText(def.value, highlights)}</div>
@@ -171,8 +180,8 @@ const LegalArticle = React.memo(function LegalArticle({
               ))}
             </div>
           </>
-        ) : article.clauses && article.clauses.length > 0 ? (
-          article.clauses.map((clause, idx) => {
+        ) : displayClauses && displayClauses.length > 0 ? (
+          displayClauses.map((clause, idx) => {
             const isNumbered = typeof clause === 'object' ? clause.isNumbered : false;
             const text = typeof clause === 'object' ? clause.text : clause;
             return (
