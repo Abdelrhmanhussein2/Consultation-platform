@@ -174,6 +174,7 @@ export default function ConsultantServicesPage({ navigate }) {
       return;
     }
     if (!silent) setLoading(true);
+    const safetyTimer = !silent ? setTimeout(() => setLoading(false), 5000) : null;
     try {
       const [servicesData, profileData, specsData, expansionsData] = await Promise.all([
         consultantService.getMyServices(token).catch((err) => {
@@ -197,6 +198,7 @@ export default function ConsultantServicesPage({ navigate }) {
       console.error('Error fetching consultant services page data:', err);
       setServices(DEFAULT_DEMO_SERVICES);
     } finally {
+      if (safetyTimer) clearTimeout(safetyTimer);
       if (!silent) setLoading(false);
     }
   };

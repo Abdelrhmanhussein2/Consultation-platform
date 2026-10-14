@@ -200,13 +200,13 @@ export default function SupportNewTicketPage({ navigate }) {
   };
 
   return (
-    <div className="fade-in max-w-4xl mx-auto p-4 md:p-6" dir="rtl" style={{ fontFamily: 'var(--font-main)' }}>
+    <div className="fade-in max-w-6xl mx-auto p-4 md:p-8 w-full" dir="rtl" style={{ fontFamily: 'var(--font-main)' }}>
       
       {/* Visual Step Progress Line */}
       <div className="relative flex items-center justify-between mb-10 w-full px-4">
         <div className="absolute left-6 right-6 top-1/2 -translate-y-1/2 h-[2px] bg-gray-200 z-0"></div>
         <div
-          className="absolute left-6 top-1/2 -translate-y-1/2 h-[2px] bg-[#0e7490] z-0 transition-all duration-300"
+          className="absolute right-6 top-1/2 -translate-y-1/2 h-[2px] bg-[#0e7490] z-0 transition-all duration-300"
           style={{ width: `${((step - 1) / 4) * 100}%` }}
         ></div>
 
@@ -244,13 +244,16 @@ export default function SupportNewTicketPage({ navigate }) {
 
       {/* STEP 1: Basic details */}
       {step === 1 && (
-        <div className="card p-8 border border-gray-100">
-          <h3 className="text-lg font-bold text-[#0e3b5e] mb-6">تفاصيل الطلب</h3>
+        <div className="card p-6 md:p-10 border border-gray-100 shadow-sm">
+          <h3 className="text-xl font-bold text-[#0e3b5e] mb-6">تفاصيل الطلب</h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+          {/* Row 1: Category, Subcategory, and Priority in 3 Columns (Centered) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6 text-center justify-items-center">
             {/* Category */}
-            <div>
-              <label className="form-label">الفئة الرئيسية <span className="req">*</span></label>
+            <div className="w-full flex flex-col items-center text-center">
+              <label className="form-label font-bold text-sm text-[#0e3b5e] mb-2 block text-center w-full">
+                الفئة الرئيسية <span className="req text-red-500">*</span>
+              </label>
               <ModernSelect
                 value={category}
                 onChange={(val) => { setCategory(val); setSubCategory(''); setExtraFieldsData({}); }}
@@ -259,12 +262,17 @@ export default function SupportNewTicketPage({ navigate }) {
                   ...Object.keys(CATEGORIES).map(key => ({ value: key, label: CATEGORIES[key].label }))
                 ]}
                 placeholder="اختر الفئة الرئيسية"
+                className="support-ticket-select"
+                dropdownWidth="100%"
+                align="center"
               />
             </div>
 
             {/* Sub category */}
-            <div>
-              <label className="form-label">الفئة الفرعية <span className="req">*</span></label>
+            <div className="w-full flex flex-col items-center text-center">
+              <label className="form-label font-bold text-sm text-[#0e3b5e] mb-2 block text-center w-full">
+                الفئة الفرعية <span className="req text-red-500">*</span>
+              </label>
               <ModernSelect
                 value={subCategory}
                 onChange={(val) => handleSubCategoryChange(val)}
@@ -273,12 +281,17 @@ export default function SupportNewTicketPage({ navigate }) {
                   ...(category ? Object.keys(CATEGORIES[category].subs).map(s => ({ value: s, label: s })) : [])
                 ]}
                 placeholder="اختر الفئة الفرعية"
+                className="support-ticket-select"
+                dropdownWidth="100%"
+                align="center"
               />
             </div>
 
             {/* Priority */}
-            <div>
-              <label className="form-label">الأولوية <span className="text-[10px] text-gray-400 mr-2">(تُحدد تلقائياً ويمكن تعديلها)</span></label>
+            <div className="w-full flex flex-col items-center text-center">
+              <label className="form-label font-bold text-sm text-[#0e3b5e] mb-2 block text-center w-full">
+                الأولوية <span className="text-[11px] text-gray-400 font-normal mr-1">(تُحدد تلقائياً ويمكن تعديلها)</span>
+              </label>
               <ModernSelect
                 value={priority}
                 onChange={(val) => setPriority(val)}
@@ -288,31 +301,45 @@ export default function SupportNewTicketPage({ navigate }) {
                   { value: 'عالية', label: 'عالية' }
                 ]}
                 placeholder="اختر الأولوية"
-              />
-            </div>
-
-            {/* Subject */}
-            <div>
-              <label className="form-label">الموضوع <span className="req">*</span></label>
-              <input
-                type="text"
-                placeholder="اكتب موضوعًا مختصرًا لطلبك"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="input-field"
+                className="support-ticket-select"
+                dropdownWidth="100%"
+                align="center"
               />
             </div>
           </div>
 
-          {/* Description */}
-          <div className="mb-5">
-            <label className="form-label">وصف المشكلة <span className="req">*</span></label>
+          {/* Row 2: Subject (Full Width & Larger) */}
+          <div className="mb-6">
+            <label className="form-label font-bold text-sm text-[#0e3b5e] mb-2 block">
+              الموضوع <span className="req text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="اكتب موضوعًا واضحًا ومفصلاً لطلبك..."
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              className="input-field"
+              style={{
+                height: '52px',
+                fontSize: '15px',
+                padding: '0 18px',
+                borderRadius: '12px',
+                width: '100%'
+              }}
+            />
+          </div>
+
+          {/* Row 3: Description (Full Width) */}
+          <div className="mb-6">
+            <label className="form-label font-bold text-sm text-[#0e3b5e] mb-2 block">
+              وصف المشكلة <span className="req text-red-500">*</span>
+            </label>
             <textarea
               placeholder="يرجى وصف المشكلة بالتفصيل، وما الذي كنت تحاول القيام به، وما الذي حدث بالفعل..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="input-field"
-              style={{ minHeight: '140px' }}
+              style={{ minHeight: '160px', fontSize: '15px', padding: '14px 18px', lineHeight: '1.7', borderRadius: '12px' }}
             />
             <div className="flex justify-between mt-1.5 text-xs text-gray-400 font-medium">
               <span></span>
@@ -321,18 +348,18 @@ export default function SupportNewTicketPage({ navigate }) {
           </div>
 
           {/* Step 1 Actions */}
-          <div className="flex justify-between items-center pt-5 border-t border-gray-100">
+          <div className="flex justify-between items-center pt-6 border-t border-gray-100">
             <button
               type="button"
               onClick={() => navigate('/support')}
-              className="btn-secondary text-sm py-2.5 px-5"
+              className="btn-secondary text-sm py-2.5 px-6"
             >
               إلغاء والعودة
             </button>
             <button
               type="button"
               onClick={handleNext}
-              className="btn-navy text-sm py-2.5 px-6"
+              className="btn-navy text-sm py-2.5 px-7"
             >
               التالي <i className="fa fa-arrow-left mr-2"></i>
             </button>
@@ -547,12 +574,12 @@ export default function SupportNewTicketPage({ navigate }) {
                 <h4 className="font-bold text-[#0e3b5e]">تفاصيل الطلب</h4>
                 <button type="button" onClick={() => setStep(1)} className="text-xs text-[#0e7490] hover:text-orange-500 font-bold transition">تعديل</button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-right">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-right">
                 <div><span className="text-gray-500">الفئة:</span> <span className="font-semibold text-gray-700">{CATEGORIES[category]?.label || category}</span></div>
                 <div><span className="text-gray-500">الفئة الفرعية:</span> <span className="font-semibold text-gray-700">{subCategory}</span></div>
                 <div><span className="text-gray-500">الأولوية:</span> <span className="badge bg-yellow-50 text-yellow-700 border border-yellow-300 text-[10px] px-2 py-0.5">{priority}</span></div>
-                <div><span className="text-gray-500">الموضوع:</span> <span className="font-semibold text-gray-700">{subject}</span></div>
-                <div className="col-span-1 md:col-span-2"><span className="text-gray-500">الوصف:</span> <span className="font-semibold text-gray-700 whitespace-pre-line leading-relaxed">{description}</span></div>
+                <div className="col-span-1 md:col-span-3 pt-2 border-t border-gray-200/60"><span className="text-gray-500">الموضوع:</span> <span className="font-bold text-[#0e3b5e] text-base mr-1">{subject}</span></div>
+                <div className="col-span-1 md:col-span-3"><span className="text-gray-500 block mb-1">الوصف:</span> <span className="font-medium text-gray-700 whitespace-pre-line leading-relaxed bg-white p-3 rounded-lg border border-gray-200 block">{description}</span></div>
               </div>
             </div>
 

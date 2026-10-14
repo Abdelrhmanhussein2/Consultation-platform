@@ -147,14 +147,24 @@ export const apiFetch = async (url, options = {}, token = null) => {
     body = JSON.stringify(body);
   }
 
-  let response = await fetch(url, { ...options, headers: buildHeaders(currentToken), body });
+  let response;
+  const timeoutMs = options.timeout || 12000;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const signal = options.signal || controller.signal;
 
-  // 401 Interceptor: Try silent token refresh once if unauthorized
-  if (response.status === 401 && !url.includes('/api/auth/')) {
-    const newAccess = await refreshAccessTokenSilently();
-    if (newAccess) {
-      response = await fetch(url, { ...options, headers: buildHeaders(newAccess), body });
+  try {
+    response = await fetch(url, { ...options, signal, headers: buildHeaders(currentToken), body });
+
+    // 401 Interceptor: Try silent token refresh once if unauthorized
+    if (response.status === 401 && !url.includes('/api/auth/')) {
+      const newAccess = await refreshAccessTokenSilently();
+      if (newAccess) {
+        response = await fetch(url, { ...options, signal, headers: buildHeaders(newAccess), body });
+      }
     }
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   if (!response.ok) {

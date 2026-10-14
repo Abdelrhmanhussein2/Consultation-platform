@@ -108,8 +108,15 @@ export default function ConsultantDashboard({ navigate }) {
   };
 
   const fetchDashboardData = async () => {
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 6000);
+
     try {
       const [walletData, apptsData, profileData, servicesData, lawsRes] = await Promise.all([
         consultantService.getWallet(token).catch(() => null),
@@ -127,6 +134,7 @@ export default function ConsultantDashboard({ navigate }) {
     } catch (err) {
       console.error("Error fetching consultant dashboard data:", err);
     } finally {
+      clearTimeout(safetyTimer);
       setLoading(false);
     }
   };

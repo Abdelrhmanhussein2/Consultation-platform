@@ -188,6 +188,7 @@ export default function ConsultantSchedulePage() {
       return;
     }
     setIsLoading(true);
+    const safetyTimer = setTimeout(() => setIsLoading(false), 5000);
     consultantService
       .getAvailabilities(token)
       .then((data) => {
@@ -232,7 +233,10 @@ export default function ConsultantSchedulePage() {
         }
       })
       .catch(() => {})
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        clearTimeout(safetyTimer);
+        setIsLoading(false);
+      });
   }, [token]);
 
   const daysInMonth = useMemo(
