@@ -1,136 +1,222 @@
-import React, { useState } from 'react';
-import ReactDOM from 'react-dom';
+// frontend/src/components/Regulations/TextPreviewModal.jsx
+// Modal معاينة القانون - يجلب البيانات الحقيقية من legalService (Neo4j)
+// يعرض الميتاداتا + أول 3 مواد حقيقية مع fallback للـ Mock
+// زر "فتح النص الكامل" ينقل لصفحة /regulations/law/:id
 
+import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
+import { getLawTree } from '../../services/legalService';
+
+// ── مكوّن عرض مادة واحدة بشكل مبسط ────────────────────────────────────────
+function PreviewArticle({ article }) {
+  if (!article) return null;
+
+  const num     = article.num || article.number || '?';
+  const title   = article.title || `المادة ${num}`;
+  const hasDefs = article.has_definitions && Array.isArray(article.definitions) && article.definitions.length > 0;
+  const clauses = Array.isArray(article.clauses) ? article.clauses : [];
+  const intro   = article.intro_text || '';
+
+  // نص الخام من أي حقل متاح
+  const rawText = article.content || article.text || '';
+
+  return (
+    <div className="preview-article">
+      <div className="preview-article-kicker">المادة {num}</div>
+      <h3>{title}</h3>
+      <div className="preview-article-body">
+
+        {/* نص تمهيدي */}
+        {intro && <p>{intro}</p>}
+
+        {/* تعريفات إن وجدت */}
+        {hasDefs && (
+          <div className="preview-definitions-table">
+            {article.definitions.slice(0, 5).map((def, i) => (
+              <div className="preview-def-row" key={i}>
+                <div className="preview-def-term">{def.term}</div>
+                <div className="preview-def-val">{def.value}</div>
+              </div>
+            ))}
+            {article.definitions.length > 5 && (
+              <div className="preview-def-row" style={{ color: '#64748B', fontStyle: 'italic' }}>
+                <div className="preview-def-term">...</div>
+                <div className="preview-def-val">و {article.definitions.length - 5} تعريفاً آخر</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* البنود */}
+        {!hasDefs && clauses.length > 0 && clauses.slice(0, 4).map((clause, i) => (
+          <p key={i}>{typeof clause === 'string' ? clause : (clause.text || '')}</p>
+        ))}
+
+        {/* نص خام كاحتياط */}
+        {!hasDefs && clauses.length === 0 && rawText && (
+          <p>{rawText.slice(0, 300)}{rawText.length > 300 ? '...' : ''}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Modal الرئيسي ─────────────────────────────────────────────────────────────
 export default function TextPreviewModal({ isOpen, onClose, law, onOpenFullReader }) {
   const [isFavorite, setIsFavorite] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
+  const [isSaved, setIsSaved]       = useState(false);
+
+  const [previewArticles, setPreviewArticles] = useState([]);
+  const [lawMeta, setLawMeta]                 = useState(null);
+  const [loadingPreview, setLoadingPreview]   = useState(false);
+  const [fetchError, setFetchError]           = useState(false);
+
+  // نحدد الـ law_id بشكل آمن مع fallback
+  const lawId = law?.law_id || law?.id || 'قانون_34_2014_وتعديلاته';
+
+  useEffect(() => {
+    if (!isOpen || !law) {
+      setPreviewArticles([]);
+      setLawMeta(null);
+      setFetchError(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingPreview(true);
+    setPreviewArticles([]);
+    setLawMeta(null);
+    setFetchError(false);
+
+    getLawTree(lawId)
+      .then(data => {
+        if (cancelled || !data) return;
+        setLawMeta(data);
+        // نجمع كل المواد من كل الفصول
+        const allArticles = (data.sections || []).flatMap(s => s.articles || []);
+        setPreviewArticles(allArticles.slice(0, 3));
+        setLoadingPreview(false);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setFetchError(true);
+          setLoadingPreview(false);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [isOpen, lawId]);
+
 
   if (!isOpen || !law) return null;
 
-  const handleSave = () => {
-    setIsSaved(prev => !prev);
+  // الميتاداتا: نأخذ من lawMeta (Neo4j) أولاً ثم من law (نتيجة البحث)
+  const meta = {
+    number:         lawMeta?.number         || law.number         || `${law.year_short || '2014'}`,
+    issue_date:     lawMeta?.issue_date     || law.issue_date     || '—',
+    effective_date: lawMeta?.effective_date || law.effective_date || '—',
+    amended_date:   lawMeta?.amended_date   || law.amended_date   || '—',
+    title:          lawMeta?.title          || law.title          || 'القانون',
+  };
+
+  const handleSave = () => setIsSaved(prev => !prev);
+
+  const handleOpenFull = () => {
+    if (onOpenFullReader) onOpenFullReader(law);
   };
 
   return ReactDOM.createPortal(
     <div className="text-preview-backdrop" onClick={onClose}>
       <div className="text-preview-modal" onClick={(e) => e.stopPropagation()}>
-        {/* Header Bar */}
+
+        {/* ── Header ── */}
         <div className="text-preview-head">
           <div className="text-preview-head-info">
             <small>معاينة التشريع</small>
-            <strong>{law.title || "قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته"}</strong>
+            <strong>{meta.title}</strong>
           </div>
           <button className="text-preview-close-btn" onClick={onClose} title="إغلاق">✕</button>
         </div>
 
-        {/* Scrollable Body */}
+        {/* ── Body ── */}
         <div className="text-preview-body">
-          {/* 2x2 Metadata Grid */}
+
+          {/* ── Metadata Grid ── */}
           <div className="preview-file-info">
             <div>
               <b>رقم القانون</b>
-              <span>{law.number || '34 لسنة 2014'}</span>
+              <span>{meta.number}</span>
             </div>
             <div>
               <b>تاريخ النشر</b>
-              <span>{law.issue_date || '31-12-2014'}</span>
+              <span>{meta.issue_date}</span>
             </div>
             <div>
               <b>تاريخ السريان</b>
-              <span>{law.effective_date || '01-01-2015'}</span>
+              <span>{meta.effective_date}</span>
             </div>
             <div>
               <b>آخر تعديل نافذ</b>
-              <span>{law.amended_date || '01-01-2019'}</span>
+              <span>{meta.amended_date}</span>
             </div>
           </div>
 
-          {/* Article 1 */}
-          <div className="preview-article">
-            <div className="preview-article-kicker">المادة 1</div>
-            <h3>المادة 1: اسم القانون وبدء العمل به</h3>
-            <div className="preview-article-body">
-              <p>يسمى هذا القانون ({law.title || "قانون ضريبة الدخل رقم 34 لسنة 2014"}) ويعمل به اعتبارا من {law.effective_date || '1/1/2015'}.</p>
+          {/* ── Loading ── */}
+          {loadingPreview && (
+            <div style={{ textAlign: 'center', padding: '32px 0', color: '#64748B' }}>
+              <div style={{
+                width: 32, height: 32, border: '3px solid #E2E8F0',
+                borderTopColor: '#0D3C5C', borderRadius: '50%',
+                animation: 'spin 0.8s linear infinite', margin: '0 auto 12px'
+              }} />
+              <span style={{ fontSize: '13px' }}>جاري تحميل نص القانون...</span>
             </div>
-          </div>
+          )}
 
-          {/* Article 2 */}
-          <div className="preview-article">
-            <div className="preview-article-kicker">المادة 2</div>
-            <h3>المادة 2: التعريفات</h3>
-            <div className="preview-article-body">
-              <p>يكون للكلمات والعبارات التالية حيثما وردت في هذا القانون المعاني المخصصة لها أدناه ما لم تدل القرينة على غير ذلك:</p>
-              
-              <div className="preview-definitions-table">
-                <div className="preview-def-row">
-                  <div className="preview-def-term">الوزير</div>
-                  <div className="preview-def-val">وزير المالية.</div>
-                </div>
-                <div className="preview-def-row">
-                  <div className="preview-def-term">الدائرة</div>
-                  <div className="preview-def-val">دائرة ضريبة الدخل والمبيعات.</div>
-                </div>
-                <div className="preview-def-row">
-                  <div className="preview-def-term">الضريبة</div>
-                  <div className="preview-def-val">ضريبة الدخل.</div>
-                </div>
-                <div className="preview-def-row">
-                  <div className="preview-def-term">المدير</div>
-                  <div className="preview-def-val">مدير عام الدائرة.</div>
-                </div>
+          {/* ── المواد الأولى من Neo4j ── */}
+          {!loadingPreview && previewArticles.length > 0 && previewArticles.map((article) => (
+            <PreviewArticle key={article.num || article.number} article={article} />
+          ))}
+
+          {/* ── fallback: ما في مواد ── */}
+          {!loadingPreview && previewArticles.length === 0 && !fetchError && (
+            <div className="preview-article">
+              <div className="preview-article-kicker">ملاحظة</div>
+              <div className="preview-article-body">
+                <p>اضغط على "فتح النص الكامل" للاطلاع على جميع مواد هذا التشريع.</p>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Article 3 */}
-          <div className="preview-article">
-            <div className="preview-article-kicker">المادة 3</div>
-            <h3>المادة 3: الدخل الخاضع للضريبة</h3>
-            <div className="preview-article-body">
-              <p>أ- يخضع للضريبة أي دخل يتأتى في المملكة لأي شخص أو يجنيها منها بغض النظر عن مكان الوفاء بما في ذلك الدخول التالية:</p>
-              <p>1- الدخل المالي من نشاط الأعمال والخدمات المهنية.</p>
-              <p>2- الفوائد والعمولات وأرباح الودائع المعفاة جزئياً.</p>
-            </div>
-          </div>
-
-          {/* End Gate Notice Box matching exact screenshot Image 2 */}
+          {/* ── End Gate ── */}
           <div className="preview-end-gate">
             <div>
               <strong>هذه معاينة مختصرة من نص القانون</strong>
               <small>للإطلاع على جميع المواد والتفاصيل انتقل إلى النص الكامل.</small>
             </div>
-            <button
-              type="button"
-              className="preview-inline-full-btn"
-              onClick={() => onOpenFullReader(law)}
-            >
+            <button type="button" className="preview-inline-full-btn" onClick={handleOpenFull}>
               عرض النص الكامل
             </button>
           </div>
         </div>
 
-        {/* Footer Bar */}
+        {/* ── Footer ── */}
         <div className="text-preview-footer">
           <div className="preview-footer-actions">
-            <button
-              type="button"
-              className="preview-action-card-btn"
-              onClick={() => setIsFavorite(!isFavorite)}
-              title="المفضلة"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <button type="button" className="preview-action-card-btn"
+              onClick={() => setIsFavorite(!isFavorite)} title="المفضلة">
+              <svg width="20" height="20" viewBox="0 0 24 24"
+                fill={isFavorite ? 'currentColor' : 'none'}
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
               </svg>
               <span>المفضلة</span>
             </button>
 
-            <button
-              type="button"
-              className="preview-action-card-btn"
-              onClick={handleSave}
-              title="حفظ التشريع"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <button type="button" className="preview-action-card-btn"
+              onClick={handleSave} title="حفظ التشريع">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
                 <polyline points="17 21 17 13 7 13 7 21" />
                 <polyline points="7 3 7 8 15 8" />
@@ -138,13 +224,10 @@ export default function TextPreviewModal({ isOpen, onClose, law, onOpenFullReade
               <span>{isSaved ? 'تم الحفظ' : 'حفظ'}</span>
             </button>
 
-            <button
-              type="button"
-              className="preview-action-card-btn"
-              onClick={() => onOpenFullReader(law)}
-              title="فتح النص الكامل"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <button type="button" className="preview-action-card-btn"
+              onClick={handleOpenFull} title="فتح النص الكامل">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                 <polyline points="15 3 21 3 21 9" />
                 <line x1="10" y1="14" x2="21" y2="3" />
@@ -153,6 +236,7 @@ export default function TextPreviewModal({ isOpen, onClose, law, onOpenFullReade
             </button>
           </div>
         </div>
+
       </div>
     </div>,
     document.body

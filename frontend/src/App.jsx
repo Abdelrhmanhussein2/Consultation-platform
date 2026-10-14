@@ -15,6 +15,7 @@ import MyAppointmentsPage from './pages/MyAppointmentsPage';
 import QuickConsultationPage from './pages/QuickConsultationPage';
 import ChatPage from './pages/ChatPage';
 import RegulationsPage from './pages/RegulationsPage';
+import LawDetailPage from './pages/LawDetailPage';
 import DateDesignPage from './pages/DateDesignPage';
 import AiAssistantPage from './pages/AiAssistantPage';
 import InvoicesPage from './pages/InvoicesPage';
@@ -106,6 +107,7 @@ function MainApp() {
     '/my-appointments',
     '/chat',
     '/regulations',
+    '/regulations/law',
     '/ai-assistant',
     '/subscriptions',
     '/invoices',
@@ -173,8 +175,12 @@ function MainApp() {
     if (pathname === '/chat') {
       return <ChatPage navigate={navigate} />;
     }
+    if (pathname.startsWith('/regulations/law/')) {
+      const lawId = decodeURIComponent(pathname.replace('/regulations/law/', ''));
+      return <LawDetailPage lawId={lawId} navigate={navigate} />;
+    }
     if (pathname.startsWith('/regulations')) {
-      return <RegulationsPage />;
+      return <RegulationsPage navigate={navigate} />;
     }
     if (pathname === '/dates-design') {
       return <DateDesignPage />;
@@ -249,7 +255,7 @@ function MainApp() {
         return <ConsultantEarningsPage navigate={navigate} />;
       }
       if (pathname === '/consultant/semantic-search' || pathname.startsWith('/consultant/semantic-search/')) {
-        return <RegulationsPage />;
+        return <RegulationsPage navigate={navigate} />;
       }
       if (pathname === '/consultant/document-analysis') {
         return <DocumentAnalysisPage navigate={navigate} />;

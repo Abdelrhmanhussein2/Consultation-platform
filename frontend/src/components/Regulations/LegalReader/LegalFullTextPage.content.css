@@ -105,29 +105,36 @@
 }
 
 .lft-defs-container {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  border: 1px solid #D8E4EA;
+  border-radius: 10px;
+  overflow: hidden;
   margin: 12px 0 18px 0;
-  padding: 14px 16px;
-  background: #F8FAFC;
-  border-radius: 8px;
-  border-right: 3.5px solid #0D3C5C;
 }
 
 .lft-def-row {
-  font-size: 14px;
-  line-height: 1.7;
-  color: #1E293B;
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  border-bottom: 1px solid #E8EDF0;
+  font-size: 13.5px;
+  line-height: 1.75;
+}
+
+.lft-def-row:last-child {
+  border-bottom: none;
 }
 
 .lft-def-term {
+  padding: 10px 14px;
+  background: #F0F5F8;
   color: #0D3C5C;
   font-weight: 800;
+  border-left: 1px solid #E0E7EB;
 }
 
 .lft-def-val {
+  padding: 10px 14px;
   color: #334155;
+  line-height: 1.8;
 }
 
 .lft-clause-p {

@@ -196,7 +196,7 @@ export function parseArticleClauses(a) {
     if (rawIntro) {
       const cleanIntro = rawIntro.replace(/^المادة\s*\(?\d+\)?[:\-\s]*/, '').trim();
       if (cleanIntro && !cleanIntro.startsWith('المادة')) {
-        pushSegments(cleanIntro, false);
+        // FIX: نحط النص كـ introText فقط بدون pushSegments عشان ما يتكرر
         if (!introText) introText = cleanIntro;
       }
     }
@@ -296,15 +296,21 @@ export function parseArticleClauses(a) {
 function normalizeArticle(a, lawTitle) {
   const num = a.number || a.num || 1;
   const rawText = a.text || a.content || (a.paragraphs?.map(p => p.text).join('\n')) || '';
-  
+
   let subject = a.title || a.subject || '';
+  // نبني نص غني للعنوان من كل المصادر المتاحة
+  const textForSubject = a.text || a.content
+    || (a.paragraphs?.[0]?.text)
+    || (Array.isArray(a.clauses) && a.clauses[0]?.text)
+    || '';
   if (!subject || subject === `المادة ${num}` || subject === `المادة (${num})`) {
-    subject = extractArticleSubject(rawText, num);
+    subject = extractArticleSubject(textForSubject, num);
   }
   subject = subject.replace(new RegExp(`^المادة\\s*\\(?${num}\\)?[:\\-\\s]*`), '').trim();
 
   const title = subject ? `المادة ${num}: ${subject}` : `المادة ${num}`;
   const parsed = parseArticleClauses(a);
+  const hasParsedClauses = parsed.clauses && parsed.clauses.length > 0;
 
   return {
     num: num,
@@ -312,7 +318,7 @@ function normalizeArticle(a, lawTitle) {
     subject: subject,
     path: a.path || `${lawTitle || 'التشريع'} /`,
     date: a.effective_from || a.date || "01-01-2019",
-    content: rawText,
+    content: hasParsedClauses ? '' : rawText,
     clauses: parsed.clauses,
     intro_text: parsed.introText,
     has_definitions: parsed.hasDefinitions,
@@ -322,6 +328,7 @@ function normalizeArticle(a, lawTitle) {
     related_files: a.related_files || []
   };
 }
+
 
 function normalizeLawTree(data, lawId) {
   if (!data) return getMockLawDetail(lawId);

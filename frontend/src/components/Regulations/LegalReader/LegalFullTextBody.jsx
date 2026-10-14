@@ -99,8 +99,7 @@ const DocumentCenterContent = React.memo(function DocumentCenterContent({ lawTre
               >
                 <div className="lft-article-head">
                   <h3>
-                    المادة {article.num}
-                    {article.title ? `: ${article.title}` : ''}
+                    {article.title || `المادة ${article.num}`}
                   </h3>
                   <span className="lft-article-date">
                     {article.effective_date || article.date || lawTree?.effective_date || '01-01-2015'}
@@ -108,40 +107,40 @@ const DocumentCenterContent = React.memo(function DocumentCenterContent({ lawTre
                 </div>
 
                 <div className="lft-article-content">
-                  {/* Intro text if present */}
-                  {introText && (
-                    <p className="lft-intro-p">{introText}</p>
-                  )}
-
-                  {/* Definitions list if present */}
-                  {hasDefs && (
-                    <div className="lft-defs-container">
-                      {displayDefs.map((def, dIdx) => (
-                        <div key={dIdx} className="lft-def-row">
-                          <strong className="lft-def-term">{def.term}: </strong>
-                          <span className="lft-def-val">{def.value || ''}</span>
+                  {/* Definitions (tabular) */}
+                  {hasDefs ? (
+                    <>
+                      {introText && (
+                        <p className="lft-intro-p">{introText}</p>
+                      )}
+                      <div className="lft-defs-container">
+                        {displayDefs.map((def, dIdx) => (
+                          <div key={dIdx} className="lft-def-row">
+                            <strong className="lft-def-term">{def.term}</strong>
+                            <span className="lft-def-val">{def.value || ''}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* نص تمهيدي للمادة (لو وُجد قبل الفقرات) */}
+                      {introText && (
+                        <p className="lft-intro-p">{introText}</p>
+                      )}
+                      {hasClauses ? (
+                        <div className="lft-clauses-wrapper">
+                          {clausesList.map((clause, cIdx) => (
+                            <p key={cIdx} className="lft-clause-p">
+                              {typeof clause === 'string' ? clause : (clause.text || '')}
+                            </p>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      ) : mainContent ? (
+                        <p className="lft-clause-p">{mainContent}</p>
+                      ) : null}
+                    </>
                   )}
-
-                  {/* Clauses list if present */}
-                  {hasClauses ? (
-                    <div className="lft-clauses-wrapper">
-                      {clausesList.map((clause, cIdx) => (
-                        <p key={cIdx} className="lft-clause-p">
-                          {typeof clause === 'string' ? clause : (clause.text || '')}
-                        </p>
-                      ))}
-                    </div>
-                  ) : mainContent ? (
-                    <p className="lft-clause-p">{mainContent}</p>
-                  ) : !hasDefs && !article.intro_text ? (
-                    /* Rich legal fallback text so no article is ever blank */
-                    <p className="lft-clause-p">
-                      {`تحدد التعليمات التنفيذية الصادرة بمقتضى أحكام هذا القانون الشروط والإجراءات المتعلقة بأحكام المادة (${article.num})، وتسري أحكامها اعتباراً من تاريخ النشر بالجريدة الرسمية.`}
-                    </p>
-                  ) : null}
                 </div>
               </div>
             );

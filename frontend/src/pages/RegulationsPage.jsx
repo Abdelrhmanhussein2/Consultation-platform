@@ -11,12 +11,11 @@ import {
   FullTextModal,
   LegalReader
 } from '../components/Regulations';
-import LegalFullTextPage from '../components/Regulations/LegalReader/LegalFullTextPage';
 import ErrorBoundary from '../components/common/ErrorBoundary';
 import { searchLegal } from '../services/legalService';
 import { useAuth } from '../context/AuthContext';
 
-export default function RegulationsPage() {
+export default function RegulationsPage({ navigate }) {
   const { token } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -28,7 +27,6 @@ export default function RegulationsPage() {
 
   const [previewLaw, setPreviewLaw] = useState(null);
   const [relatedLaw, setRelatedLaw] = useState(null);
-  const [fullTextLaw, setFullTextLaw] = useState(null);
   const [readerLawId, setReaderLawId] = useState(null);
 
   useEffect(() => {
@@ -91,6 +89,17 @@ export default function RegulationsPage() {
     handleSearch(searchQuery, updated);
   };
 
+  // فتح صفحة القانون المستقلة بتغيير الـ URL
+  const handleOpenFullPage = (law) => {
+    const lawId = law?.law_id || 'law_tax_34_2014';
+    if (navigate) {
+      navigate(`/regulations/law/${encodeURIComponent(lawId)}`);
+    } else {
+      window.history.pushState(null, '', `/regulations/law/${encodeURIComponent(lawId)}`);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
+  };
+
   return (
     <div className="regulations-page-wrap fade-in">
       <div className="reg-content-container">
@@ -132,6 +141,7 @@ export default function RegulationsPage() {
                   onOpenPreview={(l) => setPreviewLaw(l)}
                   onOpenRelated={(l) => setRelatedLaw(l)}
                   onOpenFilters={() => setIsFilterModalOpen(true)}
+                  onOpenFullPage={handleOpenFullPage}
                 />
               ))
             )}
@@ -148,15 +158,14 @@ export default function RegulationsPage() {
         onApply={handleApplyFilters}
       />
 
-      {/* Quick Text Preview Modal */}
+      {/* Quick Text Preview Modal - يجلب البيانات الحقيقية تلقائياً */}
       <TextPreviewModal
         isOpen={!!previewLaw}
         onClose={() => setPreviewLaw(null)}
         law={previewLaw}
         onOpenFullReader={(l) => {
           setPreviewLaw(null);
-          // فتح صفحة النص الكامل الجديدة بدل LegalReader
-          setFullTextLaw(l);
+          handleOpenFullPage(l);
         }}
       />
 
@@ -167,15 +176,7 @@ export default function RegulationsPage() {
         law={relatedLaw}
       />
 
-      {/* صفحة النص الكامل الجديدة - تفتح من زر "عرض النص الكامل" في TextPreviewModal */}
-      {fullTextLaw && (
-        <LegalFullTextPage
-          lawId={fullTextLaw.law_id || 'law_tax_34_2014'}
-          onClose={() => setFullTextLaw(null)}
-        />
-      )}
-
-      {/* Full Screen Interactive Reader Workspace */}
+      {/* Full Screen Interactive Reader Workspace - يبقى للبحث المتقدم */}
       {readerLawId && (
         <ErrorBoundary
           title="تعذر فتح مساحة القراءة المتقدمة"
