@@ -119,6 +119,26 @@
   }
 }
 
+/* Dropup (opens above) */
+.modern-select-wrapper.dropup .modern-select-dropdown {
+  top: auto;
+  bottom: calc(100% + 4px);
+  animation: modernDropupIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  box-shadow: 0 -12px 28px rgba(14, 59, 94, 0.12), 0 -4px 10px rgba(0, 0, 0, 0.04);
+}
+
+@keyframes modernDropupIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .modern-select-options {
   display: flex;
   flex-direction: column;

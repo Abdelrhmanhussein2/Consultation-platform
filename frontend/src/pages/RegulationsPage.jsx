@@ -169,11 +169,12 @@ export default function RegulationsPage({ navigate }) {
         }}
       />
 
-      {/* Related Drawer Sliding from left */}
+      {/* Ask Diwan AI Assistant Drawer */}
       <RelatedDrawer
         isOpen={!!relatedLaw}
         onClose={() => setRelatedLaw(null)}
         law={relatedLaw}
+        navigate={navigate}
       />
 
       {/* Full Screen Interactive Reader Workspace - يبقى للبحث المتقدم */}

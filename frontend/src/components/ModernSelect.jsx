@@ -10,6 +10,7 @@ export default function ModernSelect({
   className = '',
   dropdownWidth = 'auto',
   align = 'right',
+  direction = 'down',
   style = {}
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -43,7 +44,7 @@ export default function ModernSelect({
   };
 
   return (
-    <div className={`modern-select-wrapper ${isOpen ? 'is-open' : ''} ${isSelected ? 'has-value' : ''} ${className}`} ref={containerRef} style={style}>
+    <div className={`modern-select-wrapper ${isOpen ? 'is-open' : ''} ${isSelected ? 'has-value' : ''} ${direction === 'up' ? 'dropup' : ''} ${className}`} ref={containerRef} style={style}>
       <button
         type="button"
         className="modern-select-trigger"

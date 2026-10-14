@@ -1,7 +1,7 @@
-// frontend/src/components/Regulations/LegalReader/LegalArticleCompare.jsx
 import React, { useState, useEffect } from 'react';
 import { ARTICLE_DIFFS } from './articleDiffs';
 import { getArticleHistory } from '../../../services/legalService';
+import ModernSelect from '../../ModernSelect';
 
 export default function LegalArticleCompare({ articleNum, lawId, lawTitle, onClose }) {
   const [cmpLeft, setCmpLeft] = useState('2019');
@@ -62,6 +62,20 @@ export default function LegalArticleCompare({ articleNum, lawId, lawTitle, onClo
     return ver === '2015' ? 'كما صدر — 2015' : 'النص النافذ — 2019';
   };
 
+  const leftOptions = dynamicHistory
+    ? dynamicHistory.map(d => ({ value: d.version_name, label: d.version_name }))
+    : [
+        { value: '2019', label: 'النص النافذ — 2019' },
+        { value: '2015', label: 'كما صدر — 2015' }
+      ];
+
+  const rightOptions = dynamicHistory
+    ? dynamicHistory.map(d => ({ value: d.version_name, label: d.version_name }))
+    : [
+        { value: '2015', label: 'كما صدر — 2015' },
+        { value: '2019', label: 'النص النافذ — 2019' }
+      ];
+
   return (
     <div className="compare-modal-backdrop" onClick={onClose}>
       <div className="compare-modal-box" onClick={(e) => e.stopPropagation()}>
@@ -78,29 +92,21 @@ export default function LegalArticleCompare({ articleNum, lawId, lawTitle, onClo
           <div className="compare-controls">
             <div className="compare-control">
               <label>النسخة الأولى</label>
-              <select value={cmpLeft} onChange={(e) => setCmpLeft(e.target.value)}>
-                {dynamicHistory ? (
-                  dynamicHistory.map((d, i) => <option key={i} value={d.version_name}>{d.version_name}</option>)
-                ) : (
-                  <>
-                    <option value="2019">النص النافذ — 2019</option>
-                    <option value="2015">كما صدر — 2015</option>
-                  </>
-                )}
-              </select>
+              <ModernSelect
+                value={cmpLeft}
+                onChange={(val) => setCmpLeft(val)}
+                options={leftOptions}
+                placeholder="اختر النسخة..."
+              />
             </div>
             <div className="compare-control">
               <label>النسخة الثانية</label>
-              <select value={cmpRight} onChange={(e) => setCmpRight(e.target.value)}>
-                {dynamicHistory ? (
-                  dynamicHistory.map((d, i) => <option key={i} value={d.version_name}>{d.version_name}</option>)
-                ) : (
-                  <>
-                    <option value="2015">كما صدر — 2015</option>
-                    <option value="2019">النص النافذ — 2019</option>
-                  </>
-                )}
-              </select>
+              <ModernSelect
+                value={cmpRight}
+                onChange={(val) => setCmpRight(val)}
+                options={rightOptions}
+                placeholder="اختر النسخة..."
+              />
             </div>
           </div>
 

@@ -277,20 +277,20 @@ class LegalGraphService:
         WITH l,
              coalesce(l.law_id, l.`معرف`) AS law_id,
              coalesce(l.title, l.`العنوان`, l.`اسم`, l.name) AS title,
-             coalesce(l.number, l.`رقم_القانون`, 34) AS number,
-             coalesce(l.year, l.`السنة`, 2014) AS year,
-             coalesce(l.`النوع`, 'قانون') AS type,
-             'ساري' AS status,
-             toString(coalesce(l.year, l.`السنة`, 2014)) AS year_short,
-             coalesce(l.issue_date, '31-12-2014') AS issue_date,
-             coalesce(l.effective_date, '01-01-2015') AS effective_date,
-             coalesce(l.amended_date, '01-01-2019') AS amended_date,
+             coalesce(l.number, toInteger(l.`رقم_القانون`), toInteger(l.number), 0) AS number,
+             coalesce(l.year, toInteger(l.`السنة`), toInteger(l.year), 0) AS year,
+             coalesce(l.`النوع`, l.type, 'تشريع') AS type,
+             coalesce(l.status, l.`الحالة`, 'ساري') AS status,
+             toString(coalesce(l.year, toInteger(l.`السنة`), '')) AS year_short,
+             coalesce(l.issue_date, l.`تاريخ_الصدور`, '') AS issue_date,
+             coalesce(l.effective_date, l.`تاريخ_السريان`, '') AS effective_date,
+             coalesce(l.amended_date, l.`تاريخ_آخر_تعديل`, '') AS amended_date,
              count(a) AS art_count,
-             coalesce(l.`حل_محل`, 'تشريع ضريبي ينظم الأحكام والضوابط الضريبية في المملكة الأردنية الهاشمية') AS summary
+             coalesce(l.summary, l.description, l.`الوصف`, l.`حل_محل`, '') AS summary
         {post_where}
         RETURN law_id, title, number, year, type, status, year_short,
                issue_date, effective_date, amended_date,
-               case when art_count > 0 then art_count else 82 end AS total_articles,
+               art_count AS total_articles,
                summary
         ORDER BY year DESC, number ASC
         """
@@ -427,35 +427,35 @@ class LegalGraphService:
         OPTIONAL MATCH (r)-[:`صادر_عن`]->(c:`محكمة`)
         
         RETURN coalesce(l.law_id, l.`معرف`) AS law_id,
-               coalesce(l.title, l.`العنوان`, l.`اسم`, l.name) AS law_title,
-               coalesce(l.number, toInteger(l.`رقم_القانون`), toInteger(l.number), 34) AS law_number,
-               coalesce(l.year, toInteger(l.`السنة`), toInteger(l.year), 2014) AS law_year,
-               coalesce(l.gazette, l.`الجريدة_الرسمية`, l.`الجريدة`, 'عدد 5320 — ص 7390 — تاريخ النشر: 31-12-2014') AS gazette,
-               coalesce(l.replaced_law, l.`حل_محل`, 'قانون مؤقت رقم 28 لسنة 2009 (قانون ضريبة الدخل المؤقت لسنة 2009)') AS replaced_law,
-               coalesce(l.issue_date, l.`تاريخ_الصدور`, l.`تاريخ_النشر`, '30-12-2014') AS issue_date,
-               coalesce(l.effective_date, l.`تاريخ_السريان`, l.`تاريخ_النفاذ`, '01-01-2015') AS effective_date,
-               coalesce(l.amended_date, l.`تاريخ_آخر_تعديل`, l.`تاريخ_التعديل`, '01-01-2019') AS amended_date,
-               coalesce(l.amendments_count, l.`عدد_التعديلات`, 1) AS amendments_count,
+               coalesce(l.title, l.`العنوان`, l.`اسم`, l.name, "") AS law_title,
+               coalesce(l.number, toInteger(l.`رقم_القانون`), toInteger(l.number), 0) AS law_number,
+               coalesce(l.year, toInteger(l.`السنة`), toInteger(l.year), 0) AS law_year,
+               coalesce(l.gazette, l.`الجريدة_الرسمية`, l.`الجريدة`, "") AS gazette,
+               coalesce(l.replaced_law, l.`حل_محل`, "") AS replaced_law,
+               coalesce(l.issue_date, l.`تاريخ_الصدور`, l.`تاريخ_النشر`, "") AS issue_date,
+               coalesce(l.effective_date, l.`تاريخ_السريان`, l.`تاريخ_النفاذ`, "") AS effective_date,
+               coalesce(l.amended_date, l.`تاريخ_آخر_تعديل`, l.`تاريخ_التعديل`, "") AS amended_date,
+               coalesce(l.amendments_count, l.`عدد_التعديلات`, 0) AS amendments_count,
                coalesce(l.law_id, l.`معرف`) AS version_id,
-               coalesce(l.`النوع`, 'ساري') AS version_name,
-               coalesce(l.effective_date, l.`تاريخ_السريان`, l.`تاريخ_النفاذ`, '01-01-2015') AS effective_from,
+               coalesce(l.`النوع`, "ساري") AS version_name,
+               coalesce(l.effective_date, l.`تاريخ_السريان`, l.`تاريخ_النفاذ`, "") AS effective_from,
                coalesce(a_node.version_id, a_node.`معرف`) AS article_id,
                coalesce(a_node.number, toInteger(a_node.`رقم_المادة`), 1) AS article_number,
-               coalesce(a_node.title, a_node.`العنوان`, a_node.`عنوان_المادة`, a_node.`اسم`, a_node.name, '') AS article_title,
-               coalesce(a_node.text, a_node.`نص_المادة`, '') AS article_text,
-               'ساري' AS article_status,
-               coalesce(p_node.paragraph_id, p_node.`معرف`) AS paragraph_id,
-               coalesce(p_node.letter, p_node.`حرف_الفقرة`, '') AS paragraph_letter,
-               coalesce(p_node.text, p_node.`نص_الفقرة`, '') AS paragraph_text,
-               coalesce(i_node.item_id, i_node.`معرف`) AS item_id,
+               coalesce(a_node.title, a_node.`العنوان`, a_node.`عنوان_المادة`, a_node.`اسم`, a_node.name, "") AS article_title,
+               coalesce(a_node.text, a_node.`نص_المادة`, "") AS article_text,
+               "ساري" AS article_status,
+               coalesce(p_node.paragraph_id, p_node.`معرف`, "") AS paragraph_id,
+               coalesce(p_node.letter, p_node.`حرف_الفقرة`, "") AS paragraph_letter,
+               coalesce(p_node.text, p_node.`نص_الفقرة`, "") AS paragraph_text,
+               coalesce(i_node.item_id, i_node.`معرف`, "") AS item_id,
                coalesce(i_node.number, toInteger(i_node.`رقم_البند`), 1) AS item_number,
-               coalesce(i_node.text, i_node.`نص_البند`, '') AS item_text,
+               coalesce(i_node.text, i_node.`نص_البند`, "") AS item_text,
                collect(DISTINCT {
-                   id: coalesce(r.`معرف`, ''),
-                   title: coalesce(r.`العنوان`, r.`name`, ''),
-                   court: coalesce(r.`المحكمة`, c.`اسم_المحكمة`, ''),
-                   case_number: coalesce(r.`رقم_الدعوى`, ''),
-                   year: coalesce(r.`السنة`, '')
+                   id: coalesce(r.`معرف`, r.ruling_id, ""),
+                   title: coalesce(r.`العنوان`, r.title, r.`name`, ""),
+                   court: coalesce(r.`المحكمة`, c.`اسم_المحكمة`, r.court, ""),
+                   case_number: coalesce(r.`رقم_الدعوى`, r.case_number, ""),
+                   year: coalesce(r.`السنة`, toString(r.year), "")
                }) AS citing_rulings
         ORDER BY article_number ASC, paragraph_letter ASC, item_number ASC
         """
@@ -639,10 +639,11 @@ class LegalGraphService:
             court: coalesce(r.`المحكمة`, c.`اسم_المحكمة`, r.court, ''),
             subject: coalesce(r.subject, r.`موضوع_الدعوى`, ''),
             outcome: coalesce(r.outcome, r.`القرار`, ''),
-            summary: coalesce(r.`مقتطف_الحكم`, r.summary, '')
+            full_text: coalesce(r.`نص_الحكم`, r.full_text, r.`نص_الوثيقة`, r.`مقتطف_الحكم`, '')
         }) AS rulings,
         collect(DISTINCT {
-            id: coalesce(l_other.`معرف`, ''),
+            id: coalesce(l_other.`معرف`, l_other.law_id, ''),
+            law_id: coalesce(l_other.law_id, l_other.`معرف`, ''),
             title: coalesce(l_other.`العنوان`, l_other.`name`, ''),
             number: coalesce(toInteger(l_other.`رقم_القانون`), toInteger(l_other.number), ''),
             year: coalesce(l_other.`السنة`, l_other.year, ''),
@@ -658,7 +659,7 @@ class LegalGraphService:
             rec = records[0]
             results = []
             
-            # 1. Rulings
+            # 1. Rulings with real full text
             for idx, r in enumerate(rec.get("rulings", [])):
                 title_str = str(r.get("title") or "").strip()
                 if not title_str:
@@ -667,7 +668,7 @@ class LegalGraphService:
                 r_num = str(r.get("ruling_number") or "").strip()
                 r_year = str(r.get("year") or "").strip()
                 c_num = str(r.get("case_number") or "").strip()
-                summary_raw = str(r.get("summary") or "")
+                full_text_val = str(r.get("full_text") or "").strip()
 
                 # Dynamic fallback number extraction from title if empty
                 if not r_num:
@@ -679,9 +680,9 @@ class LegalGraphService:
                     if yr_m:
                         r_year = yr_m.group(1)
 
-                # Fallback case_number from summary if missing
-                if not c_num and summary_raw:
-                    case_m = re.search(r'(?:رقم الدعوى|رقم القضية|الدعوى رقم)\s*[:\-]?\s*([0-9\s\/]+)', summary_raw)
+                # Fallback case_number from full text if missing
+                if not c_num and full_text_val:
+                    case_m = re.search(r'(?:رقم الدعوى|رقم القضية|الدعوى رقم)\s*[:\-]?\s*([0-9\s\/]+)', full_text_val)
                     if case_m:
                         c_num = case_m.group(1).replace(" ", "").strip()
 
@@ -703,57 +704,45 @@ class LegalGraphService:
                 # Court / Source
                 court_str = str(r.get("court") or "").strip()
                 if not court_str:
-                    if "إدارية" in title_str or "الإدارية" in summary_raw:
+                    if "إدارية" in title_str or "الإدارية" in full_text_val:
                         court_str = "المحكمة الإدارية العليا"
-                    elif "تمييز" in title_str or "التمييز" in summary_raw:
+                    elif "تمييز" in title_str or "التمييز" in full_text_val:
                         court_str = "محكمة التمييز"
-                    elif "بداية" in title_str or "البداية" in summary_raw:
+                    elif "بداية" in title_str or "البداية" in full_text_val:
                         court_str = "محكمة البداية الضريبية"
-                    elif "استئناف" in title_str or "الاستئناف" in summary_raw:
+                    elif "استئناف" in title_str or "الاستئناف" in full_text_val:
                         court_str = "محكمة الاستئناف الضريبية"
                     else:
                         court_str = "محكمة أردنية مختصة"
 
                 # Date
                 date_str = str(r.get("date") or "").strip()
-                if not date_str and summary_raw:
-                    date_m = re.search(r'(?:تاريخ الفصل|تاريخ النطق|تاريخ الصدور)\s*[:\-]?\s*([0-9\-\/\.]{8,12})', summary_raw)
+                if not date_str and full_text_val:
+                    date_m = re.search(r'(?:تاريخ الفصل|تاريخ النطق|تاريخ الصدور)\s*[:\-]?\s*([0-9\-\/\.]{8,12})', full_text_val)
                     if date_m:
                         date_str = date_m.group(1).strip()
                     else:
-                        date_m2 = re.search(r'بتاريخ\s*(\d{1,2}\s*[\/\-]\s*\d{1,2}\s*[\/\-]\s*\d{2,4})', summary_raw)
+                        date_m2 = re.search(r'بتاريخ\s*(\d{1,2}\s*[\/\-]\s*\d{1,2}\s*[\/\-]\s*\d{2,4})', full_text_val)
                         if date_m2:
                             date_str = date_m2.group(1).replace(" ", "").strip()
                 if not date_str:
                     date_str = r_year or "—"
 
-                # Clean operative summary
-                clean_summary = ""
-                filing_m = re.search(r'(بتاريخ\s+[\d\s\/]+(?:تقدم|قدم|أقامت|أقام)[^\n\r]+(?:\n[^\n\r]+){0,4})', summary_raw)
-                if filing_m:
-                    raw_part = filing_m.group(1).replace("\n", " ")
-                    clean_summary = re.sub(r'\.{3,}', '', raw_part)
-                    clean_summary = re.sub(r'[\-\_\.]{2,}', ' ', clean_summary)
-                    clean_summary = re.sub(r'\s+', ' ', clean_summary).strip()
-
-                if not clean_summary:
-                    anchors = ["موضوع الدعــوى :", "موضوع الدعوى :", "موضوع الدعوى", "القرار الصادر", "وعن أسباب الطعن", "وتتلخص الوقائع"]
-                    for anch in anchors:
-                        if anch in summary_raw:
-                            part = summary_raw.split(anch, 1)[1].strip()
-                            lines = [l.strip() for l in part.splitlines() if l.strip() and not l.strip().startswith("..")]
-                            if lines:
-                                clean_summary = " ".join(lines[:3])
-                                break
-
-                if not clean_summary or len(clean_summary) < 20:
-                    clean_summary = f"حكم قضائي صادر عن {court_str} في النزاع المرتبط بتطبيق أحكام القانون وتفسير مواده والتكييف القانوني للوقائع."
-
-                clean_summary = re.sub(r'[\-\_\.]{2,}', ' ', clean_summary)
-                clean_summary = re.sub(r'\s+', ' ', clean_summary).strip()
-
-                if len(clean_summary) > 260:
-                    clean_summary = clean_summary[:257] + "..."
+                # If full_text_val is still short or missing, load from ./data/ docx
+                if not full_text_val or len(full_text_val) < 200:
+                    try:
+                        import docx
+                        base_data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+                        if os.path.isdir(base_data_dir):
+                            r_num_digits = re.search(r'\d+', r_num).group(0) if re.search(r'\d+', r_num) else ""
+                            for fname in os.listdir(base_data_dir):
+                                if fname.endswith('.docx') and r_num_digits and r_num_digits in fname:
+                                    fpath = os.path.join(base_data_dir, fname)
+                                    d = docx.Document(fpath)
+                                    full_text_val = '\n'.join([para.text for para in d.paragraphs if para.text.strip()])
+                                    break
+                    except Exception:
+                        pass
 
                 results.append({
                     "id": idx + 1,
@@ -765,7 +754,11 @@ class LegalGraphService:
                     "year": r_year or "2024",
                     "court": court_str,
                     "source": court_str,
-                    "summary": clean_summary,
+                    "subject": r.get("subject") or "",
+                    "outcome": r.get("outcome") or "",
+                    "summary": None,
+                    "full_text": full_text_val,
+                    "text": full_text_val,
                     "meta": {
                         "type": "حكم قضائي",
                         "numberLabel": "رقم الحكم",
@@ -777,7 +770,11 @@ class LegalGraphService:
                         "subCategory": court_str,
                         "court": court_str,
                         "source": court_str,
-                        "summary": clean_summary
+                        "subject": r.get("subject") or "",
+                        "outcome": r.get("outcome") or "",
+                        "summary": None,
+                        "full_text": full_text_val,
+                        "text": full_text_val
                     },
                     "docTitle": title_str
                 })

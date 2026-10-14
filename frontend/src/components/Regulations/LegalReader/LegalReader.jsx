@@ -8,6 +8,8 @@ import LegalStageSplitReader, { STAGES_CONFIG, getArticlesForStage } from './Leg
 import RelatedFilesGrid from './RelatedFilesGrid';
 import { RELATED_FILES_DATA, FILTER_HIERARCHY } from './relatedFilesData';
 import AddToFolderModal from '../../UserPortal/AddToFolderModal';
+import ModernSelect from '../../ModernSelect';
+import FilterResetButton from '../../FilterResetButton';
 import { useAuth } from '../../../context/AuthContext';
 import { getLawTree, getMockLawDetail, getRelatedFiles, getLawStages, extractArticleSubject } from '../../../services/legalService';
 import { useDocumentSearch } from './useDocumentSearch';
@@ -154,18 +156,23 @@ export default function LegalReader({ lawId, onClose }) {
     const dt = f.meta?.date || f.date || yr;
     const src = f.meta?.source || f.source || f.meta?.court || (t.includes('إدارية') ? 'المحكمة الإدارية العليا' : t.includes('تمييز') ? 'محكمة التمييز' : t.includes('بداية') ? 'محكمة البداية الضريبية' : (isR ? 'محكمة مختصة' : 'الجريدة الرسمية'));
     const tp = f.meta?.type || f.type || (isR ? 'حكم قضائي' : 'تشريع مرتبط');
+    const fText = f.full_text || f.text || f.meta?.full_text || f.meta?.text || '';
     return {
       ...f,
       type: tp,
       number: num,
       date: dt,
       source: src,
+      full_text: fText,
+      text: fText,
       meta: {
         ...(f.meta || {}),
         type: tp,
         number: num,
         date: dt,
-        source: src
+        source: src,
+        full_text: fText,
+        text: fText
       }
     };
   });
@@ -761,11 +768,16 @@ export default function LegalReader({ lawId, onClose }) {
                             {activeArticle.related_files.map((file, idx) => (
                               <li key={file.id || idx}>
                                 <a
-                                  href={file.url || '#'}
+                                  href="#"
                                   onClick={(e) => {
                                     e.preventDefault();
-                                    if (file.url && file.url !== '#') window.open(file.url, '_blank');
-                                    else alert(`تم فتح: ${file.title || file}`);
+                                    const matched = RELATED_FILES.find(f => 
+                                      String(f.id) === String(file.id) || 
+                                      f.title === file.title || 
+                                      (file.case_number && (f.case_number === file.case_number || f.meta?.number?.includes(file.case_number)))
+                                    ) || file;
+                                    setSelectedRelatedFile(matched);
+                                    setShowRelatedDrawer(true);
                                   }}
                                 >
                                   {file.title || file}
@@ -951,15 +963,15 @@ export default function LegalReader({ lawId, onClose }) {
                           </>
                         ) : (
                           <>
-                            <div>الجريدة الرسمية</div><div>{lawTree.gazette || 'عدد 5320 — ص 7390 — تاريخ النشر: 31-12-2014'}</div>
-                            <div>الرقم</div><div>{lawTree.number || '34'}</div>
-                            <div>السنة</div><div>{lawTree.year || '2014'}</div>
-                            <div>حل محل</div><div>{lawTree.replaced_law || 'قانون مؤقت رقم 28 لسنة 2009 (قانون ضريبة الدخل المؤقت لسنة 2009)'}</div>
-                            <div>تاريخ الصدور</div><div>{lawTree.issue_date || '30-12-2014'}</div>
-                            <div>تاريخ السريان</div><div>{lawTree.effective_date || '01-01-2015'}</div>
-                            <div>تاريخ آخر تعديل</div><div>{lawTree.amended_date || '01-01-2019'}</div>
-                            <div>عدد التعديلات</div><div>{lawTree.amendments_count || 1}</div>
-                            <div>عدد المواد</div><div>{lawTree.sections?.reduce((acc, s) => acc + (s.articles?.length || 0), 0) || 82}</div>
+                            <div>الجريدة الرسمية</div><div>{lawTree.gazette || 'غير محدد في الجريدة الرسمية'}</div>
+                            <div>الرقم</div><div>{lawTree.number || '—'}</div>
+                            <div>السنة</div><div>{lawTree.year || '—'}</div>
+                            <div>حل محل</div><div>{lawTree.replaced_law || 'لا يوجد تشريع ملغى مسجل'}</div>
+                            <div>تاريخ الصدور</div><div>{lawTree.issue_date || '—'}</div>
+                            <div>تاريخ السريان</div><div>{lawTree.effective_date || '—'}</div>
+                            <div>تاريخ آخر تعديل</div><div>{lawTree.amended_date || lawTree.effective_date || '—'}</div>
+                            <div>عدد التعديلات</div><div>{lawTree.amendments_count != null ? lawTree.amendments_count : 0}</div>
+                            <div>عدد المواد</div><div>{lawTree.sections?.reduce((acc, s) => acc + (s.articles?.length || 0), 0) || lawTree.articles?.length || lawTree.total_articles || '—'}</div>
                           </>
                         )}
                       </div>
@@ -1023,7 +1035,14 @@ export default function LegalReader({ lawId, onClose }) {
                 </button>
                 {showPreamble && (
                   <div className="preamble-body">
-                    الجريدة الرسمية: العدد 5320، الصفحة 7390، تاريخ النشر 31-12-2014، تاريخ السريان 01-01-2015، وآخر تعديل نافذ بتاريخ 01-01-2019.
+                    {lawTree.preamble || (
+                      [
+                        lawTree.gazette ? `الجريدة الرسمية: ${lawTree.gazette}` : null,
+                        lawTree.effective_date ? `تاريخ السريان: ${lawTree.effective_date}` : null,
+                        lawTree.amended_date ? `آخر تعديل نافذ: ${lawTree.amended_date}` : null,
+                        lawTree.issue_date ? `تاريخ الصدور: ${lawTree.issue_date}` : null
+                      ].filter(Boolean).join('، ') || 'نُشر هذا التشريع وسرى وفقاً للبيانات المعتمدة في الجريدة الرسمية.'
+                    )}
                   </div>
                 )}
               </div>
@@ -1043,6 +1062,15 @@ export default function LegalReader({ lawId, onClose }) {
                       lawTitle={lawTree.title}
                       onCompareVersion={handleCompareVersion}
                       highlights={highlights}
+                      onSelectRelatedFile={(file) => {
+                        const matched = RELATED_FILES.find(f => 
+                          String(f.id) === String(file.id) || 
+                          f.title === file.title || 
+                          (file.case_number && (f.case_number === file.case_number || f.meta?.number?.includes(file.case_number)))
+                        ) || file;
+                        setSelectedRelatedFile(matched);
+                        setShowRelatedDrawer(true);
+                      }}
                     />
                   ))}
                 </div>
@@ -1188,6 +1216,14 @@ export default function LegalReader({ lawId, onClose }) {
                     <div className="related-filter-sidebar-panel">
                       <div className="filter-panel-header">
                         <h3 className="filter-panel-title">تصفية الملفات</h3>
+                        <FilterResetButton
+                          onClick={() => {
+                            setSelectedFilterCategory('all');
+                            setFilterSortOrder('relevance');
+                          }}
+                          title="إعادة ضبط الفلاتر"
+                          size={32}
+                        />
                       </div>
 
                       <div className="filter-panel-body">
@@ -1230,53 +1266,20 @@ export default function LegalReader({ lawId, onClose }) {
                         ))}
                       </div>
 
-                      {/* Footer Sort Custom Dropdown matching Image */}
+                      {/* Footer Sort with ModernSelect matching Image 2 */}
                       <div className="filter-panel-footer">
-                        <div className="filter-sort-wrapper" ref={sortDropdownRef}>
+                        <div className="filter-sort-wrapper">
                           <span className="filter-sort-label">ترتيب</span>
                           <div className="filter-sort-control">
-                            <button
-                              type="button"
-                              className={`filter-sort-btn ${isSortOpen ? 'open' : ''}`}
-                              onClick={() => setIsSortOpen(prev => !prev)}
-                            >
-                              <svg 
-                                className={`filter-sort-chevron ${isSortOpen ? 'rotate' : ''}`} 
-                                width="14" 
-                                height="14" 
-                                viewBox="0 0 24 24" 
-                                fill="none" 
-                                stroke="currentColor" 
-                                strokeWidth="2.2" 
-                                strokeLinecap="round" 
-                                strokeLinejoin="round"
-                              >
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                              </svg>
-                              <span className="filter-sort-current">
-                                {SORT_OPTIONS.find(o => o.value === filterSortOrder)?.label || 'الأكثر صلة'}
-                              </span>
-                            </button>
-
-                            {isSortOpen && (
-                              <div className="filter-sort-menu">
-                                {SORT_OPTIONS.map((opt) => {
-                                  const isSelected = filterSortOrder === opt.value;
-                                  return (
-                                    <div
-                                      key={opt.value}
-                                      className={`filter-sort-option ${isSelected ? 'active' : ''}`}
-                                      onClick={() => {
-                                        setFilterSortOrder(opt.value);
-                                        setIsSortOpen(false);
-                                      }}
-                                    >
-                                      {opt.label}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
+                            <ModernSelect
+                              options={SORT_OPTIONS}
+                              value={filterSortOrder}
+                              onChange={(val) => setFilterSortOrder(val)}
+                              direction="up"
+                              style={{ width: '100%' }}
+                              dropdownWidth="100%"
+                              align="right"
+                            />
                           </div>
                         </div>
                       </div>
@@ -1488,15 +1491,15 @@ export default function LegalReader({ lawId, onClose }) {
                       </>
                     ) : (
                       <>
-                        <div>الجريدة الرسمية</div><div>{lawTree.gazette || 'عدد 5320 — ص 7390 — تاريخ النشر: 31-12-2014'}</div>
-                        <div>الرقم</div><div>{lawTree.number || '34'}</div>
-                        <div>السنة</div><div>{lawTree.year || '2014'}</div>
-                        <div>حل محل</div><div>{lawTree.replaced_law || 'قانون مؤقت رقم 28 لسنة 2009 (قانون ضريبة الدخل المؤقت لسنة 2009)'}</div>
-                        <div>تاريخ الصدور</div><div>{lawTree.issue_date || '30-12-2014'}</div>
-                        <div>تاريخ السريان</div><div>{lawTree.effective_date || '01-01-2015'}</div>
-                        <div>تاريخ آخر تعديل</div><div>{lawTree.amended_date || '01-01-2019'}</div>
-                        <div>عدد التعديلات</div><div>{lawTree.amendments_count || 1}</div>
-                        <div>عدد المواد</div><div>{lawTree.sections?.reduce((acc, s) => acc + (s.articles?.length || 0), 0) || 82}</div>
+                        <div>الجريدة الرسمية</div><div>{lawTree.gazette || 'غير محدد في الجريدة الرسمية'}</div>
+                        <div>الرقم</div><div>{lawTree.number || '—'}</div>
+                        <div>السنة</div><div>{lawTree.year || '—'}</div>
+                        <div>حل محل</div><div>{lawTree.replaced_law || 'لا يوجد تشريع ملغى مسجل'}</div>
+                        <div>تاريخ الصدور</div><div>{lawTree.issue_date || '—'}</div>
+                        <div>تاريخ السريان</div><div>{lawTree.effective_date || '—'}</div>
+                        <div>تاريخ آخر تعديل</div><div>{lawTree.amended_date || lawTree.effective_date || '—'}</div>
+                        <div>عدد التعديلات</div><div>{lawTree.amendments_count != null ? lawTree.amendments_count : 0}</div>
+                        <div>عدد المواد</div><div>{lawTree.sections?.reduce((acc, s) => acc + (s.articles?.length || 0), 0) || lawTree.articles?.length || lawTree.total_articles || '—'}</div>
                       </>
                     )}
                   </div>

@@ -98,7 +98,8 @@ const LegalArticle = React.memo(function LegalArticle({
   onCompareVersion,
   onShare,
   onCopy,
-  highlights = []
+  highlights = [],
+  onSelectRelatedFile
 }) {
   const [showRelated, setShowRelated] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -215,11 +216,16 @@ const LegalArticle = React.memo(function LegalArticle({
               {article.related_files.map((file, idx) => (
                 <li key={file.id || idx}>
                   <a
-                    href={file.url || '#'}
+                    href="#"
                     onClick={(e) => {
                       e.preventDefault();
-                      if (file.url && file.url !== '#') window.open(file.url, '_blank');
-                      else alert(`تم فتح: ${file.title || file}`);
+                      if (onSelectRelatedFile) {
+                        onSelectRelatedFile(file);
+                      } else if (file.url && file.url !== '#') {
+                        window.open(file.url, '_blank');
+                      } else {
+                        alert(`تم اختيار: ${file.title || file}`);
+                      }
                     }}
                   >
                     {file.title || file}

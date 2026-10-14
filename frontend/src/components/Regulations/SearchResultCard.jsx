@@ -14,8 +14,8 @@ export default function SearchResultCard({ law, onOpenReader, onOpenPreview, onO
     <article className="reg-result-card-item">
       {/* Badges */}
       <div className="badges" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
-        <span className="badge">{law.type || 'قانون'}</span>
-        <span className="badge good">{law.status || 'ساري'}</span>
+        <span className="badge">{law.type || 'تشريع'}</span>
+        <span className={`badge ${law.status === 'ساري' ? 'good' : 'warning'}`}>{law.status || 'ساري'}</span>
         <span className="badge">{law.year_short || '2014'}</span>
       </div>
 
@@ -39,7 +39,7 @@ export default function SearchResultCard({ law, onOpenReader, onOpenPreview, onO
         </div>
         <div>
           <span>آخر تعديل</span>
-          <strong>{law.amended_date || '—'}</strong>
+          <strong>{law.amended_date || (law.type?.includes('أصلية') ? 'لا ينطبق (نص أصلي)' : '—')}</strong>
         </div>
         <div>
           <span>عدد المواد</span>
@@ -59,7 +59,7 @@ export default function SearchResultCard({ law, onOpenReader, onOpenPreview, onO
           نص القانون
         </button>
 
-        {/* اسأل ديوان */}
+        {/* اسأل ديوان عن القانون */}
         <button className="btn" onClick={() => onOpenRelated && onOpenRelated(law)}>
           اسأل ديوان عن القانون
         </button>

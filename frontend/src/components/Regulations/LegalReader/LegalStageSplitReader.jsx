@@ -215,6 +215,8 @@ export default function LegalStageSplitReader({
   const [sideTab, setSideTab] = useState('info');
   const [fetchedTree, setFetchedTree] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [readerFontSize, setReaderFontSize] = useState(14);
+  const [copied, setCopied] = useState(false);
 
   const isRelated = Boolean(relatedDoc);
   const stage = STAGES_CONFIG[stageId] || STAGES_CONFIG['2014_original'];
@@ -244,7 +246,7 @@ export default function LegalStageSplitReader({
     else if (relatedDoc?.number && relatedDoc.number !== '—') raw = relatedDoc.number;
     else {
       const match = (title || '').match(/(?:رقم|الحكم رقم|قرار رقم)\s*(\d+(?:\s+لسنة\s+\d+)?)/);
-      raw = match ? match[1] : (relatedDoc?.year ? `لسنة ${relatedDoc.year}` : '140 لسنة 2022');
+      raw = match ? match[1] : (relatedDoc?.year ? `لسنة ${relatedDoc.year}` : '—');
     }
     return String(raw).replace(/(لسنة\s*\d{4})\s*لسنة\s*\d{4}/g, '$1').trim();
   })();
@@ -253,12 +255,10 @@ export default function LegalStageSplitReader({
     if (meta?.date && meta.date !== '—') return meta.date;
     if (meta?.issue_date && meta.issue_date !== '—') return meta.issue_date;
     if (relatedDoc?.date && relatedDoc.date !== '—') return relatedDoc.date;
-    const dateInSum = (meta?.summary || '').match(/(?:تاريخ الفصل|تاريخ النطق|تاريخ الصدور|بتاريخ)\s*[:\-]?\s*([0-9\-\/\.]{8,12})/);
-    if (dateInSum) return dateInSum[1].replace(/\s+/g, '');
     const yr = (title || '').match(/لسنة\s*(\d{4})/);
     if (yr) return yr[1];
     if (relatedDoc?.year) return relatedDoc.year;
-    return '14-11-2024';
+    return '—';
   })();
 
   const docCourt = (() => {
@@ -274,7 +274,34 @@ export default function LegalStageSplitReader({
     return isRuling ? 'محكمة أردنية مختصة' : 'الجريدة الرسمية';
   })();
 
-  const summaryDisplay = meta?.summary || `${title || 'الوثيقة'} — وثيقة قانونية مرتبطة بتطبيقات وتفسير أحكام التشريع.`;
+  // Document full text from database
+  const docFullText = (
+    relatedDoc?.full_text ||
+    relatedDoc?.text ||
+    relatedDoc?.نص_الحكم ||
+    relatedDoc?.نص_الوثيقة ||
+    meta?.full_text ||
+    meta?.text ||
+    meta?.نص_الحكم ||
+    meta?.نص_الوثيقة ||
+    meta?.مقتطف_الحكم ||
+    ''
+  ).trim();
+
+  // Genuine summary only - do NOT invent or show fake summary for judgments
+  const summaryDisplay = (!isRuling && meta?.summary && meta.summary !== docFullText) ? meta.summary : null;
+
+  const handleCopyFullText = () => {
+    if (!docFullText) return;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(docFullText)
+        .then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        })
+        .catch(() => {});
+    }
+  };
 
   // Stage-to-law-id mapping
   const STAGE_LAW_IDS = {
@@ -413,21 +440,35 @@ export default function LegalStageSplitReader({
                       <td className="meta-label">المصدر</td>
                       <td className="meta-value">{docCourt}</td>
                     </tr>
-                    <tr>
-                      <td className="meta-label" style={{ verticalAlign: 'top' }}>الملخص</td>
-                      <td 
-                        className="meta-value meta-summary-cell"
-                        style={{ 
-                          whiteSpace: 'normal', 
-                          wordBreak: 'break-word', 
-                          overflowWrap: 'anywhere', 
-                          textAlign: 'right', 
-                          lineHeight: 1.8 
-                        }}
-                      >
-                        {summaryDisplay}
-                      </td>
-                    </tr>
+                    {meta?.subject && (
+                      <tr>
+                        <td className="meta-label">موضوع الدعوى</td>
+                        <td className="meta-value">{meta.subject}</td>
+                      </tr>
+                    )}
+                    {meta?.outcome && (
+                      <tr>
+                        <td className="meta-label">منطوق القرار</td>
+                        <td className="meta-value">{meta.outcome}</td>
+                      </tr>
+                    )}
+                    {summaryDisplay && (
+                      <tr>
+                        <td className="meta-label" style={{ verticalAlign: 'top' }}>الملخص</td>
+                        <td 
+                          className="meta-value meta-summary-cell"
+                          style={{ 
+                            whiteSpace: 'normal', 
+                            wordBreak: 'break-word', 
+                            overflowWrap: 'anywhere', 
+                            textAlign: 'right', 
+                            lineHeight: 1.8 
+                          }}
+                        >
+                          {summaryDisplay}
+                        </td>
+                      </tr>
+                    )}
                   </>
                 ) : (
                   <>
@@ -460,18 +501,100 @@ export default function LegalStageSplitReader({
               </tbody>
             </table>
 
-            {/* In Image 2: Title Card + Document Content Preview Block */}
+            {/* Document Title Card + Real Full Text Content Block */}
             {isRelated && (
               <>
                 <div className="side-reader-title-card">
                   {title}
                 </div>
 
-                <div className="side-reader-content-block">
-                  <h3 className="side-reader-section-heading">محتوى الوثيقة</h3>
-                  <p className="side-reader-doc-summary">
-                    هذه مساحة عرض نموذجية لمحتوى الوثيقة المرتبطة. عند ربط بيانات المصدر الفعلية يُعرض النص الكامل هنا بنفس آلية عرض الوثائق الحالية.
-                  </p>
+                <div className="side-reader-content-block full-text-view">
+                  <div className="side-reader-content-toolbar">
+                    <div className="toolbar-right">
+                      <span className="doc-content-badge">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                          <polyline points="14 2 14 8 20 8"></polyline>
+                          <line x1="16" y1="13" x2="8" y2="13"></line>
+                          <line x1="16" y1="17" x2="8" y2="17"></line>
+                          <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                        {isRuling ? 'النص الكامل للحكم القضائي' : 'نص الوثيقة الكامل'}
+                      </span>
+                    </div>
+
+                    <div className="toolbar-left">
+                      <button 
+                        type="button" 
+                        className={`doc-tool-btn ${copied ? 'copied' : ''}`}
+                        onClick={handleCopyFullText}
+                        title="نسخ النص كاملاً"
+                      >
+                        {copied ? (
+                          <>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span style={{ color: '#16A34A', fontWeight: 700 }}>تم النسخ</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            <span>نسخ النص</span>
+                          </>
+                        )}
+                      </button>
+
+                      <div className="font-size-group">
+                        <button 
+                          type="button" 
+                          className="doc-tool-btn" 
+                          onClick={() => setReaderFontSize(f => Math.min(f + 1, 22))}
+                          title="تكبير الخط"
+                        >
+                          A+
+                        </button>
+                        <button 
+                          type="button" 
+                          className="doc-tool-btn" 
+                          onClick={() => setReaderFontSize(f => Math.max(f - 1, 12))}
+                          title="تصغير الخط"
+                        >
+                          A-
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {docFullText ? (
+                    <div 
+                      className="side-reader-ruling-body"
+                      style={{ fontSize: `${readerFontSize}px` }}
+                    >
+                      {docFullText.split('\n').filter(p => p.trim()).map((paragraph, pIdx) => {
+                        const pTrim = paragraph.trim();
+                        const isMainHeader = /^(المحكمة|المملكة الأردنية|وزارة العدل|رقم الدعوى|القرار الصادر|الهيئة الحاكمة)/.test(pTrim);
+                        const isSectionHead = /^(الطاعن|وكيله|المطعون ضدهما|المطعون ضده|بتاريخ|ورداً على أسباب الطعن|أسباب الطعن|وبالمحاكمة الجارية|بالتدقيق والمداولة|النتيجة)/.test(pTrim);
+                        const isDecree = /^(لذلك نقرر|قراراً وجاهياً|فلهذه الأسباب)/.test(pTrim);
+
+                        return (
+                          <p 
+                            key={pIdx} 
+                            className={`ruling-paragraph ${isMainHeader ? 'is-court-meta' : ''} ${isSectionHead ? 'is-section-head' : ''} ${isDecree ? 'is-final-decree' : ''}`}
+                          >
+                            {pTrim}
+                          </p>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="side-reader-empty-text">
+                      <p>جاري استرداد النص الكامل للوثيقة من قاعدة البيانات...</p>
+                    </div>
+                  )}
                 </div>
               </>
             )}
