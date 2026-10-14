@@ -5,6 +5,7 @@ import { consultantService } from '../services/consultantService';
 import { apiFetch } from '../services/api';
 import ModernSelect from '../components/ModernSelect';
 import FilterResetButton from '../components/FilterResetButton';
+import CurvedDatePicker from '../components/CurvedDatePicker/CurvedDatePicker';
 import './DiwanAppointmentsPage.css';
 
 const dayNames = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -1350,8 +1351,8 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
 
             {currentView === 'week' && stats.count === 0 && stats.totalCount > 0 && (
               <div style={{
-                background: '#F0F9FF',
-                border: '1px solid #BAE6FD',
+                background: 'rgba(13, 60, 92, 0.04)',
+                border: '1px solid rgba(13, 60, 92, 0.15)',
                 borderRadius: '12px',
                 padding: '10px 16px',
                 marginTop: '12px',
@@ -1359,15 +1360,15 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 fontSize: '12.5px',
-                color: '#0369A1',
+                color: '#0D3C5C',
                 direction: 'rtl'
               }}>
-                <span>💡 لا توجد جلسات مجدولة في هذا الأسبوع المعروض ({periodLabel}). لديك {stats.totalCount} استشارات في فترات أخرى.</span>
+                <span style={{ fontWeight: '600' }}>💡 لا توجد جلسات مجدولة في هذا الأسبوع المعروض ({periodLabel}). لديك {stats.totalCount} استشارات في فترات أخرى.</span>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={() => setCurrentView('month')} style={{ background: '#0284C7', color: '#fff', border: 'none', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', fontFamily: 'inherit' }}>
+                  <button onClick={() => setCurrentView('month')} style={{ background: '#0D3C5C', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', fontFamily: 'inherit', transition: 'all 0.15s ease' }}>
                     عرض الشهر بالكامل
                   </button>
-                  <button onClick={() => navigatePeriod(-1)} style={{ background: '#E0F2FE', color: '#0369A1', border: '1px solid #BAE6FD', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', fontFamily: 'inherit' }}>
+                  <button onClick={() => navigatePeriod(-1)} style={{ background: '#FFFFFF', color: '#0D3C5C', border: '1px solid rgba(13, 60, 92, 0.25)', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', fontFamily: 'inherit', transition: 'all 0.15s ease' }}>
                     الأسبوع السابق
                   </button>
                 </div>
@@ -2701,11 +2702,9 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
               <div className="ai-toolbar">
                 <div>
                   <label>تاريخ التحليل</label>
-                  <input
-                    className="num"
-                    type="date"
+                  <CurvedDatePicker
                     value={aiDate}
-                    onChange={(e) => setAiDate(e.target.value)}
+                    onChange={setAiDate}
                   />
                 </div>
                 <div>
@@ -3070,8 +3069,10 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                     {/* Date */}
                     <div className="field">
                       <label>التاريخ</label>
-                      <input className="num" type="date" value={newDate} min={iso(new Date())}
-                        onChange={(e) => { setNewDate(e.target.value); setNewSlot(null); setFormError(''); }} />
+                      <CurvedDatePicker
+                        value={newDate}
+                        onChange={(val) => { setNewDate(val); setNewSlot(null); setFormError(''); }}
+                      />
                     </div>
 
                     {/* Duration */}
@@ -3190,8 +3191,10 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                     </div>
                     <div className="field">
                       <label>التاريخ</label>
-                      <input className="num" type="date" value={newDate} min={iso(new Date())}
-                        onChange={(e) => { setNewDate(e.target.value); setNewSlot(null); setFormError(''); }} />
+                      <CurvedDatePicker
+                        value={newDate}
+                        onChange={(val) => { setNewDate(val); setNewSlot(null); setFormError(''); }}
+                      />
                       {isCurrentDateWorkingDay ? (
                         <div style={{ fontSize: '11px', color: '#0B2E4B', marginTop: '5px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

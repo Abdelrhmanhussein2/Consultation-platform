@@ -24,17 +24,17 @@
   display: flex;
   align-items: center;
   border: 1px solid #DCE4E9;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #FAFBFC;
-  padding: 2px 4px 2px 8px;
+  padding: 3px 6px 3px 10px;
   transition: all 0.2s ease;
 }
 
 .modern-date-input-box.active-focus,
 .modern-date-input-box:focus-within {
-  border-color: #2459B6;
+  border-color: #0D3C5C;
   background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(36, 89, 182, 0.12);
+  box-shadow: 0 0 0 3px rgba(13, 60, 92, 0.12);
 }
 
 .modern-date-input {
@@ -58,7 +58,7 @@
 .modern-date-toggle-btn {
   background: #F1F5F8;
   border: 1px solid #E2E8F0;
-  border-radius: 7px;
+  border-radius: 9px;
   width: 32px;
   height: 32px;
   display: flex;
@@ -66,6 +66,7 @@
   justify-content: center;
   cursor: pointer;
   font-size: 14px;
+  color: #0D3C5C;
   transition: all 0.15s ease;
 }
 
@@ -81,12 +82,12 @@
   top: calc(100% + 8px);
   right: 0;
   z-index: 2500 !important;
-  width: 290px;
+  width: 295px;
   background: #ffffff;
-  border-radius: 14px;
-  border: 1px solid #DCE5EA;
-  box-shadow: 0 20px 60px rgba(13, 60, 92, 0.28);
-  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(13, 60, 92, 0.12);
+  box-shadow: 0 25px 60px rgba(13, 60, 92, 0.22);
+  padding: 16px;
   direction: rtl;
   animation: regScaleUp 0.18s ease;
 }
@@ -95,34 +96,35 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .cal-nav-btn {
   border: 1px solid #E2E8F0;
   background: #F8FAFC;
   color: #0D3C5C;
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
   font-size: 16px;
   font-weight: 800;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s ease;
+  transition: all 0.15s ease;
 }
 
 .cal-nav-btn:hover {
   background: #0D3C5C;
   color: #ffffff;
+  border-color: #0D3C5C;
 }
 
 .cal-title-box {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .cal-month-name {
@@ -209,10 +211,12 @@
 }
 
 .cal-day-btn {
-  height: 30px;
+  height: 32px;
+  width: 32px;
+  margin: 0 auto;
   border: none;
   background: transparent;
-  border-radius: 7px;
+  border-radius: 10px;
   font-size: 12px;
   font-weight: 700;
   color: #334155;
@@ -224,18 +228,22 @@
 }
 
 .cal-day-btn:hover {
-  background: #E2E8F0;
+  background: rgba(13, 60, 92, 0.08);
   color: #0D3C5C;
+  transform: scale(1.05);
 }
 
 .cal-day-btn.today {
-  border: 1px dashed #F09A24;
-  color: #D68800;
+  border: 1.5px solid #F5A52A;
+  color: #D97706;
+  font-weight: 800;
 }
 
 .cal-day-btn.selected {
-  background: #0D3C5C !important;
+  background: linear-gradient(135deg, #0D3C5C 0%, #005D9C 100%) !important;
   color: #ffffff !important;
   font-weight: 800;
-  box-shadow: 0 4px 10px rgba(13, 60, 92, 0.25);
+  box-shadow: 0 4px 12px rgba(13, 60, 92, 0.35);
+  transform: scale(1.05);
+}
 }

@@ -132,6 +132,32 @@ export default function UserDashboard({ navigate }) {
     return matchesQuery && matchesYear && matchesType && matchesStatus;
   });
 
+  const handleLawClick = (law) => {
+    if (!law) return;
+    const lawId = law.law_id || law.id || '';
+    const lawTitle = law.title || '';
+    const lawType = law.type || '';
+    try {
+      sessionStorage.setItem('selected_semantic_law', JSON.stringify(law));
+    } catch (e) {
+      console.warn("Could not save law to sessionStorage:", e);
+    }
+    const params = new URLSearchParams();
+    if (lawId) params.set('lawId', lawId);
+    if (lawTitle) params.set('lawTitle', lawTitle);
+    if (lawType) params.set('lawType', lawType);
+    const queryString = params.toString();
+    navigate(`/regulations${queryString ? `?${queryString}` : ''}`);
+  };
+
+  const handleSearchSubmit = () => {
+    if (searchQuery && searchQuery.trim()) {
+      navigate(`/regulations?q=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      navigate('/regulations');
+    }
+  };
+
   // Calculate Quotas & Usage Percentages
   const coUsed = activeSub?.consultations_used ?? (appointments.length > 0 ? appointments.length : 12);
   const coTotal = activeSub?.consultations_total || 20;
@@ -278,12 +304,6 @@ export default function UserDashboard({ navigate }) {
         return true;
       })
     : defaultActivities.filter(a => activityFilter === 'all' || a.category === activityFilter);
-
-  const handleSearchSubmit = () => {
-    if (searchQuery.trim()) {
-      navigate(`/regulations?query=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
 
   if (loading) {
     return (
@@ -478,7 +498,9 @@ export default function UserDashboard({ navigate }) {
             <article
               key={law.law_id || idx}
               className="updateCard"
-              onClick={() => setSelectedUpdate(law)}
+              onClick={() => handleLawClick(law)}
+              style={{ cursor: 'pointer' }}
+              title="الانتقال إلى البحث الدلالي"
             >
               <div className="badges">
                 <span className="badge">{typeMap[law.type] || law.type || 'قانون'}</span>
@@ -687,10 +709,10 @@ export default function UserDashboard({ navigate }) {
                   className="applyFiltersBtn"
                   onClick={() => {
                     setSelectedUpdate(null);
-                    navigate(`/regulations?lawId=${selectedUpdate.law_id}`);
+                    handleLawClick(selectedUpdate);
                   }}
                 >
-                  فتح الوثيقة
+                  فتح في البحث الدلالي
                 </button>
                 <button className="resetFiltersBtn" onClick={() => setSelectedUpdate(null)}>
                   إغلاق
@@ -720,8 +742,14 @@ export default function UserDashboard({ navigate }) {
                     border: '1px solid #dce5ea',
                     display: 'flex',
                     justify: 'space-between',
-                    alignItems: 'center'
+                    alignItems: 'center',
+                    cursor: 'pointer'
                   }}
+                  onClick={() => {
+                    setShowAllUpdates(false);
+                    handleLawClick(law);
+                  }}
+                  title="الانتقال إلى البحث الدلالي"
                 >
                   <div>
                     <h4 style={{ margin: '0 0 4px 0', fontSize: '12.5px', color: '#123a54' }}>{law.title}</h4>
@@ -730,12 +758,13 @@ export default function UserDashboard({ navigate }) {
                   <button
                     className="resetFiltersBtn"
                     style={{ padding: '4px 12px', fontSize: '11px', minHeight: '32px' }}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setShowAllUpdates(false);
-                      navigate(`/regulations?lawId=${law.law_id}`);
+                      handleLawClick(law);
                     }}
                   >
-                    عرض ←
+                    عرض في البحث الدلالي ←
                   </button>
                 </div>
               ))}

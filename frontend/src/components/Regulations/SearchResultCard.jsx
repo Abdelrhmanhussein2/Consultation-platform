@@ -1,7 +1,7 @@
 // frontend/src/components/Regulations/SearchResultCard.jsx
 import React from 'react';
 
-export default function SearchResultCard({ law, onOpenReader, onOpenPreview, onOpenRelated, onOpenFullPage }) {
+export default function SearchResultCard({ law, onOpenReader, onOpenPreview, onOpenRelated, onOpenFullPage, isTargeted = false }) {
   // زر "نص القانون" → يفتح Modal المعاينة أولاً (حسب الاختيار)
   // زر "فتح النص الكامل" في الـ Modal → ينقل لصفحة مستقلة
 
@@ -11,12 +11,12 @@ export default function SearchResultCard({ law, onOpenReader, onOpenPreview, onO
   };
 
   return (
-    <article className="reg-result-card-item">
+    <article className={`reg-result-card-item ${isTargeted ? 'reg-card-fade-highlight' : ''}`}>
       {/* Badges */}
-      <div className="badges" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+      <div className="badges" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px', alignItems: 'center' }}>
         <span className="badge">{law.type || 'تشريع'}</span>
         <span className={`badge ${law.status === 'ساري' ? 'good' : 'warning'}`}>{law.status || 'ساري'}</span>
-        <span className="badge">{law.year_short || '2014'}</span>
+        <span className="badge">{law.year_short || law.year || '2014'}</span>
       </div>
 
       {/* Title */}

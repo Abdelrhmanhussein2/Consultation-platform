@@ -12,12 +12,16 @@ const ARABIC_DAYS = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خ
 export default function ModernDatePicker({
   value = '',
   onChange,
-  placeholder = 'DD/MM/YYYY',
+  placeholder = 'YYYY-MM-DD',
   label,
-  presets = true
+  presets = true,
+  format: propFormat
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value || '');
+
+  // Detect format: if value or prop is YYYY-MM-DD vs DD/MM/YYYY
+  const isIsoFormat = propFormat === 'YYYY-MM-DD' || (value && value.includes('-')) || (!propFormat && placeholder.includes('-'));
 
   // Calendar View State
   const now = new Date();
@@ -26,8 +30,32 @@ export default function ModernDatePicker({
 
   const containerRef = useRef(null);
 
+  // Sync internal state when value prop changes & set initial calendar month/year
   useEffect(() => {
     setInputValue(value || '');
+    if (value) {
+      if (value.includes('-')) {
+        const parts = value.split('-');
+        if (parts.length === 3) {
+          const y = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10) - 1;
+          if (!isNaN(y) && !isNaN(m)) {
+            setViewYear(y);
+            setViewMonth(m);
+          }
+        }
+      } else if (value.includes('/')) {
+        const parts = value.split('/');
+        if (parts.length === 3) {
+          const m = parseInt(parts[1], 10) - 1;
+          const y = parseInt(parts[2], 10);
+          if (!isNaN(y) && !isNaN(m)) {
+            setViewYear(y);
+            setViewMonth(m);
+          }
+        }
+      }
+    }
   }, [value]);
 
   // Close calendar popup on outside click
@@ -41,29 +69,24 @@ export default function ModernDatePicker({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Format manual typing as DD/MM/YYYY
+  // Format manual typing
   const handleInputChange = (e) => {
-    let val = e.target.value.replace(/[^\d/]/g, '');
-
-    // Auto add slashes
-    if (val.length === 2 && !val.includes('/')) {
-      val = val + '/';
-    } else if (val.length === 5 && val.split('/').length === 2) {
-      val = val + '/';
-    }
-
-    if (val.length > 10) val = val.slice(0, 10);
-
+    const val = e.target.value;
     setInputValue(val);
     if (onChange) onChange(val);
   };
 
-  const handleSelectDay = (day) => {
-    const d = String(day).padStart(2, '0');
-    const m = String(viewMonth + 1).padStart(2, '0');
-    const y = viewYear;
-    const dateStr = `${d}/${m}/${y}`;
+  const formatDateOutput = (y, mIndex, day) => {
+    const dStr = String(day).padStart(2, '0');
+    const mStr = String(mIndex + 1).padStart(2, '0');
+    if (isIsoFormat) {
+      return `${y}-${mStr}-${dStr}`;
+    }
+    return `${dStr}/${mStr}/${y}`;
+  };
 
+  const handleSelectDay = (day) => {
+    const dateStr = formatDateOutput(viewYear, viewMonth, day);
     setInputValue(dateStr);
     if (onChange) onChange(dateStr);
     setIsOpen(false);
@@ -87,14 +110,14 @@ export default function ModernDatePicker({
     }
   };
 
-  const handlePresetSelect = (presetYear, presetMonth = 0, presetDay = 1) => {
-    const d = String(presetDay).padStart(2, '0');
-    const m = String(presetMonth + 1).padStart(2, '0');
-    const y = presetYear;
-    const dateStr = `${d}/${m}/${y}`;
+  const handlePresetSelect = (dateObj) => {
+    const y = dateObj.getFullYear();
+    const m = dateObj.getMonth();
+    const d = dateObj.getDate();
+    const dateStr = formatDateOutput(y, m, d);
 
-    setViewYear(presetYear);
-    setViewMonth(presetMonth);
+    setViewYear(y);
+    setViewMonth(m);
     setInputValue(dateStr);
     if (onChange) onChange(dateStr);
     setIsOpen(false);
@@ -112,14 +135,26 @@ export default function ModernDatePicker({
 
   // Parse currently selected day if matching viewMonth and viewYear
   let selectedDay = null;
-  if (inputValue && inputValue.length === 10) {
-    const parts = inputValue.split('/');
-    if (parts.length === 3) {
-      const pD = parseInt(parts[0], 10);
-      const pM = parseInt(parts[1], 10) - 1;
-      const pY = parseInt(parts[2], 10);
-      if (pM === viewMonth && pY === viewYear) {
-        selectedDay = pD;
+  if (inputValue) {
+    if (inputValue.includes('-')) {
+      const parts = inputValue.split('-');
+      if (parts.length === 3) {
+        const pY = parseInt(parts[0], 10);
+        const pM = parseInt(parts[1], 10) - 1;
+        const pD = parseInt(parts[2], 10);
+        if (pM === viewMonth && pY === viewYear) {
+          selectedDay = pD;
+        }
+      }
+    } else if (inputValue.includes('/')) {
+      const parts = inputValue.split('/');
+      if (parts.length === 3) {
+        const pD = parseInt(parts[0], 10);
+        const pM = parseInt(parts[1], 10) - 1;
+        const pY = parseInt(parts[2], 10);
+        if (pM === viewMonth && pY === viewYear) {
+          selectedDay = pD;
+        }
       }
     }
   }
@@ -183,10 +218,17 @@ export default function ModernDatePicker({
           {/* Quick Presets Bar */}
           {presets && (
             <div className="calendar-presets-row">
-              <button type="button" onClick={() => handlePresetSelect(now.getFullYear(), now.getMonth(), now.getDate())}>اليوم</button>
-              <button type="button" onClick={() => handlePresetSelect(2024, 0, 1)}>2024</button>
-              <button type="button" onClick={() => handlePresetSelect(2020, 0, 1)}>2020</button>
-              <button type="button" onClick={() => handlePresetSelect(2014, 11, 31)}>2014</button>
+              <button type="button" onClick={() => handlePresetSelect(new Date())}>اليوم</button>
+              <button type="button" onClick={() => {
+                const tom = new Date();
+                tom.setDate(tom.getDate() + 1);
+                handlePresetSelect(tom);
+              }}>غداً</button>
+              <button type="button" onClick={() => {
+                const nextW = new Date();
+                nextW.setDate(nextW.getDate() + 7);
+                handlePresetSelect(nextW);
+              }}>الأسبوع القادم</button>
               <button type="button" className="clear" onClick={handleClear}>مسح</button>
             </div>
           )}

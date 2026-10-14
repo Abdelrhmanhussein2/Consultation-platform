@@ -136,8 +136,9 @@ function MainApp() {
     '/consultant/templates'
   ];
 
-  // A path is "user portal" if it exactly matches or is a sub-path of any portal prefix
-  const isUserPortal = userPortalPaths.some(p => currentPath === p || currentPath.startsWith(p + '/') || currentPath.startsWith('/consultants/'));
+  // A path is "user portal" if it exactly matches or is a sub-path of any portal prefix (ignoring query strings)
+  const currentBasePath = currentPath.split('?')[0];
+  const isUserPortal = userPortalPaths.some(p => currentBasePath === p || currentBasePath.startsWith(p + '/') || currentBasePath.startsWith('/consultants/'));
 
 
 
@@ -180,7 +181,7 @@ function MainApp() {
       return <LawDetailPage lawId={lawId} navigate={navigate} />;
     }
     if (pathname.startsWith('/regulations')) {
-      return <RegulationsPage navigate={navigate} />;
+      return <RegulationsPage navigate={navigate} currentPath={currentPath} />;
     }
     if (pathname === '/dates-design') {
       return <DateDesignPage />;
@@ -254,8 +255,8 @@ function MainApp() {
       if (pathname === '/consultant/earnings') {
         return <ConsultantEarningsPage navigate={navigate} />;
       }
-      if (pathname === '/consultant/semantic-search' || pathname.startsWith('/consultant/semantic-search/')) {
-        return <RegulationsPage navigate={navigate} />;
+      if (pathname === '/consultant/semantic-search' || pathname.startsWith('/consultant/semantic-search')) {
+        return <RegulationsPage navigate={navigate} currentPath={currentPath} />;
       }
       if (pathname === '/consultant/document-analysis') {
         return <DocumentAnalysisPage navigate={navigate} />;

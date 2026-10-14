@@ -1,14 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
 
 .diwan-appointments-root {
-  --bg: #f7f8fb;
-  --panel: #fff;
-  --line: #e7eaf0;
-  --muted: #818899;
-  --ink: #1d2330;
-  --cyan: #16b8d2;
-  --purple: #c543e5;
-  --shadow: 0 18px 50px rgba(22, 29, 48, 0.14);
+  --bg: #F8FAFC;
+  --panel: #ffffff;
+  --line: #E2E8F0;
+  --muted: #64748B;
+  --ink: #0D3C5C;
+  --cyan: #0D3C5C;
+  --purple: #005D9C;
+  --shadow: 0 10px 30px rgba(13, 60, 92, 0.08);
   --confirmed: #c9f3d4;
   --pending: #fff0b8;
   --progress: #d3efff;
@@ -116,15 +116,18 @@
 .diwan-appointments-root .primary {
   border: 0;
   border-radius: 8px;
-  background: #13b8d3;
+  background: linear-gradient(135deg, #0D3C5C 0%, #005D9C 100%);
   color: #fff;
-  padding: 9px 14px;
+  padding: 9px 16px;
   font-weight: 700;
+  box-shadow: 0 4px 12px rgba(13, 60, 92, 0.2);
   transition: 0.15s all;
 }
 
 .diwan-appointments-root .primary:hover {
-  background: #0ea2bb;
+  background: linear-gradient(135deg, #07253B 0%, #0D3C5C 100%);
+  box-shadow: 0 6px 16px rgba(13, 60, 92, 0.3);
+  transform: translateY(-1px);
 }
 
 .diwan-appointments-root .ghost {
@@ -139,19 +142,21 @@
 
 .diwan-appointments-root .ghost:hover {
   background: #f5f7fa;
-  color: #222834;
+  color: #0D3C5C;
+  border-color: #CBD5E1;
 }
 
 .diwan-appointments-root .avatar {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: #f3b5d5;
+  background: linear-gradient(135deg, #0D3C5C 0%, #005D9C 100%);
   display: grid;
   place-items: center;
   font-size: 11px;
-  font-weight: 900;
-  color: #1e2633;
+  font-weight: 800;
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(13, 60, 92, 0.2);
 }
 
 .diwan-appointments-root .user-block {
@@ -168,11 +173,12 @@
   font-size: 11px;
   font-weight: 800;
   display: block;
+  color: #0D3C5C;
 }
 
 .diwan-appointments-root .user-meta span {
   font-size: 9px;
-  color: #8b92a0;
+  color: #64748B;
 }
 
 .diwan-appointments-root .role-switch {
@@ -193,7 +199,7 @@
 }
 
 .diwan-appointments-root .role-switch button.active {
-  background: #222831;
+  background: #0D3C5C;
   color: #fff;
   font-weight: 700;
 }
@@ -216,6 +222,7 @@
   font-size: 18px;
   margin: 0;
   font-weight: 900;
+  color: #0D3C5C;
 }
 
 .diwan-appointments-root .calendar-actions {
@@ -251,15 +258,20 @@
   border: 0;
   border-left: 1px solid var(--line);
   background: #fff;
-  padding: 7px 11px;
-  color: #737b8c;
-  font-weight: 500;
+  padding: 7px 12px;
+  color: #64748B;
+  font-weight: 600;
   font-size: 11px;
   transition: 0.15s all;
 }
 
+.diwan-appointments-root .seg button:hover:not(.active) {
+  background: #F8FAFC;
+  color: #0D3C5C;
+}
+
 .diwan-appointments-root .seg button.active {
-  background: #222831;
+  background: #0D3C5C;
   color: #fff;
   font-weight: 700;
 }
@@ -270,21 +282,42 @@
 
 .diwan-appointments-root .stats {
   display: flex;
-  gap: 22px;
-  margin-top: 12px;
-  color: #8a91a0;
+  gap: 12px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.diwan-appointments-root .stat {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 10px 16px;
+  box-shadow: 0 2px 6px rgba(13, 60, 92, 0.04);
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 140px;
+}
+
+.diwan-appointments-root .stat:hover {
+  border-color: #BCCCDC;
+  box-shadow: 0 4px 12px rgba(13, 60, 92, 0.08);
+  transform: translateY(-1px);
 }
 
 .diwan-appointments-root .stat strong {
   display: block;
-  color: #222834;
-  font-size: 16px;
-  font-weight: 900;
+  color: #0D3C5C;
+  font-size: 15px;
+  font-weight: 800;
 }
 
 .diwan-appointments-root .stat span {
   font-size: 10px;
-  font-weight: 500;
+  font-weight: 600;
+  color: #64748B;
+  margin-top: 2px;
 }
 
 .diwan-appointments-root .filterbar {
@@ -412,13 +445,19 @@
 }
 
 .diwan-appointments-root .dayhead.today .date {
-  background: #1a222d;
+  background: #0D3C5C;
   color: #fff;
   border-radius: 50%;
   width: 28px;
   height: 28px;
   display: grid;
   place-items: center;
+  box-shadow: 0 3px 8px rgba(13, 60, 92, 0.28);
+}
+
+.diwan-appointments-root .dayhead.today .dow {
+  color: #0D3C5C;
+  font-weight: 800;
 }
 
 .diwan-appointments-root .timecol {
@@ -629,12 +668,13 @@
   z-index: 40;
   bottom: 82px;
   left: calc(50% - 92px);
-  background: #11161e;
+  background: #0D3C5C;
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 10px;
   padding: 5px;
   display: flex;
   gap: 3px;
-  box-shadow: 0 9px 26px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 25px rgba(13, 60, 92, 0.35);
   direction: ltr;
 }
 
@@ -748,36 +788,58 @@
 /* Modals & Overlays */
 .diwan-appointments-root .overlay {
   position: fixed;
-  inset: 0;
-  background: rgba(20, 24, 32, 0.55);
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 240px;
+  background: rgba(6, 30, 54, 0.55);
   z-index: 999999;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding-top: 85px;
-  padding-bottom: 30px;
-  backdrop-filter: blur(4px);
+  padding: 30px 20px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   overflow-y: auto;
+  direction: ltr; /* CRITICAL: Cancels RTL flexbox overflow bug that forces modal to the right */
+  box-sizing: border-box;
+  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.portal-wrapper.collapsed .diwan-appointments-root .overlay {
+  right: 80px;
+}
+
+@media (max-width: 640px) {
+  .diwan-appointments-root .overlay {
+    right: 80px;
+  }
 }
 
 .diwan-appointments-root .modal {
   width: 620px;
+  max-width: 95%;
   max-height: 88vh;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: var(--shadow);
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 25px 60px rgba(6, 30, 54, 0.25), 0 0 0 1px rgba(13, 60, 92, 0.08);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  direction: rtl;
+  direction: rtl; /* Modal content and header remain completely native RTL */
+  margin: auto !important; /* Forces dead-center horizontal and vertical alignment */
+  position: relative;
+  border-top: 4px solid #0D3C5C;
 }
 
 .diwan-appointments-root .modal.wide {
-  width: min(1040px, 94vw);
+  width: min(1040px, 92%);
+  max-width: 1040px;
 }
 
 .diwan-appointments-root .modal.ai-pro {
-  width: min(1120px, 94vw);
+  width: min(1120px, 92%);
+  max-width: 1120px;
 }
 
 .diwan-appointments-root .modal-head {
@@ -2342,13 +2404,20 @@
 }
 
 .diwan-appointments-root .pay-cta {
-  background: #11161e;
+  background: linear-gradient(135deg, #0D3C5C 0%, #005D9C 100%);
   color: #fff;
   border: 0;
-  border-radius: 7px;
-  padding: 8px 12px;
+  border-radius: 8px;
+  padding: 8px 16px;
   font-weight: 700;
   font-size: 11px;
+  box-shadow: 0 3px 8px rgba(13, 60, 92, 0.25);
+  transition: 0.15s all;
+}
+
+.diwan-appointments-root .pay-cta:hover {
+  background: linear-gradient(135deg, #07253B 0%, #0D3C5C 100%);
+  transform: translateY(-1px);
 }
 
 /* Toast */
@@ -2686,4 +2755,49 @@
   .diwan-appointments-root .video-stage {
     grid-template-columns: 1fr;
   }
+}
+
+/* Premium Curved Date Input Styling */
+.diwan-appointments-root input[type="date"],
+.diwan-appointments-root .curved-date-input {
+  border: 1.5px solid #CBD5E1 !important;
+  border-radius: 14px !important;
+  padding: 8px 14px !important;
+  background: #FFFFFF !important;
+  color: #0D3C5C !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  outline: none !important;
+  box-shadow: 0 2px 6px rgba(13, 60, 92, 0.04) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  cursor: pointer !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  display: block !important;
+}
+
+.diwan-appointments-root input[type="date"]:hover,
+.diwan-appointments-root .curved-date-input:hover {
+  border-color: #0D3C5C !important;
+  box-shadow: 0 3px 10px rgba(13, 60, 92, 0.08) !important;
+}
+
+.diwan-appointments-root input[type="date"]:focus,
+.diwan-appointments-root .curved-date-input:focus {
+  border-color: #0D3C5C !important;
+  box-shadow: 0 0 0 3px rgba(13, 60, 92, 0.15) !important;
+  background: #FFFFFF !important;
+}
+
+.diwan-appointments-root input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer !important;
+  border-radius: 8px !important;
+  padding: 4px !important;
+  filter: invert(18%) sepia(50%) saturate(1400%) hue-rotate(170deg) brightness(85%) contrast(95%) !important;
+  transition: transform 0.15s ease, background 0.15s ease !important;
+}
+
+.diwan-appointments-root input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  background: rgba(13, 60, 92, 0.08) !important;
+  transform: scale(1.1) !important;
 }

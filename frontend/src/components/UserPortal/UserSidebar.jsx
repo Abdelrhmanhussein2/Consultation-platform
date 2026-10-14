@@ -194,11 +194,16 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
   const { logout, user } = useAuth();
   const userRole = user?.role;
 
+  const isConsultant = userRole === 'consultant' || userRole === 'platform_consultant';
+  const cleanCurrentPath = (currentPath || '').split('?')[0];
+
   const isServicesGroupRoute = Boolean(
-    currentPath && typeof currentPath === 'string' && (
-      currentPath.startsWith('/consultant/services') ||
-      currentPath.startsWith('/consultant/schedule') ||
-      currentPath.startsWith('/consultant/sessions')
+    cleanCurrentPath && (
+      cleanCurrentPath.startsWith('/consultant/services') ||
+      cleanCurrentPath.startsWith('/consultant/schedule') ||
+      cleanCurrentPath.startsWith('/consultant/calendar') ||
+      (isConsultant && cleanCurrentPath === '/calendar') ||
+      cleanCurrentPath.startsWith('/consultant/sessions')
     )
   );
 
@@ -208,10 +213,10 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
     if (isServicesGroupRoute) {
       setServicesOpen(true);
     }
-  }, [currentPath]);
+  }, [cleanCurrentPath, isServicesGroupRoute]);
 
   const isSupportGroupRoute = Boolean(
-    currentPath && typeof currentPath === 'string' && currentPath.startsWith('/support')
+    cleanCurrentPath && cleanCurrentPath.startsWith('/support')
   );
 
   const [supportOpen, setSupportOpen] = useState(isSupportGroupRoute);
@@ -220,7 +225,7 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
     if (isSupportGroupRoute) {
       setSupportOpen(true);
     }
-  }, [currentPath]);
+  }, [cleanCurrentPath, isSupportGroupRoute]);
 
   const clientNavItems = [
     { path: '/dashboard', label: 'الرئيسية', IconComponent: DashboardIcon },
@@ -254,6 +259,7 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
       subItems: [
         { path: '/consultant/services', label: 'إدارة الخدمات' },
         { path: '/consultant/schedule', label: 'جدولة المواعيد' },
+        { path: '/consultant/calendar', label: 'جدول المواعيد والتقويم' },
         { path: '/consultant/sessions', label: 'الحجوزات والجلسات' }
       ]
     },
@@ -279,7 +285,6 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
     { path: '/settings', label: 'الإعدادات', IconComponent: SettingsIcon }
   ];
 
-  const isConsultant = userRole === 'consultant' || userRole === 'platform_consultant';
   const navItems = isConsultant ? consultantNavItems : clientNavItems;
 
   const handleLogout = () => {
@@ -289,38 +294,43 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
 
   const isItemActive = (item) => {
     if (!currentPath) return false;
+    const cleanPath = currentPath.split('?')[0];
+
     if (item.path === '/consultant/dashboard') {
       return (
-        currentPath === '/consultant/dashboard' ||
-        currentPath === '/consultant' ||
-        currentPath === '/consultant/' ||
-        (isConsultant && currentPath === '/dashboard')
+        cleanPath === '/consultant/dashboard' ||
+        cleanPath === '/consultant' ||
+        cleanPath === '/consultant/' ||
+        (isConsultant && cleanPath === '/dashboard')
       );
     }
     if (item.path === '/consultant/control-panel') {
-      return currentPath.startsWith('/consultant/control-panel');
+      return cleanPath.startsWith('/consultant/control-panel');
     }
     if (item.path === '/dashboard') {
-      return currentPath === '/dashboard';
+      return cleanPath === '/dashboard';
     }
     if (item.path === '/invoices') {
-      return currentPath === '/invoices' || currentPath.startsWith('/consultant/payments');
+      return cleanPath === '/invoices' || cleanPath.startsWith('/consultant/payments');
     }
     if (item.path === '/settings') {
-      return currentPath === '/settings' || currentPath.startsWith('/consultant/settings');
+      return cleanPath === '/settings' || cleanPath.startsWith('/consultant/settings');
     }
     if (item.path === '/consultant/semantic-search') {
       return (
-        currentPath === '/consultant/semantic-search' ||
-        currentPath.startsWith('/consultant/semantic-search') ||
-        currentPath === '/regulations' ||
-        currentPath.startsWith('/regulations')
+        cleanPath === '/consultant/semantic-search' ||
+        cleanPath.startsWith('/consultant/semantic-search') ||
+        cleanPath === '/regulations' ||
+        cleanPath.startsWith('/regulations')
       );
     }
-    if (item.path === '/tickets') {
-      return currentPath === '/tickets';
+    if (item.path === '/regulations') {
+      return cleanPath === '/regulations' || cleanPath.startsWith('/regulations');
     }
-    return currentPath === item.path || currentPath.startsWith(item.path + '/');
+    if (item.path === '/tickets') {
+      return cleanPath === '/tickets';
+    }
+    return cleanPath === item.path || cleanPath.startsWith(item.path + '/');
   };
 
   return (
@@ -372,10 +382,13 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
               }
             };
 
-            const exactSubMatch = item.subItems.find(sub => currentPath === sub.path);
+            const exactSubMatch = item.subItems.find(sub =>
+              cleanCurrentPath === sub.path ||
+              (sub.path === '/consultant/calendar' && cleanCurrentPath === '/calendar')
+            );
             const activeSubPath = exactSubMatch
               ? exactSubMatch.path
-              : item.subItems.find(sub => currentPath.startsWith(sub.path + '/'))?.path;
+              : item.subItems.find(sub => cleanCurrentPath.startsWith(sub.path + '/'))?.path;
 
             const isGroupActive = Boolean(activeSubPath);
             const GroupIcon = item.IconComponent || DashboardIcon;
@@ -418,7 +431,10 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
                 {isOpen && !isCollapsed && (
                   <div className="sidebar-sub-nav" style={{ paddingRight: '28px', display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '2px', marginBottom: '4px' }}>
                     {item.subItems.map((subItem) => {
-                      const isSubActive = currentPath === subItem.path || currentPath.startsWith(subItem.path + '/');
+                      const isSubActive =
+                        cleanCurrentPath === subItem.path ||
+                        cleanCurrentPath.startsWith(subItem.path + '/') ||
+                        (subItem.path === '/consultant/calendar' && cleanCurrentPath === '/calendar');
                       return (
                         <button
                           key={subItem.path}

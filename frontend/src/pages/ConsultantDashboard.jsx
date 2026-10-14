@@ -81,8 +81,30 @@ export default function ConsultantDashboard({ navigate }) {
     }
   };
 
+  const handleLawClick = (law) => {
+    if (!law) return;
+    const lawId = law.law_id || law.id || '';
+    const lawTitle = law.title || '';
+    const lawType = law.type || '';
+    try {
+      sessionStorage.setItem('selected_semantic_law', JSON.stringify(law));
+    } catch (e) {
+      console.warn("Could not save law to sessionStorage:", e);
+    }
+    const params = new URLSearchParams();
+    if (lawId) params.set('lawId', lawId);
+    if (lawTitle) params.set('lawTitle', lawTitle);
+    if (lawType) params.set('lawType', lawType);
+    const queryString = params.toString();
+    handleNavigate(`/consultant/semantic-search${queryString ? `?${queryString}` : ''}`);
+  };
+
   const handleSearchSubmit = () => {
-    // Submit search trigger
+    if (searchQuery && searchQuery.trim()) {
+      handleNavigate(`/consultant/semantic-search?q=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      handleNavigate('/consultant/semantic-search');
+    }
   };
 
   const fetchDashboardData = async () => {
@@ -667,7 +689,9 @@ export default function ConsultantDashboard({ navigate }) {
             <article
               key={law.law_id || law.id || idx}
               className="updateCard"
-              onClick={() => setSelectedUpdate(law)}
+              onClick={() => handleLawClick(law)}
+              style={{ cursor: 'pointer' }}
+              title="الانتقال إلى البحث الدلالي"
             >
               <div className="badges">
                 <span className="badge">{typeMap[law.type] || law.type || 'قانون'}</span>
@@ -1337,6 +1361,17 @@ export default function ConsultantDashboard({ navigate }) {
               <p style={{ fontSize: '13px', lineHeight: '1.8', color: '#475569' }}>
                 يتضمن هذا التشريع الأحكام الرسمية والتعليمات التطبيقية الصادرة عن الجريدة الرسمية ودائرة ضريبة الدخل والمبيعات بالمملكة الأردنية الهاشمية. يمكن للمستشار الاستناد لهذه المواد في تقديم المشورة القانونية والاحتساب الضريبي للعملاء.
               </p>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+                <button
+                  style={{ background: '#0D3C5C', color: '#fff', border: 'none', padding: '10px 22px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                  onClick={() => {
+                    handleLawClick(selectedUpdate);
+                    setSelectedUpdate(null);
+                  }}
+                >
+                  الانتقال إلى البحث الدلالي لهذا القانون ←
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1357,7 +1392,7 @@ export default function ConsultantDashboard({ navigate }) {
             <div className="consultantModalBody">
               <div className="modalList">
                 {filteredLaws.map((law, idx) => (
-                  <div key={law.law_id || law.id || idx} className="modalListRow" onClick={() => { setSelectedUpdate(law); setShowAllUpdates(false); }} style={{ cursor: 'pointer' }}>
+                  <div key={law.law_id || law.id || idx} className="modalListRow" onClick={() => { setShowAllUpdates(false); handleLawClick(law); }} style={{ cursor: 'pointer' }} title="الانتقال إلى البحث الدلالي">
                     <i className={law.status === 'active' ? 'green' : 'amber'}></i>
                     <div>
                       <b>{law.title}</b>
