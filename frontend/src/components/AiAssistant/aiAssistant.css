@@ -1,0 +1,5 @@
+/* frontend/src/components/AiAssistant/aiAssistant.css */
+@import './aiAssistantLayout.css';
+@import './aiAssistantComposer.css';
+@import './aiAssistantCards.css';
+@import './aiAssistantFeedback.css';

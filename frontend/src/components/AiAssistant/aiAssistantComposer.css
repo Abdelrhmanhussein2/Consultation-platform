@@ -1,0 +1,189 @@
+/* frontend/src/components/AiAssistant/aiAssistantComposer.css */
+.ai-composer-wrapper {
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  padding: 14px 20px 14px;
+  background: #FFFFFF;
+  border-top: 1px solid var(--ai-border);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.ai-composer-box {
+  width: 100%;
+  max-width: 860px;
+  background: #FFFFFF;
+  border: 1px solid #D5DEE5;
+  border-radius: 20px;
+  padding: 14px 18px 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.ai-composer-box:focus-within {
+  border-color: #0D3C5C;
+  box-shadow: 0 6px 24px rgba(13, 60, 92, 0.12);
+}
+.ai-composer-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.ai-composer-top .kicker-title {
+  font-size: 11.5px;
+  color: #64748B;
+  font-weight: 700;
+}
+.ai-mode-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FDE68A;
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.ai-textarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1E293B;
+  min-height: 52px;
+  max-height: 140px;
+}
+
+.ai-composer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #F1F5F9;
+  padding-top: 8px;
+  margin-top: 4px;
+}
+.ai-composer-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ai-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748B;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ai-tool-btn:hover {
+  background: #F1F5F9;
+  color: #0D3C5C;
+}
+.ai-tool-btn.active {
+  background: #ECFDF5;
+  color: #059669;
+  border-color: #A7F3D0;
+}
+.ai-send-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.35);
+  transition: transform 0.1s ease, opacity 0.15s ease;
+}
+
+.ai-send-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.ai-send-btn:not(:disabled):hover {
+  transform: scale(1.06);
+}
+
+/* Mode and Template Pills */
+.ai-mode-selector-wrap {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+.ai-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.ai-category-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 15px;
+  border-radius: 9999px;
+  border: 1px solid var(--ai-border-input);
+  background: var(--ai-card);
+  color: var(--ai-text-main);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ai-category-pill.active {
+  border-color: var(--ai-navy);
+  background: var(--ai-navy);
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(13, 60, 92, 0.25);
+}
+.ai-tmpl-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 13px;
+  border-radius: 9999px;
+  border: 1px solid var(--ai-border);
+  background: var(--ai-card);
+  color: var(--ai-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ai-tmpl-pill.active {
+  border-color: var(--ai-gold);
+  background: var(--ai-gold-light);
+  color: var(--ai-gold-dark);
+  font-weight: 800;
+}
+.ai-disclaimer-text {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--ai-text-muted);
+  text-align: center;
+}
