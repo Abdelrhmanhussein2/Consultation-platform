@@ -1,12 +1,10 @@
 // frontend/src/components/AiAssistant/AiAssistantView.jsx
-import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import React, { useState, useEffect, useCallback } from 'react';
 import './aiAssistantLayout.css';
 import './aiAssistantComposer.css';
 import './aiAssistantCards.css';
 import './aiAssistantFeedback.css';
-import { SAMPLE_CONVERSATIONS } from './aiAssistantData';
-import { generateAssistantResponse } from './aiAnswerGenerator';
+import { chatAiService } from '../../services/chatAiService';
 import AiHeader from './AiHeader';
 import AiHistoryDrawer from './AiHistoryDrawer';
 import AiMessageList from './AiMessageList';
@@ -14,12 +12,23 @@ import AiComposer from './AiComposer';
 import AiModeSelector from './AiModeSelector';
 import AiArticleModal from './AiArticleModal';
 
+const syncUrlWithChatId = (id) => {
+  try {
+    const url = new URL(window.location.href);
+    if (id) {
+      url.searchParams.set('id', id);
+    } else {
+      url.searchParams.delete('id');
+    }
+    window.history.replaceState({ path: url.toString() }, '', url.toString());
+  } catch (e) {
+    console.error('Failed to sync URL', e);
+  }
+};
+
 export default function AiAssistantView() {
-  const authContext = useAuth();
-  const token = authContext?.token || null;
-  const user = authContext?.user || null;
-  const [conversations, setConversations] = useState(SAMPLE_CONVERSATIONS);
-  const [activeConvoId, setActiveConvoId] = useState(SAMPLE_CONVERSATIONS[0].id);
+  const [conversations, setConversations] = useState([]);
+  const [activeConvoId, setActiveConvoId] = useState(null);
   const [inputText, setInputText] = useState('');
   const [activeMode, setActiveMode] = useState('consultation');
   const [activeTemplate, setActiveTemplate] = useState('none');
@@ -28,27 +37,101 @@ export default function AiAssistantView() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState(null);
 
-  const activeConvo = conversations.find((c) => c.id === activeConvoId) || null;
-  const messages = activeConvo ? activeConvo.messages : [];
+  const loadSessionDetail = useCallback(async (id) => {
+    try {
+      setActiveConvoId(id);
+      syncUrlWithChatId(id);
+      const detail = await chatAiService.getSession(id);
+      setConversations((prev) =>
+        prev.map((c) => (String(c.id) === String(id) ? { ...c, ...detail } : c))
+      );
+    } catch (err) {
+      console.error('Failed to load session detail', err);
+      // إذا كانت المحادثة غير موجودة أو غير مصرح له بها
+      syncUrlWithChatId(null);
+    }
+  }, []);
 
-  const handleSelectConvo = (id) => setActiveConvoId(id);
+  const loadSessions = useCallback(async () => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const urlChatId = params.get('id');
+
+      const list = await chatAiService.listSessions();
+      if (Array.isArray(list)) {
+        setConversations(list);
+        if (urlChatId) {
+          // فتح المحادثة المحددة في الرابط مباشرة
+          loadSessionDetail(urlChatId);
+        } else if (list.length > 0) {
+          loadSessionDetail(list[0].id);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load AI sessions', err);
+    }
+  }, [loadSessionDetail]);
+
+  useEffect(() => {
+    loadSessions();
+  }, [loadSessions]);
+
+  const activeConvo = conversations.find((c) => String(c.id) === String(activeConvoId)) || null;
+  const messages = activeConvo?.messages || [];
+
+  const handleSelectConvo = async (id) => {
+    setActiveConvoId(id);
+    await loadSessionDetail(id);
+  };
 
   const handleNewChat = () => {
     setActiveConvoId(null);
+    syncUrlWithChatId(null);
     setInputText('');
     setActiveTemplate('none');
   };
 
-  const handleDeleteConvo = (id) => {
-    setConversations((prev) => prev.filter((c) => c.id !== id));
-    if (activeConvoId === id) setActiveConvoId(null);
+  const handleDeleteConvo = async (id) => {
+    try {
+      await chatAiService.deleteSession(id);
+      setConversations((prev) => prev.filter((c) => String(c.id) !== String(id)));
+      if (String(activeConvoId) === String(id)) {
+        setActiveConvoId(null);
+        syncUrlWithChatId(null);
+      }
+    } catch (err) {
+      console.error('Failed to delete session', err);
+    }
   };
 
-  const handleToggleFavorite = () => {
-    if (!activeConvoId) return;
-    setConversations((prev) =>
-      prev.map((c) => (c.id === activeConvoId ? { ...c, is_favorite: !c.is_favorite } : c))
-    );
+  const handleToggleFavorite = async (targetId = null) => {
+    const id = targetId || activeConvoId;
+    if (!id) return;
+    try {
+      const res = await chatAiService.togglePinSession(id);
+      setConversations((prev) =>
+        prev
+          .map((c) =>
+            String(c.id) === String(id)
+              ? { ...c, is_favorite: res.is_pinned, is_pinned: res.is_pinned }
+              : c
+          )
+          .sort((a, b) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0))
+      );
+    } catch (err) {
+      console.error('Failed to toggle pin', err);
+    }
+  };
+
+  const handleEditTitle = async (id, newTitle) => {
+    try {
+      const res = await chatAiService.updateSession(id, { title: newTitle });
+      setConversations((prev) =>
+        prev.map((c) => (String(c.id) === String(id) ? { ...c, title: res.title || newTitle } : c))
+      );
+    } catch (err) {
+      alert(err.message || 'فشل تعديل عنوان المحادثة');
+    }
   };
 
   const handleShare = (type) => {
@@ -59,7 +142,7 @@ export default function AiAssistantView() {
       window.location.href = `mailto:?subject=${encodeURIComponent('استشارة ديوان')}&body=${encodeURIComponent(url)}`;
     } else {
       navigator.clipboard.writeText(url);
-      alert('تم نسخ الرابط بنجاح');
+      alert('تم نسخ رابط المحادثة بنجاح');
     }
   };
 
@@ -70,42 +153,71 @@ export default function AiAssistantView() {
     }
   };
 
-  const handleSendMessage = (textOverride) => {
+  const handleSendMessage = async (textOverride) => {
     const textToSend = (textOverride || inputText).trim();
     if (!textToSend || isThinking) return;
-
-    const userMsg = { id: `u-${Date.now()}`, role: 'user', content: textToSend };
-    let targetId = activeConvoId;
-
-    if (!targetId) {
-      targetId = `convo-${Date.now()}`;
-      const newConvo = {
-        id: targetId,
-        title: textToSend.slice(0, 48),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        is_favorite: false,
-        messages: [userMsg]
-      };
-      setConversations((prev) => [newConvo, ...prev]);
-      setActiveConvoId(targetId);
-    } else {
-      setConversations((prev) =>
-        prev.map((c) => (c.id === targetId ? { ...c, messages: [...c.messages, userMsg] } : c))
-      );
-    }
 
     setInputText('');
     setIsThinking(true);
 
-    setTimeout(() => {
-      const userName = user?.full_name || user?.name || user?.username || '';
-      const assistantMsg = generateAssistantResponse(textToSend, token, userName);
+    try {
+      let currentSessionId = activeConvoId;
+
+      // 1. Create a session on the backend if starting a new chat
+      if (!currentSessionId) {
+        const newSession = await chatAiService.createSession(textToSend.slice(0, 50));
+        currentSessionId = newSession.id;
+        setActiveConvoId(currentSessionId);
+        syncUrlWithChatId(currentSessionId);
+        setConversations((prev) => [
+          {
+            ...newSession,
+            messages: [{ id: `tmp-${Date.now()}`, role: 'user', content: textToSend }]
+          },
+          ...prev
+        ]);
+      } else {
+        // Optimistic UI update
+        setConversations((prev) =>
+          prev.map((c) =>
+            String(c.id) === String(currentSessionId)
+              ? {
+                  ...c,
+                  messages: [
+                    ...(c.messages || []),
+                    { id: `tmp-${Date.now()}`, role: 'user', content: textToSend }
+                  ]
+                }
+              : c
+          )
+        );
+      }
+
+      // 2. Send message to backend (encrypted & saved to DB)
+      const res = await chatAiService.sendMessage(currentSessionId, textToSend);
+
+      // 3. Update conversation with real backend messages and title
       setConversations((prev) =>
-        prev.map((c) => (c.id === targetId ? { ...c, messages: [...c.messages, assistantMsg] } : c))
+        prev.map((c) => {
+          if (String(c.id) === String(currentSessionId)) {
+            const existing = (c.messages || []).filter(
+              (m) => !String(m.id).startsWith('tmp-')
+            );
+            return {
+              ...c,
+              title: res.session?.title || c.title,
+              updated_at: res.session?.updated_at || new Date().toISOString(),
+              messages: [...existing, res.user_message, res.assistant_message]
+            };
+          }
+          return c;
+        })
       );
+    } catch (err) {
+      alert(err.message || 'حدث خطأ أثناء إرسال الرسالة للذكاء الاصطناعي');
+    } finally {
       setIsThinking(false);
-    }, 4500);
+    }
   };
 
   return (
@@ -114,7 +226,7 @@ export default function AiAssistantView() {
         onOpenHistory={() => setIsDrawerOpen(true)}
         onNewChat={handleNewChat}
         activeConvo={activeConvo}
-        onToggleFavorite={handleToggleFavorite}
+        onToggleFavorite={() => handleToggleFavorite(activeConvoId)}
         onPrint={() => window.print()}
         onShare={handleShare}
       />
@@ -154,9 +266,8 @@ export default function AiAssistantView() {
         activeId={activeConvoId}
         onSelect={handleSelectConvo}
         onDelete={handleDeleteConvo}
-        onToggleFavorite={(id, val) =>
-          setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, is_favorite: val } : c)))
-        }
+        onToggleFavorite={(id) => handleToggleFavorite(id)}
+        onEditTitle={handleEditTitle}
         onNewChat={handleNewChat}
       />
 

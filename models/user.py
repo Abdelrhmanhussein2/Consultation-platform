@@ -50,3 +50,4 @@ class User(Base):
     admin_action_logs = relationship("AdminActionLog", back_populates="admin")
     sent_messages = relationship("ChatMessage", back_populates="sender", foreign_keys="ChatMessage.sender_id")
     received_messages = relationship("ChatMessage", back_populates="receiver", foreign_keys="ChatMessage.receiver_id")
+    ai_chat_sessions = relationship("AIChatSession", back_populates="user", cascade="all, delete-orphan")

@@ -49,7 +49,7 @@ export default function AiMessageList({
 
           return (
             <div key={msg.id} className="ai-assistant-card">
-              <p className="ai-section-body" style={{ margin: 0 }}>
+              <p className="ai-section-body" style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
                 {msg.content}
               </p>
             </div>

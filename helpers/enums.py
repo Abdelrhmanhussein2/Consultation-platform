@@ -160,4 +160,9 @@ class AdminPermission(str, enum.Enum):
     manage_settings = "manage_settings"
 
 
+class AIChatRole(str, enum.Enum):
+    user      = "user"       # رسالة من المستخدم
+    assistant = "assistant"  # رد من الـ AI
+
+
 

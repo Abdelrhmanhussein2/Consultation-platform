@@ -2,7 +2,7 @@ from helpers.database import Base, get_db, engine, SessionLocal
 from helpers.enums import (
     UserRole, VerificationStatus, AppointmentStatus, ActorRole,
     RatingStatus, NotificationType, InvoiceType, InvoiceStatus,
-    PayoutStatus, LegalForm, SessionType
+    PayoutStatus, LegalForm, SessionType, AIChatRole
 )
 from models.user import User
 from models.specialization import Specialization
@@ -42,6 +42,8 @@ from models.subscription_plan import SubscriptionPlan, SubscriptionPlanCycle, Su
 from models.user_subscription import UserSubscription, SubscriptionUsageLog, SubscriptionTimeline
 from models.subscription_request import SubscriptionRequest, SubscriptionOrder
 from models.user_highlight import UserHighlight
+from models.ai_chat_session import AIChatSession
+from models.ai_chat_message import AIChatMessage
 
 
 

@@ -5,30 +5,63 @@ export const chatAiService = {
    * Generates AI reply for an appointment chat using Groq LLM backend
    */
   async generateReply(params) {
-    const res = await apiFetch('/api/chat/ai/generate-reply', {
+    return await apiFetch('/api/chat/ai/generate-reply', {
       method: 'POST',
-      body: JSON.stringify(params),
+      body: params,
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'فشل توليد الرد بالذكاء الاصطناعي');
-    }
-    return await res.json();
   },
 
   /**
    * Directly asks the AI tax advisor a question
    */
   async directAsk(question, context = null) {
-    const res = await apiFetch('/api/chat/ai/direct-ask', {
+    return await apiFetch('/api/chat/ai/direct-ask', {
       method: 'POST',
-      body: JSON.stringify({ question, context }),
+      body: { question, context },
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'فشل استدعاء المستشار الذكي');
-    }
-    return await res.json();
-  }
-};
+  },
 
+  /**
+   * AI Assistant Chat Sessions Endpoints
+   */
+  async listSessions(skip = 0, limit = 50) {
+    return await apiFetch(`/api/ai-assistant/sessions?skip=${skip}&limit=${limit}`);
+  },
+
+  async getSession(sessionId) {
+    return await apiFetch(`/api/ai-assistant/sessions/${sessionId}`);
+  },
+
+  async createSession(title = null) {
+    return await apiFetch('/api/ai-assistant/sessions', {
+      method: 'POST',
+      body: title ? { title } : {},
+    });
+  },
+
+  async updateSession(sessionId, { title, is_pinned }) {
+    return await apiFetch(`/api/ai-assistant/sessions/${sessionId}`, {
+      method: 'PATCH',
+      body: { title, is_pinned },
+    });
+  },
+
+  async togglePinSession(sessionId) {
+    return await apiFetch(`/api/ai-assistant/sessions/${sessionId}/pin`, {
+      method: 'POST',
+    });
+  },
+
+  async deleteSession(sessionId) {
+    return await apiFetch(`/api/ai-assistant/sessions/${sessionId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async sendMessage(sessionId, message) {
+    return await apiFetch(`/api/ai-assistant/sessions/${sessionId}/messages`, {
+      method: 'POST',
+      body: { message },
+    });
+  },
+};
