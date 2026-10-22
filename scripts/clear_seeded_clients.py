@@ -5,8 +5,8 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from helpers.database import SessionLocal
-from models.user import User
-from models.appointment import Appointment
+from models.users.user import User
+from models.consultations.appointment import Appointment
 
 def clear_seeded_clients():
     db = SessionLocal()

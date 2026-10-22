@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-from services.recurring_invoice_service import RecurringInvoiceService
+from services.finance.recurring_invoice_service import RecurringInvoiceService
 from schemes.recurring_invoice_schemes import RecurringInvoiceCreate, RecurringInvoiceUpdate
 
 class RecurringInvoiceController:

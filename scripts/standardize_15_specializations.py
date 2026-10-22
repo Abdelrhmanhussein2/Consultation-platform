@@ -8,10 +8,10 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from helpers.database import SessionLocal
-from models.specialization import Specialization
-from models.consultant_profile import ConsultantProfile
-from models.consultant_service import ConsultantService
-from models.consultant_credential import ConsultantCredential
+from models.consultations.specialization import Specialization
+from models.consultations.consultant_profile import ConsultantProfile
+from models.consultations.consultant_service import ConsultantService
+from models.consultations.consultant_credential import ConsultantCredential
 
 OFFICIAL_15 = [
     {"id": 1, "name": "ضريبة الدخل والمبيعات", "desc": "استشارات وتدقيق ضريبة الدخل وضريبة المبيعات العامة"},

@@ -5,8 +5,8 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from helpers.database import SessionLocal
-from models.user import User
-from services.auth_utils import hash_password
+from models.users.user import User
+from services.auth.auth_utils import hash_password
 
 def update_password():
     db = SessionLocal()

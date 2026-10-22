@@ -27,9 +27,9 @@ import helpers.database as db_mod
 
 from helpers.database import Base
 from helpers.enums import UserRole, AdminPermission
-from models.user import User
-from models.platform_setting import PlatformSetting
-from services.platform_settings_service import PlatformSettingsService
+from models.users.user import User
+from models.admin.platform_setting import PlatformSetting
+from services.admin.platform_settings_service import PlatformSettingsService
 from schemes import (
     BrandSettingsSchema, SystemSettingsSchema, CompanySettingsSchema,
     CurrencySettingsSchema, ContractSettingsSchema, SMTPSettingsSchema,

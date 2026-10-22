@@ -36,8 +36,8 @@ import helpers.database as db_mod
 
 from helpers.database import Base
 from helpers.enums import UserRole
-from models.user import User
-from models.automation_rule import AutomationRule
+from models.users.user import User
+from models.admin.automation_rule import AutomationRule
 from services.automation.evaluator import evaluate_condition, extract_field_value
 from services.automation.actions import execute_action
 from services.automation.engine import AutomationEngine

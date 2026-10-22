@@ -38,13 +38,13 @@ from helpers.enums import (
     UserRole, AppointmentStatus, ActorRole, PayoutStatus, NotificationType
 )
 from helpers.encryption import decrypt_text
-from models.user import User
-from models.consultant_profile import ConsultantProfile
-from models.consultant_bank_account import ConsultantBankAccount
-from models.payout_request import PayoutRequest
-from models.appointment import Appointment
-from models.notification import Notification
-from services.wallet_service import WalletService
+from models.users.user import User
+from models.consultations.consultant_profile import ConsultantProfile
+from models.finance.consultant_bank_account import ConsultantBankAccount
+from models.finance.payout_request import PayoutRequest
+from models.consultations.appointment import Appointment
+from models.communication.notification import Notification
+from services.finance.wallet_service import WalletService
 from schemes import ConsultantBankAccountCreate, AdminPayoutAction
 
 SQLITE_URL = "sqlite:///:memory:"

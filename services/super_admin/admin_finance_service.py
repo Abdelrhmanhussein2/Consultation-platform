@@ -7,7 +7,7 @@ from models import (
     User, ConsultantProfile, Invoice, PayoutRequest,
     UserRole, InvoiceStatus, PayoutStatus, NotificationType
 )
-from services.notification_service import NotificationService
+from services.communication.notification_service import NotificationService
 
 
 class AdminFinanceService:
@@ -109,7 +109,7 @@ class AdminFinanceService:
 
         # 3. Subscription Requests (if available)
         try:
-            from models.subscription_request import SubscriptionRequest
+            from models.finance.subscription_request import SubscriptionRequest
             sub_requests = db.query(SubscriptionRequest).order_by(SubscriptionRequest.created_at.desc()).all()
             for sr in sub_requests:
                 sr_user = db.query(User).filter(User.id == sr.user_id).first() if sr.user_id else None
@@ -253,7 +253,7 @@ class AdminFinanceService:
 
         # 3. Try SubscriptionRequest
         try:
-            from models.subscription_request import SubscriptionRequest
+            from models.finance.subscription_request import SubscriptionRequest
             sr = db.query(SubscriptionRequest).filter(SubscriptionRequest.id == payment_id).first()
             if sr:
                 sr_user = db.query(User).filter(User.id == sr.user_id).first() if sr.user_id else None
@@ -314,7 +314,7 @@ class AdminFinanceService:
             return {"status": "success", "message": "تم حذف الفاتورة بنجاح"}
 
         try:
-            from models.subscription_request import SubscriptionRequest
+            from models.finance.subscription_request import SubscriptionRequest
             sr = db.query(SubscriptionRequest).filter(SubscriptionRequest.id == payment_id).first()
             if sr:
                 db.delete(sr)

@@ -24,10 +24,10 @@ from sqlalchemy.orm import sessionmaker
 
 from helpers.database import Base
 from helpers.enums import UserRole, LegalForm, VerificationStatus
-from models.user import User
-from models.consultant_profile import ConsultantProfile
-from models.system_policy import SystemPolicy
-from models.user_policy_agreement import UserPolicyAgreement
+from models.users.user import User
+from models.consultations.consultant_profile import ConsultantProfile
+from models.admin.system_policy import SystemPolicy
+from models.users.user_policy_agreement import UserPolicyAgreement
 from services import UserService, SuperAdminService
 from schemes import UserCreate, ConsultantRegister
 

@@ -5,7 +5,7 @@ from decimal import Decimal
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from helpers.database import SessionLocal
-from models.consultant_profile import ConsultantProfile
+from models.consultations.consultant_profile import ConsultantProfile
 
 def update_ratings():
     db = SessionLocal()

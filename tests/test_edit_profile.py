@@ -24,7 +24,7 @@ from sqlalchemy.orm import sessionmaker
 
 from helpers.database import Base
 from helpers.enums import UserRole
-from models.user import User
+from models.users.user import User
 from services import UserService
 from controllers import UserController
 from schemes import UserProfileUpdate

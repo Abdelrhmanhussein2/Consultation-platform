@@ -22,7 +22,7 @@ from sqlalchemy.orm import sessionmaker
 
 from helpers.database import Base
 from helpers.enums import UserRole
-from models.user import User
+from models.users.user import User
 from services import UserService, EmailService
 from controllers.auth_controller import AuthController
 
@@ -72,7 +72,7 @@ def test_forgot_password_flow(db, redis_client):
     user_email = "test@platform.com"
     user_pw = "OldSecurePassword123!"
     
-    from services.auth_utils import hash_password, verify_password
+    from services.auth.auth_utils import hash_password, verify_password
     db_user = User(
         id=uuid.uuid4(),
         full_name="Test Client",
@@ -89,7 +89,7 @@ def test_forgot_password_flow(db, redis_client):
     mock_background_tasks = MagicMock()
 
     # 2. Trigger forgot password
-    with patch("services.email_service.EmailService.send_password_reset_email") as mock_send_email:
+    with patch("services.communication.email_service.EmailService.send_password_reset_email") as mock_send_email:
         response = AuthController.forgot_password(
             db=db,
             redis_client=redis_client,

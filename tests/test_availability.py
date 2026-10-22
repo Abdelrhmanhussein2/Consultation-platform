@@ -23,10 +23,10 @@ from sqlalchemy.orm import sessionmaker
 
 from helpers.database import Base
 from helpers.enums import UserRole, VerificationStatus, AppointmentStatus
-from models.user import User
-from models.consultant_profile import ConsultantProfile
-from models.appointment import Appointment
-from models.consultant_availability import ConsultantAvailability
+from models.users.user import User
+from models.consultations.consultant_profile import ConsultantProfile
+from models.consultations.appointment import Appointment
+from models.consultations.consultant_availability import ConsultantAvailability
 from services import UserService, ConsultantService, AppointmentService
 
 SQLITE_URL = "sqlite:///:memory:"

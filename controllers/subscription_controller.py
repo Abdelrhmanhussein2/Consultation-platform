@@ -5,11 +5,11 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, or_, and_, desc
 
-from models.subscription_plan import SubscriptionPlan, SubscriptionPlanCycle, SubscriptionPlanVersion
-from models.user_subscription import UserSubscription, SubscriptionUsageLog, SubscriptionTimeline
-from models.subscription_request import SubscriptionRequest, SubscriptionOrder
-from models.user import User
-from models.notification import Notification
+from models.finance.subscription_plan import SubscriptionPlan, SubscriptionPlanCycle, SubscriptionPlanVersion
+from models.finance.user_subscription import UserSubscription, SubscriptionUsageLog, SubscriptionTimeline
+from models.finance.subscription_request import SubscriptionRequest, SubscriptionOrder
+from models.users.user import User
+from models.communication.notification import Notification
 from helpers.enums import NotificationType, UserRole
 
 class SubscriptionController:
@@ -581,7 +581,7 @@ class SubscriptionController:
 
         # Dispatch Notification to User with WebSocket delivery
         try:
-            from services.notification_service import NotificationService
+            from services.communication.notification_service import NotificationService
             NotificationService.send(
                 db=db,
                 user_id=r.user_id,
@@ -631,7 +631,7 @@ class SubscriptionController:
         
         # Dispatch Notification to User with WebSocket delivery
         try:
-            from services.notification_service import NotificationService
+            from services.communication.notification_service import NotificationService
             NotificationService.send(
                 db=db,
                 user_id=r.user_id,

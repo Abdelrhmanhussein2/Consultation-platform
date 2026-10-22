@@ -3,7 +3,7 @@ from typing import Dict, Any
 from sqlalchemy.orm import Session
 
 from models import User
-from services.platform_settings_service import PlatformSettingsService
+from services.admin.platform_settings_service import PlatformSettingsService
 
 logger = logging.getLogger(__name__)
 

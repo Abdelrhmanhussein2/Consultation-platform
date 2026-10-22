@@ -1,35 +1,47 @@
-from services.auth_utils import hash_password, verify_password
-from services.services import (
-    UserService, ConsultantService, ServiceExpansionService,
-    AppointmentService, RatingService, InvoiceService, SpecializationService
+# Re-exports from modular subpackages
+from services.auth import (
+    hash_password, verify_password,
+    create_access_token, create_refresh_token, verify_access_token, verify_refresh_token,
+    TokenService
 )
-from services.daily_service import DailyService
-from services.legal_graph_service import LegalGraphService
-from services.docx_parser_service import DocxParserService
-from services.token_service import TokenService
-from services.notification_service import NotificationService
-from services.super_admin_service import SuperAdminService
-from services.embeddings_service import EmbeddingsService
-from services.vector_index_service import VectorIndexService
-from services.hybrid_search_service import HybridSearchService
-from services.llm_service import LLMService
-from services.chat_service import ChatService
-from services.email_service import EmailService
-from services.google_calendar_service import GoogleCalendarService
-from services.ticket_service import TicketService
-from services.admin_permission_service import AdminPermissionService
-from services.wallet_service import WalletService
-from services.live_notification_service import LiveNotificationService
-from services.platform_settings_service import PlatformSettingsService
-from services.recurring_invoice_service import RecurringInvoiceService
-from services.refunded_invoice_service import RefundedInvoiceService
+from services.ai import (
+    BaseLLM, GroqLLM, OpenAILLM, LLMService,
+    BaseEmbeddings, CohereEmbeddings, EmbeddingsService, VectorIndexService,
+    Neo4jRAGService, HybridSearchService, AIChatService, LegalGraphService, DocxParserService
+)
+from services.finance import (
+    InvoiceService, RecurringInvoiceService, RefundedInvoiceService, WalletService
+)
+from services.consultations import (
+    AppointmentService, ConsultantService, DailyService, GoogleCalendarService,
+    SpecializationService, ServiceExpansionService, RatingService
+)
+from services.users import UserService
+from services.admin import (
+    SuperAdminService, AdminPermissionService, PlatformSettingsService
+)
+from services.communication import (
+    NotificationService, LiveNotificationService, EmailService, ChatService, TicketService
+)
 
-
-
-
-
-
-
-
-
-
+__all__ = [
+    # Auth
+    "hash_password", "verify_password",
+    "create_access_token", "create_refresh_token", "verify_access_token", "verify_refresh_token",
+    "TokenService",
+    # AI
+    "BaseLLM", "GroqLLM", "OpenAILLM", "LLMService",
+    "BaseEmbeddings", "CohereEmbeddings", "EmbeddingsService", "VectorIndexService",
+    "Neo4jRAGService", "HybridSearchService", "AIChatService", "LegalGraphService", "DocxParserService",
+    # Finance
+    "InvoiceService", "RecurringInvoiceService", "RefundedInvoiceService", "WalletService",
+    # Consultations
+    "AppointmentService", "ConsultantService", "DailyService", "GoogleCalendarService",
+    "SpecializationService", "ServiceExpansionService", "RatingService",
+    # Users
+    "UserService",
+    # Admin
+    "SuperAdminService", "AdminPermissionService", "PlatformSettingsService",
+    # Communication
+    "NotificationService", "LiveNotificationService", "EmailService", "ChatService", "TicketService",
+]

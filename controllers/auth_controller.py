@@ -8,11 +8,11 @@ from helpers.config import settings
 from helpers.enums import UserRole, VerificationStatus
 from schemes import UserCreate, ConsultantRegister, UserLogin
 from services import UserService, EmailService
-from services.auth_utils import (
+from services.auth.auth_utils import (
     verify_password, create_access_token, create_refresh_token,
     verify_refresh_token
 )
-from services.token_service import TokenService
+from services.auth.token_service import TokenService
 
 class AuthController:
     @staticmethod
@@ -85,7 +85,7 @@ class AuthController:
 
         # ── Notify Admins in Database ─────────────────────────────────
         try:
-            from services.notification_service import NotificationService
+            from services.communication.notification_service import NotificationService
             admins = db.query(User).filter(User.role.in_([UserRole.admin, UserRole.super_admin])).all()
             for adm in admins:
                 NotificationService.send(

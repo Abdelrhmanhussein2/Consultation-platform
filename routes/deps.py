@@ -7,8 +7,8 @@ from helpers.database import get_db
 from helpers.redis_client import get_redis
 from helpers.enums import UserRole, VerificationStatus, AdminPermission
 from services import UserService
-from services.auth_utils import verify_access_token
-from services.token_service import TokenService
+from services.auth.auth_utils import verify_access_token
+from services.auth.token_service import TokenService
 from models import User
 import redis
 

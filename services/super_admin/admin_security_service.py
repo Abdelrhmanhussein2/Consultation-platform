@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, func
 
 from models import User, AdminActionLog, PlatformSetting, RefreshToken
-from models.file_download_log import FileDownloadLog
+from models.users.file_download_log import FileDownloadLog
 
 
 class AdminSecurityService:

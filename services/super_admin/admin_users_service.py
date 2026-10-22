@@ -11,8 +11,8 @@ from models import (
     Specialization, ConsultantCredential
 )
 from helpers.enums import EntityType, LegalForm, BusinessSector
-from services.notification_service import NotificationService
-from services.auth_utils import hash_password
+from services.communication.notification_service import NotificationService
+from services.auth.auth_utils import hash_password
 
 
 class AdminUsersService:
@@ -191,9 +191,9 @@ class AdminUsersService:
         Retrieves users with advanced filtering, searching and left joins for consultant info.
         Includes real sessions_count, credentials_count, ratings from database.
         """
-        from models.support_ticket import SupportTicket
-        from models.rating import Rating
-        from models.user_subscription import UserSubscription
+        from models.communication.support_ticket import SupportTicket
+        from models.consultations.rating import Rating
+        from models.finance.user_subscription import UserSubscription
 
         consultant_sessions_subq = (
             db.query(
@@ -829,7 +829,7 @@ class AdminUsersService:
             raise ValueError("المستخدم غير موجود")
 
         # 1. User documents
-        from models.user_document import UserDocument
+        from models.users.user_document import UserDocument
         documents = db.query(UserDocument).filter(UserDocument.user_id == user_id).order_by(UserDocument.created_at.desc()).all()
         doc_list = [{
             "id": str(d.id),
@@ -840,11 +840,11 @@ class AdminUsersService:
         } for d in documents]
 
         # 2. Appointments / Consultations (both as client and as consultant)
-        from models.consultant_profile import ConsultantProfile
+        from models.consultations.consultant_profile import ConsultantProfile
         from sqlalchemy import or_
         consultant_profile = db.query(ConsultantProfile).filter(ConsultantProfile.user_id == user_id).first()
 
-        from models.appointment import Appointment
+        from models.consultations.appointment import Appointment
         filters = [Appointment.user_id == user_id]
         if consultant_profile:
             filters.append(Appointment.consultant_id == consultant_profile.id)
@@ -907,7 +907,7 @@ class AdminUsersService:
             })
 
         # 3. Active Subscription
-        from models.user_subscription import UserSubscription
+        from models.finance.user_subscription import UserSubscription
         sub = db.query(UserSubscription).filter(UserSubscription.user_id == user_id).order_by(UserSubscription.created_at.desc()).first()
         sub_data = None
         if sub:
@@ -946,7 +946,7 @@ class AdminUsersService:
             }
 
         # 4. Support Tickets
-        from models.support_ticket import SupportTicket
+        from models.communication.support_ticket import SupportTicket
         tickets = db.query(SupportTicket).filter(SupportTicket.submitted_by == user_id).order_by(SupportTicket.created_at.desc()).limit(20).all()
         status_map = {
             "open": "مفتوحة",
@@ -1024,7 +1024,7 @@ class AdminUsersService:
             })
 
         # 5. Invoices
-        from models.invoice import Invoice
+        from models.finance.invoice import Invoice
         invoices = db.query(Invoice).filter(
             or_(Invoice.issued_to_user_id == user_id, Invoice.customer_name.ilike(f"%{user.full_name}%"))
         ).order_by(Invoice.created_at.desc()).limit(30).all()
@@ -1054,7 +1054,7 @@ class AdminUsersService:
             })
 
         # 7. Notifications / Alerts
-        from models.notification import Notification
+        from models.communication.notification import Notification
         notifs = db.query(Notification).filter(Notification.user_id == user_id).order_by(Notification.created_at.desc()).limit(20).all()
         notif_list = [{
             "id": str(n.id),
@@ -1065,7 +1065,7 @@ class AdminUsersService:
         } for n in notifs]
 
         # 8. Real Ratings from Database
-        from models.rating import Rating
+        from models.consultations.rating import Rating
         if consultant_profile:
             user_ratings = db.query(Rating).filter(
                 or_(Rating.user_id == user_id, Rating.consultant_id == consultant_profile.id)
@@ -1087,7 +1087,7 @@ class AdminUsersService:
         } for r in user_ratings]
 
         # 9. Admin Action Logs & Activity Timeline
-        from models.admin_action_log import AdminActionLog
+        from models.admin.admin_action_log import AdminActionLog
         logs = db.query(AdminActionLog).filter(
             or_(AdminActionLog.target_entity_id == user_id, AdminActionLog.admin_id == user_id)
         ).order_by(AdminActionLog.created_at.desc()).limit(25).all()
@@ -1103,7 +1103,7 @@ class AdminUsersService:
         # 10. Consultant Professional Profile & Payouts (if applicable)
         consultant_data = None
         if consultant_profile:
-            from models.consultant_credential import ConsultantCredential
+            from models.consultations.consultant_credential import ConsultantCredential
             creds = db.query(ConsultantCredential).filter(ConsultantCredential.consultant_id == consultant_profile.id).all()
             cred_list = [{
                 "id": str(c.id),
@@ -1114,7 +1114,7 @@ class AdminUsersService:
                 "status": "موثق" if str(c.status).lower() in ("approved", "verified", "موثق") else "قيد المراجعة"
             } for c in creds]
 
-            from models.payout_request import PayoutRequest
+            from models.finance.payout_request import PayoutRequest
             payouts = db.query(PayoutRequest).filter(PayoutRequest.consultant_id == consultant_profile.id).order_by(PayoutRequest.requested_at.desc()).limit(20).all()
             payout_list = [{
                 "id": str(p.id),
@@ -1143,7 +1143,7 @@ class AdminUsersService:
             }
 
         # 11. Real Chat Messages
-        from models.chat_message import ChatMessage
+        from models.communication.chat_message import ChatMessage
         messages = db.query(ChatMessage).filter(
             or_(ChatMessage.sender_id == user_id, ChatMessage.receiver_id == user_id)
         ).order_by(ChatMessage.created_at.asc()).limit(50).all()
@@ -1163,7 +1163,7 @@ class AdminUsersService:
             })
 
         # 11. Real Online Status & Last Seen from refresh_tokens table
-        from models.refresh_token import RefreshToken
+        from models.auth.refresh_token import RefreshToken
         from datetime import datetime, timezone, timedelta
 
         last_token = db.query(RefreshToken).filter(

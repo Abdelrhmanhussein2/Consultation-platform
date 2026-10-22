@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 import logging
 
-from models.admin_action_log import AdminActionLog
-from models.notification import Notification
+from models.admin.admin_action_log import AdminActionLog
+from models.communication.notification import Notification
 from helpers.enums import NotificationType
 
 logger = logging.getLogger(__name__)

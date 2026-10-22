@@ -284,7 +284,7 @@ class SuperAdminController:
     @staticmethod
     def list_payouts(db: Session, status: str = None, limit: int = 50, offset: int = 0):
         """Lists all consultant payout requests with optional status filter."""
-        from services.wallet_service import WalletService
+        from services.finance.wallet_service import WalletService
         from helpers.enums import PayoutStatus
         status_enum = None
         if status:
@@ -297,7 +297,7 @@ class SuperAdminController:
     @staticmethod
     def process_payout(db: Session, payout_id: str, current_user, action_in):
         """Approves, transfers with receipt, or rejects a payout request."""
-        from services.wallet_service import WalletService
+        from services.finance.wallet_service import WalletService
         try:
             payout_uuid = uuid.UUID(payout_id)
         except ValueError:

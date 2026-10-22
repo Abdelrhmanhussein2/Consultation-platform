@@ -42,7 +42,7 @@ class LegalController:
             
             # 2.5 Index structure in Qdrant
             try:
-                from services.vector_index_service import VectorIndexService
+                from services.ai.vector_index_service import VectorIndexService
                 VectorIndexService.index_law(
                     law_id=law_id,
                     title=title,
@@ -169,7 +169,7 @@ class LegalController:
                 
             # 3.5 Index judgment in Qdrant
             try:
-                from services.vector_index_service import VectorIndexService
+                from services.ai.vector_index_service import VectorIndexService
                 VectorIndexService.index_judgment(judgment)
             except Exception as e:
                 print(f"Warning: Could not index judgment in Qdrant: {e}")
@@ -253,7 +253,7 @@ class LegalController:
     def search(query: str, limit: int = 5):
         # Try hybrid/vector search first
         try:
-            from services.hybrid_search_service import HybridSearchService
+            from services.ai.hybrid_search_service import HybridSearchService
             results = HybridSearchService.search(query, limit)
             if results:
                 return results

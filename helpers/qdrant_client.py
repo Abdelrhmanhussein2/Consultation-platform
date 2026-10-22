@@ -11,13 +11,21 @@ class QdrantDB:
 
     def connect(self) -> QdrantClient:
         if not self._client:
-            api_key = settings.QDRANT_API_KEY if settings.QDRANT_API_KEY else None
-            self._client = QdrantClient(
-                host=settings.QDRANT_HOST,
-                port=settings.QDRANT_PORT,
-                api_key=api_key
-            )
+            api_key = settings.QDRANT_API_KEY.strip() if settings.QDRANT_API_KEY and settings.QDRANT_API_KEY.strip() else None
+            host_val = (getattr(settings, "QDRANT_HOST", None) or "127.0.0.1").strip()
+            
+            # إذا كان المدخل رابط سحابي كامل (مثل Qdrant Cloud)
+            if host_val.startswith("http://") or host_val.startswith("https://"):
+                self._client = QdrantClient(url=host_val, api_key=api_key)
+            else:
+                port_val = getattr(settings, "QDRANT_PORT", 6333)
+                try:
+                    port_val = int(port_val) if port_val else 6333
+                except (ValueError, TypeError):
+                    port_val = 6333
+                self._client = QdrantClient(host=host_val, port=port_val, api_key=api_key)
         return self._client
+
 
     @property
     def client(self) -> QdrantClient:

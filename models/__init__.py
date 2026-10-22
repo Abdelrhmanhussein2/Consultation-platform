@@ -4,48 +4,67 @@ from helpers.enums import (
     RatingStatus, NotificationType, InvoiceType, InvoiceStatus,
     PayoutStatus, LegalForm, SessionType, AIChatRole
 )
-from models.user import User
-from models.specialization import Specialization
-from models.consultant_profile import ConsultantProfile
-from models.consultant_credential import ConsultantCredential
-from models.service_expansion_request import ServiceExpansionRequest
-from models.consultant_service import ConsultantService
-from models.appointment import Appointment
-from models.appointment_cancellation import AppointmentCancellation
-from models.rating import Rating
-from models.notification import Notification
-from models.invoice import Invoice
-from models.recurring_invoice import RecurringInvoice
-from models.refunded_invoice import RefundedInvoice
-from models.admin_action_log import AdminActionLog
-from models.refresh_token import RefreshToken
-from models.file_download_log import FileDownloadLog
-from models.automation_rule import AutomationRule
 
-from models.chat_message import ChatMessage
-from models.consultant_availability import ConsultantAvailability
-from models.support_ticket import SupportTicket
-from models.ticket_reply import TicketReply
-from models.ticket_attachment import TicketAttachment
-from models.system_policy import SystemPolicy
+# Auth models
+from models.auth import RefreshToken
 
+# AI models
+from models.ai import AIChatSession, AIChatMessage
 
-from models.user_policy_agreement import UserPolicyAgreement
-from models.consultant_bank_account import ConsultantBankAccount
-from models.payout_request import PayoutRequest
-from models.platform_setting import PlatformSetting
-from models.user_document import UserDocument
-from models.official_template import OfficialTemplate
-from models.favorite import Favorite
-from models.user_folder import UserFolder, UserFolderItem, UserFolderFile
-from models.subscription_plan import SubscriptionPlan, SubscriptionPlanCycle, SubscriptionPlanVersion
-from models.user_subscription import UserSubscription, SubscriptionUsageLog, SubscriptionTimeline
-from models.subscription_request import SubscriptionRequest, SubscriptionOrder
-from models.user_highlight import UserHighlight
-from models.ai_chat_session import AIChatSession
-from models.ai_chat_message import AIChatMessage
+# Finance models
+from models.finance import (
+    Invoice, RecurringInvoice, RefundedInvoice, PayoutRequest, ConsultantBankAccount,
+    SubscriptionPlan, SubscriptionPlanCycle, SubscriptionPlanVersion,
+    UserSubscription, SubscriptionUsageLog, SubscriptionTimeline,
+    SubscriptionRequest, SubscriptionOrder
+)
 
+# Consultations models
+from models.consultations import (
+    Appointment, AppointmentCancellation, ConsultantProfile, ConsultantCredential,
+    ConsultantService, ConsultantAvailability, ServiceExpansionRequest,
+    Specialization, Rating
+)
 
+# Users & Content models
+from models.users import (
+    User, UserDocument, UserFolder, UserFolderItem, UserFolderFile,
+    UserHighlight, Favorite, OfficialTemplate, FileDownloadLog, UserPolicyAgreement
+)
 
+# Admin models
+from models.admin import (
+    AdminActionLog, PlatformSetting, SystemPolicy, AutomationRule
+)
 
+# Communication models
+from models.communication import (
+    Notification, ChatMessage, SupportTicket, TicketReply, TicketAttachment
+)
 
+__all__ = [
+    "Base", "get_db", "engine", "SessionLocal",
+    "UserRole", "VerificationStatus", "AppointmentStatus", "ActorRole",
+    "RatingStatus", "NotificationType", "InvoiceType", "InvoiceStatus",
+    "PayoutStatus", "LegalForm", "SessionType", "AIChatRole",
+    # Auth
+    "RefreshToken",
+    # AI
+    "AIChatSession", "AIChatMessage",
+    # Finance
+    "Invoice", "RecurringInvoice", "RefundedInvoice", "PayoutRequest", "ConsultantBankAccount",
+    "SubscriptionPlan", "SubscriptionPlanCycle", "SubscriptionPlanVersion",
+    "UserSubscription", "SubscriptionUsageLog", "SubscriptionTimeline",
+    "SubscriptionRequest", "SubscriptionOrder",
+    # Consultations
+    "Appointment", "AppointmentCancellation", "ConsultantProfile", "ConsultantCredential",
+    "ConsultantService", "ConsultantAvailability", "ServiceExpansionRequest",
+    "Specialization", "Rating",
+    # Users
+    "User", "UserDocument", "UserFolder", "UserFolderItem", "UserFolderFile",
+    "UserHighlight", "Favorite", "OfficialTemplate", "FileDownloadLog", "UserPolicyAgreement",
+    # Admin
+    "AdminActionLog", "PlatformSetting", "SystemPolicy", "AutomationRule",
+    # Communication
+    "Notification", "ChatMessage", "SupportTicket", "TicketReply", "TicketAttachment",
+]

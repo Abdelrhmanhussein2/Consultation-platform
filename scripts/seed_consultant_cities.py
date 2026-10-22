@@ -4,8 +4,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from helpers.database import SessionLocal
-from models.consultant_profile import ConsultantProfile
-from models.user import User
+from models.consultations.consultant_profile import ConsultantProfile
+from models.users.user import User
 
 def update_cities():
     db = SessionLocal()

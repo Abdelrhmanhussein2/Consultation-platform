@@ -8,10 +8,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from helpers.database import SessionLocal, engine, Base
 from helpers.enums import UserRole, VerificationStatus, EntityType
-from models.user import User
-from models.subscription_plan import SubscriptionPlan, SubscriptionPlanCycle, SubscriptionPlanVersion
-from models.user_subscription import UserSubscription, SubscriptionUsageLog, SubscriptionTimeline
-from models.subscription_request import SubscriptionRequest, SubscriptionOrder
+from models.users.user import User
+from models.finance.subscription_plan import SubscriptionPlan, SubscriptionPlanCycle, SubscriptionPlanVersion
+from models.finance.user_subscription import UserSubscription, SubscriptionUsageLog, SubscriptionTimeline
+from models.finance.subscription_request import SubscriptionRequest, SubscriptionOrder
 
 def seed_subscriptions():
     print("Creating all tables if they don't exist...")

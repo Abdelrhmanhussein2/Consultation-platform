@@ -49,7 +49,7 @@ def upgrade() -> None:
             'ai_chat_messages',
             sa.Column('id', sa.UUID(), server_default=sa.text('gen_random_uuid()'), nullable=False),
             sa.Column('session_id', sa.UUID(), nullable=False),
-            sa.Column('role', postgresql.ENUM('user', 'assistant', name='ai_chat_role', inherit_schema=True), nullable=False),
+            sa.Column('role', postgresql.ENUM('user', 'assistant', name='ai_chat_role', create_type=False), nullable=False),
             sa.Column('content_encrypted', sa.Text(), nullable=False),
             sa.Column('citations', sa.JSON(), nullable=True),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),

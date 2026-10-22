@@ -40,14 +40,14 @@ from helpers.encryption import (
     encrypt_text, decrypt_text,
     mask_bank_account, mask_iban, mask_string
 )
-from models.user import User
-from models.consultant_profile import ConsultantProfile
-from models.appointment import Appointment
-from models.chat_message import ChatMessage
-from models.refresh_token import RefreshToken
+from models.users.user import User
+from models.consultations.consultant_profile import ConsultantProfile
+from models.consultations.appointment import Appointment
+from models.communication.chat_message import ChatMessage
+from models.auth.refresh_token import RefreshToken
 from services.services import UserService
-from services.chat_service import ChatService
-from services.auth_utils import hash_password, verify_password
+from services.communication.chat_service import ChatService
+from services.auth.auth_utils import hash_password, verify_password
 from schemes import (
     ChangePasswordRequest, VerifyPasswordOtpAndResetRequest,
     EmailChangeVerify, RequestPasswordOtpRequest

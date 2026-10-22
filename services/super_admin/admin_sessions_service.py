@@ -8,7 +8,7 @@ from models import (
     UserRole, AppointmentStatus, NotificationType
 )
 from helpers.enums import EntityType, NotificationAudience
-from services.daily_service import DailyService
+from services.consultations.daily_service import DailyService
 
 
 class AdminSessionsService:
@@ -53,7 +53,7 @@ class AdminSessionsService:
             db.commit()
 
             try:
-                from services.live_notification_service import LiveNotificationService
+                from services.communication.live_notification_service import LiveNotificationService
                 aud_val = audience.value if hasattr(audience, "value") else str(audience)
                 LiveNotificationService.broadcast_announcement(
                     audience=aud_val,

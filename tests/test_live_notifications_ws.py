@@ -39,12 +39,12 @@ from fastapi.testclient import TestClient
 from helpers.database import Base
 from helpers.enums import UserRole, NotificationType, AppointmentStatus, ActorRole
 from helpers.websocket_manager import NotificationConnectionManager, notification_ws_manager
-from models.user import User
-from models.consultant_profile import ConsultantProfile
-from models.appointment import Appointment
-from services.auth_utils import create_access_token
-from services.live_notification_service import LiveNotificationService
-from services.chat_service import ChatService
+from models.users.user import User
+from models.consultations.consultant_profile import ConsultantProfile
+from models.consultations.appointment import Appointment
+from services.auth.auth_utils import create_access_token
+from services.communication.live_notification_service import LiveNotificationService
+from services.communication.chat_service import ChatService
 from main import app
 
 from sqlalchemy.pool import StaticPool

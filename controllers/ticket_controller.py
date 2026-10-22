@@ -1,7 +1,7 @@
 import uuid
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from services.ticket_service import TicketService
+from services.communication.ticket_service import TicketService
 from helpers.enums import TicketCategory, TicketPriority, TicketStatus
 from helpers.encryption import decrypt_text
 

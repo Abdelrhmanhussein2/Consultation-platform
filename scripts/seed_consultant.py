@@ -15,11 +15,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from helpers.database import SessionLocal
 from helpers.enums import UserRole, VerificationStatus
-from models.user import User
-from models.consultant_profile import ConsultantProfile
-from models.specialization import Specialization
-from models.consultant_service import ConsultantService
-from models.consultant_availability import ConsultantAvailability
+from models.users.user import User
+from models.consultations.consultant_profile import ConsultantProfile
+from models.consultations.specialization import Specialization
+from models.consultations.consultant_service import ConsultantService
+from models.consultations.consultant_availability import ConsultantAvailability
 
 import importlib.util
 spec = importlib.util.spec_from_file_location(

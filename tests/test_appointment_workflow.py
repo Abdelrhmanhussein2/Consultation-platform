@@ -39,12 +39,12 @@ from helpers.database import Base
 from helpers.enums import (
     UserRole, AppointmentStatus, VerificationStatus, NotificationType,
 )
-from models.user import User
-from models.consultant_profile import ConsultantProfile
-from models.consultant_service import ConsultantService
-from models.specialization import Specialization
-from models.appointment import Appointment
-from models.notification import Notification
+from models.users.user import User
+from models.consultations.consultant_profile import ConsultantProfile
+from models.consultations.consultant_service import ConsultantService
+from models.consultations.specialization import Specialization
+from models.consultations.appointment import Appointment
+from models.communication.notification import Notification
 from services.services import AppointmentService
 
 
@@ -452,7 +452,7 @@ class TestConsultantFeaturesAndSessions:
         assert appt.user_id == c1_user.id
         assert appt.consultant_id == p2.id
 
-    @patch("services.daily_service.DailyService.create_room")
+    @patch("services.consultations.daily_service.DailyService.create_room")
     def test_payment_creates_daily_room(self, mock_create_room, db):
         mock_create_room.return_value = {
             "room_name": "consultation-test",

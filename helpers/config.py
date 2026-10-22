@@ -28,7 +28,9 @@ class Settings(BaseSettings):
     # Embedding and Generative AI settings
     COHERE_API_KEY: str = ""
     GROQ_API_KEY: str = ""
-    GROQ_MODEL: str = "llama-3.3-70b-specdec"
+    GROQ_MODEL: str = "openai/gpt-oss-120b"
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-4o"
 
     DAILY_API_KEY: str = ""
 

@@ -4,8 +4,8 @@ from fastapi import HTTPException, status
 from datetime import datetime
 from uuid import UUID
 
-from models.automation_rule import AutomationRule
-from models.admin_action_log import AdminActionLog
+from models.admin.automation_rule import AutomationRule
+from models.admin.admin_action_log import AdminActionLog
 from schemes.automation_rule_schemas import AutomationRuleCreate, AutomationRuleUpdate
 
 class AdminAutomationService:

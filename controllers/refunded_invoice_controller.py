@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-from services.refunded_invoice_service import RefundedInvoiceService
+from services.finance.refunded_invoice_service import RefundedInvoiceService
 from schemes.refunded_invoice_schemes import RefundedInvoiceCreate, RefundedInvoiceUpdate
 
 class RefundedInvoiceController:

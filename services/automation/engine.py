@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 import logging
 
-from models.automation_rule import AutomationRule
+from models.admin.automation_rule import AutomationRule
 from services.automation.evaluator import evaluate_condition
 from services.automation.actions import execute_action
 

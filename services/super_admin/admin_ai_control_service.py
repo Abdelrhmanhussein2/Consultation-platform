@@ -4,11 +4,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime
 
-from models.platform_setting import PlatformSetting
-from models.chat_message import ChatMessage
-from models.appointment import Appointment
-from models.specialization import Specialization
-from models.support_ticket import SupportTicket
+from models.admin.platform_setting import PlatformSetting
+from models.communication.chat_message import ChatMessage
+from models.consultations.appointment import Appointment
+from models.consultations.specialization import Specialization
+from models.communication.support_ticket import SupportTicket
 from schemes.ai_control_schemas import AIServiceConfigUpdate
 
 _DEFAULT_CONFIG = {

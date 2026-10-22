@@ -171,8 +171,8 @@ app.add_middleware(
 app.include_router(api_router)
 
 # Register root WebSocket endpoints for convenience
-from routes.chat_routes import websocket_chat_endpoint
-from routes.notification_routes import websocket_notifications_endpoint
+from routes.communication.chat_routes import websocket_chat_endpoint
+from routes.communication.notification_routes import websocket_notifications_endpoint
 app.websocket("/ws/chat/{appointment_id}")(websocket_chat_endpoint)
 app.websocket("/ws/notifications")(websocket_notifications_endpoint)
 
