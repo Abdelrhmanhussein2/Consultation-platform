@@ -178,7 +178,7 @@ function MainApp() {
     }
     if (pathname.startsWith('/regulations/law/')) {
       const lawId = decodeURIComponent(pathname.replace('/regulations/law/', ''));
-      return <LawDetailPage lawId={lawId} navigate={navigate} />;
+      return <LawDetailPage lawId={lawId} navigate={navigate} currentPath={currentPath} />;
     }
     if (pathname.startsWith('/regulations')) {
       return <RegulationsPage navigate={navigate} currentPath={currentPath} />;

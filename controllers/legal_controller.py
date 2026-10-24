@@ -251,21 +251,36 @@ class LegalController:
 
     @staticmethod
     def search(query: str, limit: int = 5):
-        # Try hybrid/vector search first
-        try:
-            from services.ai.hybrid_search_service import HybridSearchService
-            results = HybridSearchService.search(query, limit)
-            if results:
-                return results
-        except Exception as e:
-            print(f"Warning: Hybrid search failed: {e}")
-        
-        # Fallback: graph-based text search in Neo4j
-        graph_results = LegalGraphService.get_laws(q=query)
+        clean_q = (query or "").strip()
+        if not clean_q:
+            return LegalGraphService.get_laws()[:limit]
+
+        # 1. First search laws directly by title, name, or law_id
+        graph_results = LegalGraphService.get_laws(q=clean_q)
         if graph_results:
             return graph_results[:limit]
         
-        # Last resort: return all laws
+        # 2. Search laws that contain an article matching the query
+        try:
+            with neo4j_db.get_session() as session:
+                matching_laws = session.run("""
+                    MATCH (l)
+                    WHERE (l:Law OR l:`قانون`)
+                    OPTIONAL MATCH (l)-[:HAS_ARTICLE|`يتضمن_مادة`]->(a)
+                    WHERE toLower(coalesce(a.text, a.`نص_المادة`, '')) CONTAINS toLower($q)
+                       OR toLower(coalesce(a.title, a.`عنوان_المادة`, '')) CONTAINS toLower($q)
+                    RETURN DISTINCT coalesce(l.law_id, l.`معرف`) as law_id
+                """, q=clean_q).data()
+                if matching_laws:
+                    law_ids = {m['law_id'] for m in matching_laws if m.get('law_id')}
+                    all_laws = LegalGraphService.get_laws()
+                    matched = [law for law in all_laws if law['law_id'] in law_ids]
+                    if matched:
+                        return matched[:limit]
+        except Exception as e:
+            print(f"Warning: Article search in laws failed: {e}")
+
+        # 3. Fallback: return all available laws with full metadata
         return LegalGraphService.get_laws()[:limit]
 
     @staticmethod

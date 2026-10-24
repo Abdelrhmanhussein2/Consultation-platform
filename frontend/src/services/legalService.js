@@ -314,6 +314,10 @@ function normalizeArticle(a, lawTitle) {
 
   return {
     num: num,
+    number: num,
+    article_id: a.article_id || a.معرف || a.id || (num ? `art_${num}` : null),
+    id: a.id || a.article_id || a.معرف,
+    معرف: a.معرف || a.article_id || a.id,
     title: title,
     subject: subject,
     path: a.path || `${lawTitle || 'التشريع'} /`,

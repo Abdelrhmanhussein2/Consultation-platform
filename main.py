@@ -15,6 +15,11 @@ from slowapi.errors import RateLimitExceeded
 # Optionally create database tables (useful for local development if tables don't exist)
 try:
     Base.metadata.create_all(bind=engine)
+    try:
+        from scripts.seed_legal_terms import seed_legal_terms
+        seed_legal_terms(quiet=True)
+    except Exception as _seed_err:
+        print(f"Notice: Legal terms seed skipped: {_seed_err}")
 except Exception as e:
     print(f"Warning: Could not create tables on startup. Make sure database is running and credentials are correct. Error: {e}")
 

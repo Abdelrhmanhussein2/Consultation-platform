@@ -1,56 +1,32 @@
 // frontend/src/services/legalDictionary.js
-// Legal dictionary & semantic suggestion mapper
+// Legal dictionary & semantic suggestion service
+// Calls backend GET /api/legal/terms/suggest.
+// Enforces fail-closed: NEVER returns mock or stub data.
 
-const DICTIONARY_MAP = {
-  "سكراب": {
-    main: "المخلفات الصناعية",
-    options: [
-      { title: "المخلفات الصناعية", desc: "بحث عن التشريعات والمواد التي تتضمن هذا المصطلح" },
-      { title: "المخلفات", desc: "مصطلح قانوني مرتبط بعبارة البحث" },
-      { title: "النفايات الصناعية", desc: "مصطلح قانوني مرتبط بعبارة البحث" }
-    ]
-  },
-  "خردة": {
-    main: "المعادن والمواد المستهلكة",
-    options: [
-      { title: "المعادن والمواد المستهلكة", desc: "بحث عن التشريعات والمواد التي تتضمن هذا المصطلح" },
-      { title: "النفايات المعدنية", desc: "مصطلح قانوني مرتبط بعبارة البحث" }
-    ]
-  },
-  "استقالة": {
-    main: "فسخ عقد العمل بالإرادة المنفردة",
-    options: [
-      { title: "فسخ عقد العمل بالإرادة المنفردة", desc: "بحث عن التشريعات والمواد التي تتضمن هذا المصطلح" },
-      { title: "إنهاء الخدمة", desc: "مصطلح قانوني مرتبط بعبارة البحث" }
-    ]
-  },
-  "طرد": {
-    main: "إنهاء عقد العمل لسبب غير مشروع (المادة 77)",
-    options: [
-      { title: "إنهاء عقد العمل لسبب غير مشروع", desc: "بحث عن التشريعات والمواد التي تتضمن هذا المصطلح" },
-      { title: "التعويض عن الفصل", desc: "مصطلح قانوني مرتبط بعبارة البحث" }
-    ]
-  }
-};
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-export function getLegalSuggestion(userQuery) {
-  if (!userQuery || !userQuery.trim()) return null;
-
-  const queryClean = userQuery.trim().toLowerCase();
-  
-  for (const [key, val] of Object.entries(DICTIONARY_MAP)) {
-    if (queryClean.includes(key)) {
-      return val;
-    }
+/**
+ * Fetch legislative term suggestions from the verified backend.
+ * Returns: { matched: boolean, options: Array }
+ * Throws on network/server errors to allow the UI to handle unavailable state.
+ */
+export async function getLegalSuggestionAsync(userQuery) {
+  if (!userQuery || !userQuery.trim()) {
+    return { matched: false, options: [] };
   }
 
-  // Fallback dynamic suggestion based on typed text
-  return {
-    main: `${userQuery} والتعليمات التنفيذية`,
-    options: [
-      { title: `${userQuery} والتعليمات التنفيذية`, desc: "بحث عن التشريعات والمواد التي تتضمن هذا المصطلح" },
-      { title: `إعفاءات ${userQuery}`, desc: "مصطلح قانوني مرتبط بعبارة البحث" },
-      { title: `ضوابط ${userQuery}`, desc: "مصطلح قانوني مرتبط بعبارة البحث" }
-    ]
-  };
+  const url = `${API_BASE}/api/legal/terms/suggest?q=${encodeURIComponent(userQuery.trim())}&limit=5`;
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    const err = new Error(errData.detail || `HTTP ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+
+  return await res.json();
 }

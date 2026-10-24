@@ -211,6 +211,7 @@ export default function RegulationsPage({ navigate, currentPath }) {
       <div className="reg-content-container">
         {/* Search Hero Banner */}
         <RegulationsSearch
+          navigate={navigate}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           onSearch={(q) => handleSearch(q, filters)}

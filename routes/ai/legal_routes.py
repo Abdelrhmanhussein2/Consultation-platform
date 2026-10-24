@@ -1,11 +1,26 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, status, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, Depends, status, UploadFile, File, Form, HTTPException, Query
 from helpers.enums import UserRole
 from models import User
 from routes.deps import get_current_user
 from controllers import LegalController
+from controllers.legal_terms_controller import LegalTermsController
 
 router = APIRouter(prefix="/legal", tags=["Legal Graph Database"])
+
+@router.get("/terms/suggest")
+def suggest_legal_terms(
+    q: str = Query(..., min_length=2, description="User search query"),
+    limit: int = Query(5, ge=1, le=20),
+):
+    """
+    Return legislative term suggestions for a given popular/colloquial query.
+    Triggered by the «تحسين البحث ✨» button in RegulationsSearch.
+    """
+    if not q.strip():
+        raise HTTPException(status_code=400, detail="Query cannot be empty")
+    return LegalTermsController.suggest(q.strip(), limit)
+
 
 @router.post("/upload-law", status_code=status.HTTP_201_CREATED)
 async def upload_law(

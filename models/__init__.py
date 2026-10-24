@@ -9,7 +9,7 @@ from helpers.enums import (
 from models.auth import RefreshToken
 
 # AI models
-from models.ai import AIChatSession, AIChatMessage
+from models.ai import AIChatSession, AIChatMessage, LegalTerm
 
 # Finance models
 from models.finance import (
@@ -50,7 +50,7 @@ __all__ = [
     # Auth
     "RefreshToken",
     # AI
-    "AIChatSession", "AIChatMessage",
+    "AIChatSession", "AIChatMessage", "LegalTerm",
     # Finance
     "Invoice", "RecurringInvoice", "RefundedInvoice", "PayoutRequest", "ConsultantBankAccount",
     "SubscriptionPlan", "SubscriptionPlanCycle", "SubscriptionPlanVersion",

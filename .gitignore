@@ -86,9 +86,16 @@ nul.css
 ~$*.xlsx
 ~$*.pptx
 *.tmp
+*.xlsx
+*.xls
 
-# Scratch & Temporary Scripts
+# Scratch & Temporary Scripts & Reports
 scratch/
+reports/
+dry_run_report.json
+*dry_run*.json
+*_out.txt
+
 
 # IDE & Editor Files
 .vscode/

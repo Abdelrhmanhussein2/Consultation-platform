@@ -216,7 +216,7 @@
   padding: 14px 20px;
   border-bottom: 1px solid #F1F5F9;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: all 0.15s ease;
 }
 
 .reg-ai-dropdown-item:last-child {
@@ -224,7 +224,7 @@
 }
 
 .reg-ai-dropdown-item:hover {
-  background: #F8FAFC;
+  background: #F0FDFA;
 }
 
 .reg-ai-dropdown-item-title {

@@ -1,8 +1,9 @@
 // frontend/src/components/Regulations/RegulationsSearch.jsx
-import React, { useState } from 'react';
-import { getLegalSuggestion } from '../../services/legalDictionary';
+import React, { useState, useRef } from 'react';
+import { getLegalSuggestionAsync } from '../../services/legalDictionary';
 
 export default function RegulationsSearch({
+  navigate,
   searchQuery,
   setSearchQuery,
   onSearch,
@@ -13,25 +14,54 @@ export default function RegulationsSearch({
   const [isAiActive, setIsAiActive] = useState(false);
   const [suggestionData, setSuggestionData] = useState(null);
   const [inputError, setInputError] = useState(false);
+  const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
+  const [apiError, setApiError] = useState(null);
+
+  // Stale request guard
+  const latestRequestIdRef = useRef(0);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     onSearch(searchQuery);
   };
 
-  const handleToggleAiImprove = () => {
+  const handleToggleAiImprove = async () => {
     if (!searchQuery || !searchQuery.trim()) {
       setInputError(true);
       setTimeout(() => setInputError(false), 2000);
       return;
     }
+
     if (isAiActive) {
       setIsAiActive(false);
       setSuggestionData(null);
-    } else {
-      const result = getLegalSuggestion(searchQuery);
-      setIsAiActive(true);
-      setSuggestionData(result);
+      setApiError(null);
+      return;
+    }
+
+    setIsAiActive(true);
+    setIsLoadingSuggestion(true);
+    setSuggestionData(null);
+    setApiError(null);
+
+    const requestId = ++latestRequestIdRef.current;
+
+    try {
+      const result = await getLegalSuggestionAsync(searchQuery);
+      // Guard against stale overlapping responses
+      if (requestId === latestRequestIdRef.current) {
+        setSuggestionData(result);
+        setApiError(null);
+      }
+    } catch (err) {
+      if (requestId === latestRequestIdRef.current) {
+        setSuggestionData(null);
+        setApiError(err.message || 'verification_unavailable');
+      }
+    } finally {
+      if (requestId === latestRequestIdRef.current) {
+        setIsLoadingSuggestion(false);
+      }
     }
   };
 
@@ -42,12 +72,35 @@ export default function RegulationsSearch({
     onSearch(termTitle);
   };
 
+  const handleOpenDirectTarget = (e, openUrl, opt = null) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (openUrl && navigate) {
+      setIsAiActive(false);
+      setSuggestionData(null);
+      let targetUrl = openUrl;
+      const hlText = opt?.literal_text || opt?.title || searchQuery;
+      if (hlText) {
+        try {
+          sessionStorage.setItem('last_legal_highlight', hlText);
+        } catch (_) {}
+      }
+      if (hlText && !targetUrl.includes('highlight=')) {
+        targetUrl += `&highlight=${encodeURIComponent(hlText.slice(0, 100))}`;
+      }
+      navigate(targetUrl);
+    }
+  };
+
   const hasActiveFilters = filters && (
     (filters.status && filters.status !== 'الكل') ||
     (filters.type && filters.type !== 'الكل') ||
     filters.dateFrom ||
     filters.dateTo
   );
+
+  const options = suggestionData?.options || [];
+  const hasOptions = options.length > 0;
+  const topOption = hasOptions ? options[0] : null;
 
   return (
     <div className="reg-hero-banner">
@@ -65,7 +118,7 @@ export default function RegulationsSearch({
         </p>
       </div>
 
-      {/* Search Bar - exact structure from HTML reference */}
+      {/* Search Bar */}
       <div className="search-wrap home-search-wrap-v3">
         <form className="searchbar home-searchbar-v3" onSubmit={handleSubmit}>
           <input
@@ -75,12 +128,16 @@ export default function RegulationsSearch({
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
-              if (isAiActive) setSuggestionData(getLegalSuggestion(e.target.value));
+              if (isAiActive) {
+                setIsAiActive(false);
+                setSuggestionData(null);
+                setApiError(null);
+              }
             }}
             style={inputError ? { borderColor: '#EF4444' } : undefined}
           />
 
-          {/* Advanced Search Button - exact from HTML */}
+          {/* Advanced Search Button */}
           <button
             type="button"
             className="search-tool-btn advanced-tool"
@@ -92,7 +149,7 @@ export default function RegulationsSearch({
             <span>بحث متقدم</span>
           </button>
 
-          {/* Improve Button - exact from HTML */}
+          {/* Improve Button */}
           <button
             type="button"
             className={`search-tool-btn improve-tool${isAiActive ? ' active' : ''}`}
@@ -141,36 +198,146 @@ export default function RegulationsSearch({
       </div>
 
       {/* Suggestion Bar & Popup */}
-      {isAiActive && suggestionData && (
+      {isAiActive && (
         <>
-          <div className="improve-suggestion show" style={{ maxWidth: '980px', margin: '10px auto 0' }}>
-            <div>
-              <small>اقتراح ديوان</small>
-              <strong>هل تقصد «{suggestionData.main}»؟</strong>
-            </div>
-            <div className="improve-actions">
-              <button
-                type="button"
-                className="accept"
-                onClick={() => handleSelectSuggestedTerm(suggestionData.main)}
-              >
-                استخدم المصطلح المقترح
-              </button>
-            </div>
-          </div>
-
-          <div className="reg-ai-dropdown-modal">
-            {suggestionData.options?.map((opt, idx) => (
-              <div
-                key={idx}
-                className="reg-ai-dropdown-item"
-                onClick={() => handleSelectSuggestedTerm(opt.title)}
-              >
-                <div className="reg-ai-dropdown-item-title">{opt.title}</div>
-                <div className="reg-ai-dropdown-item-desc">{opt.desc}</div>
+          {/* Loading state */}
+          {isLoadingSuggestion && (
+            <div className="improve-suggestion show" style={{ maxWidth: '980px', margin: '10px auto 0' }}>
+              <div>
+                <small>اقتراح ديوان</small>
+                <strong>جاري التحقق من المراجع القانونية المتاحة في ديوان...</strong>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {/* Verification Temporarily Unavailable Error state */}
+          {!isLoadingSuggestion && apiError && (
+            <div className="improve-suggestion show" style={{ maxWidth: '980px', margin: '10px auto 0', borderRight: '4px solid #EF4444' }}>
+              <div>
+                <small style={{ color: '#EF4444' }}>تنبيه</small>
+                <strong>خدمة التحقق من المراجع القانونية غير متاحة مؤقتاً.</strong>
+              </div>
+              <div className="improve-actions">
+                <button
+                  type="button"
+                  className="accept"
+                  style={{ background: '#4B5563' }}
+                  onClick={handleToggleAiImprove}
+                >
+                  إعادة المحاولة ↻
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Empty state: No banner, clear message */}
+          {!isLoadingSuggestion && !apiError && !hasOptions && (
+            <div style={{ maxWidth: '980px', margin: '12px auto 0', padding: '12px 18px', background: 'rgba(15, 23, 42, 0.75)', borderRadius: '8px', color: '#CBD5E1', fontSize: '13px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.08)' }}>
+              لم يتم العثور على مصطلح مرتبط بمرجع قانوني متاح في ديوان.
+            </div>
+          )}
+
+          {/* Success state: Top Banner built from layer (a) only */}
+          {!isLoadingSuggestion && !apiError && hasOptions && topOption && (suggestionData?.is_direct_banner || topOption?.is_direct_banner) && (
+            <div
+              className="improve-suggestion show"
+              style={{ maxWidth: '980px', margin: '10px auto 0', cursor: topOption.open_url ? 'pointer' : 'default' }}
+              onClick={(e) => {
+                if (topOption.open_url) {
+                  handleOpenDirectTarget(e, topOption.open_url, topOption);
+                }
+              }}
+              title={topOption.open_url ? "اضغط لفتح المادة مباشرة في قارئ القانون" : ""}
+            >
+              <div>
+                <small>اقتراح ديوان (مطابقة مباشرة)</small>
+                <strong>هل تقصد «{topOption.title}»؟</strong>
+                <span style={{ marginRight: '10px', fontSize: '12px', opacity: 0.9, color: '#93C5FD' }}>
+                  ({topOption.law_name} — <span style={{ fontWeight: 700, color: '#FCD34D' }}>{topOption.article_reference}</span>)
+                </span>
+              </div>
+              <div className="improve-actions">
+                <button
+                  type="button"
+                  className="accept"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSelectSuggestedTerm(topOption.title);
+                  }}
+                  title="البحث باستخدام هذا المصطلح"
+                >
+                  استخدم المصطلح المقترح
+                </button>
+                {topOption.open_url && (
+                  <button
+                    type="button"
+                    className="accept"
+                    style={{ background: '#0D9488', marginRight: '6px' }}
+                    onClick={(e) => handleOpenDirectTarget(e, topOption.open_url, topOption)}
+                    title="فتح المادة في قارئ القانون"
+                  >
+                    عرض نص المادة ↗
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Verified Dropdown List */}
+          {!isLoadingSuggestion && !apiError && hasOptions && (
+            <div className="reg-ai-dropdown-modal">
+                {options.map((opt) => (
+                  <div
+                    key={opt.id}
+                    className="reg-ai-dropdown-item"
+                    onClick={(e) => {
+                      if (opt.open_url) {
+                        handleOpenDirectTarget(e, opt.open_url, opt);
+                      } else {
+                        handleSelectSuggestedTerm(opt.title);
+                      }
+                    }}
+                    style={{ cursor: 'pointer' }}
+                    title="اضغط لفتح المادة مباشرة في قارئ القانون"
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div className="reg-ai-dropdown-item-title">{opt.title}</div>
+                      {opt.open_url && (
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            color: '#0D9488',
+                            fontWeight: 600,
+                            padding: '2px 8px',
+                            background: 'rgba(13, 148, 136, 0.08)',
+                            borderRadius: '6px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                          title="فتح في قارئ القانون"
+                        >
+                          عرض المادة ↗
+                        </span>
+                      )}
+                    </div>
+                    <div className="reg-ai-dropdown-item-desc">
+                      مادة قانونية من {opt.law_name}
+                      {opt.article_reference && (
+                        <span style={{ marginRight: '8px', fontWeight: 600, color: '#1E293B', fontSize: '12px' }}>
+                          ({opt.article_reference})
+                        </span>
+                      )}
+                    </div>
+                    {opt.literal_text && (
+                      <div style={{ fontSize: '11px', color: '#64748B', marginTop: '4px', lineHeight: 1.5 }}>
+                        "{opt.literal_text.slice(0, 120)}..."
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+          )}
         </>
       )}
     </div>
