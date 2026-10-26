@@ -1,5 +1,5 @@
 /* frontend/src/components/Regulations/regulations.css */
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
   --reg-navy: #0D3C5C;
@@ -14,11 +14,11 @@
   --reg-muted: #64748B;
   --reg-green: #149B6D;
   --reg-green-soft: #E8F8F1;
-  --reg-font: 'Tajawal', sans-serif !important;
+  --reg-font: 'Cairo', sans-serif !important;
 }
 
 .regulations-page-wrap {
-  font-family: 'Tajawal', sans-serif !important;
+  font-family: 'Cairo', sans-serif !important;
   background: var(--reg-bg);
   color: var(--reg-text);
   min-height: 100vh;
@@ -29,7 +29,7 @@
 
 .regulations-page-wrap * {
   box-sizing: border-box;
-  font-family: 'Tajawal', sans-serif !important;
+  font-family: 'Cairo', sans-serif !important;
 }
 
 .reg-content-container {
@@ -1047,7 +1047,7 @@
   background: #F2F5F7;
   border: 1px solid #E1E7EA;
   font-size: 10px;
-  font-family: 'Tajawal', sans-serif;
+  font-family: 'Cairo', sans-serif;
 }
 
 .regulations-page-wrap .badge.good {
@@ -1108,7 +1108,7 @@
   font-weight: 700;
   font-size: 12px;
   cursor: pointer;
-  font-family: 'Tajawal', sans-serif;
+  font-family: 'Cairo', sans-serif;
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
@@ -1179,7 +1179,7 @@
   border-radius: 10px;
   padding: 0 16px;
   outline: none;
-  font-family: 'Tajawal', sans-serif;
+  font-family: 'Cairo', sans-serif;
   font-size: 14.5px;
   color: #1E293B;
   background: #ffffff;
@@ -1204,7 +1204,7 @@
   height: 48px;
   font-size: 12.5px;
   font-weight: 700;
-  font-family: 'Tajawal', sans-serif;
+  font-family: 'Cairo', sans-serif;
   cursor: pointer;
   border-radius: 8px;
   transition: all 0.16s ease;
@@ -1238,7 +1238,7 @@
   border-radius: 10px;
   font-size: 14px;
   font-weight: 800;
-  font-family: 'Tajawal', sans-serif;
+  font-family: 'Cairo', sans-serif;
   cursor: pointer;
   transition: background 0.16s ease, transform 0.12s ease;
   white-space: nowrap;
@@ -1290,7 +1290,7 @@
   border-radius: 8px;
   padding: 7px 10px;
   font-size: 10px;
-  font-family: 'Tajawal', sans-serif;
+  font-family: 'Cairo', sans-serif;
   cursor: pointer;
 }
 

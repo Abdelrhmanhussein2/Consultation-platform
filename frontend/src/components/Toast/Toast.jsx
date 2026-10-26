@@ -37,7 +37,7 @@ export default function Toast({ show, message, type = 'success' }) {
         alignItems: 'center',
         gap: '10px',
         zIndex: 999999,
-        fontFamily: "'Tajawal', sans-serif",
+        fontFamily: "'Cairo', sans-serif",
         fontWeight: '800',
         fontSize: '14px',
         direction: 'rtl',

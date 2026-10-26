@@ -26,7 +26,7 @@
   border: 1px solid var(--ai-border);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
   direction: rtl;
-  font-family: 'Tajawal', sans-serif;
+  font-family: 'Cairo', sans-serif;
   color: var(--ai-text-main);
   position: relative;
   overflow: hidden;

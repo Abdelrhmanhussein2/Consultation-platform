@@ -34,7 +34,7 @@
 .registry-page .tooltip{position:absolute;bottom:38px;right:50%;transform:translateX(50%);background:#0f172a;color:#fff;font-size:9.5px;padding:3px 6px;border-radius:4px;white-space:nowrap;opacity:0;pointer-events:none;transition:.15s;z-index:30}
 .registry-page .icon-btn:hover .tooltip{opacity:1}
 .registry-page .tabs{display:flex;gap:5px;flex-wrap:wrap;margin:0 0 10px;padding-bottom:9px;border-bottom:1px solid var(--line)}
-.registry-page .tab{border:1px solid #d9e0e7;background:#fff;color:#52606c;border-radius:6px;padding:5px 11px;font:600 11px "Tajawal",sans-serif;cursor:pointer;transition:.15s}
+.registry-page .tab{border:1px solid #d9e0e7;background:#fff;color:#52606c;border-radius:6px;padding:5px 11px;font:600 11px "Cairo",sans-serif;cursor:pointer;transition:.15s}
 .registry-page .tab:hover{border-color:#cbd5e1;background:#f8fafc}
 .registry-page .tab.active{background:var(--primary-light);border-color:var(--primary-border);color:var(--primary);font-weight:700}
 .registry-page .filters{display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap}

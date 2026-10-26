@@ -407,7 +407,7 @@ export default function ConsultantProfilePage({ navigate }) {
 
   if (initialLoading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px', fontFamily: 'Tajawal, sans-serif' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px', fontFamily: 'Cairo, sans-serif' }}>
         <div style={{ fontSize: '15px', color: '#0D3C5C', fontWeight: '700' }}>جاري تحميل الملف الشخصي...</div>
       </div>
     );

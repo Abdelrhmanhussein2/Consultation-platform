@@ -108,7 +108,7 @@ export default function ConsultantTemplatesPage() {
   };
 
   return (
-    <div style={{ direction: 'rtl', fontFamily: 'Tajawal, sans-serif', color: '#1E293B', paddingBottom: '60px' }}>
+    <div style={{ direction: 'rtl', fontFamily: 'Cairo, sans-serif', color: '#1E293B', paddingBottom: '60px' }}>
       <Toast {...toast} />
 
       {/* Header Banner */}
@@ -170,7 +170,7 @@ export default function ConsultantTemplatesPage() {
               fontSize: '14px',
               outline: 'none',
               transition: 'border-color 0.2s',
-              fontFamily: 'Tajawal, sans-serif'
+              fontFamily: 'Cairo, sans-serif'
             }}
             onFocus={(e) => e.target.style.borderColor = '#F5A52A'}
             onBlur={(e) => e.target.style.borderColor = '#CBD5E1'}
@@ -196,7 +196,7 @@ export default function ConsultantTemplatesPage() {
                 cursor: 'pointer',
                 fontWeight: '700',
                 fontSize: '13px',
-                fontFamily: 'Tajawal, sans-serif',
+                fontFamily: 'Cairo, sans-serif',
                 transition: 'all 0.2s',
                 backgroundColor: selectedCategory === cat ? '#F5A52A' : '#F1F5F9',
                 color: selectedCategory === cat ? '#FFFFFF' : '#475569',

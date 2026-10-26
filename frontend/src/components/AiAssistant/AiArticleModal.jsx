@@ -45,7 +45,7 @@ export default function AiArticleModal({ item, onClose }) {
           display: 'flex',
           flexDirection: 'column',
           direction: 'rtl',
-          fontFamily: "'Tajawal', sans-serif",
+          fontFamily: "'Cairo', sans-serif",
           overflow: 'hidden'
         }}
       >

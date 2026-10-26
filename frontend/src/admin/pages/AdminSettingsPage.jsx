@@ -11,7 +11,41 @@ import {
   IconMail,
   IconCheck
 } from './AdminSettingsIcons';
+import ModernSelect from '../../components/ModernSelect';
 import './AdminSettingsPage.css';
+
+const PAYMENT_PROVIDER_OPTIONS = [
+  { value: 'hyperpay', label: 'هايبر باي (HyperPay - الأردن والشرق الأوسط)' },
+  { value: 'stripe', label: 'سترايب (Stripe International)' },
+  { value: 'tap', label: 'تاب للمدفوعات (Tap Payments)' },
+  { value: 'efawateercom', label: 'بوابة إي فواتيركم المباشرة (e-Fawateercom Direct)' },
+  { value: 'zain_cash', label: 'زين كاش والمحافظ الرقمية (Zain Cash / Wallets)' }
+];
+
+const PAYMENT_MODE_OPTIONS = [
+  { value: 'live', label: 'Live (بيئة الإنتاج والتحصيل الفعلي)' },
+  { value: 'test', label: 'Sandbox / Test (بيئة الفحص والتجربة)' }
+];
+
+const SMS_PROVIDER_OPTIONS = [
+  { value: 'local_jordan', label: 'بوابة الرسائل المحلية الأردنية (Jordanian SMS Gateway)' },
+  { value: 'zain_jo', label: 'زين الأردن (Zain Jordan API)' },
+  { value: 'orange_jo', label: 'أورنج الأردن (Orange Jordan API)' },
+  { value: 'umniah_jo', label: 'أمنية الأردن (Umniah Jordan API)' }
+];
+
+const AI_PROVIDER_OPTIONS = [
+  { value: 'openai', label: 'OpenAI' }
+];
+
+const AI_MODEL_OPTIONS = [
+  { value: 'gpt-4o-mini', label: 'GPT-4o Mini (سريع، فائق الذكاء، واقتصادي)' },
+  { value: 'gpt-4o', label: 'GPT-4o (الدقة القصوى والاستدلال الضريبي المتقدم)' },
+  { value: 'o1', label: 'OpenAI o1 (التفكير والاستدلال المعمق للمسائل المركبة)' },
+  { value: 'o1-mini', label: 'OpenAI o1-mini (استدلال متقدم وسريع)' },
+  { value: 'gpt-4-turbo', label: 'GPT-4 Turbo (للمستندات والسياقات الطويلة)' },
+  { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo (اقتصادي أساسي)' }
+];
 
 export default function AdminSettingsPage({ navigate }) {
   const [activeSection, setActiveSection] = useState('company');
@@ -356,30 +390,26 @@ export default function AdminSettingsPage({ navigate }) {
                 <div className="settings-form-grid-2" style={{ marginBottom: '18px' }}>
                   <div className="settings-form-group">
                     <label className="settings-form-label">الشركة المزودة للبوابة:</label>
-                    <select
+                    <ModernSelect
                       value={gateways.online_gateway?.provider || 'hyperpay'}
-                      onChange={e => setGateways({ ...gateways, online_gateway: { ...gateways.online_gateway, provider: e.target.value } })}
-                      className="settings-form-select"
-                      style={{ fontWeight: '800' }}
-                    >
-                      <option value="hyperpay">هايبر باي (HyperPay - الأردن والشرق الأوسط)</option>
-                      <option value="stripe">سترايب (Stripe International)</option>
-                      <option value="tap">تاب للمدفوعات (Tap Payments)</option>
-                      <option value="efawateercom">بوابة إي فواتيركم المباشرة (e-Fawateercom Direct)</option>
-                      <option value="zain_cash">زين كاش والمحافظ الرقمية (Zain Cash / Wallets)</option>
-                    </select>
+                      onChange={val => setGateways({ ...gateways, online_gateway: { ...gateways.online_gateway, provider: val } })}
+                      options={PAYMENT_PROVIDER_OPTIONS}
+                      style={{ width: '100%' }}
+                      dropdownWidth="100%"
+                      align="right"
+                    />
                   </div>
 
                   <div className="settings-form-group">
                     <label className="settings-form-label">بيئة التشغيل (Environment Mode):</label>
-                    <select
+                    <ModernSelect
                       value={gateways.online_gateway?.mode || 'live'}
-                      onChange={e => setGateways({ ...gateways, online_gateway: { ...gateways.online_gateway, mode: e.target.value } })}
-                      className="settings-form-select"
-                    >
-                      <option value="live">Live (بيئة الإنتاج والتحصيل الفعلي)</option>
-                      <option value="test">Sandbox / Test (بيئة الفحص والتجربة)</option>
-                    </select>
+                      onChange={val => setGateways({ ...gateways, online_gateway: { ...gateways.online_gateway, mode: val } })}
+                      options={PAYMENT_MODE_OPTIONS}
+                      style={{ width: '100%' }}
+                      dropdownWidth="100%"
+                      align="right"
+                    />
                   </div>
 
                   <div className="settings-form-group">
@@ -488,16 +518,14 @@ export default function AdminSettingsPage({ navigate }) {
               <div className="settings-form-grid-2">
                 <div className="settings-form-group">
                   <label className="settings-form-label">مزود الخدمة المحلي:</label>
-                  <select
+                  <ModernSelect
                     value={sms.provider}
-                    onChange={e => setSms({ ...sms, provider: e.target.value })}
-                    className="settings-form-select"
-                  >
-                    <option value="local_jordan">بوابة الرسائل المحلية الأردنية (Jordanian SMS Gateway)</option>
-                    <option value="zain_jo">زين الأردن (Zain Jordan API)</option>
-                    <option value="orange_jo">أورنج الأردن (Orange Jordan API)</option>
-                    <option value="umniah_jo">أمنية الأردن (Umniah Jordan API)</option>
-                  </select>
+                    onChange={val => setSms({ ...sms, provider: val })}
+                    options={SMS_PROVIDER_OPTIONS}
+                    style={{ width: '100%' }}
+                    dropdownWidth="100%"
+                    align="right"
+                  />
                 </div>
 
                 <div className="settings-form-group">
@@ -579,29 +607,26 @@ export default function AdminSettingsPage({ navigate }) {
               <div className="settings-form-grid-2">
                 <div className="settings-form-group">
                   <label className="settings-form-label">مزود الذكاء الاصطناعي:</label>
-                  <select
+                  <ModernSelect
                     value={ai.provider}
-                    onChange={e => setAi({ ...ai, provider: e.target.value })}
-                    className="settings-form-select"
-                  >
-                    <option value="openai">OpenAI</option>
-                  </select>
+                    onChange={val => setAi({ ...ai, provider: val })}
+                    options={AI_PROVIDER_OPTIONS}
+                    style={{ width: '100%' }}
+                    dropdownWidth="100%"
+                    align="right"
+                  />
                 </div>
 
                 <div className="settings-form-group">
                   <label className="settings-form-label">الموديل المختار:</label>
-                  <select
+                  <ModernSelect
                     value={ai.model_name}
-                    onChange={e => setAi({ ...ai, model_name: e.target.value })}
-                    className="settings-form-select"
-                  >
-                    <option value="gpt-4o-mini">GPT-4o Mini (سريع، فائق الذكاء، واقتصادي)</option>
-                    <option value="gpt-4o">GPT-4o (الدقة القصوى والاستدلال الضريبي المتقدم)</option>
-                    <option value="o1">OpenAI o1 (التفكير والاستدلال المعمق للمسائل المركبة)</option>
-                    <option value="o1-mini">OpenAI o1-mini (استدلال متقدم وسريع)</option>
-                    <option value="gpt-4-turbo">GPT-4 Turbo (للمستندات والسياقات الطويلة)</option>
-                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo (اقتصادي أساسي)</option>
-                  </select>
+                    onChange={val => setAi({ ...ai, model_name: val })}
+                    options={AI_MODEL_OPTIONS}
+                    style={{ width: '100%' }}
+                    dropdownWidth="100%"
+                    align="right"
+                  />
                 </div>
 
                 <div className="settings-form-group" style={{ gridColumn: 'span 2' }}>

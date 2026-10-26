@@ -869,7 +869,7 @@ export default function ConsultantSettingsPage({ navigate }) {
         margin: '0 auto',
         width: '100%',
         paddingBottom: '60px',
-        fontFamily: "'Tajawal', sans-serif",
+        fontFamily: "'Cairo', sans-serif",
         textAlign: 'right'
       }}
     >

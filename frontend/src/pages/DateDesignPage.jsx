@@ -9,7 +9,7 @@ export default function DateDesignPage() {
 
   return (
     <div style={{
-      fontFamily: "'Tajawal', sans-serif",
+      fontFamily: "'Cairo', sans-serif",
       padding: '40px 24px',
       maxWidth: '960px',
       margin: '0 auto',
@@ -27,7 +27,7 @@ export default function DateDesignPage() {
           <div>
             <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 900, color: '#0D3C5C' }}>تصميم منقي التواريخ العصري (Modern Date Picker Design)</h1>
             <p style={{ margin: '4px 0 0 0', color: '#64748B', fontSize: '13px' }}>
-              مكون مخصص يتيح اختيار التاريخ من تقويم تفاعلي عصري أو كتابته يدوياً مع أزرار اختصارات سريعة، يعتمد خط <strong>Tajawal</strong> حصرياً.
+              مكون مخصص يتيح اختيار التاريخ من تقويم تفاعلي عصري أو كتابته يدوياً مع أزرار اختصارات سريعة، يعتمد خط <strong>Cairo</strong> حصرياً.
             </p>
           </div>
           <span style={{ background: '#E8F8F1', color: '#149B6D', padding: '6px 14px', borderRadius: '999px', fontSize: '12px', fontWeight: 800 }}>

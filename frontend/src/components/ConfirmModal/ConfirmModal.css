@@ -1,6 +1,6 @@
 /* ==========================================================================
    ConfirmModal.css - DIWAN Unified Confirmation Dialog
-   Font: Tajawal | Colors: Navy (#0A3254) / Neutral / Danger (#DC2626)
+   Font: Cairo | Colors: Navy (#0A3254) / Neutral / Danger (#DC2626)
    Compact, sleek, high-end dialog with zero emojis.
    ========================================================================== */
 
@@ -42,7 +42,7 @@
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
   border: 1px solid #E2E8F0;
   overflow: hidden;
-  font-family: 'Tajawal', sans-serif;
+  font-family: 'Cairo', sans-serif;
   direction: rtl;
   text-align: right;
   animation: diwanPopIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
@@ -96,7 +96,7 @@
 .diwan-confirm-btn {
   padding: 8px 18px;
   border-radius: 6px;
-  font-family: 'Tajawal', sans-serif;
+  font-family: 'Cairo', sans-serif;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;

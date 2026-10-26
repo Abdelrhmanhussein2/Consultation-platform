@@ -104,7 +104,7 @@ const DateFilterInput = ({ placeholder, value, onChange }) => {
           fontWeight: '700',
           textAlign: 'center',
           outline: 'none',
-          fontFamily: "'Tajawal', sans-serif",
+          fontFamily: "'Cairo', sans-serif",
           color: value ? '#0e3b5e' : 'transparent',
           boxSizing: 'border-box',
           cursor: 'pointer',
@@ -138,7 +138,7 @@ const DateFilterInput = ({ placeholder, value, onChange }) => {
             color: '#94A3B8',
             fontSize: '12.5px',
             fontWeight: '600',
-            fontFamily: "'Tajawal', sans-serif"
+            fontFamily: "'Cairo', sans-serif"
           }}
         >
           <span>{placeholder}</span>
@@ -997,7 +997,7 @@ export default function ConsultantSessionsPage({ navigate }) {
     <div
       style={{
         padding: '16px 12px 60px',
-        fontFamily: "'Tajawal', sans-serif",
+        fontFamily: "'Cairo', sans-serif",
         direction: 'rtl',
         color: '#1E293B',
         backgroundColor: '#F8FAFC',
@@ -1052,7 +1052,7 @@ export default function ConsultantSessionsPage({ navigate }) {
               margin: 0,
               letterSpacing: '-0.3px',
               lineHeight: 1.1,
-              fontFamily: "'Tajawal', sans-serif"
+              fontFamily: "'Cairo', sans-serif"
             }}
           >
             الحجوزات والجلسات
@@ -1066,7 +1066,7 @@ export default function ConsultantSessionsPage({ navigate }) {
             marginTop: '6px',
             marginBottom: 0,
             fontWeight: '500',
-            fontFamily: "'Tajawal', sans-serif"
+            fontFamily: "'Cairo', sans-serif"
           }}
         >
           جميع طلبات الاستشارة ومواعيدك في مكان واحد.
@@ -1094,7 +1094,7 @@ export default function ConsultantSessionsPage({ navigate }) {
             boxShadow: '0 1px 4px rgba(10, 50, 84, 0.03)',
             padding: '20px 10px',
             textAlign: 'center',
-            fontFamily: "'Tajawal', sans-serif",
+            fontFamily: "'Cairo', sans-serif",
             flexShrink: 0
           }}
         >
@@ -1116,7 +1116,7 @@ export default function ConsultantSessionsPage({ navigate }) {
             boxShadow: '0 1px 4px rgba(10, 50, 84, 0.03)',
             padding: '20px 10px',
             textAlign: 'center',
-            fontFamily: "'Tajawal', sans-serif",
+            fontFamily: "'Cairo', sans-serif",
             flexShrink: 0
           }}
         >
@@ -1138,7 +1138,7 @@ export default function ConsultantSessionsPage({ navigate }) {
             boxShadow: '0 1px 4px rgba(10, 50, 84, 0.03)',
             padding: '20px 10px',
             textAlign: 'center',
-            fontFamily: "'Tajawal', sans-serif",
+            fontFamily: "'Cairo', sans-serif",
             flexShrink: 0
           }}
         >
@@ -1160,7 +1160,7 @@ export default function ConsultantSessionsPage({ navigate }) {
             boxShadow: '0 1px 4px rgba(10, 50, 84, 0.03)',
             padding: '20px 10px',
             textAlign: 'center',
-            fontFamily: "'Tajawal', sans-serif",
+            fontFamily: "'Cairo', sans-serif",
             flexShrink: 0
           }}
         >
@@ -1182,7 +1182,7 @@ export default function ConsultantSessionsPage({ navigate }) {
             boxShadow: '0 1px 4px rgba(10, 50, 84, 0.03)',
             padding: '20px 10px',
             textAlign: 'center',
-            fontFamily: "'Tajawal', sans-serif",
+            fontFamily: "'Cairo', sans-serif",
             flexShrink: 0
           }}
         >
@@ -1379,7 +1379,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                 padding: '0 36px 0 12px',
                 fontSize: '13px',
                 outline: 'none',
-                fontFamily: "'Tajawal', sans-serif",
+                fontFamily: "'Cairo', sans-serif",
                 color: '#0e3b5e',
                 textAlign: 'right',
                 boxSizing: 'border-box',
@@ -1407,7 +1407,7 @@ export default function ConsultantSessionsPage({ navigate }) {
               alignItems: 'center',
               gap: '6px',
               boxShadow: '0 2px 8px rgba(10, 50, 84, 0.2)',
-              fontFamily: "'Tajawal', sans-serif",
+              fontFamily: "'Cairo', sans-serif",
               transition: 'all 0.15s ease',
               flexShrink: 0
             }}
@@ -1488,7 +1488,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                         fontSize: '12.5px',
                         fontWeight: '800',
                         color: '#0A3254',
-                        fontFamily: "'Tajawal', sans-serif",
+                        fontFamily: "'Cairo', sans-serif",
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis'
@@ -1513,7 +1513,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                       fontSize: '11px',
                       fontWeight: '800',
                       color: '#0A3254',
-                      fontFamily: "'Tajawal', sans-serif",
+                      fontFamily: "'Cairo', sans-serif",
                       boxSizing: 'border-box',
                       flexShrink: 0
                     }}
@@ -1543,7 +1543,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                         border: '1px dashed #CBD5E1',
                         color: '#94A3B8',
                         fontSize: '12px',
-                        fontFamily: "'Tajawal', sans-serif"
+                        fontFamily: "'Cairo', sans-serif"
                       }}
                     >
                       لا توجد جلسات هنا
@@ -1602,7 +1602,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                                 color: '#10B981',
                                 fontWeight: '700',
                                 fontSize: '11px',
-                                fontFamily: "'Tajawal', sans-serif",
+                                fontFamily: "'Cairo', sans-serif",
                                 letterSpacing: '0.2px'
                               }}
                             >
@@ -1618,7 +1618,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                                 color: typeInfo.color,
                                 fontSize: '10.5px',
                                 fontWeight: '700',
-                                fontFamily: "'Tajawal', sans-serif"
+                                fontFamily: "'Cairo', sans-serif"
                               }}
                             >
                               {typeInfo.icon}
@@ -1635,7 +1635,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                               color: '#0A3254',
                               lineHeight: 1.3,
                               textAlign: 'right',
-                              fontFamily: "'Tajawal', sans-serif",
+                              fontFamily: "'Cairo', sans-serif",
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap'
@@ -1655,7 +1655,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                               fontSize: '11.5px',
                               fontWeight: '700',
                               textAlign: 'right',
-                              fontFamily: "'Tajawal', sans-serif",
+                              fontFamily: "'Cairo', sans-serif",
                               minWidth: 0
                             }}
                           >
@@ -1687,7 +1687,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                               fontSize: '10px',
                               fontWeight: '700',
                               marginTop: '2px',
-                              fontFamily: "'Tajawal', sans-serif",
+                              fontFamily: "'Cairo', sans-serif",
                               minWidth: 0
                             }}
                           >
@@ -1828,7 +1828,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                                 backgroundColor: col.statusPillBg,
                                 border: `1px solid ${col.statusPillBorder}`,
                                 color: col.statusPillColor,
-                                fontFamily: "'Tajawal', sans-serif",
+                                fontFamily: "'Cairo', sans-serif",
                                 whiteSpace: 'nowrap'
                               }}
                             >
@@ -2029,7 +2029,7 @@ export default function ConsultantSessionsPage({ navigate }) {
               width: '100%',
               padding: '24px 28px',
               boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
-              fontFamily: "'Tajawal', sans-serif"
+              fontFamily: "'Cairo', sans-serif"
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -2048,7 +2048,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                   fontSize: '22px',
                   fontWeight: '900',
                   color: '#0A3254',
-                  fontFamily: "'Tajawal', sans-serif"
+                  fontFamily: "'Cairo', sans-serif"
                 }}
               >
                 تفاصيل الجلسة
@@ -2337,7 +2337,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                       fontSize: '13.5px',
                       fontWeight: '800',
                       cursor: 'pointer',
-                      fontFamily: "'Tajawal', sans-serif",
+                      fontFamily: "'Cairo', sans-serif",
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '6px'
@@ -2363,7 +2363,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                       fontSize: '13.5px',
                       fontWeight: '800',
                       cursor: 'pointer',
-                      fontFamily: "'Tajawal', sans-serif"
+                      fontFamily: "'Cairo', sans-serif"
                     }}
                   >
                     قبول وتأكيد الحجز
@@ -2383,7 +2383,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                   fontSize: '14px',
                   fontWeight: '800',
                   cursor: 'pointer',
-                  fontFamily: "'Tajawal', sans-serif",
+                  fontFamily: "'Cairo', sans-serif",
                   transition: 'background-color 0.15s ease'
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8FAFC')}
@@ -2424,7 +2424,7 @@ export default function ConsultantSessionsPage({ navigate }) {
               width: '100%',
               padding: '24px 28px',
               boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
-              fontFamily: "'Tajawal', sans-serif"
+              fontFamily: "'Cairo', sans-serif"
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -2443,7 +2443,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                   fontSize: '22px',
                   fontWeight: '900',
                   color: '#0A3254',
-                  fontFamily: "'Tajawal', sans-serif"
+                  fontFamily: "'Cairo', sans-serif"
                 }}
               >
                 تعديل الحجز
@@ -2528,7 +2528,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                             color: '#0A3254',
                             boxSizing: 'border-box',
                             outline: 'none',
-                            fontFamily: "'Tajawal', sans-serif"
+                            fontFamily: "'Cairo', sans-serif"
                           }}
                         />
                         <div
@@ -2576,7 +2576,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                             color: '#0A3254',
                             boxSizing: 'border-box',
                             outline: 'none',
-                            fontFamily: "'Tajawal', sans-serif"
+                            fontFamily: "'Cairo', sans-serif"
                           }}
                         />
                         <div
@@ -2626,7 +2626,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                         boxSizing: 'border-box',
                         outline: 'none',
                         resize: 'vertical',
-                        fontFamily: "'Tajawal', sans-serif"
+                        fontFamily: "'Cairo', sans-serif"
                       }}
                     />
                   </div>
@@ -2707,7 +2707,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                     fontSize: '14px',
                     fontWeight: '800',
                     cursor: 'pointer',
-                    fontFamily: "'Tajawal', sans-serif",
+                    fontFamily: "'Cairo', sans-serif",
                     transition: 'opacity 0.15s ease'
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
@@ -2728,7 +2728,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                     fontSize: '14px',
                     fontWeight: '800',
                     cursor: 'pointer',
-                    fontFamily: "'Tajawal', sans-serif",
+                    fontFamily: "'Cairo', sans-serif",
                     transition: 'background-color 0.15s ease'
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8FAFC')}

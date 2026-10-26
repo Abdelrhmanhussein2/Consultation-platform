@@ -68,7 +68,7 @@ function CustomDropdown({ value, options, onChange, placeholder, width = '100%' 
           outline: 'none',
           boxShadow: isOpen ? '0 0 0 3px rgba(0,93,156,0.1)' : 'none',
           transition: 'all 0.15s ease',
-          fontFamily: "'Tajawal', sans-serif"
+          fontFamily: "'Cairo', sans-serif"
         }}
       >
         <svg
@@ -84,7 +84,7 @@ function CustomDropdown({ value, options, onChange, placeholder, width = '100%' 
         >
           <path d="M6 9l6 6 6-6" />
         </svg>
-        <span style={{ fontFamily: "'Tajawal', sans-serif" }}>{selectedLabel}</span>
+        <span style={{ fontFamily: "'Cairo', sans-serif" }}>{selectedLabel}</span>
       </button>
 
       {isOpen && (
@@ -128,7 +128,7 @@ function CustomDropdown({ value, options, onChange, placeholder, width = '100%' 
                   cursor: 'pointer',
                   textAlign: 'right',
                   transition: 'background 0.12s ease',
-                  fontFamily: "'Tajawal', sans-serif"
+                  fontFamily: "'Cairo', sans-serif"
                 }}
                 onMouseEnter={(e) => {
                   if (!isSel) e.currentTarget.style.backgroundColor = '#F8FAFC';
@@ -429,7 +429,7 @@ export default function ConsultantSchedulePage() {
         padding: '32px 20px 60px',
         maxWidth: '980px',
         margin: '0 auto',
-        fontFamily: "'Tajawal', sans-serif",
+        fontFamily: "'Cairo', sans-serif",
         direction: 'rtl',
         color: '#1E293B'
       }}
@@ -460,7 +460,7 @@ export default function ConsultantSchedulePage() {
               width: '100%',
               boxShadow: '0 24px 60px rgba(10,50,84,0.22)',
               textAlign: 'center',
-              fontFamily: "'Tajawal', sans-serif"
+              fontFamily: "'Cairo', sans-serif"
             }}
           >
             <div
@@ -477,10 +477,10 @@ export default function ConsultantSchedulePage() {
             >
               <span style={{ fontSize: '28px' }}>📅</span>
             </div>
-            <h2 style={{ margin: '0 0 8px', fontSize: '19px', fontWeight: '800', color: '#0A3254', fontFamily: "'Tajawal', sans-serif" }}>
+            <h2 style={{ margin: '0 0 8px', fontSize: '19px', fontWeight: '800', color: '#0A3254', fontFamily: "'Cairo', sans-serif" }}>
               تطبيق مواعيد {prevMonthName}؟
             </h2>
-            <p style={{ margin: '0 0 24px', fontSize: '13.5px', color: '#64748B', lineHeight: '1.7', fontFamily: "'Tajawal', sans-serif" }}>
+            <p style={{ margin: '0 0 24px', fontSize: '13.5px', color: '#64748B', lineHeight: '1.7', fontFamily: "'Cairo', sans-serif" }}>
               لديك جدول مواعيد محفوظ من شهر <strong style={{ color: '#1E40AF' }}>{prevMonthName}</strong>.
               <br />هل تريد تطبيق نفس الأوقات على الشهر الحالي؟
             </p>
@@ -499,7 +499,7 @@ export default function ConsultantSchedulePage() {
                   fontSize: '14px',
                   fontWeight: '800',
                   cursor: 'pointer',
-                  fontFamily: "'Tajawal', sans-serif"
+                  fontFamily: "'Cairo', sans-serif"
                 }}
               >
                 ✗ لا، شكراً
@@ -518,7 +518,7 @@ export default function ConsultantSchedulePage() {
                   fontSize: '14px',
                   fontWeight: '800',
                   cursor: isCopyingSaving ? 'not-allowed' : 'pointer',
-                  fontFamily: "'Tajawal', sans-serif"
+                  fontFamily: "'Cairo', sans-serif"
                 }}
               >
                 {isCopyingSaving ? '⏳ جاري التطبيق...' : '✓ تطبيق المواعيد'}
@@ -546,17 +546,17 @@ export default function ConsultantSchedulePage() {
             <circle cx="15.5" cy="15.5" r="3.5" fill="#FFFFFF" stroke="#F59E0B" strokeWidth="1.5" />
             <path d="M15.5 14V15.5L16.5 16.5" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
-          <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#0A3254', margin: 0, fontFamily: "'Tajawal', sans-serif" }}>
+          <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#0A3254', margin: 0, fontFamily: "'Cairo', sans-serif" }}>
             جدولة المواعيد
           </h1>
         </div>
-        <p style={{ fontSize: '13px', color: '#64748B', marginTop: '6px', marginBottom: 0, fontFamily: "'Tajawal', sans-serif" }}>
+        <p style={{ fontSize: '13px', color: '#64748B', marginTop: '6px', marginBottom: 0, fontFamily: "'Cairo', sans-serif" }}>
           وقتك بيدك – تحكّم بتوفرك، ونظّم مواعيدك بالطريقة التي تناسبك.
         </p>
       </div>
 
       {isLoading && (
-        <div style={{ textAlign: 'center', padding: '60px', color: '#64748B', fontSize: '14px', fontFamily: "'Tajawal', sans-serif" }}>
+        <div style={{ textAlign: 'center', padding: '60px', color: '#64748B', fontSize: '14px', fontFamily: "'Cairo', sans-serif" }}>
           <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
           <div style={{ display: 'inline-block', width: '28px', height: '28px', border: '3px solid #E2E8F0', borderTopColor: '#0A3254', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: '12px' }} />
           <br />جاري تحميل جدول المواعيد...
@@ -644,7 +644,7 @@ export default function ConsultantSchedulePage() {
                     fontSize: '16px',
                     fontWeight: '800',
                     color: '#0A3254',
-                    fontFamily: "'Tajawal', sans-serif"
+                    fontFamily: "'Cairo', sans-serif"
                   }}
                 >
                   {ARABIC_MONTHS[selectedMonth]} {selectedYear}
@@ -685,7 +685,7 @@ export default function ConsultantSchedulePage() {
                     fontSize: '13.5px',
                     fontWeight: '700',
                     color: '#0A3254',
-                    fontFamily: "'Tajawal', sans-serif"
+                    fontFamily: "'Cairo', sans-serif"
                   }}
                 >
                   {d}
@@ -740,7 +740,7 @@ export default function ConsultantSchedulePage() {
                       justifyContent: 'center',
                       position: 'relative',
                       transition: 'all 0.15s ease',
-                      fontFamily: "'Tajawal', sans-serif"
+                      fontFamily: "'Cairo', sans-serif"
                     }}
                     onMouseEnter={(e) => {
                       if (!isSel) e.currentTarget.style.backgroundColor = '#EAEFF2';
@@ -779,7 +779,7 @@ export default function ConsultantSchedulePage() {
                 fontSize: '12px',
                 color: '#64748B',
                 fontWeight: '700',
-                fontFamily: "'Tajawal', sans-serif",
+                fontFamily: "'Cairo', sans-serif",
                 direction: 'rtl'
               }}
             >
@@ -866,7 +866,7 @@ export default function ConsultantSchedulePage() {
                   fontSize: '15.5px',
                   fontWeight: '800',
                   color: '#0A3254',
-                  fontFamily: "'Tajawal', sans-serif"
+                  fontFamily: "'Cairo', sans-serif"
                 }}
               >
                 اختر يوماً من التقويم لتحديد فترة التوفر
@@ -878,7 +878,7 @@ export default function ConsultantSchedulePage() {
                   color: '#64748B',
                   lineHeight: '1.6',
                   maxWidth: '320px',
-                  fontFamily: "'Tajawal', sans-serif"
+                  fontFamily: "'Cairo', sans-serif"
                 }}
               >
                 ثم حدّد الأوقات المتاحة لهذا اليوم، ويمكنك إضافة أكثر من فترة زمنية حسب توفرك.
@@ -902,7 +902,7 @@ export default function ConsultantSchedulePage() {
                     fontSize: '15.5px',
                     fontWeight: '800',
                     color: '#0A3254',
-                    fontFamily: "'Tajawal', sans-serif"
+                    fontFamily: "'Cairo', sans-serif"
                   }}
                 >
                   الفترة الزمنية - {selectedDay} {ARABIC_MONTHS[selectedMonth]}
@@ -924,7 +924,7 @@ export default function ConsultantSchedulePage() {
                             color: '#0A3254',
                             marginBottom: '8px',
                             textAlign: 'right',
-                            fontFamily: "'Tajawal', sans-serif"
+                            fontFamily: "'Cairo', sans-serif"
                           }}
                         >
                           بداية المواعيد
@@ -946,7 +946,7 @@ export default function ConsultantSchedulePage() {
                             color: '#0A3254',
                             marginBottom: '8px',
                             textAlign: 'right',
-                            fontFamily: "'Tajawal', sans-serif"
+                            fontFamily: "'Cairo', sans-serif"
                           }}
                         >
                           نهاية المواعيد
@@ -976,7 +976,7 @@ export default function ConsultantSchedulePage() {
                       fontWeight: '800',
                       cursor: 'pointer',
                       padding: '4px 0',
-                      fontFamily: "'Tajawal', sans-serif"
+                      fontFamily: "'Cairo', sans-serif"
                     }}
                     onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.8')}
                     onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
@@ -1011,7 +1011,7 @@ export default function ConsultantSchedulePage() {
                               fontSize: '12px',
                               fontWeight: '700',
                               color: '#0A3254',
-                              fontFamily: "'Tajawal', sans-serif"
+                              fontFamily: "'Cairo', sans-serif"
                             }}
                           >
                             {p.end} - {p.start}
@@ -1025,7 +1025,7 @@ export default function ConsultantSchedulePage() {
                         fontSize: '13px',
                         fontWeight: '800',
                         color: '#0A3254',
-                        fontFamily: "'Tajawal', sans-serif"
+                        fontFamily: "'Cairo', sans-serif"
                       }}
                     >
                       الفترات المتاحة:
@@ -1043,7 +1043,7 @@ export default function ConsultantSchedulePage() {
                         fontSize: '12px',
                         fontWeight: '700',
                         color: '#0A3254',
-                        fontFamily: "'Tajawal', sans-serif"
+                        fontFamily: "'Cairo', sans-serif"
                       }}
                     >
                       {summaryCalc.totalHours} ساعات
@@ -1053,7 +1053,7 @@ export default function ConsultantSchedulePage() {
                         fontSize: '13px',
                         fontWeight: '800',
                         color: '#0A3254',
-                        fontFamily: "'Tajawal', sans-serif"
+                        fontFamily: "'Cairo', sans-serif"
                       }}
                     >
                       المواعيد المتاحة:
@@ -1085,7 +1085,7 @@ export default function ConsultantSchedulePage() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
-                    fontFamily: "'Tajawal', sans-serif",
+                    fontFamily: "'Cairo', sans-serif",
                     transition: 'background 0.15s ease'
                   }}
                   onMouseEnter={(e) => !isSaving && (e.currentTarget.style.backgroundColor = '#07243D')}
@@ -1123,7 +1123,7 @@ export default function ConsultantSchedulePage() {
                     fontSize: '14px',
                     fontWeight: '700',
                     cursor: 'pointer',
-                    fontFamily: "'Tajawal', sans-serif",
+                    fontFamily: "'Cairo', sans-serif",
                     transition: 'all 0.15s ease'
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8FAFC')}

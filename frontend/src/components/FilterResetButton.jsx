@@ -42,7 +42,7 @@ export default function FilterResetButton({
         cursor: 'pointer',
         transition: 'all 0.18s ease',
         flexShrink: 0,
-        fontFamily: "'Tajawal', sans-serif",
+        fontFamily: "'Cairo', sans-serif",
         boxSizing: 'border-box',
         ...style
       }}

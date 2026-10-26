@@ -1,4 +1,5 @@
 import React from 'react';
+import ModernSelect from '../../components/ModernSelect';
 
 export default function ConsultantSpecializationsTab({
   currentSpecializationId,
@@ -53,10 +54,10 @@ export default function ConsultantSpecializationsTab({
           boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
         }}
       >
-        <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#0A3254', margin: '0 0 6px 0', fontFamily: "'Tajawal', sans-serif" }}>
+        <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#0A3254', margin: '0 0 6px 0', fontFamily: "'Cairo', sans-serif" }}>
           التخصصات والرخصة المهنية المعتمدة
         </h3>
-        <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 24px 0', fontFamily: "'Tajawal', sans-serif" }}>
+        <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 24px 0', fontFamily: "'Cairo', sans-serif" }}>
           إدارة تخصصك الرئيسي المعتمد وتقديم طلبات اعتماد تخصصات إضافية مع إرفاق رخصة JCPA والشهادات المؤهلة.
         </p>
 
@@ -76,10 +77,10 @@ export default function ConsultantSpecializationsTab({
           {/* Main Specialization */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             <div>
-              <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '800', marginBottom: '4px', fontFamily: "'Tajawal', sans-serif" }}>
+              <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '800', marginBottom: '4px', fontFamily: "'Cairo', sans-serif" }}>
                 التخصص الرئيسي المعتمد والنشط حالياً على المنصة:
               </div>
-              <div style={{ fontSize: '16px', fontWeight: '900', color: '#0A3254', fontFamily: "'Tajawal', sans-serif" }}>
+              <div style={{ fontSize: '16px', fontWeight: '900', color: '#0A3254', fontFamily: "'Cairo', sans-serif" }}>
                 {currentSpecializationName}
               </div>
             </div>
@@ -95,7 +96,7 @@ export default function ConsultantSpecializationsTab({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                fontFamily: "'Tajawal', sans-serif"
+                fontFamily: "'Cairo', sans-serif"
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -108,7 +109,7 @@ export default function ConsultantSpecializationsTab({
           {/* Approved Extra Specializations if any */}
           {approvedSpecializations.length > 0 && (
             <div style={{ borderTop: '1px dashed #E2E8F0', paddingTop: '12px', marginTop: '4px' }}>
-              <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '800', marginBottom: '8px', fontFamily: "'Tajawal', sans-serif" }}>
+              <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '800', marginBottom: '8px', fontFamily: "'Cairo', sans-serif" }}>
                 التخصصات الإضافية المعتمدة:
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -126,7 +127,7 @@ export default function ConsultantSpecializationsTab({
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '5px',
-                      fontFamily: "'Tajawal', sans-serif"
+                      fontFamily: "'Cairo', sans-serif"
                     }}
                   >
                     <span>✓</span>
@@ -149,7 +150,7 @@ export default function ConsultantSpecializationsTab({
                   border: `1px solid ${req.rawStatus === 'approved' ? '#86EFAC' : req.rawStatus === 'rejected' ? '#FCA5A5' : '#FCD34D'}`,
                   borderRadius: '12px',
                   padding: '16px 20px',
-                  fontFamily: "'Tajawal', sans-serif"
+                  fontFamily: "'Cairo', sans-serif"
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
@@ -186,7 +187,7 @@ export default function ConsultantSpecializationsTab({
               fontSize: '13px',
               cursor: 'pointer',
               transition: 'all 0.15s',
-              fontFamily: "'Tajawal', sans-serif"
+              fontFamily: "'Cairo', sans-serif"
             }}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -212,7 +213,7 @@ export default function ConsultantSpecializationsTab({
               fontSize: '13px',
               cursor: 'pointer',
               transition: 'all 0.15s',
-              fontFamily: "'Tajawal', sans-serif"
+              fontFamily: "'Cairo', sans-serif"
             }}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -226,47 +227,32 @@ export default function ConsultantSpecializationsTab({
         {specMode === 'add' && (
           <form onSubmit={(e) => handleSubmitSpecRequest(e, 'add')}>
             <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '22px' }}>
-              <div style={{ fontSize: '15px', fontWeight: '900', color: '#0A3254', marginBottom: '16px', fontFamily: "'Tajawal', sans-serif" }}>
+              <div style={{ fontSize: '15px', fontWeight: '900', color: '#0A3254', marginBottom: '16px', fontFamily: "'Cairo', sans-serif" }}>
                 تقديم طلب إضافة تخصص استشاري إضافي:
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '800', color: '#334155', marginBottom: '8px', fontFamily: "'Tajawal', sans-serif" }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '800', color: '#334155', marginBottom: '8px', fontFamily: "'Cairo', sans-serif" }}>
                     اختر التخصص الإضافي المطلوب (مستبعد منه تخصصاتك الحالية تلقائياً):
                   </label>
-                  <select
-                    value={addSpec.selectedId}
-                    onChange={(e) => setAddSpec({ ...addSpec, selectedId: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      borderRadius: '12px',
-                      border: '1px solid #E2E8F0',
-                      fontSize: '13.5px',
-                      background: '#FFFFFF',
-                      fontWeight: '700',
-                      color: '#1E293B',
-                      fontFamily: "'Tajawal', sans-serif"
-                    }}
-                  >
-                    <option value="">-- اضغط لاختيار تخصص إضافي من القائمة المتاحة --</option>
-                    {availableToAdd.length === 0 ? (
-                      <option disabled value="">
-                        ✓ لقد تم اعتماد جميع التخصصات المتاحة في المنصة لحسابك
-                      </option>
-                    ) : (
-                      availableToAdd.map((spec) => (
-                        <option key={spec.id} value={spec.id}>
-                          {spec.name}
-                        </option>
-                      ))
-                    )}
-                  </select>
+                  <ModernSelect
+                    value={addSpec.selectedId ? String(addSpec.selectedId) : ''}
+                    onChange={(val) => setAddSpec({ ...addSpec, selectedId: val })}
+                    options={
+                      availableToAdd.length === 0
+                        ? [{ value: '', label: '✓ لقد تم اعتماد جميع التخصصات المتاحة في المنصة لحسابك' }]
+                        : availableToAdd.map((spec) => ({ value: String(spec.id), label: spec.name }))
+                    }
+                    placeholder="-- اضغط لاختيار تخصص إضافي من القائمة المتاحة --"
+                    style={{ width: '100%' }}
+                    dropdownWidth="100%"
+                    align="right"
+                  />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '800', color: '#334155', marginBottom: '8px', fontFamily: "'Tajawal', sans-serif" }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '800', color: '#334155', marginBottom: '8px', fontFamily: "'Cairo', sans-serif" }}>
                     سبب طلب إضافة التخصص والمؤهلات الداعمة:
                   </label>
                   <textarea
@@ -282,13 +268,13 @@ export default function ConsultantSpecializationsTab({
                       fontSize: '13.5px',
                       lineHeight: '1.6',
                       boxSizing: 'border-box',
-                      fontFamily: "'Tajawal', sans-serif"
+                      fontFamily: "'Cairo', sans-serif"
                     }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '800', color: '#334155', marginBottom: '8px', fontFamily: "'Tajawal', sans-serif" }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '800', color: '#334155', marginBottom: '8px', fontFamily: "'Cairo', sans-serif" }}>
                     إرفاق وثيقة الاعتماد أو شهادة المؤهل (PDF أو صورة):
                   </label>
                   {addSpec.proofFileName ? (
@@ -303,7 +289,7 @@ export default function ConsultantSpecializationsTab({
                         borderRadius: '12px'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#166534', fontWeight: '700', fontSize: '13.5px', fontFamily: "'Tajawal', sans-serif" }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#166534', fontWeight: '700', fontSize: '13.5px', fontFamily: "'Cairo', sans-serif" }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                           <polyline points="14 2 14 8 20 8" />
@@ -325,7 +311,7 @@ export default function ConsultantSpecializationsTab({
                           gap: '4px',
                           fontSize: '12.5px',
                           fontWeight: '700',
-                          fontFamily: "'Tajawal', sans-serif"
+                          fontFamily: "'Cairo', sans-serif"
                         }}
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -356,10 +342,10 @@ export default function ConsultantSpecializationsTab({
                           <path d="m16 16-4-4-4 4" />
                         </svg>
                       </div>
-                      <div style={{ fontSize: '13.5px', fontWeight: '800', color: '#0A3254', fontFamily: "'Tajawal', sans-serif" }}>
+                      <div style={{ fontSize: '13.5px', fontWeight: '800', color: '#0A3254', fontFamily: "'Cairo', sans-serif" }}>
                         اضغط هنا لرفع رخصة JCPA أو وثيقة الاعتماد
                       </div>
-                      <div style={{ fontSize: '11.5px', color: '#94A3B8', marginTop: '4px', fontFamily: "'Tajawal', sans-serif" }}>
+                      <div style={{ fontSize: '11.5px', color: '#94A3B8', marginTop: '4px', fontFamily: "'Cairo', sans-serif" }}>
                         ملفات PDF أو صور حتى 10 ميجابايت
                       </div>
                     </div>
@@ -385,7 +371,7 @@ export default function ConsultantSpecializationsTab({
                       boxShadow: '0 4px 12px rgba(10, 50, 84, 0.25)',
                       transition: 'all 0.2s',
                       opacity: loading || availableToAdd.length === 0 ? 0.6 : 1,
-                      fontFamily: "'Tajawal', sans-serif"
+                      fontFamily: "'Cairo', sans-serif"
                     }}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -405,41 +391,28 @@ export default function ConsultantSpecializationsTab({
         {specMode === 'change' && (
           <form onSubmit={(e) => handleSubmitSpecRequest(e, 'change')}>
             <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '22px' }}>
-              <div style={{ fontSize: '15px', fontWeight: '900', color: '#0A3254', marginBottom: '16px', fontFamily: "'Tajawal', sans-serif" }}>
+              <div style={{ fontSize: '15px', fontWeight: '900', color: '#0A3254', marginBottom: '16px', fontFamily: "'Cairo', sans-serif" }}>
                 طلب تغيير التخصص الرئيسي المعتمد:
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '800', color: '#334155', marginBottom: '8px', fontFamily: "'Tajawal', sans-serif" }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '800', color: '#334155', marginBottom: '8px', fontFamily: "'Cairo', sans-serif" }}>
                     اختر التخصص الرئيسي الجديد (مستبعد منه تخصصك الرئيسي الحالي):
                   </label>
-                  <select
-                    value={changeSpec.selectedId}
-                    onChange={(e) => setChangeSpec({ ...changeSpec, selectedId: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      borderRadius: '12px',
-                      border: '1px solid #E2E8F0',
-                      fontSize: '13.5px',
-                      background: '#FFFFFF',
-                      fontWeight: '700',
-                      color: '#1E293B',
-                      fontFamily: "'Tajawal', sans-serif"
-                    }}
-                  >
-                    <option value="">-- اضغط لاختيار التخصص الجديد من القائمة الرسمية --</option>
-                    {availableToChange.map((spec) => (
-                      <option key={spec.id} value={spec.id}>
-                        {spec.name}
-                      </option>
-                    ))}
-                  </select>
+                  <ModernSelect
+                    value={changeSpec.selectedId ? String(changeSpec.selectedId) : ''}
+                    onChange={(val) => setChangeSpec({ ...changeSpec, selectedId: val })}
+                    options={availableToChange.map((spec) => ({ value: String(spec.id), label: spec.name }))}
+                    placeholder="-- اضغط لاختيار التخصص الجديد من القائمة الرسمية --"
+                    style={{ width: '100%' }}
+                    dropdownWidth="100%"
+                    align="right"
+                  />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '800', color: '#334155', marginBottom: '8px', fontFamily: "'Tajawal', sans-serif" }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '800', color: '#334155', marginBottom: '8px', fontFamily: "'Cairo', sans-serif" }}>
                     سبب طلب تغيير التخصص الرئيسي:
                   </label>
                   <textarea
@@ -455,13 +428,13 @@ export default function ConsultantSpecializationsTab({
                       fontSize: '13.5px',
                       lineHeight: '1.6',
                       boxSizing: 'border-box',
-                      fontFamily: "'Tajawal', sans-serif"
+                      fontFamily: "'Cairo', sans-serif"
                     }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '800', color: '#334155', marginBottom: '8px', fontFamily: "'Tajawal', sans-serif" }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '800', color: '#334155', marginBottom: '8px', fontFamily: "'Cairo', sans-serif" }}>
                     إرفاق رخصة JCPA أو المؤهل الجديد (PDF أو صورة):
                   </label>
                   {changeSpec.proofFileName ? (
@@ -476,7 +449,7 @@ export default function ConsultantSpecializationsTab({
                         borderRadius: '12px'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#166534', fontWeight: '700', fontSize: '13.5px', fontFamily: "'Tajawal', sans-serif" }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#166534', fontWeight: '700', fontSize: '13.5px', fontFamily: "'Cairo', sans-serif" }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                           <polyline points="14 2 14 8 20 8" />
@@ -498,7 +471,7 @@ export default function ConsultantSpecializationsTab({
                           gap: '4px',
                           fontSize: '12.5px',
                           fontWeight: '700',
-                          fontFamily: "'Tajawal', sans-serif"
+                          fontFamily: "'Cairo', sans-serif"
                         }}
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -529,10 +502,10 @@ export default function ConsultantSpecializationsTab({
                           <path d="m16 16-4-4-4 4" />
                         </svg>
                       </div>
-                      <div style={{ fontSize: '13.5px', fontWeight: '800', color: '#0A3254', fontFamily: "'Tajawal', sans-serif" }}>
+                      <div style={{ fontSize: '13.5px', fontWeight: '800', color: '#0A3254', fontFamily: "'Cairo', sans-serif" }}>
                         اضغط هنا لرفع الوثيقة الجديدة أو رخصة JCPA
                       </div>
-                      <div style={{ fontSize: '11.5px', color: '#94A3B8', marginTop: '4px', fontFamily: "'Tajawal', sans-serif" }}>
+                      <div style={{ fontSize: '11.5px', color: '#94A3B8', marginTop: '4px', fontFamily: "'Cairo', sans-serif" }}>
                         ملفات PDF أو صور حتى 10 ميجابايت
                       </div>
                     </div>
@@ -558,7 +531,7 @@ export default function ConsultantSpecializationsTab({
                       boxShadow: '0 4px 12px rgba(10, 50, 84, 0.25)',
                       transition: 'all 0.2s',
                       opacity: loading || availableToChange.length === 0 ? 0.6 : 1,
-                      fontFamily: "'Tajawal', sans-serif"
+                      fontFamily: "'Cairo', sans-serif"
                     }}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

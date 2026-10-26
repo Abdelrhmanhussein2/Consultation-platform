@@ -43,10 +43,10 @@ export default function RevenueSourcesChart() {
             <g key={i}>
               {d.multiLine ? (
                 <>
-                  <text x="96" y="82" fontSize="12" fill="#64748B" textAnchor="end" fontFamily="Tajawal, sans-serif" fontWeight="500">
+                  <text x="96" y="82" fontSize="12" fill="#64748B" textAnchor="end" fontFamily="Cairo, sans-serif" fontWeight="500">
                     جلسات
                   </text>
-                  <text x="96" y="96" fontSize="12" fill="#64748B" textAnchor="end" fontFamily="Tajawal, sans-serif" fontWeight="500">
+                  <text x="96" y="96" fontSize="12" fill="#64748B" textAnchor="end" fontFamily="Cairo, sans-serif" fontWeight="500">
                     المستشارين
                   </text>
                 </>
@@ -57,7 +57,7 @@ export default function RevenueSourcesChart() {
                   fontSize="12.5" 
                   fill="#64748B" 
                   textAnchor="end" 
-                  fontFamily="Tajawal, sans-serif"
+                  fontFamily="Cairo, sans-serif"
                   fontWeight="500"
                 >
                   {d.name}

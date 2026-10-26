@@ -718,11 +718,11 @@ export default function ControlCenter() {
 
     if (isAllZero) {
       ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 13px Tajawal, sans-serif';
+      ctx.font = 'bold 13px Cairo, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('الاستهلاك الحالي المسجل في قاعدة البيانات: 0 توكن', w / 2, h / 2 - 10);
       ctx.fillStyle = '#64748b';
-      ctx.font = '500 11.5px Tajawal, sans-serif';
+      ctx.font = '500 11.5px Cairo, sans-serif';
       ctx.fillText('يتم تتبع ورسم الاستهلاك الحقيقي آلياً عند إرسال استشارات في جدول chat_messages', w / 2, h / 2 + 14);
     }
   };

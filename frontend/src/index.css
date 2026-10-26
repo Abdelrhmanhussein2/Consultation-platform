@@ -1,56 +1,23 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@200;300;400;500;700;800;900&display=swap');
-
-/* Local Tajawal Font Faces */
-@font-face {
-  font-family: 'Tajawal';
-  src: url('/fonts/Tajawal-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Tajawal';
-  src: url('/fonts/Tajawal-Medium.ttf') format('truetype');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Tajawal';
-  src: url('/fonts/Tajawal-Bold.ttf') format('truetype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Tajawal';
-  src: url('/fonts/Tajawal-ExtraBold.ttf') format('truetype');
-  font-weight: 800;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Tajawal';
-  src: url('/fonts/Tajawal-Black.ttf') format('truetype');
-  font-weight: 900;
-  font-style: normal;
-  font-display: swap;
-}
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
-  --font-main: 'Tajawal', sans-serif;
-  --font-family: 'Tajawal', sans-serif;
-  --font-weight-header: 800;
+  --font-main: 'Cairo', sans-serif;
+  --font-family: 'Cairo', sans-serif;
+  --font-weight-header: 700;
   --font-weight-title: 700;
   --font-weight-subtitle: 600;
   --font-weight-body: 400;
   --font-weight-medium: 500;
-  --font-weight-btn: 700;
-  --font-weight-sidebar: 700;
+  --font-weight-btn: 600;
+  --font-weight-sidebar: 600;
+
+  /* Standardized Typography Scale for Cairo */
+  --text-xs: 11.5px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 16.5px;
+  --text-lg: 20px;
+  --text-xl: 26px;
 
   --primary-color: #0D3C5C;
   --header-bg: #005D9C;
@@ -83,11 +50,11 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Tajawal', sans-serif !important;
+  font-family: 'Cairo', sans-serif !important;
 }
 
 html, body, #root, button, input, select, textarea {
-  font-family: 'Tajawal', sans-serif !important;
+  font-family: 'Cairo', sans-serif !important;
 }
 
 html, body, #root {
@@ -102,8 +69,43 @@ html, body, #root {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   GLOBAL STRICT TYPOGRAPHY SYSTEM (Tajawal Font)
+   GLOBAL STRICT TYPOGRAPHY SYSTEM (Cairo Font Exclusive)
    ══════════════════════════════════════════════════════════════════ */
+
+/* Standardized Heading Hierarchy for Cairo */
+h1, .page-title {
+  font-family: var(--font-main) !important;
+  font-size: 26px !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+}
+
+h2, .section-title {
+  font-family: var(--font-main) !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+}
+
+h3, .card-title, .modal-title {
+  font-family: var(--font-main) !important;
+  font-size: 16.5px !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
+}
+
+h4, .widget-title {
+  font-family: var(--font-main) !important;
+  font-size: 14.5px !important;
+  font-weight: 600 !important;
+  line-height: 1.45 !important;
+}
+
+h5, h6 {
+  font-family: var(--font-main) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
 
 /* 1. Main App Header & Navigation */
 header, .app-header, .top-navbar, nav, .site-header {
@@ -111,8 +113,7 @@ header, .app-header, .top-navbar, nav, .site-header {
 }
 
 /* 2. Section Headers & Titles */
-h1, h2, h3, h4, h5, h6,
-.section-title, .section-header, .card-title, .modal-title, .widget-title {
+.section-header {
   font-family: var(--font-main) !important;
 }
 
@@ -120,6 +121,7 @@ h1, h2, h3, h4, h5, h6,
 p, label, input, textarea, td, th, li, code, pre,
 .section-content, .card-body, .modal-body, .description {
   font-family: var(--font-main) !important;
+  line-height: 1.65;
 }
 
 span:not([class*="fa-"]):not(.fa):not(.fas):not(.far):not(.fab):not(.fa-solid) {
@@ -129,6 +131,7 @@ span:not([class*="fa-"]):not(.fa):not(.fas):not(.far):not(.fab):not(.fa-solid) {
 /* 4. Buttons & Interaction Controls */
 button:not([class*="fa-"]), .btn, .button, input[type="button"], input[type="submit"], .action-btn {
   font-family: var(--font-main) !important;
+  font-weight: 600;
 }
 
 /* 5. Sidebar & Nested Sections */

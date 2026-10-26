@@ -878,7 +878,7 @@ export default function AdminTicketsPage({ navigate }) {
   const messagesEndRef = useRef(null);
 
   return (
-    <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 20px', direction: 'rtl', fontFamily: 'Tajawal, sans-serif' }}>
+    <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 20px', direction: 'rtl', fontFamily: 'Cairo, sans-serif' }}>
       {/* Toast Notification */}
       {toastMsg && (
         <div style={{ position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)', background: '#0A3254', color: '#FFFFFF', padding: '12px 24px', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)', zIndex: 99999, fontSize: '14px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>

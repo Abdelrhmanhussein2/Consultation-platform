@@ -130,7 +130,7 @@ function CreateFolderModal({ onClose, onCreate }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={onClose}>
-      <div style={{ background: '#FFFFFF', borderRadius: '20px', padding: '32px', width: '100%', maxWidth: '440px', direction: 'rtl', fontFamily: 'Tajawal, sans-serif' }} onClick={e => e.stopPropagation()}>
+      <div style={{ background: '#FFFFFF', borderRadius: '20px', padding: '32px', width: '100%', maxWidth: '440px', direction: 'rtl', fontFamily: 'Cairo, sans-serif' }} onClick={e => e.stopPropagation()}>
         <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#0D3C5C', margin: '0 0 6px 0' }}>إنشاء مجلد جديد</h2>
         <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 24px 0' }}>سمِّ مجلدك واختر لونًا مميزًا</p>
 
@@ -142,7 +142,7 @@ function CreateFolderModal({ onClose, onCreate }) {
             placeholder="مثال: ملفات العقود والقضايا"
             maxLength={80}
             required
-            style={{ width: '100%', border: '1.5px solid #E2E8F0', borderRadius: '10px', padding: '10px 14px', fontSize: '14px', fontFamily: 'Tajawal, sans-serif', outline: 'none', boxSizing: 'border-box', marginBottom: '16px' }}
+            style={{ width: '100%', border: '1.5px solid #E2E8F0', borderRadius: '10px', padding: '10px 14px', fontSize: '14px', fontFamily: 'Cairo, sans-serif', outline: 'none', boxSizing: 'border-box', marginBottom: '16px' }}
           />
 
           <label style={{ fontSize: '13px', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '6px' }}>وصف (اختياري)</label>
@@ -151,7 +151,7 @@ function CreateFolderModal({ onClose, onCreate }) {
             onChange={e => setDescription(e.target.value)}
             placeholder="وصف مختصر للمجلد..."
             rows={2}
-            style={{ width: '100%', border: '1.5px solid #E2E8F0', borderRadius: '10px', padding: '10px 14px', fontSize: '14px', fontFamily: 'Tajawal, sans-serif', outline: 'none', boxSizing: 'border-box', resize: 'none', marginBottom: '16px' }}
+            style={{ width: '100%', border: '1.5px solid #E2E8F0', borderRadius: '10px', padding: '10px 14px', fontSize: '14px', fontFamily: 'Cairo, sans-serif', outline: 'none', boxSizing: 'border-box', resize: 'none', marginBottom: '16px' }}
           />
 
           <label style={{ fontSize: '13px', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '10px' }}>لون المجلد</label>
@@ -174,7 +174,7 @@ function CreateFolderModal({ onClose, onCreate }) {
               style={{
                 flex: 1, background: '#0D3C5C', color: '#FFFFFF', border: 'none', borderRadius: '12px',
                 padding: '12px 20px', fontSize: '14px', fontWeight: '700', cursor: 'pointer',
-                fontFamily: 'Tajawal, sans-serif', opacity: loading ? 0.7 : 1
+                fontFamily: 'Cairo, sans-serif', opacity: loading ? 0.7 : 1
               }}
             >
               {loading ? 'جارٍ الإنشاء...' : 'إنشاء المجلد'}
@@ -183,7 +183,7 @@ function CreateFolderModal({ onClose, onCreate }) {
               type="button" onClick={onClose}
               style={{
                 flex: 1, background: '#F1F5F9', color: '#64748B', border: 'none', borderRadius: '12px',
-                padding: '12px 20px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif'
+                padding: '12px 20px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Cairo, sans-serif'
               }}
             >
               إلغاء
@@ -372,7 +372,7 @@ export default function MyFoldersPage({ navigate }) {
             icon={<FolderIcon size={48} color="#CBD5E1" />}
             title="لا توجد مجلدات بعد"
             body="أنشئ مجلدًا لتنظيم مستنداتك وملفاتك وتصنيفها بسهولة."
-            action={<button onClick={() => setShowCreateModal(true)} style={{ background: '#0D3C5C', color: '#FFFFFF', border: 'none', borderRadius: '12px', padding: '10px 24px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px' }}><PlusIcon color="#FFFFFF" />إنشاء مجلد جديد</button>}
+            action={<button onClick={() => setShowCreateModal(true)} style={{ background: '#0D3C5C', color: '#FFFFFF', border: 'none', borderRadius: '12px', padding: '10px 24px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px' }}><PlusIcon color="#FFFFFF" />إنشاء مجلد جديد</button>}
           />
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '16px' }}>
@@ -382,7 +382,7 @@ export default function MyFoldersPage({ navigate }) {
             {/* Add new folder card */}
             <button
               onClick={() => setShowCreateModal(true)}
-              style={{ background: 'transparent', border: '2px dashed #CBD5E1', borderRadius: '16px', padding: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', color: '#94A3B8', transition: 'all 0.2s', fontFamily: 'Tajawal, sans-serif' }}
+              style={{ background: 'transparent', border: '2px dashed #CBD5E1', borderRadius: '16px', padding: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', color: '#94A3B8', transition: 'all 0.2s', fontFamily: 'Cairo, sans-serif' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = '#F5A52A'; e.currentTarget.style.color = '#F5A52A'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = '#CBD5E1'; e.currentTarget.style.color = '#94A3B8'; }}
             >
@@ -396,7 +396,7 @@ export default function MyFoldersPage({ navigate }) {
   };
 
   return (
-    <div style={{ direction: 'rtl', fontFamily: 'Tajawal, sans-serif', color: '#1E293B', paddingBottom: '60px' }}>
+    <div style={{ direction: 'rtl', fontFamily: 'Cairo, sans-serif', color: '#1E293B', paddingBottom: '60px' }}>
       <Toast {...toast} />
 
       {/* Page Header */}
@@ -427,7 +427,7 @@ export default function MyFoldersPage({ navigate }) {
               color: activeTab === tab.key ? '#0D3C5C' : '#64748B',
               border: 'none', borderRadius: '10px', padding: '9px 20px',
               fontSize: '14px', fontWeight: '700', cursor: 'pointer',
-              fontFamily: 'Tajawal, sans-serif',
+              fontFamily: 'Cairo, sans-serif',
               boxShadow: activeTab === tab.key ? '0 1px 6px rgba(0,0,0,0.08)' : 'none',
               transition: 'all 0.2s',
             }}

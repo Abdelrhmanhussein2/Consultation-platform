@@ -134,7 +134,7 @@ export default function ConsultantDocumentsPage() {
   );
 
   return (
-    <div style={{ direction: 'rtl', fontFamily: 'Tajawal, sans-serif', color: '#1E293B', paddingBottom: '40px' }}>
+    <div style={{ direction: 'rtl', fontFamily: 'Cairo, sans-serif', color: '#1E293B', paddingBottom: '40px' }}>
       <Toast {...toast} />
 
       <input
@@ -181,7 +181,7 @@ export default function ConsultantDocumentsPage() {
             fontWeight: '800',
             fontSize: '13px',
             cursor: uploading ? 'default' : 'pointer',
-            fontFamily: 'Tajawal, sans-serif',
+            fontFamily: 'Cairo, sans-serif',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
@@ -260,7 +260,7 @@ export default function ConsultantDocumentsPage() {
             borderRadius: '12px',
             border: '1.5px solid #E2E8F0',
             fontSize: '13px',
-            fontFamily: 'Tajawal, sans-serif',
+            fontFamily: 'Cairo, sans-serif',
             outline: 'none',
             color: '#374151',
             boxSizing: 'border-box'

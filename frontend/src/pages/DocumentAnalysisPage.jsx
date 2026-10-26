@@ -56,7 +56,7 @@ export default function DocumentAnalysisPage() {
   const displayNotes = selected ? selected.result : notes;
 
   return (
-    <div style={{ direction: 'rtl', fontFamily: 'Tajawal, sans-serif', color: '#1E293B' }}>
+    <div style={{ direction: 'rtl', fontFamily: 'Cairo, sans-serif', color: '#1E293B' }}>
       <Toast {...toast} />
 
       {/* ── Title ── */}
@@ -139,7 +139,7 @@ export default function DocumentAnalysisPage() {
             background: 'linear-gradient(135deg, #F5A52A, #E08A00)',
             color: '#fff', border: 'none', padding: '9px 24px',
             borderRadius: '25px', fontWeight: '700', fontSize: '13px',
-            cursor: 'pointer', fontFamily: 'Tajawal, sans-serif',
+            cursor: 'pointer', fontFamily: 'Cairo, sans-serif',
             display: 'inline-flex', alignItems: 'center', gap: '8px',
             boxShadow: '0 3px 10px rgba(245,165,42,0.3)',
           }}
@@ -167,7 +167,7 @@ export default function DocumentAnalysisPage() {
               onClick={() => setType(t.value)}
               style={{
                 padding: '7px 18px', borderRadius: '25px', fontSize: '13px',
-                fontWeight: '700', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif',
+                fontWeight: '700', cursor: 'pointer', fontFamily: 'Cairo, sans-serif',
                 border: analysisType === t.value ? '2px solid #F5A52A' : '2px solid #E2E8F0',
                 background: analysisType === t.value ? '#FFF8EC' : '#FFFFFF',
                 color: analysisType === t.value ? '#C47B00' : '#64748B',
@@ -237,7 +237,7 @@ export default function DocumentAnalysisPage() {
             fontSize: '13px',
             lineHeight: '1.9',
             color: displayNotes ? '#1E293B' : '#94A3B8',
-            fontFamily: 'Tajawal, sans-serif',
+            fontFamily: 'Cairo, sans-serif',
             whiteSpace: 'pre-wrap',
             border: '1px solid #E2E8F0',
           }}>
@@ -268,7 +268,7 @@ export default function DocumentAnalysisPage() {
                 color: loading || !file ? '#94A3B8' : '#FFFFFF',
                 border: 'none', borderRadius: '12px', fontSize: '14px',
                 fontWeight: '800', cursor: loading || !file ? 'not-allowed' : 'pointer',
-                fontFamily: 'Tajawal, sans-serif',
+                fontFamily: 'Cairo, sans-serif',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                 boxShadow: loading || !file ? 'none' : '0 4px 14px rgba(245,165,42,0.3)',
                 transition: 'all 0.2s',
@@ -314,7 +314,7 @@ export default function DocumentAnalysisPage() {
                       borderRadius: '10px',
                       border: `1.5px solid ${selected?.id === item.id ? '#F5A52A' : '#E8E8E8'}`,
                       background: selected?.id === item.id ? '#FFF8EC' : '#FAFAFA',
-                      cursor: 'pointer', fontFamily: 'Tajawal, sans-serif',
+                      cursor: 'pointer', fontFamily: 'Cairo, sans-serif',
                       transition: 'all 0.15s',
                     }}
                   >

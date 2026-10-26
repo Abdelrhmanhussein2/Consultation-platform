@@ -21,7 +21,7 @@ import { OFFICIAL_15_SPECIALIZATIONS } from '../../utils/specializations';
 
 /* ── CSS ──────────────────────────────────────────────────────────── */
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;700;800;900&display=swap');
 
   :root {
     --admin-navy: #0B2E4B;

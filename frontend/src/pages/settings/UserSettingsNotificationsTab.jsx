@@ -1,4 +1,14 @@
 import React, { useState } from 'react';
+import ModernSelect from '../../components/ModernSelect';
+
+const REMINDER_OPTIONS = [
+  { value: '15', label: 'قبل موعد الجلسة بـ 15 دقيقة' },
+  { value: '30', label: 'قبل موعد الجلسة بـ 30 دقيقة' },
+  { value: '60', label: 'قبل موعد الجلسة بساعة واحدة' },
+  { value: '120', label: 'قبل موعد الجلسة بساعتين' },
+  { value: '1440', label: 'قبل موعد الجلسة بـ 24 ساعة' },
+  { value: 'custom_both', label: 'تذكير مزدوج: قبل 24 ساعة وساعة واحدة (موصى به)' }
+];
 
 // Luxury iOS-style toggle switch component
 const ToggleSwitch = ({ checked, onChange, disabled = false, id }) => (
@@ -137,28 +147,14 @@ export default function UserSettingsNotificationsTab({
                 <span>توقيت التذكير المفضل قبل بدء الجلسة:</span>
               </div>
 
-              <select
-                value={reminderMinutes}
-                onChange={(e) => setReminderMinutes && setReminderMinutes(e.target.value)}
-                style={{
-                  padding: '7px 14px',
-                  borderRadius: '8px',
-                  border: '1px solid #CBD5E1',
-                  fontSize: '12.5px',
-                  fontWeight: '800',
-                  background: '#FFFFFF',
-                  color: '#0e3b5e',
-                  cursor: 'pointer',
-                  outline: 'none'
-                }}
-              >
-                <option value="15">قبل موعد الجلسة بـ 15 دقيقة</option>
-                <option value="30">قبل موعد الجلسة بـ 30 دقيقة</option>
-                <option value="60">قبل موعد الجلسة بساعة واحدة</option>
-                <option value="120">قبل موعد الجلسة بساعتين</option>
-                <option value="1440">قبل موعد الجلسة بـ 24 ساعة</option>
-                <option value="custom_both">تذكير مزدوج: قبل 24 ساعة وساعة واحدة (موصى به)</option>
-              </select>
+              <ModernSelect
+                value={String(reminderMinutes || '60')}
+                onChange={(val) => setReminderMinutes && setReminderMinutes(String(val))}
+                options={REMINDER_OPTIONS}
+                style={{ width: '320px', maxWidth: '100%' }}
+                dropdownWidth="320px"
+                align="left"
+              />
             </div>
           )}
         </div>

@@ -350,18 +350,18 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
           }}
         >
           <img
-            src="/logo.png"
+            src="/logo_white.png"
             alt="شعار منصة ديوان"
-            style={{ height: isCollapsed ? '44px' : '52px', width: 'auto', objectFit: 'contain', transition: 'all 0.3s ease' }}
-            onError={(e) => { e.target.src = '/logo_white.png'; }}
+            style={{ height: isCollapsed ? '48px' : '68px', width: 'auto', objectFit: 'contain', transition: 'all 0.3s ease' }}
+            onError={(e) => { e.target.src = '/logo.png'; }}
           />
           {!isCollapsed && (
             <div className="brand-text-box">
-              <span className="brand-title" style={{ color: '#F5A52A', fontWeight: '800', fontSize: '16px', letterSpacing: '-0.3px', lineHeight: '1.2' }}>
+              <span className="brand-title" style={{ color: '#FFFFFF', fontWeight: '800', fontSize: '17px', letterSpacing: '-0.2px', lineHeight: '1.2' }}>
                 منصة ديوان
               </span>
-              <span className="brand-subtitle" style={{ color: isConsultant ? '#FFFFFF' : '#94A3B8', fontWeight: isConsultant ? '600' : 'normal', fontSize: '11px', marginTop: '3px' }}>
-                {isConsultant ? 'مستشار ضريبي معتمد' : 'للاستشارات الضريبية'}
+              <span className="brand-subtitle" style={{ color: '#F5A52A', fontWeight: '700', fontSize: '11px', marginTop: '3px', display: 'block' }}>
+                للاستشارات الضريبية
               </span>
             </div>
           )}

@@ -23,7 +23,7 @@
   font-weight: 800;
   color: #0D3C5C;
   margin: 0;
-  font-family: 'Tajawal', sans-serif;
+  font-family: 'Cairo', sans-serif;
 }
 
 .lft-header-left {
@@ -44,7 +44,7 @@
   font-size: 11.5px;
   font-weight: 700;
   color: #475569;
-  font-family: 'Tajawal', sans-serif;
+  font-family: 'Cairo', sans-serif;
 }
 
 .lft-pill-rem {
@@ -124,7 +124,7 @@
   font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
-  font-family: 'Tajawal', sans-serif;
+  font-family: 'Cairo', sans-serif;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -152,7 +152,7 @@
   padding: 7px 14px;
   font-size: 12.5px;
   font-weight: 700;
-  font-family: 'Tajawal', sans-serif;
+  font-family: 'Cairo', sans-serif;
   cursor: pointer;
   display: flex;
   align-items: center;

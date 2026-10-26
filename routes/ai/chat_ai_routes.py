@@ -142,14 +142,15 @@ def direct_ask_ai(
     # استرجاع النصوص والسوابق عبر محرك البحث الهجين (Qdrant + Neo4j)
     graph_context, _ = HybridSearchService.search(req.question.strip())
 
+    context_block = f"معلومات وسياق إضافي من المستخدم: {req.context}\n" if req.context else ""
+    graph_block = f"--- [البيانات والنصوص القانونية المسترجعة من Neo4j] ---\n{graph_context}\n--- [نهاية بيانات Neo4j] ---\n" if graph_context else ""
+
     prompt = f"""
 سؤال العميل / المستشار:
 {req.question.strip()}
 
-{f'معلومات وسياق إضافي من المستخدم: {req.context}' if req.context else ''}
-
-{f'--- [البيانات والنصوص القانونية المسترجعة من Neo4j] ---\n{graph_context}\n--- [نهاية بيانات Neo4j] ---' if graph_context else ''}
-
+{context_block}
+{graph_block}
 المطلوب:
 قدّم إجابة استشارية مهنية ومركزة ومباشرة باللغة العربية توضح:
 1. التكييف الضريبي والقانوني للمسألة استناداً إلى نصوص المواد والأحكام المستخرجة من Neo4j إن وُجدت.

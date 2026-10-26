@@ -30,7 +30,7 @@
   max-width: 1600px;
   margin: 0 auto;
   direction: rtl;
-  font-family: var(--font-main, 'Tajawal', sans-serif);
+  font-family: var(--font-main, 'Cairo', sans-serif);
   color: var(--uacc-text);
 }
 

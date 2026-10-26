@@ -36,7 +36,7 @@
 .db-content {
   padding: 20px 26px 36px;
   direction: rtl;
-  font-family: var(--font-main, 'Tajawal', sans-serif);
+  font-family: var(--font-main, 'Cairo', sans-serif);
   color: var(--ink);
   min-width: 0;
   -webkit-font-smoothing: antialiased;

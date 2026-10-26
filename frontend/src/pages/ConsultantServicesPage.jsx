@@ -439,7 +439,7 @@ export default function ConsultantServicesPage({ navigate }) {
       style={{
         width: '100%',
         boxSizing: 'border-box',
-        fontFamily: "'Tajawal', sans-serif",
+        fontFamily: "'Cairo', sans-serif",
         direction: 'rtl',
         color: '#1E293B'
       }}
@@ -486,7 +486,7 @@ export default function ConsultantServicesPage({ navigate }) {
             {/* Title (to the left of icon in RTL) */}
             <h1
               style={{
-                fontFamily: "'Tajawal', sans-serif",
+                fontFamily: "'Cairo', sans-serif",
                 fontSize: '32px',
                 fontWeight: '800',
                 color: '#0A3254',
@@ -1330,7 +1330,7 @@ export default function ConsultantServicesPage({ navigate }) {
             justifyContent: 'center',
             zIndex: 9999,
             padding: '20px',
-            fontFamily: "'Tajawal', sans-serif"
+            fontFamily: "'Cairo', sans-serif"
           }}
           onClick={(e) => {
             if (e.target === e.currentTarget) setViewingService(null);
@@ -1345,7 +1345,7 @@ export default function ConsultantServicesPage({ navigate }) {
               padding: '24px 28px',
               boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
               position: 'relative',
-              fontFamily: "'Tajawal', sans-serif"
+              fontFamily: "'Cairo', sans-serif"
             }}
           >
             {/* Modal Header: Title on Right, Close ✕ on Left */}
@@ -1364,7 +1364,7 @@ export default function ConsultantServicesPage({ navigate }) {
                   fontSize: '18px',
                   fontWeight: '800',
                   color: '#0A3254',
-                  fontFamily: "'Tajawal', sans-serif"
+                  fontFamily: "'Cairo', sans-serif"
                 }}
               >
                 تفاصيل الخدمة
@@ -1383,7 +1383,7 @@ export default function ConsultantServicesPage({ navigate }) {
                   fontWeight: '400',
                   lineHeight: 1,
                   padding: '4px',
-                  fontFamily: "'Tajawal', sans-serif"
+                  fontFamily: "'Cairo', sans-serif"
                 }}
               >
                 ✕
@@ -1407,7 +1407,7 @@ export default function ConsultantServicesPage({ navigate }) {
                   color: '#94A3B8',
                   fontWeight: '600',
                   marginBottom: '4px',
-                  fontFamily: "'Tajawal', sans-serif"
+                  fontFamily: "'Cairo', sans-serif"
                 }}
               >
                 الخدمة
@@ -1417,7 +1417,7 @@ export default function ConsultantServicesPage({ navigate }) {
                   fontSize: '14.5px',
                   fontWeight: '800',
                   color: '#0A3254',
-                  fontFamily: "'Tajawal', sans-serif"
+                  fontFamily: "'Cairo', sans-serif"
                 }}
               >
                 {viewingService.name}
@@ -1442,7 +1442,7 @@ export default function ConsultantServicesPage({ navigate }) {
                   color: '#94A3B8',
                   fontWeight: '600',
                   marginBottom: '4px',
-                  fontFamily: "'Tajawal', sans-serif"
+                  fontFamily: "'Cairo', sans-serif"
                 }}
               >
                 الوصف
@@ -1453,7 +1453,7 @@ export default function ConsultantServicesPage({ navigate }) {
                   fontWeight: '700',
                   color: '#0A3254',
                   lineHeight: '1.6',
-                  fontFamily: "'Tajawal', sans-serif"
+                  fontFamily: "'Cairo', sans-serif"
                 }}
               >
                 {getServiceCleanDescription(viewingService)}
@@ -1485,7 +1485,7 @@ export default function ConsultantServicesPage({ navigate }) {
                     color: '#94A3B8',
                     fontWeight: '600',
                     marginBottom: '4px',
-                    fontFamily: "'Tajawal', sans-serif"
+                    fontFamily: "'Cairo', sans-serif"
                   }}
                 >
                   النوع
@@ -1495,7 +1495,7 @@ export default function ConsultantServicesPage({ navigate }) {
                     fontSize: '14px',
                     fontWeight: '800',
                     color: '#0A3254',
-                    fontFamily: "'Tajawal', sans-serif"
+                    fontFamily: "'Cairo', sans-serif"
                   }}
                 >
                   {getServiceTypeInfo(viewingService).label}
@@ -1519,7 +1519,7 @@ export default function ConsultantServicesPage({ navigate }) {
                     color: '#94A3B8',
                     fontWeight: '600',
                     marginBottom: '4px',
-                    fontFamily: "'Tajawal', sans-serif"
+                    fontFamily: "'Cairo', sans-serif"
                   }}
                 >
                   الحالة
@@ -1529,7 +1529,7 @@ export default function ConsultantServicesPage({ navigate }) {
                     fontSize: '14px',
                     fontWeight: '800',
                     color: '#0A3254',
-                    fontFamily: "'Tajawal', sans-serif"
+                    fontFamily: "'Cairo', sans-serif"
                   }}
                 >
                   {viewingService.is_active ? 'مفعلة' : 'معطلة'}
@@ -1554,7 +1554,7 @@ export default function ConsultantServicesPage({ navigate }) {
                   color: '#94A3B8',
                   fontWeight: '600',
                   marginBottom: '4px',
-                  fontFamily: "'Tajawal', sans-serif"
+                  fontFamily: "'Cairo', sans-serif"
                 }}
               >
                 المدد والأسعار
@@ -1564,7 +1564,7 @@ export default function ConsultantServicesPage({ navigate }) {
                   fontSize: '14px',
                   fontWeight: '800',
                   color: '#0A3254',
-                  fontFamily: "'Tajawal', sans-serif",
+                  fontFamily: "'Cairo', sans-serif",
                   lineHeight: '1.6'
                 }}
               >
@@ -1600,7 +1600,7 @@ export default function ConsultantServicesPage({ navigate }) {
                   fontWeight: '800',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
-                  fontFamily: "'Tajawal', sans-serif"
+                  fontFamily: "'Cairo', sans-serif"
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8FAFC')}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
@@ -1625,7 +1625,7 @@ export default function ConsultantServicesPage({ navigate }) {
             justifyContent: 'center',
             zIndex: 9999,
             padding: '20px',
-            fontFamily: "'Tajawal', sans-serif",
+            fontFamily: "'Cairo', sans-serif",
             direction: 'rtl'
           }}
           onClick={(e) => {
@@ -1642,7 +1642,7 @@ export default function ConsultantServicesPage({ navigate }) {
               overflow: 'hidden',
               padding: '28px 24px 24px',
               animation: 'modalPop 0.22s ease-out',
-              fontFamily: "'Tajawal', sans-serif",
+              fontFamily: "'Cairo', sans-serif",
               boxSizing: 'border-box'
             }}
           >
@@ -1658,7 +1658,7 @@ export default function ConsultantServicesPage({ navigate }) {
               }}
             >
               {/* Right: Title */}
-              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#0A3254', fontFamily: "'Tajawal', sans-serif" }}>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#0A3254', fontFamily: "'Cairo', sans-serif" }}>
                 {editingService ? 'تعديل الخدمة' : 'إضافة خدمة جديدة'}
               </h2>
 
@@ -1675,7 +1675,7 @@ export default function ConsultantServicesPage({ navigate }) {
                   fontWeight: '800',
                   lineHeight: 1,
                   padding: '4px',
-                  fontFamily: "'Tajawal', sans-serif"
+                  fontFamily: "'Cairo', sans-serif"
                 }}
               >
                 ✕
@@ -1683,7 +1683,7 @@ export default function ConsultantServicesPage({ navigate }) {
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleSubmitForm} style={{ fontFamily: "'Tajawal', sans-serif" }}>
+            <form onSubmit={handleSubmitForm} style={{ fontFamily: "'Cairo', sans-serif" }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {/* Field 1: عنوان الخدمة */}
                 <div>
@@ -1695,7 +1695,7 @@ export default function ConsultantServicesPage({ navigate }) {
                       color: '#0A3254',
                       marginBottom: '6px',
                       textAlign: 'right',
-                      fontFamily: "'Tajawal', sans-serif"
+                      fontFamily: "'Cairo', sans-serif"
                     }}
                   >
                     عنوان الخدمة
@@ -1718,7 +1718,7 @@ export default function ConsultantServicesPage({ navigate }) {
                       outline: 'none',
                       boxSizing: 'border-box',
                       textAlign: 'right',
-                      fontFamily: "'Tajawal', sans-serif"
+                      fontFamily: "'Cairo', sans-serif"
                     }}
                   />
                 </div>
@@ -1733,7 +1733,7 @@ export default function ConsultantServicesPage({ navigate }) {
                       color: '#0A3254',
                       marginBottom: '6px',
                       textAlign: 'right',
-                      fontFamily: "'Tajawal', sans-serif"
+                      fontFamily: "'Cairo', sans-serif"
                     }}
                   >
                     الوصف
@@ -1757,7 +1757,7 @@ export default function ConsultantServicesPage({ navigate }) {
                       resize: 'none',
                       boxSizing: 'border-box',
                       textAlign: 'right',
-                      fontFamily: "'Tajawal', sans-serif",
+                      fontFamily: "'Cairo', sans-serif",
                       lineHeight: '1.5'
                     }}
                   />
@@ -1767,7 +1767,7 @@ export default function ConsultantServicesPage({ navigate }) {
                       color: '#94A3B8',
                       textAlign: 'left',
                       marginTop: '4px',
-                      fontFamily: "'Tajawal', sans-serif"
+                      fontFamily: "'Cairo', sans-serif"
                     }}
                   >
                     100 / {formData.description ? formData.description.length : 0}
@@ -1784,7 +1784,7 @@ export default function ConsultantServicesPage({ navigate }) {
                       color: '#0A3254',
                       marginBottom: '8px',
                       textAlign: 'right',
-                      fontFamily: "'Tajawal', sans-serif"
+                      fontFamily: "'Cairo', sans-serif"
                     }}
                   >
                     نوع الجلسة
@@ -1815,7 +1815,7 @@ export default function ConsultantServicesPage({ navigate }) {
                         justifyContent: 'center',
                         gap: '6px',
                         transition: 'all 0.15s ease',
-                        fontFamily: "'Tajawal', sans-serif"
+                        fontFamily: "'Cairo', sans-serif"
                       }}
                     >
                       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#005D9C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1844,7 +1844,7 @@ export default function ConsultantServicesPage({ navigate }) {
                         justifyContent: 'center',
                         gap: '6px',
                         transition: 'all 0.15s ease',
-                        fontFamily: "'Tajawal', sans-serif"
+                        fontFamily: "'Cairo', sans-serif"
                       }}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1872,7 +1872,7 @@ export default function ConsultantServicesPage({ navigate }) {
                         justifyContent: 'center',
                         gap: '6px',
                         transition: 'all 0.15s ease',
-                        fontFamily: "'Tajawal', sans-serif"
+                        fontFamily: "'Cairo', sans-serif"
                       }}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1897,7 +1897,7 @@ export default function ConsultantServicesPage({ navigate }) {
                         color: '#0A3254',
                         marginBottom: '6px',
                         textAlign: 'right',
-                        fontFamily: "'Tajawal', sans-serif"
+                        fontFamily: "'Cairo', sans-serif"
                       }}
                     >
                       السعر (بالدينار)
@@ -1921,7 +1921,7 @@ export default function ConsultantServicesPage({ navigate }) {
                         outline: 'none',
                         textAlign: 'right',
                         boxSizing: 'border-box',
-                        fontFamily: "'Tajawal', sans-serif"
+                        fontFamily: "'Cairo', sans-serif"
                       }}
                     />
                   </div>
@@ -1941,7 +1941,7 @@ export default function ConsultantServicesPage({ navigate }) {
                                   color: '#0A3254',
                                   marginBottom: '6px',
                                   textAlign: 'right',
-                                  fontFamily: "'Tajawal', sans-serif"
+                                  fontFamily: "'Cairo', sans-serif"
                                 }}
                               >
                                 المدة (بالدقائق)
@@ -1966,7 +1966,7 @@ export default function ConsultantServicesPage({ navigate }) {
                                 outline: 'none',
                                 boxSizing: 'border-box',
                                 textAlign: 'right',
-                                fontFamily: "'Tajawal', sans-serif"
+                                fontFamily: "'Cairo', sans-serif"
                               }}
                             />
                           </div>
@@ -1982,7 +1982,7 @@ export default function ConsultantServicesPage({ navigate }) {
                                   color: '#0A3254',
                                   marginBottom: '6px',
                                   textAlign: 'right',
-                                  fontFamily: "'Tajawal', sans-serif"
+                                  fontFamily: "'Cairo', sans-serif"
                                 }}
                               >
                                 السعر (بالدينار)
@@ -2007,7 +2007,7 @@ export default function ConsultantServicesPage({ navigate }) {
                                 outline: 'none',
                                 boxSizing: 'border-box',
                                 textAlign: 'right',
-                                fontFamily: "'Tajawal', sans-serif"
+                                fontFamily: "'Cairo', sans-serif"
                               }}
                             />
                           </div>
@@ -2025,7 +2025,7 @@ export default function ConsultantServicesPage({ navigate }) {
                                 cursor: 'pointer',
                                 fontSize: '16px',
                                 padding: '0 4px',
-                                fontFamily: "'Tajawal', sans-serif"
+                                fontFamily: "'Cairo', sans-serif"
                               }}
                             >
                               ✕
@@ -2050,7 +2050,7 @@ export default function ConsultantServicesPage({ navigate }) {
                           fontWeight: '800',
                           lineHeight: 1,
                           padding: '4px 6px',
-                          fontFamily: "'Tajawal', sans-serif"
+                          fontFamily: "'Cairo', sans-serif"
                         }}
                       >
                         +
@@ -2089,7 +2089,7 @@ export default function ConsultantServicesPage({ navigate }) {
                     justifyContent: 'center',
                     gap: '8px',
                     transition: 'all 0.15s ease',
-                    fontFamily: "'Tajawal', sans-serif"
+                    fontFamily: "'Cairo', sans-serif"
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#07243D')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#0A3254')}
@@ -2125,7 +2125,7 @@ export default function ConsultantServicesPage({ navigate }) {
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                     textAlign: 'center',
-                    fontFamily: "'Tajawal', sans-serif"
+                    fontFamily: "'Cairo', sans-serif"
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8FAFC')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}

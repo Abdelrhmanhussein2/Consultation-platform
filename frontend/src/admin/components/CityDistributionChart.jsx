@@ -27,11 +27,11 @@ export default function CityDistributionChart() {
           <line x1="38" y1="170" x2="335" y2="170" stroke="#E2E8F0" strokeWidth="1" />
 
           {/* Y Axis Numbers */}
-          <text x="26" y="24" fontSize="11.5" fill="#94A3B8" textAnchor="end" fontFamily="Tajawal, sans-serif">8</text>
-          <text x="26" y="62" fontSize="11.5" fill="#94A3B8" textAnchor="end" fontFamily="Tajawal, sans-serif">6</text>
-          <text x="26" y="99" fontSize="11.5" fill="#94A3B8" textAnchor="end" fontFamily="Tajawal, sans-serif">4</text>
-          <text x="26" y="137" fontSize="11.5" fill="#94A3B8" textAnchor="end" fontFamily="Tajawal, sans-serif">2</text>
-          <text x="26" y="174" fontSize="11.5" fill="#94A3B8" textAnchor="end" fontFamily="Tajawal, sans-serif">0</text>
+          <text x="26" y="24" fontSize="11.5" fill="#94A3B8" textAnchor="end" fontFamily="Cairo, sans-serif">8</text>
+          <text x="26" y="62" fontSize="11.5" fill="#94A3B8" textAnchor="end" fontFamily="Cairo, sans-serif">6</text>
+          <text x="26" y="99" fontSize="11.5" fill="#94A3B8" textAnchor="end" fontFamily="Cairo, sans-serif">4</text>
+          <text x="26" y="137" fontSize="11.5" fill="#94A3B8" textAnchor="end" fontFamily="Cairo, sans-serif">2</text>
+          <text x="26" y="174" fontSize="11.5" fill="#94A3B8" textAnchor="end" fontFamily="Cairo, sans-serif">0</text>
 
           {/* Vertical Bars */}
           {data.map((d, i) => (
@@ -56,7 +56,7 @@ export default function CityDistributionChart() {
                 fontWeight="700"
                 fill="#64748B"
                 textAnchor="middle"
-                fontFamily="Tajawal, sans-serif"
+                fontFamily="Cairo, sans-serif"
               >
                 {d.name}
               </text>

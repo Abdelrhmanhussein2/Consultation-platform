@@ -216,7 +216,7 @@ export default function AddToFolderModal({ item, isOpen, onClose, onStatusChange
       <div
         style={{
           background: '#FFFFFF', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '410px',
-          direction: 'rtl', fontFamily: 'Tajawal, sans-serif', boxShadow: '0 16px 40px rgba(0,0,0,0.12)',
+          direction: 'rtl', fontFamily: 'Cairo, sans-serif', boxShadow: '0 16px 40px rgba(0,0,0,0.12)',
           border: '1px solid #E2E8F0', boxSizing: 'border-box'
         }}
         onClick={e => e.stopPropagation()}
@@ -265,7 +265,7 @@ export default function AddToFolderModal({ item, isOpen, onClose, onStatusChange
               padding: '10px 14px', borderRadius: '11px',
               background: statusData.is_favorite ? '#F8FAFC' : '#FFFFFF',
               border: `1px solid ${statusData.is_favorite ? '#CBD5E1' : '#E2E8F0'}`,
-              cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'Tajawal, sans-serif'
+              cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'Cairo, sans-serif'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -295,7 +295,7 @@ export default function AddToFolderModal({ item, isOpen, onClose, onStatusChange
                   padding: '10px 14px', borderRadius: '11px',
                   background: f.has_item ? '#F8FAFC' : '#FFFFFF',
                   border: `1px solid ${f.has_item ? '#CBD5E1' : '#E2E8F0'}`,
-                  cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'Tajawal, sans-serif'
+                  cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'Cairo, sans-serif'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -363,7 +363,7 @@ export default function AddToFolderModal({ item, isOpen, onClose, onStatusChange
                 borderRadius: '8px',
                 padding: '8px 10px',
                 fontSize: '12px',
-                fontFamily: 'Tajawal, sans-serif',
+                fontFamily: 'Cairo, sans-serif',
                 outline: 'none',
                 boxSizing: 'border-box',
                 marginBottom: '8px',
@@ -386,7 +386,7 @@ export default function AddToFolderModal({ item, isOpen, onClose, onStatusChange
                   fontSize: '11px',
                   fontWeight: '700',
                   cursor: 'pointer',
-                  fontFamily: 'Tajawal, sans-serif'
+                  fontFamily: 'Cairo, sans-serif'
                 }}
               >
                 إلغاء
@@ -403,7 +403,7 @@ export default function AddToFolderModal({ item, isOpen, onClose, onStatusChange
                   fontSize: '11px',
                   fontWeight: '700',
                   cursor: 'pointer',
-                  fontFamily: 'Tajawal, sans-serif'
+                  fontFamily: 'Cairo, sans-serif'
                 }}
               >
                 {creating ? '...' : 'إنشاء وحفظ'}
@@ -422,7 +422,7 @@ export default function AddToFolderModal({ item, isOpen, onClose, onStatusChange
             style={{
               width: '100%', background: '#F8FAFC', border: '1px dashed #CBD5E1', borderRadius: '10px',
               padding: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-              color: '#0D3C5C', fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif',
+              color: '#0D3C5C', fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Cairo, sans-serif',
               marginBottom: '14px', transition: 'all 0.15s'
             }}
           >
@@ -436,7 +436,7 @@ export default function AddToFolderModal({ item, isOpen, onClose, onStatusChange
           onClick={handleDone}
           style={{
             width: '100%', background: '#0D3C5C', color: '#FFFFFF', border: 'none', borderRadius: '11px',
-            padding: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif'
+            padding: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Cairo, sans-serif'
           }}
         >
           تم

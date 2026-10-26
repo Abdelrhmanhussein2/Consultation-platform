@@ -118,7 +118,7 @@ export default function AdminAuditLogsPage({ navigate }) {
   };
 
   return (
-    <div style={{ fontFamily: 'Tajawal, sans-serif', direction: 'rtl', padding: '16px 20px', background: '#F8FAFC', minHeight: 'calc(100vh - 80px)' }}>
+    <div style={{ fontFamily: 'Cairo, sans-serif', direction: 'rtl', padding: '16px 20px', background: '#F8FAFC', minHeight: 'calc(100vh - 80px)' }}>
       <Toast {...toast} />
 
       {/* 1. Header Command Banner */}
@@ -137,7 +137,7 @@ export default function AdminAuditLogsPage({ navigate }) {
           <button 
             type="button"
             onClick={handleExportCSV}
-            style={{ fontSize: '12.5px', padding: '7px 16px', background: '#0A3254', border: '1px solid #0A3254', borderRadius: '6px', color: '#FFFFFF', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif' }}
+            style={{ fontSize: '12.5px', padding: '7px 16px', background: '#0A3254', border: '1px solid #0A3254', borderRadius: '6px', color: '#FFFFFF', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }}
           >
             <span>تصدير السجل الكامل (CSV)</span>
           </button>
@@ -213,7 +213,7 @@ export default function AdminAuditLogsPage({ navigate }) {
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { setPage(1); fetchAuditLogs(); } }}
-            style={{ width: '100%', padding: '8px 12px', border: '1px solid #CBD5E1', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'Tajawal, sans-serif' }}
+            style={{ width: '100%', padding: '8px 12px', border: '1px solid #CBD5E1', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'Cairo, sans-serif' }}
           />
         </div>
 
@@ -338,7 +338,7 @@ export default function AdminAuditLogsPage({ navigate }) {
                       <button 
                         type="button"
                         onClick={() => setInspectModalLog(log)}
-                        style={{ fontSize: '11.5px', padding: '4px 10px', background: '#F1F5F9', border: '1px solid #CBD5E1', borderRadius: '5px', color: '#0A3254', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif', fontWeight: '700' }}
+                        style={{ fontSize: '11.5px', padding: '4px 10px', background: '#F1F5F9', border: '1px solid #CBD5E1', borderRadius: '5px', color: '#0A3254', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontWeight: '700' }}
                         title="معاينة تفاصيل التغييرات"
                       >
                         عرض التغييرات
@@ -359,7 +359,7 @@ export default function AdminAuditLogsPage({ navigate }) {
               type="button"
               disabled={page <= 1}
               onClick={() => setPage(prev => Math.max(prev - 1, 1))}
-              style={{ padding: '5px 12px', background: '#FFFFFF', border: '1px solid #CBD5E1', borderRadius: '5px', fontSize: '12px', fontWeight: '600', color: '#334155', cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.5 : 1, fontFamily: 'Tajawal, sans-serif' }}
+              style={{ padding: '5px 12px', background: '#FFFFFF', border: '1px solid #CBD5E1', borderRadius: '5px', fontSize: '12px', fontWeight: '600', color: '#334155', cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.5 : 1, fontFamily: 'Cairo, sans-serif' }}
             >
               السابق
             </button>
@@ -368,7 +368,7 @@ export default function AdminAuditLogsPage({ navigate }) {
               type="button"
               disabled={logs.length < limit}
               onClick={() => setPage(prev => prev + 1)}
-              style={{ padding: '5px 12px', background: '#FFFFFF', border: '1px solid #CBD5E1', borderRadius: '5px', fontSize: '12px', fontWeight: '600', color: '#334155', cursor: logs.length < limit ? 'not-allowed' : 'pointer', opacity: logs.length < limit ? 0.5 : 1, fontFamily: 'Tajawal, sans-serif' }}
+              style={{ padding: '5px 12px', background: '#FFFFFF', border: '1px solid #CBD5E1', borderRadius: '5px', fontSize: '12px', fontWeight: '600', color: '#334155', cursor: logs.length < limit ? 'not-allowed' : 'pointer', opacity: logs.length < limit ? 0.5 : 1, fontFamily: 'Cairo, sans-serif' }}
             >
               التالي
             </button>
@@ -451,7 +451,7 @@ export default function AdminAuditLogsPage({ navigate }) {
               <button 
                 type="button" 
                 onClick={() => setInspectModalLog(null)}
-                style={{ padding: '6px 16px', background: '#0A3254', color: '#FFFFFF', border: 'none', borderRadius: '5px', fontFamily: 'Tajawal, sans-serif', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}
+                style={{ padding: '6px 16px', background: '#0A3254', color: '#FFFFFF', border: 'none', borderRadius: '5px', fontFamily: 'Cairo, sans-serif', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}
               >
                 إغلاق
               </button>

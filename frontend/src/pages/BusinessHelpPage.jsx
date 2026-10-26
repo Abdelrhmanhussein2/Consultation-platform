@@ -104,7 +104,7 @@ function Input({ ...props }) {
       style={{
         width: '100%', padding: '10px 14px', borderRadius: '10px',
         border: '1.5px solid #E2E8F0', fontSize: '13px',
-        fontFamily: 'Tajawal, sans-serif', color: '#374151',
+        fontFamily: 'Cairo, sans-serif', color: '#374151',
         outline: 'none', boxSizing: 'border-box', background: '#FAFAFA',
         ...props.style,
       }}
@@ -123,7 +123,7 @@ function CalcBtn({ onClick, children }) {
         background: 'linear-gradient(135deg,#F5A52A,#E08A00)',
         color: '#fff', border: 'none', borderRadius: '12px',
         fontSize: '14px', fontWeight: '800', cursor: 'pointer',
-        fontFamily: 'Tajawal, sans-serif',
+        fontFamily: 'Cairo, sans-serif',
         boxShadow: '0 4px 14px rgba(245,165,42,0.3)',
       }}
     >
@@ -159,14 +159,14 @@ function Note({ children }) {
 const selectStyle = {
   width: '100%', padding: '10px 14px', borderRadius: '10px',
   border: '1.5px solid #E2E8F0', fontSize: '13px',
-  fontFamily: 'Tajawal, sans-serif', color: '#374151',
+  fontFamily: 'Cairo, sans-serif', color: '#374151',
   outline: 'none', background: '#FAFAFA', cursor: 'pointer',
 };
 
 const secondaryBtn = {
   background: '#F1F5F9', color: '#475569', border: '1px solid #E2E8F0',
   padding: '8px 16px', borderRadius: '8px', fontSize: '12px',
-  fontWeight: '700', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif',
+  fontWeight: '700', cursor: 'pointer', fontFamily: 'Cairo, sans-serif',
   width: '100%',
 };
 
@@ -360,7 +360,7 @@ function TemplatesModal({ onClose }) {
             key={t.name}
             style={{
               padding: '14px', borderRadius: '12px', border: '1.5px solid #E2E8F0',
-              background: '#FAFAFA', cursor: 'pointer', fontFamily: 'Tajawal, sans-serif',
+              background: '#FAFAFA', cursor: 'pointer', fontFamily: 'Cairo, sans-serif',
               textAlign: 'center', display: 'flex', flexDirection: 'column',
               alignItems: 'center', gap: '8px', transition: 'all 0.15s',
             }}
@@ -395,7 +395,7 @@ export default function BusinessHelpPage({ navigate }) {
   const ActiveModal = openModal ? MODAL_MAP[openModal] : null;
 
   return (
-    <div style={{ direction: 'rtl', fontFamily: 'Tajawal, sans-serif', color: '#1E293B', paddingBottom: '60px' }}>
+    <div style={{ direction: 'rtl', fontFamily: 'Cairo, sans-serif', color: '#1E293B', paddingBottom: '60px' }}>
       <Toast {...toast} />
 
       {/* Modal overlay */}
@@ -446,7 +446,7 @@ export default function BusinessHelpPage({ navigate }) {
             background: 'linear-gradient(135deg, #F5A52A, #E08A00)',
             color: '#fff', border: 'none', padding: '10px 22px',
             borderRadius: '25px', fontWeight: '800', fontSize: '13px',
-            cursor: 'pointer', fontFamily: 'Tajawal, sans-serif',
+            cursor: 'pointer', fontFamily: 'Cairo, sans-serif',
             display: 'flex', alignItems: 'center', gap: '8px',
             boxShadow: '0 4px 14px rgba(245,165,42,0.4)', flexShrink: 0,
           }}
@@ -487,7 +487,7 @@ export default function BusinessHelpPage({ navigate }) {
               style={{
                 alignSelf: 'flex-start',
                 background: 'none', border: 'none', padding: 0,
-                cursor: 'pointer', fontFamily: 'Tajawal, sans-serif',
+                cursor: 'pointer', fontFamily: 'Cairo, sans-serif',
                 fontSize: '12px', fontWeight: '700', color: '#F5A52A',
                 display: 'flex', alignItems: 'center', gap: '4px',
               }}
@@ -526,7 +526,7 @@ export default function BusinessHelpPage({ navigate }) {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                fontFamily: 'Tajawal, sans-serif',
+                fontFamily: 'Cairo, sans-serif',
                 textAlign: 'right',
                 gap: '16px',
               }}

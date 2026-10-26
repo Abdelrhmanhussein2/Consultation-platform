@@ -181,7 +181,7 @@ export default function InvoicesPage() {
   const sel = selectedInvoice;
 
   return (
-    <div style={{ direction: 'rtl', fontFamily: 'var(--font-main, Tajawal, sans-serif)', color: '#1E293B', paddingBottom: '40px' }}>
+    <div style={{ direction: 'rtl', fontFamily: 'var(--font-main, Cairo, sans-serif)', color: '#1E293B', paddingBottom: '40px' }}>
       <Toast {...toast} />
 
       {/* Header */}
@@ -402,7 +402,7 @@ export default function InvoicesPage() {
                   border: "1.5px solid #E2E8F0",
                   padding: "40px 48px",
                   boxShadow: "0 24px 60px rgba(0,0,0,0.08)",
-                  fontFamily: "var(--font-main, Tajawal, sans-serif)",
+                  fontFamily: "var(--font-main, Cairo, sans-serif)",
                   direction: "rtl"
                 }}
               >

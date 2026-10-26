@@ -24,7 +24,7 @@
   border-radius: 8px;
   outline: none;
   padding: 8px 14px;
-  font-family: 'Tajawal', sans-serif;
+  font-family: 'Cairo', sans-serif;
   color: #1E293B;
   font-size: 13.5px;
 }
@@ -37,7 +37,7 @@
   padding: 8px 18px;
   font-weight: 800;
   font-size: 13px;
-  font-family: 'Tajawal', sans-serif;
+  font-family: 'Cairo', sans-serif;
   cursor: pointer;
 }
 
@@ -103,7 +103,7 @@
   font-size: 13.5px;
   color: #0F172A;
   font-weight: 700;
-  font-family: 'Tajawal', sans-serif;
+  font-family: 'Cairo', sans-serif;
 }
 
 .lft-toc-head button {
@@ -150,7 +150,7 @@
   color: #5D717F;
   cursor: pointer;
   transition: all 0.15s ease;
-  font-family: 'Tajawal', sans-serif !important;
+  font-family: 'Cairo', sans-serif !important;
   display: block;
   white-space: nowrap;
   overflow: hidden;

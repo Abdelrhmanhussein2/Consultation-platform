@@ -568,7 +568,7 @@ export default function UserSettingsPage({ navigate }) {
         margin: '0 auto',
         width: '100%',
         paddingBottom: '50px',
-        fontFamily: 'var(--font-main, Tajawal, sans-serif)',
+        fontFamily: 'var(--font-main, Cairo, sans-serif)',
         textAlign: 'right'
       }}
     >

@@ -304,14 +304,14 @@ export default function MyAppointmentsPage({ navigate }) {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', color: '#0B2E4B', fontWeight: '700', fontFamily: 'Tajawal, sans-serif' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', color: '#0B2E4B', fontWeight: '700', fontFamily: 'Cairo, sans-serif' }}>
         جاري تحميل جلساتك واستشاراتك...
       </div>
     );
   }
 
   return (
-    <div style={{ direction: 'rtl', textAlign: 'right', fontFamily: 'Tajawal, sans-serif', width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '24px 32px 80px', boxSizing: 'border-box' }}>
+    <div style={{ direction: 'rtl', textAlign: 'right', fontFamily: 'Cairo, sans-serif', width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '24px 32px 80px', boxSizing: 'border-box' }}>
 
       {/* Scoped CSS styling for calm aesthetics */}
       <style dangerouslySetInnerHTML={{

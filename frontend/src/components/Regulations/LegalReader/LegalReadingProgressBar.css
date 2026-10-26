@@ -39,7 +39,7 @@
   font-size: 11px;
   font-weight: 600;
   color: #82939D;
-  font-family: 'Tajawal', sans-serif;
+  font-family: 'Cairo', sans-serif;
 }
 
 .lft-progress-percent-label {
@@ -47,5 +47,5 @@
   font-weight: 600;
   color: #82939D;
   direction: ltr;
-  font-family: 'Tajawal', sans-serif;
+  font-family: 'Cairo', sans-serif;
 }

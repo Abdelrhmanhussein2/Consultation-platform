@@ -76,7 +76,7 @@ export default function AiHistoryDrawer({
           display: 'flex',
           flexDirection: 'column',
           direction: 'rtl',
-          fontFamily: "'Tajawal', sans-serif"
+          fontFamily: "'Cairo', sans-serif"
         }}
       >
         <div style={{ padding: '16px 18px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F8FAFC' }}>
@@ -226,7 +226,7 @@ export default function AiHistoryDrawer({
             justifyContent: 'center',
             padding: '20px',
             direction: 'rtl',
-            fontFamily: "'Tajawal', sans-serif"
+            fontFamily: "'Cairo', sans-serif"
           }}
         >
           <div

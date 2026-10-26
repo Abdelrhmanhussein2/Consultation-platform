@@ -197,7 +197,7 @@ export default function FolderDetailView({ folder, onBack, onDeleteItem, onFileA
       {/* Back button */}
       <button
         onClick={onBack}
-        style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', fontSize: '14px', fontWeight: '600', fontFamily: 'Tajawal, sans-serif', marginBottom: '20px', padding: 0 }}
+        style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', fontSize: '14px', fontWeight: '600', fontFamily: 'Cairo, sans-serif', marginBottom: '20px', padding: 0 }}
       >
         <ChevronRightIcon />
         العودة إلى المجلدات
@@ -225,7 +225,7 @@ export default function FolderDetailView({ folder, onBack, onDeleteItem, onFileA
             style={{
               background: '#0D3C5C', color: '#FFFFFF', border: 'none', borderRadius: '12px',
               padding: '10px 18px', fontSize: '13px', fontWeight: '700', cursor: 'pointer',
-              fontFamily: 'Tajawal, sans-serif', display: 'flex', alignItems: 'center', gap: '8px',
+              fontFamily: 'Cairo, sans-serif', display: 'flex', alignItems: 'center', gap: '8px',
               boxShadow: '0 2px 8px rgba(13,60,92,0.2)', opacity: uploading ? 0.7 : 1
             }}
           >

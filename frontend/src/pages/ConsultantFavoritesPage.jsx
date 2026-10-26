@@ -124,7 +124,7 @@ export default function ConsultantFavoritesPage({ navigate }) {
   };
 
   return (
-    <div style={{ direction: 'rtl', fontFamily: 'Tajawal, sans-serif', color: '#1E293B', paddingBottom: '60px' }}>
+    <div style={{ direction: 'rtl', fontFamily: 'Cairo, sans-serif', color: '#1E293B', paddingBottom: '60px' }}>
       <Toast {...toast} />
 
       {/* Header */}

@@ -114,7 +114,7 @@ export default function RelatedDrawer({ isOpen, onClose, law }) {
           flexDirection: 'column',
           overflow: 'hidden',
           direction: 'rtl',
-          fontFamily: "'Tajawal', sans-serif"
+          fontFamily: "'Cairo', sans-serif"
         }}
       >
         {/* شريط العنوان */}

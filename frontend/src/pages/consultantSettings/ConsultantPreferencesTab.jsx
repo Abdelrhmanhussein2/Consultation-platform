@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../../services/api';
 import { usePreferences } from '../../context/PreferencesContext';
 import { formatDate, formatTime, formatPrice } from '../../utils/formatUtils';
+import ModernSelect from '../../components/ModernSelect';
 
 // SVG Icons
 const IconSave = ({ size = 18, color = 'currentColor' }) => (
@@ -113,22 +114,30 @@ export default function ConsultantPreferencesTab({
     }
   };
 
-  const selectStyle = {
-    width: '280px',
-    maxWidth: '100%',
-    padding: '11px 16px',
-    borderRadius: '12px',
-    border: '1px solid #CBD5E1',
-    background: '#FFFFFF',
-    color: '#0F172A',
-    fontSize: '13.5px',
-    fontWeight: '700',
-    outline: 'none',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    appearance: 'auto',
-    transition: 'border-color 0.2s, box-shadow 0.2s'
-  };
+  const languageOptions = [
+    { value: 'ar', label: 'العربية (الافتراضية)' }
+  ];
+
+  const currencyOptions = [
+    { value: 'JOD', label: 'دينار أردني (د.أ - العملة الأساسية)' },
+    { value: 'USD', label: 'دولار أمريكي ($ - سعر التحويل 1 د.أ = 1.41 $)' }
+  ];
+
+  const timezoneOptions = [
+    { value: 'Asia/Amman', label: '(GMT+3) عمّان - الأردن' },
+    { value: 'Asia/Riyadh', label: '(GMT+3) الرياض - السعودية' },
+    { value: 'Africa/Cairo', label: '(GMT+2) القاهرة - مصر' },
+    { value: 'Asia/Dubai', label: '(GMT+4) دبي - الإمارات' },
+    { value: 'Asia/Kuwait', label: '(GMT+3) الكويت' },
+    { value: 'Europe/London', label: '(GMT+0 / +1) لندن - بريطانيا' }
+  ];
+
+  const dateFormatOptions = [
+    { value: 'DD/MM/YYYY', label: `يوم / شهر / سنة (مثال: ${formatDate(now, 'DD/MM/YYYY', timezone)})` },
+    { value: 'YYYY-MM-DD', label: `سنة - شهر - يوم (مثال: ${formatDate(now, 'YYYY-MM-DD', timezone)})` },
+    { value: 'DD MMMM YYYY', label: `يوم واسم الشهر وسنة (مثال: ${formatDate(now, 'DD MMMM YYYY', timezone)})` }
+  ];
+
 
   return (
     <div
@@ -176,13 +185,14 @@ export default function ConsultantPreferencesTab({
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-              <select
+              <ModernSelect
                 value="ar"
-                disabled
-                style={{ ...selectStyle, background: '#F8FAFC', cursor: 'default' }}
-              >
-                <option value="ar">العربية (الافتراضية)</option>
-              </select>
+                onChange={() => {}}
+                options={languageOptions}
+                style={{ width: '320px', maxWidth: '100%' }}
+                dropdownWidth="320px"
+                align="left"
+              />
             </div>
           </div>
 
@@ -207,14 +217,14 @@ export default function ConsultantPreferencesTab({
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-              <select
+              <ModernSelect
                 value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                style={selectStyle}
-              >
-                <option value="JOD">دينار أردني (د.أ - العملة الأساسية)</option>
-                <option value="USD">دولار أمريكي ($ - سعر التحويل 1 د.أ = 1.41 $)</option>
-              </select>
+                onChange={(val) => setCurrency(val)}
+                options={currencyOptions}
+                style={{ width: '320px', maxWidth: '100%' }}
+                dropdownWidth="340px"
+                align="left"
+              />
             </div>
           </div>
 
@@ -239,18 +249,14 @@ export default function ConsultantPreferencesTab({
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-              <select
+              <ModernSelect
                 value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-                style={selectStyle}
-              >
-                <option value="Asia/Amman">(GMT+3) عمّان - الأردن</option>
-                <option value="Asia/Riyadh">(GMT+3) الرياض - السعودية</option>
-                <option value="Africa/Cairo">(GMT+2) القاهرة - مصر</option>
-                <option value="Asia/Dubai">(GMT+4) دبي - الإمارات</option>
-                <option value="Asia/Kuwait">(GMT+3) الكويت</option>
-                <option value="Europe/London">(GMT+0 / +1) لندن - بريطانيا</option>
-              </select>
+                onChange={(val) => setTimezone(val)}
+                options={timezoneOptions}
+                style={{ width: '320px', maxWidth: '100%' }}
+                dropdownWidth="320px"
+                align="left"
+              />
             </div>
           </div>
 
@@ -274,15 +280,14 @@ export default function ConsultantPreferencesTab({
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-              <select
+              <ModernSelect
                 value={dateFormat}
-                onChange={(e) => setDateFormat(e.target.value)}
-                style={selectStyle}
-              >
-                <option value="DD/MM/YYYY">يوم / شهر / سنة (مثال: {formatDate(now, 'DD/MM/YYYY', timezone)})</option>
-                <option value="YYYY-MM-DD">سنة - شهر - يوم (مثال: {formatDate(now, 'YYYY-MM-DD', timezone)})</option>
-                <option value="DD MMMM YYYY">يوم واسم الشهر وسنة (مثال: {formatDate(now, 'DD MMMM YYYY', timezone)})</option>
-              </select>
+                onChange={(val) => setDateFormat(val)}
+                options={dateFormatOptions}
+                style={{ width: '320px', maxWidth: '100%' }}
+                dropdownWidth="340px"
+                align="left"
+              />
             </div>
           </div>
         </div>

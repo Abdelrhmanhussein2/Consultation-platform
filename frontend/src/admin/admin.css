@@ -3,7 +3,7 @@
    Exact Pixel-Perfect Match to Reference Design (RTL Hierarchy & Colors)
    ══════════════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
   /* Brand Core Colors - Unified with User/Consultant Portal Theme */
@@ -61,7 +61,7 @@
   --admin-shadow-hover: 0 6px 16px rgba(15, 36, 56, 0.08);
 }
 
-/* Base resets for Admin shell - Fully unified with Tajawal font */
+/* Base resets for Admin shell - Fully unified with Cairo font */
 .admin-shell-container,
 .admin-shell-container button,
 .admin-shell-container input,
