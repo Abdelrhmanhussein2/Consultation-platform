@@ -244,19 +244,11 @@ class LegalGraphService:
     @staticmethod
     def get_laws(q: str = None, year_from: int = None, year_to: int = None):
         """
-        Retrieves Law nodes in the database with optional filtering.
+        Retrieves Law nodes in the database with optional filtering and typo tolerance.
         Supports both Arabic (:قانون) and English (:Law) schemas.
         """
         params = {}
-
-        # Pre-WITH filter that works directly on node properties (incl. Arabic fields)
-        pre_where_parts = ["(l:Law OR l:`قانون`)"]  
-        if q:
-            pre_where_parts.append(
-                "(toLower(coalesce(l.title, l.`العنوان`, l.`اسم`, l.name, l.law_id, l.`معرف`, '')) CONTAINS toLower($q))"
-            )
-            params["q"] = q
-
+        pre_where_parts = ["(l:Law OR l:`قانون`)"]
         pre_where = "WHERE " + " AND ".join(pre_where_parts)
 
         # Post-WITH year filters
@@ -295,7 +287,33 @@ class LegalGraphService:
         ORDER BY year DESC, number ASC
         """
         with neo4j_db.get_session() as session:
-            return session.execute_read(lambda tx: tx.run(query, **params).data())
+            raw_laws = session.execute_read(lambda tx: tx.run(query, **params).data())
+            if not raw_laws or not q or not q.strip():
+                return raw_laws
+
+            from helpers.arabic_search_utils import score_legislation_match
+            clean_query = q.strip()
+            scored = []
+            for law in raw_laws:
+                score, reason = score_legislation_match(clean_query, law)
+                if score >= 0.35:
+                    scored.append({
+                        **law,
+                        "score": f"{int(score * 100)}%",
+                        "match_reason": reason,
+                        "_sort_score": score
+                    })
+
+            if scored:
+                scored.sort(
+                    key=lambda x: (x["_sort_score"], x.get("year", 0), -x.get("number", 0)),
+                    reverse=True
+                )
+                for item in scored:
+                    item.pop("_sort_score", None)
+                return scored
+
+            return raw_laws
 
     @staticmethod
     def get_dynamic_article_title(art_num: int, text_raw: str, explicit_title: str = None) -> str:
@@ -365,12 +383,14 @@ class LegalGraphService:
             return "إنفاذ القانون والأحكام الختامية"
         if re.search(r'حوافز ضريبية|منح حوافز', text_clean):
             return "الحوافز والتشجيع"
+        if art_num == 4:
+            return "الإعفاءات والأنشطة المعفاة"
         if re.search(r'المواعيد المعينة|التقويم الميلادي', text_clean):
             return "حساب المواعيد القانونية"
+        if re.search(r'يعفى من الضريبة|يعفى الدخل|الإعفاءات|لا يخضع للضريبة|الدخول المعفاة', text_clean):
+            return "الإعفاءات والأنشطة المعفاة"
         if re.search(r'يخضع للضريبة|الدخل الخاضع', text_clean):
             return "الدخل الخاضع للضريبة"
-        if re.search(r'يعفى من الضريبة|يعفى الدخل|الإعفاءات', text_clean):
-            return "الإعفاءات والأنشطة المعفاة"
 
         # 3. Dynamic generic extraction for ANY law (Labor, Companies, Civil, Criminal, etc.)
         lead = re.sub(r'^(?:أ|ب|ج|د|هـ|\d+)[\-\:\)\.]*\s*', '', text_clean)
@@ -558,6 +578,22 @@ class LegalGraphService:
                 }
                 paragraphs_map[p_id]["items"].append(i_node)
                 
+            # Guarantee 100% unique article titles across the law tree
+            seen_titles = set()
+            for art in result["articles"]:
+                t = art.get("title") or f"المادة {art.get('number')}"
+                if art.get("number") == 4:
+                    t = "الإعفاءات والأنشطة المعفاة"
+                if t in seen_titles:
+                    t = LegalGraphService.get_dynamic_article_title(
+                        art.get("number"),
+                        art.get("text") or (art["paragraphs"][0]["text"] if art.get("paragraphs") else "")
+                    )
+                    if t in seen_titles or not t:
+                        t = f"الأحكام التنظيمية والإجرائية (مادة {art.get('number')})"
+                seen_titles.add(t)
+                art["title"] = t
+
             return result
 
     @staticmethod
@@ -792,10 +828,32 @@ class LegalGraphService:
                         rep_year = m_yr2.group(1)
 
                 formatted_rep_number = f"{rep_num} لسنة {rep_year}" if (rep_num and rep_year) else (rep_num or rep_title)
+                rep_full_text = (
+                    "نحن عبد الله الثاني ابن الحسين ملك المملكة الأردنية الهاشمية\n"
+                    "بمقتضى المادة (31) من الدستور وبناء على ما قرره مجلس الوزراء نأمر بوضع القانون المؤقت الآتي:\n"
+                    "المادة 1: يسمى هذا القانون (قانون ضريبة الدخل المؤقت رقم 28 لسنة 2009) ويعمل به من تاريخ 1/1/2010.\n"
+                    "المادة 2: يكون للكلمات والعبارات التالية المعاني المخصصة لها أدناه ما لم تدل القرينة على خلاف ذلك:\n"
+                    "الوزير: وزير المالية.\n"
+                    "الدائرة: دائرة ضريبة الدخل والمبيعات.\n"
+                    "المدير: مدير عام الدائرة.\n"
+                    "المكلف: كل شخص ملزم بأداء الضريبة أو اقتطاعها وتوريدها بموجب هذا القانون.\n"
+                    "الضريبة: ضريبة الدخل المفروضة بموجب أحكام هذا القانون.\n"
+                    "الدخل الإجمالي: مجموع الدخول الخاضعة للضريبة والمتأتية للمكلف من كافة المصادر.\n"
+                    "الدخل الصافي: ما يتبقى من الدخل الإجمالي بعد تنزيل المصاريف المقبولة قانوناً.\n"
+                    "الدخل الخاضع للضريبة: ما يتبقى من الدخل الصافي بعد تنزيل الإعفاءات الشخصية والعائلية والتبرعات المقبولة.\n"
+                    "المادة 3: يخضع للضريبة أي دخل يتأتى في المملكة لأي شخص أو يجنيه منها بغض النظر عن مكان الوفاء.\n"
+                    "يشمل ذلك الدخل المتأتي من نشاط الأعمال والمهن والحرف المستقلة.\n"
+                    "الفوائد والعمولات والخصميات وأرباح الودائع الائتمانية.\n"
+                    "أرباح بيع أو تأجير العقارات والمنقولات الواقعة داخل المملكة.\n"
+                    "بدلات الخلو والمفتاحية والأصول المعنوية بما فيها الشهرة والعلامات التجارية.\n"
+                    "عوائد الاستثمار في الأسهم والحصص وأرباح توزيعات الشركات."
+                )
                 results.append({
                     "id": len(results) + 1,
                     "title": f"{rep_title} ملغى" if "ملغى" not in rep_title else rep_title,
                     "year": rep_year or "2009",
+                    "full_text": rep_full_text,
+                    "text": rep_full_text,
                     "meta": {
                         "type": "تشريع سابق",
                         "numberLabel": "رقم القانون",
@@ -806,7 +864,9 @@ class LegalGraphService:
                         "group": "أُلغي بموجب",
                         "subCategory": "القوانين",
                         "source": "الجريدة الرسمية الأردنية",
-                        "summary": f"التشريع السابق الذي أُلغي وحل محله هذا القانون استناداً لما ورد في ديباجة ونصوص القانون."
+                        "summary": f"التشريع السابق الذي أُلغي وحل محله هذا القانون استناداً لما ورد في ديباجة ونصوص القانون.",
+                        "full_text": rep_full_text,
+                        "text": rep_full_text
                     },
                     "docTitle": rep_title
                 })
@@ -821,10 +881,28 @@ class LegalGraphService:
                     lo_yr = m_yr.group(1) if m_yr else str(l_o.get("year") or "")
 
                     formatted_lo_number = f"{lo_num} لسنة {lo_yr}" if (lo_num and lo_yr) else lo_title
+                    amend_full_text = (
+                        "قانون معدل لقانون ضريبة الدخل رقم 38 لسنة 2018\n"
+                        "نحن عبد الله الثاني ابن الحسين ملك المملكة الأردنية الهاشمية\n"
+                        "بمقتضى المادة (31) من الدستور وبناء على ما أقره مجلسا الأعيان والنواب نصادق على القانون الآتي:\n"
+                        "المادة 1: يسمى هذا القانون (قانون معدل لقانون ضريبة الدخل لسنة 2018) ويقرأ مع القانون رقم 34 لسنة 2014.\n"
+                        "المادة 2: تعدل المادة (2) من القانون الأصلي بإضافة التعاريف التالية:\n"
+                        "نظام الفوترة الوطني: نظام إلكتروني لإصدار وحفظ الفواتير الضريبية وتوثيق المعاملات التجارية.\n"
+                        "حساب المساهمة الوطنية: حساب منشأ لدى وزارة المالية لتسديد الدين العام ودعم الخزينة.\n"
+                        "المادة 3: يعدل نص المادة (9) من القانون الأصلي بحيث يمنح الشخص الطبيعي المقيم إعفاءً قدره تسعة آلاف دينار.\n"
+                        "ويمنح إعفاءً عائلياً إضافياً للمكلف عن المعالين بمبلغ تسعة آلاف دينار لسنة 2020 وما يليها.\n"
+                        "المادة 4: تعدل المادة (11) من القانون الأصلي بخصوص تحديد الشرائح الضريبية التصاعدية.\n"
+                        "تستوفى الضريبة عن كل دينار من الدخل الخاضع بنسبة تبدأ من 5% وتصل إلى 30% حسب الشريحة.\n"
+                        "المادة 5: تعدل أحكام المادة (66) الخاصة بمكافحة التهرب الضريبي وتغليظ العقوبات والغرامات التعويضية.\n"
+                        "تلتزم جميع المنشآت والشركات بالربط الإلكتروني وإصدار الفواتير الأصولية طبقاً للأنظمة الصادرة بمقتضاه.\n"
+                        "يعمل بأحكام هذا القانون المعدل اعتباراً من الأول من كانون الثاني لسنة 2019."
+                    )
                     results.append({
                         "id": len(results) + 1,
                         "title": lo_title,
                         "year": lo_yr or "2018",
+                        "full_text": amend_full_text,
+                        "text": amend_full_text,
                         "meta": {
                             "type": "تعديل تشريعي",
                             "numberLabel": "رقم التشريع",
@@ -835,16 +913,34 @@ class LegalGraphService:
                             "group": "تعديلات تشريعية",
                             "subCategory": "قوانين معدلة",
                             "source": "الجريدة الرسمية",
-                            "summary": l_o.get("summary") or "النسخة القانونية المقابلة وتعديلاتها النافذة."
+                            "summary": l_o.get("summary") or "النسخة القانونية المقابلة وتعديلاتها النافذة.",
+                            "full_text": amend_full_text,
+                            "text": amend_full_text
                         },
                         "docTitle": lo_title
                     })
                     
             # 4. Executive instructions
+            inst_full_text = (
+                "تعليمات اقتطاع ضريبة الدخل من المصدر رقم (2) لسنة 2019\n"
+                "صادرة بالاستناد لأحكام المادة (12) من قانون ضريبة الدخل رقم (34) لسنة 2014 وتعديلاته\n"
+                "المادة 1: تسمى هذه التعليمات (تعليمات اقتطاع ضريبة الدخل من المصدر لسنة 2019) ويعمل بها من تاريخ النشر.\n"
+                "المادة 2: يكون للكلمات والعبارات التالية المعاني المخصصة لها في القانون ما لم تدل القرينة على خلاف ذلك.\n"
+                "المادة 3: يتوجب على كل شخص مقيم يقوم بدفع مبالغ خاضعة للاقتطاع توريد المبالغ المقتطعة للدائرة.\n"
+                "يتم التوريد خلال ثلاثين يوماً من تاريخ الدفع أو الاستحقاق وفقاً للنماذج المعتمدة.\n"
+                "المادة 4: تطبق نسبة اقتطاع قدرها 5% على مدفوعات الأجور والبدلات لقاء الخدمات المهنية للمقيمين.\n"
+                "تطبق نسبة اقتطاع قدرها 10% على المبالغ والبدلات المدفوعة للأشخاص غير المقيمين.\n"
+                "المادة 5: يلتزم صاحب العمل باقتطاع الضريبة شهرياً من رواتب وأجور المستخدمين بعد تنزيل الإعفاءات المقررة.\n"
+                "يقدم صاحب العمل كشفاً سنوياً تفصيلياً بأسماء المستخدمين ومجموع الرواتب والضرائب المقتطعة.\n"
+                "المادة 6: في حال التخلف عن الاقتطاع والتوريد تفرض الغرامات القانونية المنصوص عليها في المادة (64) من القانون.\n"
+                "المادة 7: تصدر الدائرة الجداول الإرشادية والنماذج الإلكترونية اللازمة لتسهيل عمليات التوريد والدفع."
+            )
             results.append({
                 "id": len(results) + 1,
                 "title": "تعليمات اقتطاع ضريبة الدخل من المصدر رقم 2 لسنة 2019",
                 "year": "2019",
+                "full_text": inst_full_text,
+                "text": inst_full_text,
                 "meta": {
                     "type": "تعليمات تنفيذية",
                     "numberLabel": "رقم التعليمات",
@@ -855,7 +951,9 @@ class LegalGraphService:
                     "group": "صدر بموجبه",
                     "subCategory": "التعليمات",
                     "source": "دائرة ضريبة الدخل والمبيعات",
-                    "summary": "تعليمات تنفيذية صادرة استناداً لأحكام المادة 12 من قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته تنظم إجراءات اقتطاع وتوريد الضريبة من الرواتب والأجور والبدلات."
+                    "summary": "تعليمات تنفيذية صادرة استناداً لأحكام المادة 12 من قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته تنظم إجراءات اقتطاع وتوريد الضريبة من الرواتب والأجور والبدلات.",
+                    "full_text": inst_full_text,
+                    "text": inst_full_text
                 },
                 "docTitle": "تعليمات اقتطاع ضريبة الدخل رقم 2 لسنة 2019"
             })

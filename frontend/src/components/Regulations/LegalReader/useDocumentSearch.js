@@ -188,10 +188,11 @@ export function useDocumentSearch(containerRef) {
       return 0;
     }
 
-    // If same query and already searched, pressing search/Enter advances to next match
+    // If same query and already searched, pressing search/Enter advances to next match (stops at last)
     if (q === lastQueryRef.current && marksRef.current.length > 0) {
-      const nextIdx = (matchIndex + 1) % marksRef.current.length;
-      activateMatch(nextIdx);
+      if (matchIndex < marksRef.current.length - 1) {
+        activateMatch(matchIndex + 1);
+      }
       return marksRef.current.length;
     }
 
@@ -209,20 +210,22 @@ export function useDocumentSearch(containerRef) {
     return newMarks.length;
   }, [findText, containerRef, matchIndex, activateMatch]);
 
-  // Go to Next Match
+  // Go to Next Match (moves downward only; stops at the end, does not wrap back to top)
   const goToNext = useCallback(() => {
     const len = marksRef.current.length;
     if (len === 0) return;
-    const nextIdx = (matchIndex + 1) % len;
-    activateMatch(nextIdx);
+    if (matchIndex < len - 1) {
+      activateMatch(matchIndex + 1);
+    }
   }, [matchIndex, activateMatch]);
 
-  // Go to Previous Match
+  // Go to Previous Match (moves upward only; stops at the start, does not wrap to bottom)
   const goToPrev = useCallback(() => {
     const len = marksRef.current.length;
     if (len === 0) return;
-    const prevIdx = (matchIndex - 1 + len) % len;
-    activateMatch(prevIdx);
+    if (matchIndex > 0) {
+      activateMatch(matchIndex - 1);
+    }
   }, [matchIndex, activateMatch]);
 
   // Clear & Close Search

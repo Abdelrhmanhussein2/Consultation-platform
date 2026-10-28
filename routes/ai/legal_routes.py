@@ -134,11 +134,13 @@ def get_citations(
 @router.get("/search")
 def search(
     query: str,
-    limit: int = 5
+    limit: int = 5,
+    year_from: Optional[int] = None,
+    year_to: Optional[int] = None
 ):
     if not query.strip():
         raise HTTPException(
             status_code=400,
             detail="Query parameter cannot be empty"
         )
-    return LegalController.search(query, limit)
+    return LegalController.search(query, limit, year_from=year_from, year_to=year_to)

@@ -11,7 +11,7 @@ import AddToFolderModal from '../../UserPortal/AddToFolderModal';
 import ModernSelect from '../../ModernSelect';
 import FilterResetButton from '../../FilterResetButton';
 import { useAuth } from '../../../context/AuthContext';
-import { getLawTree, getMockLawDetail, getRelatedFiles, getLawStages, extractArticleSubject } from '../../../services/legalService';
+import { getLawTree, getMockLawDetail, getRelatedFiles, getLawStages, extractArticleSubject, getDistinctArticleSubject } from '../../../services/legalService';
 import { useDocumentSearch } from './useDocumentSearch';
 
 const DEFAULT_STAGES = [
@@ -61,7 +61,7 @@ export default function LegalReader({ lawId, onClose }) {
   const [mainStageId, setMainStageId] = useState('2019_current');
   const [showRelatedDrawer, setShowRelatedDrawer] = useState(false);
   const [selectedRelatedFile, setSelectedRelatedFile] = useState(null);
-  const [showRelatedFilter, setShowRelatedFilter] = useState(true);
+  const [showRelatedFilter, setShowRelatedFilter] = useState(false);
   const [selectedFilterCategory, setSelectedFilterCategory] = useState('all');
   const [filterSortOrder, setFilterSortOrder] = useState('relevance');
   const [isSortOpen, setIsSortOpen] = useState(false);
@@ -395,15 +395,17 @@ export default function LegalReader({ lawId, onClose }) {
         artTitle = artEl.getAttribute('data-title') || `المادة ${artNum}`;
       }
 
-      const popupWidth = 360;
       const margin = 12;
-      const isTopTight = rect.top < 65;
+      const isTopTight = rect.top < 85;
 
-      const topPos = isTopTight ? (rect.bottom + margin) : (rect.top - margin);
-      const leftPos = Math.min(
-        window.innerWidth - popupWidth / 2 - 16,
-        Math.max(popupWidth / 2 + 16, rect.left + rect.width / 2)
-      );
+      const topPos = isTopTight ? (rect.bottom + margin) : Math.max(75, rect.top - margin);
+
+      // يظهر الشريط دائماً ثابتاً في المنتصف أفقياً لمساحة القراءة حتى لا ينقطع أو يتأكل عند تحديد كلمات في حواف السطر
+      let centerX = window.innerWidth / 2;
+      if (rightPaneRef.current) {
+        const paneRect = rightPaneRef.current.getBoundingClientRect();
+        centerX = paneRect.left + (paneRect.width / 2);
+      }
 
       setSelectionPopup({
         visible: true,
@@ -411,7 +413,7 @@ export default function LegalReader({ lawId, onClose }) {
         artNum,
         artTitle,
         top: topPos,
-        left: leftPos,
+        left: centerX,
         placeBelow: isTopTight
       });
     }, 20);
@@ -738,27 +740,37 @@ export default function LegalReader({ lawId, onClose }) {
                         <button className="toc-item" onClick={() => jumpTo('preamble-box')}>
                           الاطلاع على الديباجة
                         </button>
-                        {lawTree.sections?.map(sec =>
-                          sec.articles?.map(art => {
-                            let label = art.title;
-                            const isGeneric = !label || label === `المادة ${art.num}` || label === `المادة (${art.num})`;
-                            if (isGeneric) {
-                              const sub = art.subject || extractArticleSubject(art.content || (art.clauses?.[0]?.text), art.num);
-                              label = sub ? `المادة ${art.num}: ${sub}` : `المادة ${art.num}`;
-                            } else if (!label.startsWith('المادة')) {
-                              label = `المادة ${art.num}: ${label}`;
-                            }
-                            return (
-                              <button
-                                key={art.num}
-                                className={`toc-item ${activeArticleId === art.num ? 'active' : ''}`}
-                                onClick={() => jumpTo(`art-item-${art.num}`, art.num)}
-                              >
-                                {label}
-                              </button>
-                            );
-                          })
-                        )}
+                        {(() => {
+                          const seenLabels = new Set();
+                          return lawTree.sections?.map(sec =>
+                            sec.articles?.map((art, artIdx) => {
+                              let cleanSub = (art.subject || '').trim();
+                              if (Number(art.num) === 4) {
+                                cleanSub = 'الإعفاءات والأنشطة المعفاة';
+                              }
+                              if (!cleanSub) {
+                                cleanSub = (art.title || '').replace(/^المادة\s*\d+\s*[:\-\s]*/, '').trim();
+                              }
+                              const isGeneric = !cleanSub || cleanSub === `المادة ${art.num}` || cleanSub === `المادة (${art.num})` || (cleanSub.includes('الخاضع للضريبة') && Number(art.num) !== 3);
+                              if (isGeneric || seenLabels.has(cleanSub)) {
+                                const raw = art.content || art.text || art.intro_text || (art.clauses?.[0]?.text) || (art.paragraphs?.[0]?.text) || '';
+                                cleanSub = getDistinctArticleSubject(raw, art.num, seenLabels);
+                              }
+                              seenLabels.add(cleanSub);
+                              const label = `المادة ${art.num}: ${cleanSub}`;
+
+                              return (
+                                <button
+                                  key={`${art.num}-${artIdx}`}
+                                  className={`toc-item ${activeArticleId === art.num ? 'active' : ''}`}
+                                  onClick={() => jumpTo(`art-item-${art.num}`, art.num)}
+                                >
+                                  {label}
+                                </button>
+                              );
+                            })
+                          );
+                        })()}
                       </div>
                       <div className="left-related">
                         <h4>ملفات ذات صلة <span>↗</span></h4>
@@ -913,7 +925,6 @@ export default function LegalReader({ lawId, onClose }) {
                   {isSavedInFolders ? '✓ في مجلداتي' : '＋ أضف إلى مجلداتي'}
                 </button>
                 <button className={readingMode ? 'on' : ''} onClick={() => setReadingMode(!readingMode)}>◉ وضع القراءة</button>
-                <button onClick={() => alert('رابط المشاركة السريع منسوخ')}>↗ مشاركة الملف</button>
               </div>
 
               {/* Inline Find Bar */}
@@ -934,8 +945,26 @@ export default function LegalReader({ lawId, onClose }) {
                   <span className="find-count">
                     {matchCount > 0 ? `${matchIndex + 1} / ${matchCount}` : '0 / 0'}
                   </span>
-                  <button type="button" className="find-nav" onClick={goToPrev} title="السابق">↑</button>
-                  <button type="button" className="find-nav" onClick={goToNext} title="التالي">↓</button>
+                  <button
+                    type="button"
+                    className="find-nav"
+                    onClick={goToPrev}
+                    title="السابق"
+                    disabled={matchCount === 0 || matchIndex <= 0}
+                    style={(matchCount === 0 || matchIndex <= 0) ? { opacity: 0.35, cursor: 'not-allowed' } : {}}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    className="find-nav"
+                    onClick={goToNext}
+                    title="التالي"
+                    disabled={matchCount === 0 || matchIndex >= matchCount - 1}
+                    style={(matchCount === 0 || matchIndex >= matchCount - 1) ? { opacity: 0.35, cursor: 'not-allowed' } : {}}
+                  >
+                    ↓
+                  </button>
                   <button type="button" className="find-clear" onClick={handleCloseSearch} title="إغلاق">×</button>
                 </div>
               )}
@@ -977,8 +1006,23 @@ export default function LegalReader({ lawId, onClose }) {
                       </div>
                     )}
                     {fileTab === 'description' && (
-                      <div className="document-description-text">
-                        {lawTree.summary || `${lawTree.title} ${lawTree.gazette ? `المنشور في الجريدة الرسمية (${lawTree.gazette})` : ''} ${lawTree.effective_date ? `والساري بتاريخ ${lawTree.effective_date}` : ''}.`}
+                      <div className="document-description-text" style={{ whiteSpace: 'pre-line', lineHeight: 2 }}>
+                        {(() => {
+                          const allArticles = lawTree.sections?.flatMap(s => s.articles || []) || [];
+                          const lines = [];
+                          if (lawTree.preamble) lines.push(lawTree.preamble);
+                          for (const art of allArticles) {
+                            const artText = art.content || art.intro_text || (art.clauses?.map(c => typeof c === 'object' ? c.text : c).join(' ')) || '';
+                            if (artText) {
+                              lines.push(`المادة ${art.num}: ${artText}`);
+                            }
+                            if (lines.length >= 18) break;
+                          }
+                          if (lines.length > 0) {
+                            return lines.slice(0, 18).join('\n\n');
+                          }
+                          return `${lawTree.title} ${lawTree.gazette ? `المنشور في الجريدة الرسمية (${lawTree.gazette})` : ''} ${lawTree.effective_date ? `والساري بتاريخ ${lawTree.effective_date}` : ''}.`;
+                        })()}
                       </div>
                     )}
                     {fileTab === 'related' && (
@@ -1001,22 +1045,28 @@ export default function LegalReader({ lawId, onClose }) {
                     )}
                     {fileTab === 'timeline' && (
                       <div className="stages-outer-box">
-                        {(stagesList.length > 0 ? stagesList : DEFAULT_STAGES).map((stg) => (
-                          <div
-                            key={stg.id}
-                            className={`stage-inner-card ${mainStageId === stg.id ? 'active' : ''}`}
-                            onClick={() => handleStageClick(stg)}
-                          >
-                            <div className="stage-date-col">{stg.date}</div>
-                            <div className="stage-content-col">
-                              <h4 className="stage-col-title">{stg.title}</h4>
-                              <p className="stage-col-sub">{stg.subtitle}</p>
-                              <div className={`stage-action-badge ${mainStageId === stg.id ? 'active' : ''}`}>
-                                {stg.buttonText || 'عرض الإصدار'}
-                              </div>
-                            </div>
+                        {String(lawTree.id || '').startsWith('related_') || lawTree.type === 'حكم قضائي' ? (
+                          <div style={{ padding: '24px 20px', textAlign: 'center', color: '#64748B', fontSize: '13.5px' }}>
+                            لا توجد مراحل تشريعية مسجلة لهذه الوثيقة (صدرت كحكم قضائي نهائي).
                           </div>
-                        ))}
+                        ) : (
+                          [...(stagesList.length > 0 ? stagesList : DEFAULT_STAGES)].reverse().map((stg) => (
+                            <div
+                              key={stg.id}
+                              className={`stage-inner-card ${mainStageId === stg.id ? 'active' : ''}`}
+                              onClick={() => handleStageClick(stg)}
+                            >
+                              <div className="stage-content-col">
+                                <h4 className="stage-col-title">{stg.title}</h4>
+                                <p className="stage-col-sub">{stg.subtitle}</p>
+                                <div className={`stage-action-badge ${mainStageId === stg.id ? 'active' : ''}`}>
+                                  {stg.buttonText || 'عرض الإصدار'}
+                                </div>
+                              </div>
+                              <div className="stage-date-col">{stg.date}</div>
+                            </div>
+                          ))
+                        )}
                       </div>
                     )}
                   </div>
@@ -1508,10 +1558,25 @@ export default function LegalReader({ lawId, onClose }) {
 
               {modalFileTab === 'description' && (
                 <div className="file-info-modal-pane">
-                  <div className="document-description-text" style={{ padding: '20px 22px', lineHeight: 2.1 }}>
-                    <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#1F303B' }}>
-                      {lawTree.summary || `${lawTree.title} ${lawTree.gazette ? `المنشور في الجريدة الرسمية (${lawTree.gazette})` : ''} ${lawTree.effective_date ? `والساري بتاريخ ${lawTree.effective_date}` : ''}.`}
-                    </p>
+                  <div className="document-description-text" style={{ padding: '20px 22px', lineHeight: 2.1, whiteSpace: 'pre-line' }}>
+                    <div style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#1F303B' }}>
+                      {(() => {
+                        const allArticles = lawTree.sections?.flatMap(s => s.articles || []) || [];
+                        const lines = [];
+                        if (lawTree.preamble) lines.push(lawTree.preamble);
+                        for (const art of allArticles) {
+                          const artText = art.content || art.intro_text || (art.clauses?.map(c => typeof c === 'object' ? c.text : c).join(' ')) || '';
+                          if (artText) {
+                            lines.push(`المادة ${art.num}: ${artText}`);
+                          }
+                          if (lines.length >= 18) break;
+                        }
+                        if (lines.length > 0) {
+                          return lines.slice(0, 18).join('\n\n');
+                        }
+                        return `${lawTree.title} ${lawTree.gazette ? `المنشور في الجريدة الرسمية (${lawTree.gazette})` : ''} ${lawTree.effective_date ? `والساري بتاريخ ${lawTree.effective_date}` : ''}.`;
+                      })()}
+                    </div>
                     <p style={{ margin: 0, fontSize: '14px', color: '#1F303B' }}>
                       الاسم المعتمد: <strong>{lawTree.title}</strong>
                     </p>
@@ -1536,22 +1601,28 @@ export default function LegalReader({ lawId, onClose }) {
               {modalFileTab === 'timeline' && (
                 <div className="file-info-modal-pane">
                   <div className="timeline">
-                    {(stagesList.length > 0 ? stagesList : DEFAULT_STAGES).map((stg) => (
-                      <div
-                        key={stg.id}
-                        className="timeline-row clickable"
-                        onClick={() => {
-                          setShowFileInfoModal(false);
-                          handleStageClick(stg);
-                        }}
-                      >
-                        <time>{stg.date ? (stg.date.split('-')[2] || stg.date.split('-')[0]) : '2019'}</time>
-                        <div>
-                          <b>{stg.title}</b>
-                          <span className="version-tag">{stg.subtitle || stg.date}</span>
-                        </div>
+                    {String(lawTree.id || '').startsWith('related_') || lawTree.type === 'حكم قضائي' ? (
+                      <div style={{ padding: '24px 20px', textAlign: 'center', color: '#64748B', fontSize: '13.5px' }}>
+                        لا توجد مراحل تشريعية مسجلة لهذه الوثيقة (صدرت كحكم قضائي نهائي).
                       </div>
-                    ))}
+                    ) : (
+                      [...(stagesList.length > 0 ? stagesList : DEFAULT_STAGES)].reverse().map((stg) => (
+                        <div
+                          key={stg.id}
+                          className="timeline-row clickable"
+                          onClick={() => {
+                            setShowFileInfoModal(false);
+                            handleStageClick(stg);
+                          }}
+                        >
+                          <div className="timeline-info-col">
+                            <b>{stg.title}</b>
+                            <span className="version-tag">{stg.subtitle || stg.date}</span>
+                          </div>
+                          <time className="timeline-date-col">{stg.date ? (stg.date.split('-')[2] || stg.date.split('-')[0]) : '2019'}</time>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}

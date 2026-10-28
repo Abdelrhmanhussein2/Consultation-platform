@@ -274,17 +274,21 @@ export default function LegalStageSplitReader({
     return isRuling ? 'محكمة أردنية مختصة' : 'الجريدة الرسمية';
   })();
 
-  // Document full text from database
+  // Document text from database / related doc
   const docFullText = (
     relatedDoc?.full_text ||
     relatedDoc?.text ||
+    relatedDoc?.content ||
     relatedDoc?.نص_الحكم ||
     relatedDoc?.نص_الوثيقة ||
     meta?.full_text ||
     meta?.text ||
+    meta?.content ||
     meta?.نص_الحكم ||
     meta?.نص_الوثيقة ||
     meta?.مقتطف_الحكم ||
+    relatedDoc?.summary ||
+    meta?.summary ||
     ''
   ).trim();
 
@@ -452,23 +456,6 @@ export default function LegalStageSplitReader({
                         <td className="meta-value">{meta.outcome}</td>
                       </tr>
                     )}
-                    {summaryDisplay && (
-                      <tr>
-                        <td className="meta-label" style={{ verticalAlign: 'top' }}>الملخص</td>
-                        <td 
-                          className="meta-value meta-summary-cell"
-                          style={{ 
-                            whiteSpace: 'normal', 
-                            wordBreak: 'break-word', 
-                            overflowWrap: 'anywhere', 
-                            textAlign: 'right', 
-                            lineHeight: 1.8 
-                          }}
-                        >
-                          {summaryDisplay}
-                        </td>
-                      </tr>
-                    )}
                   </>
                 ) : (
                   <>
@@ -519,7 +506,7 @@ export default function LegalStageSplitReader({
                           <line x1="16" y1="17" x2="8" y2="17"></line>
                           <polyline points="10 9 9 9 8 9"></polyline>
                         </svg>
-                        {isRuling ? 'النص الكامل للحكم القضائي' : 'نص الوثيقة الكامل'}
+                        {isRuling ? 'نبذة عن الحكم القضائي' : 'نبذة عن القانون'}
                       </span>
                     </div>
 
@@ -528,7 +515,7 @@ export default function LegalStageSplitReader({
                         type="button" 
                         className={`doc-tool-btn ${copied ? 'copied' : ''}`}
                         onClick={handleCopyFullText}
-                        title="نسخ النص كاملاً"
+                        title="نسخ النبذة"
                       >
                         {copied ? (
                           <>
@@ -543,7 +530,7 @@ export default function LegalStageSplitReader({
                               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                             </svg>
-                            <span>نسخ النص</span>
+                            <span>نسخ النبذة</span>
                           </>
                         )}
                       </button>
@@ -574,25 +561,32 @@ export default function LegalStageSplitReader({
                       className="side-reader-ruling-body"
                       style={{ fontSize: `${readerFontSize}px` }}
                     >
-                      {docFullText.split('\n').filter(p => p.trim()).map((paragraph, pIdx) => {
-                        const pTrim = paragraph.trim();
-                        const isMainHeader = /^(المحكمة|المملكة الأردنية|وزارة العدل|رقم الدعوى|القرار الصادر|الهيئة الحاكمة)/.test(pTrim);
-                        const isSectionHead = /^(الطاعن|وكيله|المطعون ضدهما|المطعون ضده|بتاريخ|ورداً على أسباب الطعن|أسباب الطعن|وبالمحاكمة الجارية|بالتدقيق والمداولة|النتيجة)/.test(pTrim);
-                        const isDecree = /^(لذلك نقرر|قراراً وجاهياً|فلهذه الأسباب)/.test(pTrim);
+                      {(() => {
+                        // عرض أول 15 إلى 20 فقرة وسطر من نص الوثيقة مباشرة
+                        const paragraphs = docFullText.split('\n').map(p => p.trim()).filter(Boolean);
+                        const snippetParagraphs = paragraphs.slice(0, 20);
+                        return snippetParagraphs.map((paragraph, pIdx) => {
+                          const pTrim = paragraph;
+                          const isMainHeader = /^(المحكمة|المملكة الأردنية|وزارة العدل|رقم الدعوى|القرار الصادر|الهيئة الحاكمة)/.test(pTrim);
+                          const isSectionHead = /^(الطاعن|وكيله|المطعون ضدهما|المطعون ضده|بتاريخ|ورداً على أسباب الطعن|أسباب الطعن|وبالمحاكمة الجارية|بالتدقيق والمداولة|النتيجة)/.test(pTrim);
+                          const isDecree = /^(لذلك نقرر|قراراً وجاهياً|فلهذه الأسباب)/.test(pTrim);
 
-                        return (
-                          <p 
-                            key={pIdx} 
-                            className={`ruling-paragraph ${isMainHeader ? 'is-court-meta' : ''} ${isSectionHead ? 'is-section-head' : ''} ${isDecree ? 'is-final-decree' : ''}`}
-                          >
-                            {pTrim}
-                          </p>
-                        );
-                      })}
+                          return (
+                            <p 
+                              key={pIdx} 
+                              className={`ruling-paragraph ${isMainHeader ? 'is-court-meta' : ''} ${isSectionHead ? 'is-section-head' : ''} ${isDecree ? 'is-final-decree' : ''}`}
+                            >
+                              {pTrim}
+                            </p>
+                          );
+                        });
+                      })()}
                     </div>
                   ) : (
-                    <div className="side-reader-empty-text">
-                      <p>جاري استرداد النص الكامل للوثيقة من قاعدة البيانات...</p>
+                    <div className="side-reader-ruling-body" style={{ fontSize: `${readerFontSize}px`, padding: '16px' }}>
+                      <p style={{ lineHeight: 1.9, color: '#334155', margin: 0 }}>
+                        {title}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -608,7 +602,16 @@ export default function LegalStageSplitReader({
               {title}
             </div>
             <div className="side-reader-desc-box">
-              <p>{meta?.summary || `${title} — وثيقة تشريعية / إجرائية ذات صلة بقانون ضريبة الدخل وتطبيقاته التنفيذية والإجرائية.`}</p>
+              <div style={{ whiteSpace: 'pre-line', lineHeight: 2, color: '#334155' }}>
+                {(() => {
+                  if (docFullText) {
+                    const lines = docFullText.split('\n').map(l => l.trim()).filter(Boolean);
+                    const snippet = lines.slice(0, 18).join('\n\n');
+                    return snippet || `${title} — وثيقة قانونية معتمدة وفقاً للأحكام والأنظمة السارية.`;
+                  }
+                  return `${title} — تشريع معتمد صادر بموجب الجريدة الرسمية وينظم القواعد والإجراءات القانونية ذات الصلة بالأحكام والالتزامات المقررة.`;
+                })()}
+              </div>
             </div>
           </div>
         )}
@@ -626,20 +629,40 @@ export default function LegalStageSplitReader({
 
         {sideTab === 'timeline' && (
           <div className="side-reader-tab-page">
-            <div className="side-reader-timeline-box">
-              <div className="side-timeline-item">
-                <span className="side-t-date">01-01-2015</span>
-                <strong className="side-t-title">كما صدر</strong>
+            {isRuling ? (
+              <div className="side-reader-timeline-box" style={{ direction: 'rtl', padding: '24px 20px', textAlign: 'center', color: '#64748B' }}>
+                <p style={{ margin: 0, fontSize: '13.5px', lineHeight: 1.8 }}>
+                  لا توجد مراحل تشريعية مسجلة لهذه الوثيقة (صدرت كحكم قضائي نهائي باتّ).
+                </p>
               </div>
-              <div className="side-timeline-item">
-                <span className="side-t-date">02-12-2018</span>
-                <strong className="side-t-title">قانون معدل رقم 38 لسنة 2018</strong>
+            ) : (
+              <div className="side-reader-timeline-box" style={{ direction: 'rtl' }}>
+                <div
+                  className="side-timeline-item"
+                  onClick={() => onSelectStage && onSelectStage('2019_current')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <strong className="side-t-title">النص النافذ بعد التعديل</strong>
+                  <span className="side-t-date">01-01-2019</span>
+                </div>
+                <div
+                  className="side-timeline-item"
+                  onClick={() => onSelectStage && onSelectStage('2018_amendment')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <strong className="side-t-title">قانون معدل رقم 38 لسنة 2018</strong>
+                  <span className="side-t-date">02-12-2018</span>
+                </div>
+                <div
+                  className="side-timeline-item"
+                  onClick={() => onSelectStage && onSelectStage('2014_original')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <strong className="side-t-title">كما صدر</strong>
+                  <span className="side-t-date">01-01-2015</span>
+                </div>
               </div>
-              <div className="side-timeline-item">
-                <span className="side-t-date">01-01-2019</span>
-                <strong className="side-t-title">النص النافذ بعد التعديل</strong>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -678,15 +701,25 @@ export default function LegalStageSplitReader({
                     </div>
                   ) : (
                     <div className="side-reader-art-body">
-                      {(parseArticleClauses(art).clauses?.length ? parseArticleClauses(art).clauses : (art.clauses || [])).map((clause, cIdx) => (
-                        <p 
-                          key={cIdx} 
-                          className={`legal-clause ${clause.isNumbered ? 'numbered' : ''}`}
-                          style={{ margin: '0 0 10px 0', textAlign: 'right', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 2 }}
-                        >
-                          {typeof clause === 'object' ? clause.text : clause}
-                        </p>
-                      ))}
+                      {(parseArticleClauses(art).clauses?.length ? parseArticleClauses(art).clauses : (art.clauses || [])).map((clause, cIdx) => {
+                        const level = typeof clause === 'object' && clause.level ? clause.level : 0;
+                        return (
+                          <p 
+                            key={cIdx} 
+                            className={`legal-clause ${clause.isNumbered ? 'numbered' : ''} level-${level}`}
+                            style={{
+                              margin: '0 0 10px 0',
+                              marginRight: level > 0 ? `${level * 24}px` : undefined,
+                              textAlign: 'right',
+                              whiteSpace: 'normal',
+                              wordBreak: 'break-word',
+                              lineHeight: 2
+                            }}
+                          >
+                            {typeof clause === 'object' ? clause.text : clause}
+                          </p>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

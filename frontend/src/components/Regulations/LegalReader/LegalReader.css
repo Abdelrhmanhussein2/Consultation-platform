@@ -543,21 +543,26 @@
 }
 
 /* ── In-Document Search Highlights ─────────── */
-mark.lft-search-hit {
-  background: #FFE699 !important;
-  color: #0D3C5C !important;
+mark.lft-search-hit,
+.article mark.lft-search-hit {
+  background: rgba(254, 240, 138, 0.4) !important;
+  color: #1E293B !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
   border-radius: 3px;
   padding: 1px 3px;
-  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+  transition: background-color 0.15s ease;
 }
 
-mark.lft-search-hit.current {
-  background: #E0871C !important;
-  color: #FFFFFF !important;
+mark.lft-search-hit.current,
+.article mark.lft-search-hit.current {
+  background: rgba(254, 240, 138, 0.65) !important;
+  color: #0F172A !important;
+  border: 1px solid rgba(234, 179, 8, 0.4) !important;
+  box-shadow: none !important;
   border-radius: 3px;
-  padding: 1px 4px;
-  box-shadow: 0 0 0 2px #0D3C5C, 0 2px 6px rgba(224, 135, 28, 0.45);
-  font-weight: 800;
+  padding: 1px 3px;
+  font-weight: 600;
   display: inline-block;
 }
 
@@ -1641,6 +1646,32 @@ mark.lft-search-hit.current {
   margin-bottom: 0 !important;
 }
 
+/* Hierarchical Indentation for Legal Clauses (التدرج الهرمي المتدرج للفقرات والبنود) */
+.legal-clause.level-0 {
+  margin-right: 0 !important;
+  width: auto !important;
+}
+.legal-clause.level-1 {
+  margin-right: 28px !important;
+  width: auto !important;
+}
+.legal-clause.level-2 {
+  margin-right: 56px !important;
+  width: auto !important;
+}
+.legal-clause.level-3 {
+  margin-right: 84px !important;
+  width: auto !important;
+}
+.legal-clause.level-4 {
+  margin-right: 112px !important;
+  width: auto !important;
+}
+.legal-clause.level-5 {
+  margin-right: 140px !important;
+  width: auto !important;
+}
+
 /* Definitions Table (Exact V12 specifications) */
 .definitions-v12 {
   border: 1px solid #DCE5EA;
@@ -2315,12 +2346,13 @@ del,
 }
 
 .file-info-modal-pane .timeline-row {
-  display: grid;
-  grid-template-columns: 110px 1fr;
-  gap: 14px;
-  padding: 12px 10px;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 16px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--reg-line2);
-  align-items: center;
+  direction: rtl !important;
 }
 
 .file-info-modal-pane .timeline-row:last-child {
@@ -2337,16 +2369,30 @@ del,
   background: #F4F7F9;
 }
 
-.file-info-modal-pane .timeline-row time {
-  color: var(--reg-muted);
-  font-size: 12px;
-  font-weight: 700;
+.file-info-modal-pane .timeline-info-col {
+  text-align: right !important;
+  flex: 1;
 }
 
 .file-info-modal-pane .timeline-row b {
-  font-size: 13px;
+  font-size: 13.5px;
+  font-weight: 800;
   color: var(--reg-navy);
   display: block;
+  text-align: right !important;
+}
+
+.file-info-modal-pane .timeline-row time,
+.file-info-modal-pane .timeline-date-col {
+  color: #64748B !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  direction: ltr !important;
+  text-align: left !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .file-info-modal-pane .version-tag {
@@ -2476,13 +2522,14 @@ div.advanced:hover {
 }
 
 .stage-inner-card {
-  direction: rtl;
-  display: flex;
-  align-items: flex-start;
+  direction: rtl !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
   background: #ffffff;
   border: 1px solid #EEF2F6;
   border-radius: 8px;
-  padding: 20px 24px;
+  padding: 16px 22px;
   margin-bottom: 12px;
   cursor: pointer;
   user-select: none;
@@ -2516,45 +2563,45 @@ div.advanced:hover {
   color: #FFFFFF;
 }
 
-/* Date column on the RIGHT side */
+/* Date column on the LEFT side in RTL */
 .stage-date-col {
-  width: 130px;
+  width: auto !important;
   flex-shrink: 0;
-  font-size: 12px;
-  color: #64748B;
-  font-weight: 500;
-  padding-top: 3px;
-  text-align: right;
-  direction: ltr;
+  font-size: 13px !important;
+  color: #64748B !important;
+  font-weight: 600 !important;
+  direction: ltr !important;
+  text-align: left !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Content column: fixed width so all 3 rows align strictly on the same vertical axis */
+/* Content column on the RIGHT side in RTL */
 .stage-content-col {
-  width: 450px;
-  max-width: calc(100% - 150px);
-  flex-shrink: 0;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start !important;
   justify-content: center;
-  text-align: center;
+  text-align: right !important;
 }
 
 .stage-col-title {
   font-size: 14.5px;
   font-weight: 800;
   color: #0D3C5C;
-  margin: 0 0 6px 0;
+  margin: 0 0 4px 0;
   line-height: 1.4;
-  text-align: center;
+  text-align: right !important;
 }
 
 .stage-col-sub {
   font-size: 12.5px;
   color: #64748B;
-  margin: 0 0 12px 0;
+  margin: 0 0 10px 0;
   line-height: 1.5;
-  text-align: center;
+  text-align: right !important;
 }
 
 .stage-action-badge {
@@ -2812,12 +2859,18 @@ div.advanced:hover {
 }
 
 .side-timeline-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between !important;
+  align-items: center !important;
   padding: 18px 24px;
   border-bottom: 1px solid #E9EEF1;
-  direction: rtl;
+  direction: rtl !important;
+  transition: background-color 0.15s ease;
+}
+
+.side-timeline-item:hover {
+  background-color: #F8FAFC;
 }
 
 .side-timeline-item:last-child {
@@ -2827,13 +2880,15 @@ div.advanced:hover {
 .side-t-date {
   font-size: 12px;
   color: #64748B;
-  direction: ltr;
+  direction: ltr !important;
+  text-align: left !important;
 }
 
 .side-t-title {
   font-size: 13.5px;
   font-weight: 700;
   color: #0D3C5C;
+  text-align: right !important;
 }
 
 .side-reader-meta-table .meta-value {
@@ -3399,6 +3454,7 @@ div.advanced:hover {
   direction: rtl;
   user-select: none;
   pointer-events: auto;
+  white-space: nowrap;
   animation: popFloating 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 

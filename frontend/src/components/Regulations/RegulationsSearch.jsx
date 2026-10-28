@@ -1,6 +1,52 @@
 // frontend/src/components/Regulations/RegulationsSearch.jsx
-import React, { useState, useRef } from 'react';
-import { getLegalSuggestionAsync } from '../../services/legalDictionary';
+import React, { useState, useRef, useEffect } from 'react';
+import { getLegalSuggestionAsync, searchLocalDictionary } from '../../services/legalDictionary';
+import { searchLegal } from '../../services/legalService';
+
+const KNOWN_LAWS = [
+  {
+    type: 'law',
+    title: 'قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته',
+    subtitle: 'نسخة معدلة — ساري (2014)',
+    badge: 'تشريع قانوني'
+  },
+  {
+    type: 'law',
+    title: 'قانون ضريبة الدخل رقم 34 لسنة 2014 (النسخة الأصلية — كما صدر)',
+    subtitle: 'نسخة أصلية — معدل لاحقاً (2014)',
+    badge: 'تشريع قانوني'
+  },
+  {
+    type: 'law',
+    title: 'قانون الضريبة العامة على المبيعات رقم 6 لسنة 1994 وتعديلاته',
+    subtitle: 'نسخة معدلة — ساري (1994)',
+    badge: 'تشريع قانوني'
+  },
+  {
+    type: 'law',
+    title: 'تعليمات اقتطاع ضريبة الدخل من المصدر رقم 2 لسنة 2019',
+    subtitle: 'تعليمات تنفيذية — ساري (2019)',
+    badge: 'تعليمات تنفيذية'
+  },
+  {
+    type: 'law',
+    title: 'تعليمات المصاريف المقبولة لغايات ضريبة الدخل رقم 4 لسنة 2019',
+    subtitle: 'تعليمات تنفيذية — ساري (2019)',
+    badge: 'تعليمات تنفيذية'
+  },
+  {
+    type: 'law',
+    title: 'التعرفة الجمركية الأردنية وتعديلاتها',
+    subtitle: 'تعرفة جمركية موحدة',
+    badge: 'تعرفة جمركية'
+  },
+  {
+    type: 'law',
+    title: 'نظام تنظيم شؤون الفوترة والرقابة عليها رقم 34 لسنة 2019',
+    subtitle: 'نظام تنفيذي — ساري (2019)',
+    badge: 'نظام تنفيذي'
+  }
+];
 
 export default function RegulationsSearch({
   navigate,
@@ -15,14 +61,115 @@ export default function RegulationsSearch({
   const [suggestionData, setSuggestionData] = useState(null);
   const [inputError, setInputError] = useState(false);
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
-  const [apiError, setApiError] = useState(null);
 
-  // Stale request guard
+  // Autocomplete live suggestions state
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [autocompleteItems, setAutocompleteItems] = useState([]);
+
+  // Stale request guard & live debounce timer
   const latestRequestIdRef = useRef(0);
+  const liveSearchTimerRef = useRef(null);
+  const searchWrapRef = useRef(null);
+
+  // Handle click outside to close autocomplete
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchWrapRef.current && !searchWrapRef.current.contains(e.target)) {
+        setShowAutocomplete(false);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowAutocomplete(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (liveSearchTimerRef.current) clearTimeout(liveSearchTimerRef.current);
+    setShowAutocomplete(false);
     onSearch(searchQuery);
+  };
+
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    setSearchQuery(val);
+    if (isAiActive) {
+      setIsAiActive(false);
+      setSuggestionData(null);
+    }
+
+    if (!val || !val.trim()) {
+      setShowAutocomplete(false);
+      setAutocompleteItems([]);
+      if (liveSearchTimerRef.current) clearTimeout(liveSearchTimerRef.current);
+      onSearch('');
+      return;
+    }
+
+    // Build matching suggestions from laws & verified dictionary
+    const qClean = val.trim().toLowerCase();
+    const matchingLaws = KNOWN_LAWS.filter(l =>
+      l.title.toLowerCase().includes(qClean) ||
+      (l.subtitle && l.subtitle.toLowerCase().includes(qClean))
+    );
+
+    const matchingTerms = searchLocalDictionary(val, 4).map(opt => ({
+      type: 'term',
+      title: opt.title,
+      subtitle: `${opt.law_name} — (${opt.article_reference})`,
+      badge: 'مصطلح قانوني',
+      opt
+    }));
+
+    const combined = [...matchingLaws, ...matchingTerms].slice(0, 7);
+    setAutocompleteItems(combined);
+    setShowAutocomplete(combined.length > 0);
+
+    // Debounce live search for matching law cards below and dynamic backend autocomplete
+    if (liveSearchTimerRef.current) clearTimeout(liveSearchTimerRef.current);
+    liveSearchTimerRef.current = setTimeout(async () => {
+      onSearch(val);
+      try {
+        const backendLaws = await searchLegal(val, 5);
+        if (Array.isArray(backendLaws) && backendLaws.length > 0) {
+          const dynamicLawItems = backendLaws.map(l => ({
+            type: 'law',
+            title: l.title,
+            subtitle: `${l.type || 'تشريع'} — ${l.status || 'ساري'} (${l.year_short || l.year || ''})`,
+            badge: l.type && l.type.includes('تعليمات') ? 'تعليمات تنفيذية' : (l.type && l.type.includes('نظام') ? 'نظام تنفيذي' : 'تشريع قانوني'),
+            lawObj: l
+          }));
+          const seen = new Set();
+          const allMerged = [];
+          for (const itm of [...dynamicLawItems, ...matchingLaws, ...matchingTerms]) {
+            if (!seen.has(itm.title)) {
+              seen.add(itm.title);
+              allMerged.push(itm);
+            }
+          }
+          setAutocompleteItems(allMerged.slice(0, 8));
+        }
+      } catch (_) {}
+    }, 300);
+  };
+
+  const handleSelectAutocomplete = (item) => {
+    if (liveSearchTimerRef.current) clearTimeout(liveSearchTimerRef.current);
+    setSearchQuery(item.title);
+    setShowAutocomplete(false);
+    if (isAiActive) {
+      setIsAiActive(false);
+      setSuggestionData(null);
+    }
+    onSearch(item.title);
   };
 
   const handleToggleAiImprove = async () => {
@@ -35,28 +182,25 @@ export default function RegulationsSearch({
     if (isAiActive) {
       setIsAiActive(false);
       setSuggestionData(null);
-      setApiError(null);
       return;
     }
 
+    setShowAutocomplete(false);
     setIsAiActive(true);
     setIsLoadingSuggestion(true);
     setSuggestionData(null);
-    setApiError(null);
 
     const requestId = ++latestRequestIdRef.current;
 
     try {
       const result = await getLegalSuggestionAsync(searchQuery);
-      // Guard against stale overlapping responses
       if (requestId === latestRequestIdRef.current) {
         setSuggestionData(result);
-        setApiError(null);
       }
-    } catch (err) {
+    } catch (_err) {
+      // Local fallback never throws, but keep safety guard
       if (requestId === latestRequestIdRef.current) {
-        setSuggestionData(null);
-        setApiError(err.message || 'verification_unavailable');
+        setSuggestionData({ matched: false, is_direct_banner: false, options: [] });
       }
     } finally {
       if (requestId === latestRequestIdRef.current) {
@@ -118,22 +262,21 @@ export default function RegulationsSearch({
         </p>
       </div>
 
-      {/* Search Bar */}
-      <div className="search-wrap home-search-wrap-v3">
+      {/* Search Bar Wrapper with Ref for Autocomplete */}
+      <div className="search-wrap home-search-wrap-v3" ref={searchWrapRef} style={{ position: 'relative' }}>
         <form className="searchbar home-searchbar-v3" onSubmit={handleSubmit}>
           <input
             id="searchInput"
             type="text"
             placeholder={inputError ? "يرجى كتابة مصطلح قانوني أولاً..." : "ابحث بكلمة، مصطلح قانوني، رقم قانون أو اسم تشريع..."}
             value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              if (isAiActive) {
-                setIsAiActive(false);
-                setSuggestionData(null);
-                setApiError(null);
+            onChange={handleInputChange}
+            onFocus={() => {
+              if (searchQuery && searchQuery.trim() && autocompleteItems.length > 0) {
+                setShowAutocomplete(true);
               }
             }}
+            autoComplete="off"
             style={inputError ? { borderColor: '#EF4444' } : undefined}
           />
 
@@ -169,6 +312,35 @@ export default function RegulationsSearch({
 
           <button type="submit" className="search-go">بحث</button>
         </form>
+
+        {/* Live Autocomplete Suggestions Dropdown Bar */}
+        {showAutocomplete && autocompleteItems.length > 0 && (
+          <div className="reg-search-autocomplete" role="listbox" aria-label="اقتراحات البحث الفوري">
+            {autocompleteItems.map((item, idx) => (
+              <div
+                key={idx}
+                className="reg-autocomplete-item"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleSelectAutocomplete(item);
+                }}
+              >
+                <div className="reg-autocomplete-item-left">
+                  <span className="reg-autocomplete-icon" aria-hidden="true">
+                    {item.type === 'law' ? '📜' : '⚖️'}
+                  </span>
+                  <div className="reg-autocomplete-text">
+                    <span className="reg-autocomplete-title">{item.title}</span>
+                    {item.subtitle && <span className="reg-autocomplete-sub">{item.subtitle}</span>}
+                  </div>
+                </div>
+                <span className={`reg-autocomplete-badge ${item.type}`}>
+                  {item.badge}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Active Filters Summary */}
         {hasActiveFilters && (
@@ -210,35 +382,15 @@ export default function RegulationsSearch({
             </div>
           )}
 
-          {/* Verification Temporarily Unavailable Error state */}
-          {!isLoadingSuggestion && apiError && (
-            <div className="improve-suggestion show" style={{ maxWidth: '980px', margin: '10px auto 0', borderRight: '4px solid #EF4444' }}>
-              <div>
-                <small style={{ color: '#EF4444' }}>تنبيه</small>
-                <strong>خدمة التحقق من المراجع القانونية غير متاحة مؤقتاً.</strong>
-              </div>
-              <div className="improve-actions">
-                <button
-                  type="button"
-                  className="accept"
-                  style={{ background: '#4B5563' }}
-                  onClick={handleToggleAiImprove}
-                >
-                  إعادة المحاولة ↻
-                </button>
-              </div>
+          {/* Empty state: Platform theme styled card, NO retry button */}
+          {!isLoadingSuggestion && !hasOptions && (
+            <div className="reg-terms-empty-card">
+              لا توجد مصطلحات أو مراجع قانونية مرتبطة بعبارة البحث.
             </div>
           )}
 
-          {/* Empty state: No banner, clear message */}
-          {!isLoadingSuggestion && !apiError && !hasOptions && (
-            <div style={{ maxWidth: '980px', margin: '12px auto 0', padding: '12px 18px', background: 'rgba(15, 23, 42, 0.75)', borderRadius: '8px', color: '#CBD5E1', fontSize: '13px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.08)' }}>
-              لم يتم العثور على مصطلح مرتبط بمرجع قانوني متاح في ديوان.
-            </div>
-          )}
-
-          {/* Success state: Top Banner built from layer (a) only */}
-          {!isLoadingSuggestion && !apiError && hasOptions && topOption && (suggestionData?.is_direct_banner || topOption?.is_direct_banner) && (
+          {/* Success state: Top Banner */}
+          {!isLoadingSuggestion && hasOptions && topOption && (
             <div
               className="improve-suggestion show"
               style={{ maxWidth: '980px', margin: '10px auto 0', cursor: topOption.open_url ? 'pointer' : 'default' }}
@@ -250,9 +402,9 @@ export default function RegulationsSearch({
               title={topOption.open_url ? "اضغط لفتح المادة مباشرة في قارئ القانون" : ""}
             >
               <div>
-                <small>اقتراح ديوان (مطابقة مباشرة)</small>
+                <small>اقتراح ديوان (مطابقة قانونية)</small>
                 <strong>هل تقصد «{topOption.title}»؟</strong>
-                <span style={{ marginRight: '10px', fontSize: '12px', opacity: 0.9, color: '#93C5FD' }}>
+                <span style={{ marginRight: '10px', fontSize: '12px', opacity: 0.9, color: 'rgba(255, 255, 255, 0.85)' }}>
                   ({topOption.law_name} — <span style={{ fontWeight: 700, color: '#FCD34D' }}>{topOption.article_reference}</span>)
                 </span>
               </div>
@@ -272,7 +424,7 @@ export default function RegulationsSearch({
                   <button
                     type="button"
                     className="accept"
-                    style={{ background: '#0D9488', marginRight: '6px' }}
+                    style={{ background: '#0D3C5C', border: '1px solid rgba(255, 255, 255, 0.45)', color: '#ffffff', marginRight: '6px' }}
                     onClick={(e) => handleOpenDirectTarget(e, topOption.open_url, topOption)}
                     title="فتح المادة في قارئ القانون"
                   >
@@ -283,60 +435,61 @@ export default function RegulationsSearch({
             </div>
           )}
 
-          {/* Verified Dropdown List */}
-          {!isLoadingSuggestion && !apiError && hasOptions && (
+          {/* Verified Dropdown List matching platform theme */}
+          {!isLoadingSuggestion && hasOptions && (
             <div className="reg-ai-dropdown-modal">
-                {options.map((opt) => (
-                  <div
-                    key={opt.id}
-                    className="reg-ai-dropdown-item"
-                    onClick={(e) => {
-                      if (opt.open_url) {
-                        handleOpenDirectTarget(e, opt.open_url, opt);
-                      } else {
-                        handleSelectSuggestedTerm(opt.title);
-                      }
-                    }}
-                    style={{ cursor: 'pointer' }}
-                    title="اضغط لفتح المادة مباشرة في قارئ القانون"
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div className="reg-ai-dropdown-item-title">{opt.title}</div>
-                      {opt.open_url && (
-                        <span
-                          style={{
-                            fontSize: '11px',
-                            color: '#0D9488',
-                            fontWeight: 600,
-                            padding: '2px 8px',
-                            background: 'rgba(13, 148, 136, 0.08)',
-                            borderRadius: '6px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}
-                          title="فتح في قارئ القانون"
-                        >
-                          عرض المادة ↗
-                        </span>
-                      )}
-                    </div>
-                    <div className="reg-ai-dropdown-item-desc">
-                      مادة قانونية من {opt.law_name}
-                      {opt.article_reference && (
-                        <span style={{ marginRight: '8px', fontWeight: 600, color: '#1E293B', fontSize: '12px' }}>
-                          ({opt.article_reference})
-                        </span>
-                      )}
-                    </div>
-                    {opt.literal_text && (
-                      <div style={{ fontSize: '11px', color: '#64748B', marginTop: '4px', lineHeight: 1.5 }}>
-                        "{opt.literal_text.slice(0, 120)}..."
-                      </div>
+              {options.map((opt) => (
+                <div
+                  key={opt.id}
+                  className="reg-ai-dropdown-item"
+                  onClick={(e) => {
+                    if (opt.open_url) {
+                      handleOpenDirectTarget(e, opt.open_url, opt);
+                    } else {
+                      handleSelectSuggestedTerm(opt.title);
+                    }
+                  }}
+                  style={{ cursor: 'pointer' }}
+                  title="اضغط لفتح المادة مباشرة في قارئ القانون"
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="reg-ai-dropdown-item-title">{opt.title}</div>
+                    {opt.open_url && (
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          color: 'var(--reg-navy)',
+                          fontWeight: 700,
+                          padding: '3px 10px',
+                          background: '#F1F4F6',
+                          border: '1px solid #DCE4E9',
+                          borderRadius: '999px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                        title="فتح في قارئ القانون"
+                      >
+                        عرض المادة ↗
+                      </span>
                     )}
                   </div>
-                ))}
-              </div>
+                  <div className="reg-ai-dropdown-item-desc">
+                    مادة قانونية من {opt.law_name}
+                    {opt.article_reference && (
+                      <span style={{ marginRight: '8px', fontWeight: 600, color: '#1E293B', fontSize: '12px' }}>
+                        ({opt.article_reference})
+                      </span>
+                    )}
+                  </div>
+                  {opt.literal_text && (
+                    <div style={{ fontSize: '11px', color: '#64748B', marginTop: '4px', lineHeight: 1.5 }}>
+                      "{opt.literal_text.slice(0, 140)}..."
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </>
       )}

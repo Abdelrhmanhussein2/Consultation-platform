@@ -15,7 +15,9 @@ export default function ModernDatePicker({
   placeholder = 'YYYY-MM-DD',
   label,
   presets = true,
-  format: propFormat
+  format: propFormat,
+  placement = 'top',
+  align = 'right'
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value || '');
@@ -36,7 +38,7 @@ export default function ModernDatePicker({
     if (value) {
       if (value.includes('-')) {
         const parts = value.split('-');
-        if (parts.length === 3) {
+        if (parts.length >= 2) {
           const y = parseInt(parts[0], 10);
           const m = parseInt(parts[1], 10) - 1;
           if (!isNaN(y) && !isNaN(m)) {
@@ -53,7 +55,17 @@ export default function ModernDatePicker({
             setViewYear(y);
             setViewMonth(m);
           }
+        } else if (parts.length === 2) {
+          const m = parseInt(parts[0], 10) - 1;
+          const y = parseInt(parts[1], 10);
+          if (!isNaN(y) && !isNaN(m)) {
+            setViewYear(y);
+            setViewMonth(m);
+          }
         }
+      } else if (/^\d{4}$/.test(value)) {
+        const y = parseInt(value, 10);
+        if (!isNaN(y)) setViewYear(y);
       }
     }
   }, [value]);
@@ -83,6 +95,17 @@ export default function ModernDatePicker({
       return `${y}-${mStr}-${dStr}`;
     }
     return `${dStr}/${mStr}/${y}`;
+  };
+
+  const handleConfirm = () => {
+    let val = inputValue ? inputValue.trim() : '';
+    if (!val) {
+      const mStr = String(viewMonth + 1).padStart(2, '0');
+      val = isIsoFormat ? `${viewYear}-${mStr}` : `${mStr}/${viewYear}`;
+      setInputValue(val);
+    }
+    if (onChange) onChange(val);
+    setIsOpen(false);
   };
 
   const handleSelectDay = (day) => {
@@ -171,6 +194,13 @@ export default function ModernDatePicker({
           value={inputValue}
           onChange={handleInputChange}
           onFocus={() => setIsOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              e.stopPropagation();
+              handleConfirm();
+            }
+          }}
         />
         
         <button
@@ -190,7 +220,17 @@ export default function ModernDatePicker({
 
       {/* Calendar Dropdown Popup */}
       {isOpen && (
-        <div className="modern-date-popup fade-in">
+        <div
+          className={`modern-date-popup fade-in placement-${placement} align-${align}`}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              e.stopPropagation();
+              handleConfirm();
+            }
+          }}
+        >
           {/* Header Month/Year Selector */}
           <div className="calendar-header-row">
             <button type="button" className="cal-nav-btn" onClick={handlePrevMonth} title="الشهر السابق">
@@ -198,11 +238,22 @@ export default function ModernDatePicker({
             </button>
 
             <div className="cal-title-box">
-              <span className="cal-month-name">{ARABIC_MONTHS[viewMonth]}</span>
+              <select
+                className="cal-month-select"
+                value={viewMonth}
+                onChange={(e) => setViewMonth(parseInt(e.target.value, 10))}
+                title="اختر الشهر"
+              >
+                {ARABIC_MONTHS.map((mName, mIdx) => (
+                  <option key={mIdx} value={mIdx}>{mName}</option>
+                ))}
+              </select>
+
               <select
                 className="cal-year-select"
                 value={viewYear}
                 onChange={(e) => setViewYear(parseInt(e.target.value, 10))}
+                title="اختر السنة"
               >
                 {Array.from({ length: 60 }, (_, i) => 1970 + i).map(y => (
                   <option key={y} value={y}>{y}</option>
@@ -215,20 +266,36 @@ export default function ModernDatePicker({
             </button>
           </div>
 
-          {/* Quick Presets Bar */}
           {presets && (
             <div className="calendar-presets-row">
+              <button
+                type="button"
+                className="cal-confirm-btn"
+                onClick={handleConfirm}
+                title="تأكيد وحفظ التاريخ (Enter)"
+              >
+                موافق ✓
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const mStr = String(viewMonth + 1).padStart(2, '0');
+                  const val = isIsoFormat ? `${viewYear}-${mStr}` : `${mStr}/${viewYear}`;
+                  setInputValue(val);
+                  if (onChange) onChange(val);
+                  setIsOpen(false);
+                }}
+                title="اختيار هذا الشهر والسنة فقط"
+              >
+                {ARABIC_MONTHS[viewMonth]} {viewYear}
+              </button>
               <button type="button" onClick={() => handlePresetSelect(new Date())}>اليوم</button>
               <button type="button" onClick={() => {
-                const tom = new Date();
-                tom.setDate(tom.getDate() + 1);
-                handlePresetSelect(tom);
-              }}>غداً</button>
-              <button type="button" onClick={() => {
-                const nextW = new Date();
-                nextW.setDate(nextW.getDate() + 7);
-                handlePresetSelect(nextW);
-              }}>الأسبوع القادم</button>
+                const val = String(viewYear);
+                setInputValue(val);
+                if (onChange) onChange(val);
+                setIsOpen(false);
+              }}>سنة {viewYear}</button>
               <button type="button" className="clear" onClick={handleClear}>مسح</button>
             </div>
           )}
@@ -240,7 +307,7 @@ export default function ModernDatePicker({
             ))}
           </div>
 
-          {/* Days Grid */}
+          {/* Days Grid - All 28-31 days completely rendered */}
           <div className="calendar-grid">
             {/* Blank cells for offset */}
             {Array.from({ length: firstDayIndex }).map((_, i) => (

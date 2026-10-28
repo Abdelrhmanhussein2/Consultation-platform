@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { getLawTree } from '../../services/legalService';
+import { getLawTree, parseArticleClauses } from '../../services/legalService';
 
 // ── مكوّن عرض مادة واحدة بشكل مبسط ────────────────────────────────────────
 function PreviewArticle({ article }) {
@@ -13,9 +13,11 @@ function PreviewArticle({ article }) {
 
   const num     = article.num || article.number || '?';
   const title   = article.title || `المادة ${num}`;
-  const hasDefs = article.has_definitions && Array.isArray(article.definitions) && article.definitions.length > 0;
-  const clauses = Array.isArray(article.clauses) ? article.clauses : [];
-  const intro   = article.intro_text || '';
+  const parsed  = parseArticleClauses(article);
+  const displayDefs = (parsed.definitions && parsed.definitions.length > 0) ? parsed.definitions : (article.definitions || []);
+  const hasDefs = Boolean((parsed.hasDefinitions || article.has_definitions) && displayDefs && displayDefs.length > 0);
+  const clauses = (parsed.clauses && parsed.clauses.length > 0) ? parsed.clauses : (article.clauses || []);
+  const intro   = parsed.introText || article.intro_text || '';
 
   // نص الخام من أي حقل متاح
   const rawText = article.content || article.text || '';
@@ -32,25 +34,35 @@ function PreviewArticle({ article }) {
         {/* تعريفات إن وجدت */}
         {hasDefs && (
           <div className="preview-definitions-table">
-            {article.definitions.slice(0, 5).map((def, i) => (
+            {displayDefs.slice(0, 5).map((def, i) => (
               <div className="preview-def-row" key={i}>
                 <div className="preview-def-term">{def.term}</div>
                 <div className="preview-def-val">{def.value}</div>
               </div>
             ))}
-            {article.definitions.length > 5 && (
+            {displayDefs.length > 5 && (
               <div className="preview-def-row" style={{ color: '#64748B', fontStyle: 'italic' }}>
                 <div className="preview-def-term">...</div>
-                <div className="preview-def-val">و {article.definitions.length - 5} تعريفاً آخر</div>
+                <div className="preview-def-val">و {displayDefs.length - 5} تعريفاً آخر</div>
               </div>
             )}
           </div>
         )}
 
-        {/* البنود */}
-        {!hasDefs && clauses.length > 0 && clauses.slice(0, 4).map((clause, i) => (
-          <p key={i}>{typeof clause === 'string' ? clause : (clause.text || '')}</p>
-        ))}
+        {/* البنود بتدرج هرمي مطابق */}
+        {!hasDefs && clauses.length > 0 && clauses.slice(0, 6).map((clause, i) => {
+          const level = typeof clause === 'object' && clause.level ? clause.level : 0;
+          const text = typeof clause === 'object' ? clause.text : clause;
+          return (
+            <p
+              key={i}
+              className={`preview-clause level-${level}`}
+              style={level > 0 ? { marginRight: `${level * 24}px` } : undefined}
+            >
+              {text}
+            </p>
+          );
+        })}
 
         {/* نص خام كاحتياط */}
         {!hasDefs && clauses.length === 0 && rawText && (

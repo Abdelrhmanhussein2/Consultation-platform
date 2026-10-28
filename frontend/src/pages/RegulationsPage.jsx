@@ -15,6 +15,116 @@ import ErrorBoundary from '../components/common/ErrorBoundary';
 import { searchLegal } from '../services/legalService';
 import { useAuth } from '../context/AuthContext';
 
+function parseFlexibleDate(str, isEnd = false) {
+  if (!str) return null;
+  const s = String(str).trim().replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+  if (!s) return null;
+
+  // 1. Year only: e.g. '2014'
+  if (/^\d{4}$/.test(s)) {
+    const y = parseInt(s, 10);
+    return isEnd ? new Date(y, 11, 31, 23, 59, 59).getTime() : new Date(y, 0, 1, 0, 0, 0).getTime();
+  }
+
+  // 2. Month and Year: MM/YYYY or YYYY-MM or MM-YYYY
+  let mMatch = s.match(/^(\d{1,2})[\/\-](\d{4})$/);
+  if (mMatch) {
+    const m = parseInt(mMatch[1], 10) - 1;
+    const y = parseInt(mMatch[2], 10);
+    if (m >= 0 && m < 12) {
+      return isEnd ? new Date(y, m + 1, 0, 23, 59, 59).getTime() : new Date(y, m, 1, 0, 0, 0).getTime();
+    }
+  }
+
+  let yMatch = s.match(/^(\d{4})[\/\-](\d{1,2})$/);
+  if (yMatch) {
+    const y = parseInt(yMatch[1], 10);
+    const m = parseInt(yMatch[2], 10) - 1;
+    if (m >= 0 && m < 12) {
+      return isEnd ? new Date(y, m + 1, 0, 23, 59, 59).getTime() : new Date(y, m, 1, 0, 0, 0).getTime();
+    }
+  }
+
+  // 3. Full date: DD/MM/YYYY or DD-MM-YYYY or YYYY-MM-DD
+  let fullMatch = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (fullMatch) {
+    const d = parseInt(fullMatch[1], 10);
+    const m = parseInt(fullMatch[2], 10) - 1;
+    const y = parseInt(fullMatch[3], 10);
+    return new Date(y, m, d, isEnd ? 23 : 0, isEnd ? 59 : 0, isEnd ? 59 : 0).getTime();
+  }
+
+  let isoMatch = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (isoMatch) {
+    const y = parseInt(isoMatch[1], 10);
+    const m = parseInt(isoMatch[2], 10) - 1;
+    const d = parseInt(isoMatch[3], 10);
+    return new Date(y, m, d, isEnd ? 23 : 0, isEnd ? 59 : 0, isEnd ? 59 : 0).getTime();
+  }
+
+  return null;
+}
+
+function getLawDateRange(l) {
+  if (!l) return null;
+  const rawDates = [l.issue_date, l.effective_date, l.amended_date, l.date].filter(Boolean);
+  const timestamps = [];
+
+  for (const rd of rawDates) {
+    const ts = parseFlexibleDate(rd, false);
+    if (ts) timestamps.push(ts);
+  }
+
+  const y = parseInt(l.year || l.year_short || '0', 10);
+  if (y >= 1900 && y <= 2100) {
+    timestamps.push(new Date(y, 0, 1).getTime());
+    timestamps.push(new Date(y, 11, 31, 23, 59, 59).getTime());
+  }
+
+  if (timestamps.length === 0) return null;
+  return {
+    start: Math.min(...timestamps),
+    end: Math.max(...timestamps)
+  };
+}
+
+function matchLawType(l, filterType) {
+  if (!filterType || filterType === 'الكل') return true;
+  const t = filterType.trim();
+  const lType = (l.type || '').trim();
+  const lTitle = (l.title || '').trim();
+
+  if (t === 'قانون') {
+    return lType.includes('قانون') || lType.includes('نسخة') || lTitle.startsWith('قانون');
+  }
+  if (t === 'تعليمات') {
+    return lType.includes('تعليمات') || lTitle.startsWith('تعليمات');
+  }
+  if (t === 'نظام') {
+    return lType.includes('نظام') || lTitle.startsWith('نظام');
+  }
+  if (t.includes('أحكام') || t.includes('قضائ')) {
+    return lType.includes('حكم') || lType.includes('قضائ') || lTitle.startsWith('الحكم') || lTitle.startsWith('قرار محكمة');
+  }
+  if (t.includes('قرار')) {
+    return lType.includes('قرار') || lTitle.startsWith('قرار');
+  }
+  if (t.includes('نموذج') || t.includes('نماذج')) {
+    return lType.includes('نموذج') || lType.includes('نماذج') || lTitle.includes('نموذج');
+  }
+  return lType.includes(t) || lTitle.includes(t);
+}
+
+function matchLawStatus(l, filterStatus) {
+  if (!filterStatus || filterStatus === 'الكل') return true;
+  const st = filterStatus.trim();
+  const lSt = (l.status || '').trim();
+  if (st === 'ساري') return lSt === 'ساري' || lSt === 'active';
+  if (st === 'معدل') return lSt.includes('معدل') || lSt === 'amended';
+  if (st === 'ملغى') return lSt.includes('ملغ') || lSt === 'cancelled';
+  return lSt === st;
+}
+
 export default function RegulationsPage({ navigate, currentPath }) {
   const { token } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,32 +202,34 @@ export default function RegulationsPage({ navigate, currentPath }) {
   ) => {
     setLoading(true);
     const effectiveQuery = queryText !== undefined ? queryText : searchQuery;
-    const data = await searchLegal(effectiveQuery, 20, token);
+    const data = await searchLegal(effectiveQuery, 20, token, appliedFilters);
 
     let filtered = [...data];
 
     if (appliedFilters.status && appliedFilters.status !== 'الكل') {
-      filtered = filtered.filter(l => l.status === appliedFilters.status);
+      filtered = filtered.filter(l => matchLawStatus(l, appliedFilters.status));
     }
 
     if (appliedFilters.type && appliedFilters.type !== 'الكل') {
-      filtered = filtered.filter(l => l.type === appliedFilters.type);
+      filtered = filtered.filter(l => matchLawType(l, appliedFilters.type));
     }
 
     if (appliedFilters.dateFrom || appliedFilters.dateTo) {
+      const fromTs = appliedFilters.dateFrom ? parseFlexibleDate(appliedFilters.dateFrom, false) : null;
+      const toTs = appliedFilters.dateTo ? parseFlexibleDate(appliedFilters.dateTo, true) : null;
+
       filtered = filtered.filter(l => {
-        const lawYear = parseInt(l.year_short || (l.issue_date ? l.issue_date.split('-')[2] : '2014'), 10);
+        const range = getLawDateRange(l);
+        if (!range) return true;
         let fromOk = true;
         let toOk = true;
 
-        if (appliedFilters.dateFrom) {
-          const fromYear = parseInt(appliedFilters.dateFrom.slice(-4), 10);
-          if (!isNaN(fromYear)) fromOk = lawYear >= fromYear;
+        if (fromTs !== null) {
+          fromOk = range.end >= fromTs;
         }
 
-        if (appliedFilters.dateTo) {
-          const toYear = parseInt(appliedFilters.dateTo.slice(-4), 10);
-          if (!isNaN(toYear)) toOk = lawYear <= toYear;
+        if (toTs !== null) {
+          toOk = range.start <= toTs;
         }
 
         return fromOk && toOk;

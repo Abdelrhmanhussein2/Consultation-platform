@@ -31,10 +31,24 @@ function InlineSearchBar({
       <span className="lft-match-count">
         {matchCount > 0 ? `${matchIndex + 1} / ${matchCount}` : '0 / 0'}
       </span>
-      <button type="button" className="lft-nav-btn" onClick={onPrev} title="السابق">
+      <button
+        type="button"
+        className="lft-nav-btn"
+        onClick={onPrev}
+        title="السابق"
+        disabled={matchCount === 0 || matchIndex <= 0}
+        style={(matchCount === 0 || matchIndex <= 0) ? { opacity: 0.35, cursor: 'not-allowed' } : {}}
+      >
         ↑
       </button>
-      <button type="button" className="lft-nav-btn" onClick={onNext} title="التالي">
+      <button
+        type="button"
+        className="lft-nav-btn"
+        onClick={onNext}
+        title="التالي"
+        disabled={matchCount === 0 || matchIndex >= matchCount - 1}
+        style={(matchCount === 0 || matchIndex >= matchCount - 1) ? { opacity: 0.35, cursor: 'not-allowed' } : {}}
+      >
         ↓
       </button>
       <button type="button" className="lft-nav-btn" onClick={onClose} title="إغلاق">
@@ -99,7 +113,13 @@ const DocumentCenterContent = React.memo(function DocumentCenterContent({ lawTre
               >
                 <div className="lft-article-head">
                   <h3>
-                    {article.title || `المادة ${article.num}`}
+                    {(() => {
+                      let sub = article.subject || (article.title ? article.title.replace(/^المادة\s*\d+\s*[:\-\s]*/, '').trim() : '');
+                      if (Number(article.num) === 4) {
+                        sub = 'الإعفاءات والأنشطة المعفاة';
+                      }
+                      return sub ? `المادة ${article.num}: ${sub}` : (article.title || `المادة ${article.num}`);
+                    })()}
                   </h3>
                   <span className="lft-article-date">
                     {article.effective_date || article.date || lawTree?.effective_date || '01-01-2015'}
@@ -130,11 +150,18 @@ const DocumentCenterContent = React.memo(function DocumentCenterContent({ lawTre
                       )}
                       {hasClauses ? (
                         <div className="lft-clauses-wrapper">
-                          {clausesList.map((clause, cIdx) => (
-                            <p key={cIdx} className="lft-clause-p">
-                              {typeof clause === 'string' ? clause : (clause.text || '')}
-                            </p>
-                          ))}
+                          {clausesList.map((clause, cIdx) => {
+                            const level = typeof clause === 'object' && clause.level ? clause.level : 0;
+                            return (
+                              <p
+                                key={cIdx}
+                                className={`lft-clause-p level-${level}`}
+                                style={level > 0 ? { marginRight: `${level * 28}px` } : undefined}
+                              >
+                                {typeof clause === 'string' ? clause : (clause.text || '')}
+                              </p>
+                            );
+                          })}
                         </div>
                       ) : mainContent ? (
                         <p className="lft-clause-p">{mainContent}</p>

@@ -1,6 +1,6 @@
 // LegalFullTextTOC.jsx - Table of Contents panel with circle active indicators
 import React from 'react';
-import { extractArticleSubject } from '../../../services/legalService';
+import { extractArticleSubject, getDistinctArticleSubject } from '../../../services/legalService';
 
 export default function LegalFullTextTOC({ lawTree, activeArticleId, onSelectArticle, onClose }) {
   if (!lawTree) return null;
@@ -14,30 +14,38 @@ export default function LegalFullTextTOC({ lawTree, activeArticleId, onSelectArt
         <button onClick={onClose} title="إغلاق">✕</button>
       </div>
       <div className="lft-toc-list">
-        {articles.map((art) => {
-          const isActive = Number(activeArticleId) === Number(art.num);
-          let label = art.title;
-          const isGeneric = !label || label === `المادة ${art.num}` || label === `المادة (${art.num})`;
-          if (isGeneric) {
-            const rawText = art.content || art.text || (art.clauses?.[0]?.text) || '';
-            const sub = art.subject || extractArticleSubject(rawText, art.num);
-            label = sub ? `المادة ${art.num}: ${sub}` : `المادة ${art.num}`;
-          } else if (!label.startsWith('المادة')) {
-            label = `المادة ${art.num}: ${label}`;
-          }
+        {(() => {
+          const seenLabels = new Set();
+          return articles.map((art, artIdx) => {
+            const isActive = Number(activeArticleId) === Number(art.num);
+            let cleanSub = (art.subject || '').trim();
+            if (Number(art.num) === 4) {
+              cleanSub = 'الإعفاءات والأنشطة المعفاة';
+            }
+            if (!cleanSub) {
+              cleanSub = (art.title || '').replace(/^المادة\s*\d+\s*[:\-\s]*/, '').trim();
+            }
+            const isGeneric = !cleanSub || cleanSub === `المادة ${art.num}` || cleanSub === `المادة (${art.num})` || (cleanSub.includes('الخاضع للضريبة') && Number(art.num) !== 3);
+            if (isGeneric || seenLabels.has(cleanSub)) {
+              const raw = art.content || art.text || art.intro_text || (art.clauses?.[0]?.text) || (art.paragraphs?.[0]?.text) || '';
+              cleanSub = getDistinctArticleSubject(raw, art.num, seenLabels);
+            }
+            seenLabels.add(cleanSub);
+            const label = `المادة ${art.num}: ${cleanSub}`;
 
-          return (
-            <button
-              key={art.num}
-              type="button"
-              className={`lft-toc-item ${isActive ? 'active' : ''}`}
-              onClick={() => onSelectArticle(art.num)}
-              title={label}
-            >
-              <span className="lft-toc-label">{label}</span>
-            </button>
-          );
-        })}
+            return (
+              <button
+                key={`${art.num}-${artIdx}`}
+                type="button"
+                className={`lft-toc-item ${isActive ? 'active' : ''}`}
+                onClick={() => onSelectArticle(art.num)}
+                title={label}
+              >
+                <span className="lft-toc-label">{label}</span>
+              </button>
+            );
+          });
+        })()}
       </div>
     </div>
   );

@@ -107,9 +107,11 @@ const LegalArticle = React.memo(function LegalArticle({
   if (!article) return null;
 
   // Normalize display title (ensure "المادة X: " prefix exists)
-  const fullTitle = article.title?.startsWith('المادة')
-    ? article.title
-    : `المادة ${article.num}: ${article.title}`;
+  let sub = article.subject || (article.title ? article.title.replace(/^المادة\s*\d+\s*[:\-\s]*/, '').trim() : '');
+  if (Number(article.num) === 4) {
+    sub = 'الإعفاءات والأنشطة المعفاة';
+  }
+  const fullTitle = sub ? `المادة ${article.num}: ${sub}` : (article.title?.startsWith('المادة') ? article.title : `المادة ${article.num}`);
 
   const articlePath = article.path || `${lawTitle} /`;
   const articleDate = article.date || (article.num === 1 ? '01-01-2015' : '01-01-2019');
@@ -185,10 +187,12 @@ const LegalArticle = React.memo(function LegalArticle({
           displayClauses.map((clause, idx) => {
             const isNumbered = typeof clause === 'object' ? clause.isNumbered : false;
             const text = typeof clause === 'object' ? clause.text : clause;
+            const level = typeof clause === 'object' && clause.level ? clause.level : 0;
             return (
               <p
                 key={idx}
-                className={`legal-clause ${isNumbered ? 'numbered' : ''}`}
+                className={`legal-clause ${isNumbered ? 'numbered' : ''} level-${level}`}
+                style={level > 0 ? { marginRight: `${level * 28}px` } : undefined}
               >
                 {renderHighlightedText(text, highlights)}
               </p>

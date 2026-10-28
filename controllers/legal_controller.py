@@ -250,38 +250,90 @@ class LegalController:
         return LegalGraphService.get_judgments_citing_target(target_id)
 
     @staticmethod
-    def search(query: str, limit: int = 5):
+    def search(query: str, limit: int = 5, year_from: int = None, year_to: int = None):
         clean_q = (query or "").strip()
+        all_laws = LegalGraphService.get_laws(year_from=year_from, year_to=year_to)
+        if not all_laws:
+            return []
+
         if not clean_q:
-            return LegalGraphService.get_laws()[:limit]
+            return all_laws[:limit]
 
-        # 1. First search laws directly by title, name, or law_id
-        graph_results = LegalGraphService.get_laws(q=clean_q)
-        if graph_results:
-            return graph_results[:limit]
-        
-        # 2. Search laws that contain an article matching the query
+        from helpers.arabic_search_utils import score_legislation_match, normalize_arabic
+
+        # Fetch Excel-linked terms from PostgreSQL to support colloquial & legislative synonyms
+        linked_terms_by_law = {}
         try:
-            with neo4j_db.get_session() as session:
-                matching_laws = session.run("""
-                    MATCH (l)
-                    WHERE (l:Law OR l:`قانون`)
-                    OPTIONAL MATCH (l)-[:HAS_ARTICLE|`يتضمن_مادة`]->(a)
-                    WHERE toLower(coalesce(a.text, a.`نص_المادة`, '')) CONTAINS toLower($q)
-                       OR toLower(coalesce(a.title, a.`عنوان_المادة`, '')) CONTAINS toLower($q)
-                    RETURN DISTINCT coalesce(l.law_id, l.`معرف`) as law_id
-                """, q=clean_q).data()
-                if matching_laws:
-                    law_ids = {m['law_id'] for m in matching_laws if m.get('law_id')}
-                    all_laws = LegalGraphService.get_laws()
-                    matched = [law for law in all_laws if law['law_id'] in law_ids]
-                    if matched:
-                        return matched[:limit]
-        except Exception as e:
-            print(f"Warning: Article search in laws failed: {e}")
+            from helpers.database import SessionLocal
+            from models.ai.legal_term import LegalTerm
+            from sqlalchemy import or_, func
 
-        # 3. Fallback: return all available laws with full metadata
-        return LegalGraphService.get_laws()[:limit]
+            db = SessionLocal()
+            try:
+                # Try matching terms via pg_trgm index or containment
+                matched_terms = db.query(LegalTerm).filter(
+                    LegalTerm.is_active == True,
+                    or_(
+                        LegalTerm.popular_term.ilike(f"%{clean_q}%"),
+                        LegalTerm.legislative_term.ilike(f"%{clean_q}%"),
+                        func.similarity(LegalTerm.popular_term, clean_q) >= 0.35,
+                        func.similarity(LegalTerm.legislative_term, clean_q) >= 0.35
+                    )
+                ).limit(40).all()
+
+                for term in matched_terms:
+                    lid = term.law_id or term.law_name
+                    if lid:
+                        linked_terms_by_law.setdefault(lid, []).extend([term.popular_term, term.legislative_term])
+            except Exception:
+                # Safe fallback without similarity operator
+                norm_q = normalize_arabic(clean_q)
+                for term in db.query(LegalTerm).filter(LegalTerm.is_active == True).limit(200).all():
+                    if norm_q in normalize_arabic(term.popular_term) or norm_q in normalize_arabic(term.legislative_term):
+                        lid = term.law_id or term.law_name
+                        if lid:
+                            linked_terms_by_law.setdefault(lid, []).extend([term.popular_term, term.legislative_term])
+            finally:
+                db.close()
+        except Exception as e:
+            print(f"Notice: PostgreSQL legal_terms lookup in search skipped: {e}")
+
+        # Score and rank legislation records ONLY (strictly no article-level results)
+        scored_laws = []
+        seen_law_ids = set()
+
+        for law in all_laws:
+            lid = law.get("law_id") or law.get("title")
+            if not lid or lid in seen_law_ids:
+                continue
+
+            # Gather any Excel terms linked by law_id or law title
+            linked = list(linked_terms_by_law.get(law.get("law_id"), []))
+            if law.get("title") and law.get("title") in linked_terms_by_law:
+                linked.extend(linked_terms_by_law[law.get("title")])
+
+            score, reason = score_legislation_match(clean_q, law, linked)
+            if score >= 0.35:
+                scored_laws.append({
+                    **law,
+                    "score": f"{int(score * 100)}%",
+                    "match_reason": reason,
+                    "_numeric_score": score
+                })
+                seen_law_ids.add(lid)
+
+        if scored_laws:
+            # Sort by relevance score DESC, then year DESC, number ASC
+            scored_laws.sort(
+                key=lambda x: (x["_numeric_score"], x.get("year", 0), -x.get("number", 0)),
+                reverse=True
+            )
+            for item in scored_laws:
+                item.pop("_numeric_score", None)
+            return scored_laws[:limit]
+
+        # Fallback: if no high-confidence match, return top laws with neutral relevance
+        return all_laws[:limit]
 
     @staticmethod
     def get_related_files(law_id: str):

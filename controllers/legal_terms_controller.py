@@ -176,6 +176,44 @@ class LegalTermsController:
                 scored.sort(key=lambda x: (x[0], x[1], x[2]))
                 candidates = [x[3] for x in scored[:limit]]
 
+            # Layer (c): Approximate match using PostgreSQL pg_trgm similarity (Typo Tolerance)
+            if not candidates and len(norm_query) >= 3:
+                is_direct_banner = False
+                from helpers.arabic_search_utils import best_window_trigram_similarity
+                try:
+                    from sqlalchemy import func
+                    # Try querying PostgreSQL directly with pg_trgm similarity function
+                    trgm_matches = base_q.filter(
+                        or_(
+                            func.similarity(LegalTerm.popular_term, raw_query) >= 0.35,
+                            func.similarity(LegalTerm.legislative_term, raw_query) >= 0.35
+                        )
+                    ).order_by(
+                        func.similarity(LegalTerm.popular_term, raw_query).desc()
+                    ).limit(limit).all()
+
+                    if trgm_matches:
+                        candidates = trgm_matches
+                except Exception:
+                    pass
+
+                # Fallback / enhancement: sliding-window trigram matching over eligible terms
+                if not candidates:
+                    all_eligible = base_q.all()
+                    trgm_scored = []
+                    for t in all_eligible:
+                        p_norm = full_norm(t.popular_term)
+                        l_norm = full_norm(t.legislative_term)
+                        sim_p = best_window_trigram_similarity(norm_query, p_norm)
+                        sim_l = best_window_trigram_similarity(norm_query, l_norm)
+                        max_sim = max(sim_p, sim_l)
+                        if max_sim >= 0.35:
+                            prio = 0 if sim_p >= sim_l else 1
+                            trgm_scored.append((prio, max_sim, t))
+
+                    trgm_scored.sort(key=lambda x: (x[0], -x[1]))
+                    candidates = [x[2] for x in trgm_scored[:limit]]
+
             # ─────────────────────────────────────────────────────────────
             # 3. Gap Logging if no candidates found
             # ─────────────────────────────────────────────────────────────

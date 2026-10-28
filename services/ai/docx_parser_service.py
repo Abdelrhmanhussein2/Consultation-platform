@@ -30,6 +30,115 @@ class DocxParserService:
                         
         return '\n'.join(full_text)
 
+    ARABIC_LETTERS = {
+        'أ': 1, 'ا': 1, 'إ': 1, 'آ': 1,
+        'ب': 2, 'ج': 3, 'د': 4, 'هـ': 5, 'ه': 5,
+        'و': 6, 'ز': 7, 'ح': 8, 'ط': 9, 'ي': 10, 'ى': 10,
+        'ك': 11, 'ل': 12, 'م': 13, 'ن': 14, 'س': 15, 'ع': 16,
+        'ف': 17, 'ص': 18, 'ق': 19, 'ر': 20, 'ش': 21, 'ت': 22,
+        'ث': 23, 'خ': 24, 'ذ': 25, 'ض': 26, 'ظ': 27, 'غ': 28
+    }
+
+    ARABIC_ORDINALS = {
+        'أولاً': 1, 'اولا': 1, 'أولا': 1,
+        'ثانياً': 2, 'ثانيا': 2,
+        'ثالثاً': 3, 'ثالثا': 3,
+        'رابعاً': 4, 'رابعا': 4,
+        'خامساً': 5, 'خامسا': 5,
+        'سادساً': 6, 'سادسا': 6,
+        'سابعاً': 7, 'سابعا': 7,
+        'ثامناً': 8, 'ثامنا': 8,
+        'تاسعاً': 9, 'تاسعا': 9,
+        'عاشراً': 10, 'عاشرا': 10
+    }
+
+    @classmethod
+    def parse_hierarchical_prefix(cls, text: str):
+        if not text:
+            return None
+        t = text.strip()
+        ord_match = re.match(r'^(أولاً|اولا|أولا|ثانياً|ثانيا|ثالثاً|ثالثا|رابعاً|رابعا|خامساً|خامسا|سادساً|سادسا|سابعاً|سابعا|ثامناً|ثامنا|تاسعاً|تاسعا|عاشراً|عاشرا)\s*[:\-–—\.]', t)
+        if ord_match:
+            return {'type': 'ordinal', 'val': cls.ARABIC_ORDINALS.get(ord_match.group(1), 1), 'raw': ord_match.group(0)}
+        
+        letter_match = re.match(r'^(?:([أ-ي]|هـ)\s*[-–—\.\:]|\(([أ-ي]|هـ)\)|([أ-ي]|هـ)\))', t)
+        if letter_match:
+            l = letter_match.group(1) or letter_match.group(2) or letter_match.group(3)
+            return {'type': 'letter', 'val': cls.ARABIC_LETTERS.get(l, 0), 'raw': letter_match.group(0)}
+            
+        num_match = re.match(r'^(?:(\d+|[٠-٩]+)\s*[-–—\.\:]|\((\d+|[٠-٩]+)\)|(\d+|[٠-٩]+)\))', t)
+        if num_match:
+            n = num_match.group(1) or num_match.group(2) or num_match.group(3)
+            trans = str.maketrans('٠١٢٣٤٥٦٧٨٩', '0123456789')
+            return {'type': 'number', 'val': int(n.translate(trans)), 'raw': num_match.group(0)}
+            
+        return None
+
+    @classmethod
+    def assign_hierarchical_levels(cls, lines: list) -> list:
+        """
+        Assigns progressive indentation levels (0, 1, 2, 3...) to Arabic legal clauses.
+        Returns list of dicts: [{'text': line, 'level': lvl, 'prefix': prefix}]
+        """
+        stack = []
+        results = []
+        for line in lines:
+            line_str = line if isinstance(line, str) else str(line)
+            prefix = cls.parse_hierarchical_prefix(line_str)
+            if not prefix:
+                level = stack[-1]['level'] if stack else 0
+                results.append({'text': line_str, 'level': level, 'prefix': None})
+                continue
+                
+            if not stack:
+                level = 0
+                stack.append({'type': prefix['type'], 'val': prefix['val'], 'level': 0})
+            else:
+                top = stack[-1]
+                if top['type'] == prefix['type'] and prefix['val'] > top['val']:
+                    level = top['level']
+                    top['val'] = prefix['val']
+                elif prefix['val'] == 1 and top['type'] != prefix['type']:
+                    level = top['level'] + 1
+                    stack.append({'type': prefix['type'], 'val': prefix['val'], 'level': level})
+                else:
+                    match_idx = -1
+                    for i in range(len(stack) - 1, -1, -1):
+                        if stack[i]['type'] == prefix['type'] and prefix['val'] > stack[i]['val']:
+                            match_idx = i
+                            break
+                    if match_idx != -1:
+                        del stack[match_idx + 1:]
+                        level = stack[match_idx]['level']
+                        stack[match_idx]['val'] = prefix['val']
+                    else:
+                        root_idx = next((i for i, s in enumerate(stack) if s['type'] == prefix['type']), -1)
+                        if root_idx != -1:
+                            del stack[root_idx + 1:]
+                            level = stack[root_idx]['level']
+                            stack[root_idx]['val'] = prefix['val']
+                        else:
+                            stack.clear()
+                            level = 0
+                            stack.append({'type': prefix['type'], 'val': prefix['val'], 'level': 0})
+            results.append({'text': line_str, 'level': level, 'prefix': prefix})
+        return results
+
+    @classmethod
+    def format_hierarchical_text(cls, text: str, indent_str: str = "    ") -> str:
+        """
+        Formats legal text lines with hierarchical progressive indentation.
+        """
+        if not text:
+            return ""
+        lines = [l.strip() for l in text.split('\n') if l.strip()]
+        hierarchical = cls.assign_hierarchical_levels(lines)
+        formatted_lines = []
+        for h in hierarchical:
+            indent = indent_str * h['level']
+            formatted_lines.append(f"{indent}{h['text']}")
+        return '\n'.join(formatted_lines)
+
     @classmethod
     def resolve_law_name_to_id(cls, law_name: str) -> str:
         """
@@ -149,7 +258,14 @@ class DocxParserService:
                     # Guard: only append if we are inside an article (skip preamble text)
                     current_article["text"] += "\n" + line
                 # else: preamble text before first article — safely ignored
-                    
+
+        # Enrich articles with hierarchical clauses and formatted indentation
+        for art in articles:
+            lines_in_art = [l.strip() for l in art["text"].split('\n') if l.strip()]
+            hierarchical = cls.assign_hierarchical_levels(lines_in_art)
+            art["hierarchical_clauses"] = hierarchical
+            art["formatted_text"] = cls.format_hierarchical_text(art["text"])
+
         return {
             "articles": articles,
             "paragraphs": paragraphs,

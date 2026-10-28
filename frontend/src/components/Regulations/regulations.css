@@ -224,7 +224,7 @@
 }
 
 .reg-ai-dropdown-item:hover {
-  background: #F0FDFA;
+  background: #F8FAFC;
 }
 
 .reg-ai-dropdown-item-title {
@@ -237,6 +237,116 @@
 .reg-ai-dropdown-item-desc {
   font-size: 11.5px;
   color: #64748B;
+}
+
+/* Platform-themed empty state for terms search */
+.reg-terms-empty-card {
+  max-width: 920px;
+  margin: 12px auto 0;
+  padding: 16px 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(13, 60, 92, 0.08);
+  border: 1px solid #E2E8F0;
+  color: var(--reg-navy);
+  font-size: 13.5px;
+  font-weight: 700;
+  text-align: center;
+  direction: rtl;
+  animation: regFadeIn 0.2s ease;
+}
+
+/* Autocomplete live suggestions dropdown bar */
+.reg-search-autocomplete {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  left: 0;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 16px 36px rgba(13, 60, 92, 0.18);
+  border: 1px solid #DDE6EA;
+  z-index: 1000;
+  overflow: hidden;
+  direction: rtl;
+  text-align: right;
+  animation: regFadeIn 0.18s ease;
+}
+
+.reg-autocomplete-item {
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #F1F5F9;
+  transition: all 0.15s ease;
+}
+
+.reg-autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.reg-autocomplete-item:hover {
+  background: #F8FAFC;
+}
+
+.reg-autocomplete-item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.reg-autocomplete-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.reg-autocomplete-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.reg-autocomplete-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--reg-navy);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reg-autocomplete-sub {
+  font-size: 11px;
+  color: #64748B;
+  margin-top: 2px;
+}
+
+.reg-autocomplete-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: #F1F4F6 !important;
+  border: 1px solid #DCE4E9 !important;
+  color: var(--reg-navy) !important;
+}
+
+.reg-autocomplete-badge.law {
+  background: #F1F4F6 !important;
+  border: 1px solid #DCE4E9 !important;
+  color: var(--reg-navy) !important;
+}
+
+.reg-autocomplete-badge.term {
+  background: #F8FAFC !important;
+  border: 1px solid #E2E8F0 !important;
+  color: #475569 !important;
 }
 
 /* ===== V10.4 — Trending Searches (Exact match to واجهة البحث الدلالي.html) ===== */
@@ -587,6 +697,13 @@
   color: #354F5E;
   margin: 0 0 10px 0;
 }
+
+.preview-article-body p.preview-clause.level-0 { margin-right: 0 !important; }
+.preview-article-body p.preview-clause.level-1 { margin-right: 24px !important; }
+.preview-article-body p.preview-clause.level-2 { margin-right: 48px !important; }
+.preview-article-body p.preview-clause.level-3 { margin-right: 72px !important; }
+.preview-article-body p.preview-clause.level-4 { margin-right: 96px !important; }
+.preview-article-body p.preview-clause.level-5 { margin-right: 120px !important; }
 
 /* End Gate Box inside Preview Modal (Exact match to Image 2) */
 .preview-end-gate {
@@ -1015,25 +1132,28 @@
 }
 
 .active-filter-summary span {
-  background: #F09A24 !important;
-  border: 1px solid #F09A24 !important;
-  color: #ffffff !important;
-  padding: 5px 12px;
+  background: rgba(254, 243, 199, 0.16) !important;
+  border: 1px solid rgba(252, 211, 77, 0.55) !important;
+  color: #FEF3C7 !important;
+  backdrop-filter: blur(4px);
+  padding: 5px 14px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  transition: all 0.15s ease;
-  box-shadow: 0 2px 6px rgba(240, 154, 36, 0.25);
+  gap: 6px;
+  transition: all 0.18s ease;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.12);
 }
 
 .active-filter-summary span:hover {
-  background: #D98214 !important;
-  border-color: #D98214 !important;
+  background: rgba(254, 243, 199, 0.28) !important;
+  border-color: #FCD34D !important;
+  color: #ffffff !important;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(252, 211, 77, 0.22);
 }
 
 /* ======================================================
