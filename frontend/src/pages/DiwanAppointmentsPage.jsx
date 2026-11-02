@@ -770,6 +770,14 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
   const [aiNoteEventId, setAiNoteEventId] = useState(101);
   const [aiNoteText, setAiNoteText] = useState('');
 
+  // Auto-sync aiNoteEventId with available events
+  useEffect(() => {
+    const allowed = events.filter(isAllowed);
+    if (allowed.length > 0 && !allowed.some(e => e.id === aiNoteEventId)) {
+      setAiNoteEventId(allowed[0].id);
+    }
+  }, [events, isAllowed, aiNoteEventId]);
+
   const askCalendarAI = (qText) => {
     const q = (qText || aiQuestion).trim().toLowerCase();
     if (!q) {
@@ -2794,13 +2802,18 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                 <div className="ai-note-grid">
                   <div>
                     <label>الاستشارة</label>
-                    <select value={aiNoteEventId} onChange={(e) => setAiNoteEventId(Number(e.target.value))}>
-                      {events.filter(isAllowed).map(e => (
-                        <option key={e.id} value={e.id}>
-                          {fmtShort(parseISO(e.date))} — {getClient(e.client).name} — {e.title}
-                        </option>
-                      ))}
-                    </select>
+                    <ModernSelect
+                      value={aiNoteEventId}
+                      onChange={(val) => setAiNoteEventId(Number(val))}
+                      options={events.filter(isAllowed).map(e => ({
+                        value: e.id,
+                        label: `${fmtShort(parseISO(e.date))} — ${getClient(e.client).name} — ${e.title}`
+                      }))}
+                      placeholder="اختر الاستشارة..."
+                      direction="up"
+                      dropdownWidth="max(100%, 380px)"
+                      style={{ width: '100%' }}
+                    />
                   </div>
                   <div>
                     <label>الملاحظة</label>

@@ -1838,25 +1838,29 @@
 /* AI Intel & Summary */
 .diwan-appointments-root .ai-hero {
   border-radius: 12px;
-  background: linear-gradient(135deg, #111923, #253546);
+  background: linear-gradient(135deg, #0D3C5C 0%, #164E73 100%);
   color: #fff;
-  padding: 16px;
-  margin-bottom: 12px;
+  padding: 16px 20px;
+  margin-bottom: 14px;
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 16px;
+  box-shadow: 0 4px 16px rgba(13, 60, 92, 0.15);
 }
 
 .diwan-appointments-root .ai-hero h3 {
   margin: 0;
   font-size: 16px;
-  font-weight: 900;
+  font-weight: 800;
+  color: #FFFFFF;
 }
 
 .diwan-appointments-root .ai-hero p {
-  margin: 5px 0 0;
-  font-size: 9px;
-  opacity: 0.75;
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #E2E8F0;
+  opacity: 0.9;
 }
 
 .diwan-appointments-root .ai-summary-kpis {
@@ -1866,22 +1870,26 @@
 }
 
 .diwan-appointments-root .ai-summary-kpi {
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 9px;
-  padding: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 8px 12px;
   text-align: center;
+  min-width: 64px;
 }
 
 .diwan-appointments-root .ai-summary-kpi b {
   display: block;
   font-size: 15px;
-  font-weight: 900;
+  font-weight: 800;
+  color: #FFFFFF;
 }
 
 .diwan-appointments-root .ai-summary-kpi span {
-  font-size: 8px;
-  opacity: 0.72;
+  font-size: 10px;
+  color: #E2E8F0;
+  display: block;
+  margin-top: 2px;
 }
 
 .diwan-appointments-root .ai-toolbar {
@@ -2023,32 +2031,50 @@
 
 .diwan-appointments-root .ai-note-grid {
   display: grid;
-  grid-template-columns: 260px 1fr auto;
-  gap: 8px;
+  grid-template-columns: minmax(280px, 340px) 1fr auto;
+  gap: 10px;
   align-items: end;
 }
 
 .diwan-appointments-root .ai-note-grid select,
 .diwan-appointments-root .ai-note-grid textarea {
   width: 100%;
-  border: 1px solid var(--line);
+  border: 1.5px solid #CBD5E1;
   background: #fff;
-  border-radius: 8px;
-  padding: 9px;
+  border-radius: 10px;
+  padding: 9px 12px;
   outline: 0;
-  font-size: 10px;
+  font-size: 12px;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.diwan-appointments-root .ai-note-grid textarea:focus {
+  border-color: #0e3b5e;
 }
 
 .diwan-appointments-root .ai-note-grid textarea {
-  min-height: 44px;
+  min-height: 40px;
+  height: 40px;
   resize: vertical;
+}
+
+.diwan-appointments-root .ai-note-grid button.primary {
+  height: 40px;
+  border-radius: 10px;
+  padding: 0 20px;
+  font-weight: 700;
+  font-size: 13px;
+  box-sizing: border-box;
 }
 
 .diwan-appointments-root .ai-note-grid label {
   display: block;
-  font-size: 8px;
-  color: #8b93a0;
-  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 5px;
 }
 
 .diwan-appointments-root .admin-signal-tabs {

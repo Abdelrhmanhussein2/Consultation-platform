@@ -98,9 +98,10 @@
   color: #0D3C5C;
 }
 .ai-tool-btn.active {
-  background: #ECFDF5;
-  color: #059669;
-  border-color: #A7F3D0;
+  background: #EBF3F8;
+  color: #0D3C5C;
+  border-color: #0D3C5C;
+  font-weight: 800;
 }
 .ai-send-btn {
   width: 38px;
@@ -145,20 +146,24 @@
 .ai-category-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 15px;
+  gap: 7px;
+  padding: 6px 18px;
   border-radius: 9999px;
-  border: 1px solid var(--ai-border-input);
-  background: var(--ai-card);
-  color: var(--ai-text-main);
-  font-size: 12px;
-  font-weight: 800;
+  border: 1px solid #D5DEE5;
+  background: #FFFFFF;
+  color: #0D3C5C;
+  font-size: 12.5px;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
 }
+.ai-category-pill:not(.active):hover {
+  background: #F8FAFC;
+  border-color: #0D3C5C;
+}
 .ai-category-pill.active {
-  border-color: var(--ai-navy);
-  background: var(--ai-navy);
+  border-color: #0D3C5C;
+  background: #0D3C5C;
   color: #FFFFFF;
   box-shadow: 0 2px 8px rgba(13, 60, 92, 0.25);
 }

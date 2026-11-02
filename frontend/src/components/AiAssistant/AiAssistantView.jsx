@@ -61,10 +61,8 @@ export default function AiAssistantView() {
       if (Array.isArray(list)) {
         setConversations(list);
         if (urlChatId) {
-          // فتح المحادثة المحددة في الرابط مباشرة
+          // فتح المحادثة المحددة في الرابط فقط إذا كانت موجودة
           loadSessionDetail(urlChatId);
-        } else if (list.length > 0) {
-          loadSessionDetail(list[0].id);
         }
       }
     } catch (err) {
@@ -251,12 +249,12 @@ export default function AiAssistantView() {
           onToggleAdvanced={() => setIsAdvanced(!isAdvanced)}
         />
 
-        <AiModeSelector
-          activeMode={activeMode}
-          onSelectMode={setActiveMode}
-          activeTemplate={activeTemplate}
-          onSelectTemplate={handleSelectTemplate}
-        />
+        {isAdvanced && (
+          <AiModeSelector
+            activeMode={activeMode}
+            onSelectMode={setActiveMode}
+          />
+        )}
       </div>
 
       <AiHistoryDrawer

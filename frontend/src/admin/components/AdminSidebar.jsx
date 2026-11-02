@@ -155,9 +155,9 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
       label: 'إدارة الذكاء الاصطناعي',
       icon: IconLightbulb,
       subItems: [
-        { id: 'ai_search_monitor', label: 'رقابة AI والبحث' },
-        { id: 'ai_knowledge_coord', label: 'منسق معرفة AI' },
-        { id: 'prompts_library', label: 'مكتبة البرومبت' }
+        { id: 'ai_search_monitor', label: 'رقابة AI والبحث', path: '/admin/ai-monitoring' },
+        { id: 'ai_knowledge_coord', label: 'منسق معرفة AI', path: '/admin/knowledge' },
+        { id: 'prompts_library', label: 'مكتبة البرومبت', path: '/admin/prompts' }
       ]
     },
 

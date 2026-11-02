@@ -1,6 +1,7 @@
 // frontend/src/components/AiAssistant/AiComposer.jsx
 import React, { useRef, useState } from 'react';
 import { CONSULTATION_MODES } from './aiAssistantData';
+import { ModeIcon } from './AiModeSelector';
 
 export default function AiComposer({
   value,
@@ -60,12 +61,12 @@ export default function AiComposer({
 
   return (
     <div className="ai-composer-box">
-      {/* Top Header inside box */}
-      <div className="ai-composer-top">
-        <span className="kicker-title">حدد موضوع استشارتك</span>
+      {/* Top Header inside box - only when Advanced Search is active */}
+      {isAdvanced && (
+        <div className="ai-composer-top">
+          <span className="kicker-title">حدد موضوع استشارتك</span>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {isAdvanced && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span
               style={{
                 fontSize: '11px',
@@ -79,14 +80,14 @@ export default function AiComposer({
             >
               🔍 البحث المتقدم مفعّل
             </span>
-          )}
 
-          <div className="ai-mode-pill-badge">
-            <span style={{ fontSize: '13px' }}>{currentModeObj.icon}</span>
-            <span>{currentModeObj.label}</span>
+            <div className="ai-mode-pill-badge">
+              <ModeIcon id={currentModeObj.id} size={14} />
+              <span>{currentModeObj.label}</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Textarea */}
       <textarea
