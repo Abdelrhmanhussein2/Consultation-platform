@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { chatAiService } from '../../services/chatAiService';
 
 export default function AdminPromptsPage({ navigate }) {
   const [buttons, setButtons] = useState([
@@ -61,25 +62,58 @@ export default function AdminPromptsPage({ navigate }) {
   ]);
 
   const [modalState, setModalState] = useState({ isOpen: false, item: null, isNew: false });
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleDelete = (id) => {
+  useEffect(() => {
+    const fetchPrompts = async () => {
+      try {
+        const data = await chatAiService.getPrompts();
+        if (Array.isArray(data) && data.length > 0) {
+          setButtons(data);
+        }
+      } catch (err) {
+        console.error('Failed to load prompts from API:', err);
+      }
+    };
+    fetchPrompts();
+  }, []);
+
+  const handleDelete = async (id) => {
     if (window.confirm('هل أنت متأكد من حذف هذا العنصر؟')) {
-      setButtons(prev => prev.filter(b => b.id !== id));
+      const updated = buttons.filter(b => b.id !== id);
+      setButtons(updated);
+      try {
+        await chatAiService.updatePrompts(updated);
+      } catch (err) {
+        console.error('Failed to sync deletion with backend:', err);
+      }
     }
   };
 
-  const handleSaveModal = (formData) => {
+  const handleSaveModal = async (formData) => {
+    let updated;
     if (modalState.isNew) {
       const newBtn = {
         ...formData,
         id: `btn-${Date.now()}`,
         orderNum: buttons.length + 1
       };
-      setButtons(prev => [...prev, newBtn]);
+      updated = [...buttons, newBtn];
     } else {
-      setButtons(prev => prev.map(b => b.id === formData.id ? formData : b));
+      updated = buttons.map(b => b.id === formData.id ? formData : b);
     }
+    setButtons(updated);
     setModalState({ isOpen: false, item: null, isNew: false });
+
+    try {
+      setIsSaving(true);
+      await chatAiService.updatePrompts(updated);
+    } catch (err) {
+      console.error('Failed to sync prompt update with backend:', err);
+      alert('حدث خطأ أثناء حفظ التعديل في السيرفر.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (

@@ -148,25 +148,31 @@ class Neo4jRAGService:
                                 "has_amendments": bool(rec.get("amendments") and any(a.get("mod") for a in rec.get("amendments", [])))
                             })
 
-                    # بحث في الأحكام القضائية بالكلمات المفتاحية
+                    # بحث في الأحكام القضائية بالكلمات المفتاحية (يدعم كلتا التسميتين :Judgment و :حكم_قضائي)
                     ruling_query = """
-                    MATCH (r:`حكم_قضائي`)
-                    WHERE any(t IN $terms WHERE
-                        (r.`مقتطف_الحكم` IS NOT NULL AND r.`مقتطف_الحكم` CONTAINS t) OR
-                        (r.`العنوان` IS NOT NULL AND r.`العنوان` CONTAINS t)
-                    )
-                    OPTIONAL MATCH (r)-[:`صادر_عن`]->(m:`محكمة`)
-                    OPTIONAL MATCH (r)-[:`استند_إلى_مادة`]->(a:`مادة`)
-                    RETURN r.`اسم` AS name, r.`العنوان` AS title, r.`السنة` AS year,
-                           m.`اسم_المحكمة` AS court, a.`اسم` AS cited_article,
-                           r.`مقتطف_الحكم` AS snippet
-                    LIMIT 2
+                    MATCH (r)
+                    WHERE (r:Judgment OR r:`حكم_قضائي`)
+                      AND any(t IN $terms WHERE
+                          (r.full_text IS NOT NULL AND r.full_text CONTAINS t) OR
+                          (r.`مقتطف_الحكم` IS NOT NULL AND r.`مقتطف_الحكم` CONTAINS t) OR
+                          (r.title IS NOT NULL AND r.title CONTAINS t) OR
+                          (r.subject IS NOT NULL AND r.subject CONTAINS t) OR
+                          (r.`العنوان` IS NOT NULL AND r.`العنوان` CONTAINS t)
+                      )
+                    OPTIONAL MATCH (r)-[:CITES|`استند_إلى_مادة`]->(a)
+                    RETURN coalesce(r.title, r.`العنوان`, r.`اسم`, r.ruling_id) AS title,
+                           coalesce(r.ruling_id, r.`معرف`, r.`اسم`, 'حكم') AS name,
+                           coalesce(r.ruling_year, toInteger(r.`السنة`), 0) AS year,
+                           coalesce(r.court, r.`اسم_المحكمة`, 'المحكمة المختصة') AS court,
+                           coalesce(a.title, a.`اسم`, 'مادة') AS cited_article,
+                           coalesce(r.outcome, substring(r.full_text, 0, 450), r.`مقتطف_الحكم`, '') AS snippet
+                    LIMIT 3
                     """
                     for rec in session.run(ruling_query, terms=keywords):
                         rulings_found.append(rec)
                         citations.append({
                             "type": "حكم قضائي",
-                            "ruling": rec.get("name"),
+                            "ruling": rec.get("title") or rec.get("name"),
                             "court": rec.get("court"),
                             "cited_article": rec.get("cited_article")
                         })

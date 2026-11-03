@@ -150,6 +150,8 @@ def send_message_to_ai(
             session_id=session_id,
             user_id=current_user.id,
             message_text=payload.message,
+            mode=payload.mode or "consultation",
+            is_advanced=payload.is_advanced or False,
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -157,4 +159,47 @@ def send_message_to_ai(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"حدث خطأ أثناء معالجة الرسالة: {str(e)}",
+        )
+
+
+
+# ── مكتبة البرومبتس وأزرار البحث المتقدم ────────────────────────────
+
+@router.get("/prompts")
+def get_ai_prompts(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    استرجاع كافة أزرار البحث المتقدم والبرومبتس الخاصة بها (المعدلة من الأدمن أو الافتراضية).
+    """
+    from services.ai.prompts import get_all_prompts
+    return get_all_prompts(db=db)
+
+
+@router.put("/prompts")
+def update_ai_prompts(
+    payload: List[dict],
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    حفظ وتحديث أزرار البحث المتقدم والبرومبتس من قبل المشرفين/الأدمن،
+    لتنعكس مباشرة وبشكل فوري على إجابات مساعد ديوان الذكي.
+    """
+    from helpers.enums import UserRole
+    if current_user.role not in (UserRole.admin, UserRole.super_admin):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="فقط المشرفون ومدراء المنصة مصرح لهم بتعديل مكتبة البرومبتس."
+        )
+
+    from services.ai.prompts import save_prompts
+    try:
+        updated = save_prompts(buttons=payload, updated_by_id=current_user.id, db=db)
+        return {"success": True, "message": "تم حفظ وتحديث مكتبة البرومبتس بنجاح.", "prompts": updated}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"فشل حفظ البرومبتس: {str(e)}"
         )

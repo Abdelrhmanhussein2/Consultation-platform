@@ -58,10 +58,24 @@ export const chatAiService = {
     });
   },
 
-  async sendMessage(sessionId, message) {
+  async sendMessage(sessionId, message, mode = 'consultation', isAdvanced = false) {
     return await apiFetch(`/api/ai-assistant/sessions/${sessionId}/messages`, {
       method: 'POST',
-      body: { message },
+      body: { message, mode, is_advanced: isAdvanced },
+    });
+  },
+
+  /**
+   * AI Prompt Library (Advanced Search Buttons & Prompts)
+   */
+  async getPrompts() {
+    return await apiFetch('/api/ai-assistant/prompts');
+  },
+
+  async updatePrompts(prompts) {
+    return await apiFetch('/api/ai-assistant/prompts', {
+      method: 'PUT',
+      body: prompts,
     });
   },
 };

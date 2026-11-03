@@ -1,6 +1,7 @@
 // frontend/src/components/AiAssistant/AiModeSelector.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { CONSULTATION_MODES } from './aiAssistantData';
+import { chatAiService } from '../../services/chatAiService';
 
 export const ModeIcon = ({ id, size = 15 }) => {
   switch (id) {
@@ -83,11 +84,36 @@ export default function AiModeSelector({
   activeMode,
   onSelectMode
 }) {
+  const [modes, setModes] = useState(CONSULTATION_MODES);
+
+  useEffect(() => {
+    const loadModes = async () => {
+      try {
+        const data = await chatAiService.getPrompts();
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped = data
+            .filter(b => b.isActive !== false)
+            .map(b => ({
+              id: b.mode_key || b.id,
+              label: b.title,
+              icon: b.tag || '✨'
+            }));
+          if (mapped.length > 0) {
+            setModes(mapped);
+          }
+        }
+      } catch (e) {
+        // Fallback to CONSULTATION_MODES
+      }
+    };
+    loadModes();
+  }, []);
+
   return (
     <div className="ai-mode-selector-wrap">
-      {/* The 4 Main Consultation Category Pills Only */}
+      {/* The Main Consultation Category Pills from Prompts Library */}
       <div className="ai-pills-row">
-        {CONSULTATION_MODES.map((mode) => {
+        {modes.map((mode) => {
           const isActive = mode.id === activeMode;
           return (
             <button

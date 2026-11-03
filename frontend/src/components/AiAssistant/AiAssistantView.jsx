@@ -191,8 +191,8 @@ export default function AiAssistantView() {
         );
       }
 
-      // 2. Send message to backend (encrypted & saved to DB)
-      const res = await chatAiService.sendMessage(currentSessionId, textToSend);
+      // 2. Send message to backend with active mode and advanced search state
+      const res = await chatAiService.sendMessage(currentSessionId, textToSend, activeMode, isAdvanced);
 
       // 3. Update conversation with real backend messages and title
       setConversations((prev) =>

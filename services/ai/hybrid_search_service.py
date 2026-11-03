@@ -148,23 +148,26 @@ class HybridSearchService:
                             "has_amendments": bool(amends)
                         })
 
-                # الأحكام المتطابقة دلالياً
-                for r_id in list(matched_judgment_ids)[:2]:
+                # الأحكام المتطابقة دلالياً (تدعم كلتا التسميتين :Judgment و :حكم_قضائي)
+                for r_id in list(matched_judgment_ids)[:3]:
                     r_query = """
-                    MATCH (r:`حكم_قضائي` {`معرف`: $r_id})
-                    OPTIONAL MATCH (r)-[:`صادر_عن`]->(m:`محكمة`)
-                    OPTIONAL MATCH (r)-[:`استند_إلى_مادة`]->(a:`مادة`)
-                    RETURN r.`اسم` AS name, r.`العنوان` AS title, m.`اسم_المحكمة` AS court,
-                           a.`اسم` AS cited_article, r.`مقتطف_الحكم` AS snippet
+                    MATCH (r)
+                    WHERE (r:Judgment OR r:`حكم_قضائي`) AND (r.ruling_id = $r_id OR r.`معرف` = $r_id)
+                    OPTIONAL MATCH (r)-[:CITES|`استند_إلى_مادة`]->(a)
+                    RETURN coalesce(r.title, r.`العنوان`, r.`اسم`, r.ruling_id) AS title,
+                           coalesce(r.ruling_id, r.`معرف`, r.`اسم`, 'حكم') AS name,
+                           coalesce(r.court, r.`اسم_المحكمة`, 'المحكمة المختصة') AS court,
+                           coalesce(a.title, a.`اسم`, 'مادة') AS cited_article,
+                           coalesce(r.outcome, substring(r.full_text, 0, 450), r.`مقتطف_الحكم`, '') AS snippet
                     LIMIT 1
                     """
                     for rec in session.run(r_query, r_id=r_id):
-                        snip = (rec.get("snippet") or "")[:350].replace("\n", " ")
+                        snip = (rec.get("snippet") or "")[:450].replace("\n", " ")
                         context_parts.append(f"\n- **{rec.get('title') or rec.get('name')}** صادر عن ({rec.get('court')}):")
-                        context_parts.append(f"  مقتطف الحكم: {snip}...")
+                        context_parts.append(f"  مقتطف الحكم والنتيجة: {snip}...")
                         citations.append({
                             "type": "حكم قضائي",
-                            "ruling": rec.get("name"),
+                            "ruling": rec.get("title") or rec.get("name"),
                             "court": rec.get("court"),
                             "cited_article": rec.get("cited_article")
                         })

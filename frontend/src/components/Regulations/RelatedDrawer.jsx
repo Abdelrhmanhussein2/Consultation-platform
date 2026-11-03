@@ -1,6 +1,7 @@
 // frontend/src/components/Regulations/RelatedDrawer.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
+import AiRichMessage from '../AiAssistant/AiRichMessage';
 
 /**
  * RelatedDrawer - نافذة صغيرة في منتصف الشاشة لسؤال ديوان عن القانون
@@ -46,27 +47,27 @@ export default function RelatedDrawer({ isOpen, onClose, law }) {
 
   if (!isOpen || !law) return null;
 
-  const getAnswer = (q) => {
-    const query = q.toLowerCase();
-    if (query.includes('نسب') || query.includes('شرائح') || query.includes('نسبة')) {
-      return `نسب ضريبة الدخل (المادة 11):\n• الأفراد: تصاعدياً من 5% لأول 5,000 دينار وحتى 25% لما زاد عن 20,000 دينار.\n• البنوك: 35%.\n• شركات التأمين والاتصالات والتعدين: 24%.\n• باقي الشركات: 20%.`;
+  const getAnswer = async (q) => {
+    try {
+      const res = await fetch('/api/legal/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: q,
+          law_id: law?.law_id || law?.id || '',
+          law_title: law?.title || ''
+        })
+      });
+      if (!res.ok) throw new Error('API error');
+      const data = await res.json();
+      return data.answer;
+    } catch (err) {
+      console.error('Ask law error:', err);
+      return `عذراً، حدث خطأ أثناء البحث عن إجابة. يرجى المحاولة مرة أخرى أو حجز استشارة متخصصة.`;
     }
-    if (query.includes('إعفاء') || query.includes('اعفاء')) {
-      return `الإعفاءات الضريبية (المادة 9):\n• إعفاء شخصي للمكلف: 9,000 دينار سنوياً.\n• إعفاء المعالين: 9,000 دينار سنوياً (بحد أقصى 18,000 دينار للأسرة).\n• إعفاءات فواتير العلاج والتعليم والإيجار: حتى 3,000 دينار إضافية.`;
-    }
-    if (query.includes('تهرب') || query.includes('عقوب')) {
-      return `عقوبات التهرب الضريبي (المادة 66):\n• الحبس من 4 أشهر إلى سنة واحدة.\n• غرامة تعويضية تعادل مثل الفرق الضريبي المستحق.\n• الحبس وجوبي في حال التكرار للمرة الثالثة.`;
-    }
-    if (query.includes('تعديل')) {
-      return `أهم التعديلات:\n• القانون المعدل رقم 38 لسنة 2018 خفّض سقف الإعفاءات واستحدث شريحة 25% وألزم بنظام الفوترة الإلكتروني لمكافحة التهرب.`;
-    }
-    if (query.includes('سابق') || query.includes('قضائ') || query.includes('تمييز') || query.includes('حكم')) {
-      return `سوابق قضائية لمحكمة التمييز:\n• تمييز حقوق 1290/2021: المصروفات الضرورية لإنتاج الدخل مقبولة قانوناً متى ثبتت بالوثائق.\n• تمييز حقوق 4350/2022: بطلان التقدير الإداري الجزافي غير المستند لبينات.`;
-    }
-    return `بخصوص "${q}":\nيرجى مراجعة نصوص المواد التفصيلية في "البحث المتقدم" أو طلب استشارة معتمدة من أحد مستشاري المنصة.`;
   };
 
-  const handleSend = (text) => {
+  const handleSend = async (text) => {
     const q = text || inputText;
     if (!q.trim() || loading) return;
 
@@ -74,13 +75,20 @@ export default function RelatedDrawer({ isOpen, onClose, law }) {
     setInputText('');
     setLoading(true);
 
-    setTimeout(() => {
+    try {
+      const answer = await getAnswer(q.trim());
       setMessages((prev) => [
         ...prev,
-        { id: String(Date.now() + 1), role: 'assistant', text: getAnswer(q) }
+        { id: String(Date.now() + 1), role: 'assistant', text: answer }
       ]);
+    } catch (e) {
+      setMessages((prev) => [
+        ...prev,
+        { id: String(Date.now() + 1), role: 'assistant', text: 'حدث خطأ أثناء معالجة السؤال. يرجى المحاولة مرة أخرى.' }
+      ]);
+    } finally {
       setLoading(false);
-    }, 350);
+    }
   };
 
   return ReactDOM.createPortal(
@@ -98,18 +106,18 @@ export default function RelatedDrawer({ isOpen, onClose, law }) {
         padding: '20px'
       }}
     >
-      {/* المربع الصغير في المنتصف */}
+      {/* المربع في المنتصف بحجم مريح ومناسب للقراءة */}
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: '520px',
+          width: '850px',
           maxWidth: '95vw',
-          height: '480px',
-          maxHeight: '85vh',
+          height: '680px',
+          maxHeight: '90vh',
           background: '#ffffff',
-          borderRadius: '14px',
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.25)',
-          border: '1px solid #DCE5EA',
+          borderRadius: '16px',
+          boxShadow: '0 25px 70px rgba(0, 0, 0, 0.3)',
+          border: '1px solid #CBD5E1',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -120,7 +128,7 @@ export default function RelatedDrawer({ isOpen, onClose, law }) {
         {/* شريط العنوان */}
         <div
           style={{
-            padding: '14px 18px',
+            padding: '16px 22px',
             borderBottom: '1px solid #E2E8F0',
             display: 'flex',
             alignItems: 'center',
@@ -129,24 +137,35 @@ export default function RelatedDrawer({ isOpen, onClose, law }) {
           }}
         >
           <div>
-            <h3 style={{ margin: 0, fontSize: '15px', color: '#0D3C5C', fontWeight: 800 }}>
-              اسأل ديوان عن القانون
-            </h3>
-            <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '18px' }}>⚖️</span>
+              <h3 style={{ margin: 0, fontSize: '17px', color: '#0D3C5C', fontWeight: 800 }}>
+                اسأل ديوان عن القانون
+              </h3>
+            </div>
+            <div style={{ fontSize: '13px', color: '#64748B', marginTop: '4px', fontWeight: 600 }}>
               {law?.title || 'قانون ضريبة الدخل'}
             </div>
           </div>
           <button
             onClick={onClose}
+            aria-label="إغلاق"
             style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '18px',
-              color: '#64748B',
+              background: '#F1F5F9',
+              border: '1px solid #E2E8F0',
+              fontSize: '16px',
+              color: '#475569',
               cursor: 'pointer',
-              padding: '2px 6px',
-              borderRadius: '6px'
+              width: '34px',
+              height: '34px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '8px',
+              transition: 'all 0.2s'
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#E2E8F0')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#F1F5F9')}
           >
             ✕
           </button>
@@ -155,10 +174,10 @@ export default function RelatedDrawer({ isOpen, onClose, law }) {
         {/* أسئلة سريعة */}
         <div
           style={{
-            padding: '8px 14px',
+            padding: '10px 20px',
             borderBottom: '1px solid #F1F5F9',
             display: 'flex',
-            gap: '6px',
+            gap: '8px',
             overflowX: 'auto',
             background: '#ffffff'
           }}
@@ -169,15 +188,24 @@ export default function RelatedDrawer({ isOpen, onClose, law }) {
               onClick={() => handleSend(item.query)}
               disabled={loading}
               style={{
-                background: '#F1F5F9',
+                background: '#F8FAFC',
                 border: '1px solid #E2E8F0',
-                borderRadius: '6px',
-                padding: '4px 10px',
-                fontSize: '11px',
+                borderRadius: '8px',
+                padding: '6px 14px',
+                fontSize: '12px',
                 fontWeight: 700,
                 color: '#334155',
                 cursor: 'pointer',
-                whiteSpace: 'nowrap'
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#0D3C5C';
+                e.currentTarget.style.color = '#FFFFFF';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#F8FAFC';
+                e.currentTarget.style.color = '#334155';
               }}
             >
               {item.label}
@@ -190,10 +218,10 @@ export default function RelatedDrawer({ isOpen, onClose, law }) {
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '14px 16px',
+            padding: '18px 22px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '10px',
+            gap: '14px',
             background: '#F8FAFC'
           }}
         >
@@ -204,19 +232,23 @@ export default function RelatedDrawer({ isOpen, onClose, law }) {
                 key={m.id}
                 style={{
                   alignSelf: isUser ? 'flex-start' : 'flex-end',
-                  maxWidth: '85%',
+                  maxWidth: isUser ? '80%' : '98%',
+                  width: isUser ? 'auto' : '100%',
                   background: isUser ? '#0D3C5C' : '#FFFFFF',
                   color: isUser ? '#FFFFFF' : '#1E293B',
                   border: isUser ? 'none' : '1px solid #E2E8F0',
-                  borderRadius: '8px',
-                  padding: '9px 12px',
-                  fontSize: '13px',
-                  lineHeight: '1.6',
-                  whiteSpace: 'pre-wrap',
-                  boxShadow: isUser ? 'none' : '0 1px 3px rgba(0,0,0,0.04)'
+                  borderRadius: '12px',
+                  padding: isUser ? '10px 16px' : '14px 18px',
+                  fontSize: '13.5px',
+                  lineHeight: '1.7',
+                  boxShadow: isUser ? 'none' : '0 2px 5px rgba(0,0,0,0.03)'
                 }}
               >
-                {m.text}
+                {isUser ? (
+                  <div style={{ whiteSpace: 'pre-wrap', fontWeight: 600 }}>{m.text}</div>
+                ) : (
+                  <AiRichMessage content={m.text} />
+                )}
               </div>
             );
           })}
@@ -227,13 +259,16 @@ export default function RelatedDrawer({ isOpen, onClose, law }) {
                 alignSelf: 'flex-end',
                 background: '#FFFFFF',
                 border: '1px solid #E2E8F0',
-                borderRadius: '8px',
-                padding: '7px 12px',
-                fontSize: '12px',
-                color: '#64748B'
+                borderRadius: '10px',
+                padding: '10px 16px',
+                fontSize: '13px',
+                color: '#64748B',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
               }}
             >
-              جاري البحث وصياغة الرد...
+              <span>⏳</span> جاري البحث في نصوص القانون وصياغة الإجابة...
             </div>
           )}
 
@@ -243,16 +278,16 @@ export default function RelatedDrawer({ isOpen, onClose, law }) {
         {/* حقل الإرسال */}
         <div
           style={{
-            padding: '10px 14px',
+            padding: '12px 20px',
             borderTop: '1px solid #E2E8F0',
             display: 'flex',
-            gap: '8px',
+            gap: '10px',
             background: '#ffffff'
           }}
         >
           <input
             type="text"
-            placeholder="اكتب استفسارك هنا..."
+            placeholder="اكتب استفسارك هنا حول هذا القانون..."
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={(e) => {
@@ -261,13 +296,16 @@ export default function RelatedDrawer({ isOpen, onClose, law }) {
             disabled={loading}
             style={{
               flex: 1,
-              padding: '8px 12px',
+              padding: '10px 16px',
               border: '1px solid #CBD5E1',
-              borderRadius: '6px',
-              fontSize: '13px',
+              borderRadius: '8px',
+              fontSize: '14px',
               outline: 'none',
-              fontFamily: 'inherit'
+              fontFamily: 'inherit',
+              transition: 'border-color 0.2s'
             }}
+            onFocus={(e) => (e.currentTarget.style.borderColor = '#0D3C5C')}
+            onBlur={(e) => (e.currentTarget.style.borderColor = '#CBD5E1')}
           />
           <button
             onClick={() => handleSend()}
@@ -276,15 +314,20 @@ export default function RelatedDrawer({ isOpen, onClose, law }) {
               background: inputText.trim() && !loading ? '#0D3C5C' : '#94A3B8',
               color: '#ffffff',
               border: 'none',
-              borderRadius: '6px',
-              padding: '8px 16px',
-              fontSize: '13px',
+              borderRadius: '8px',
+              padding: '0 24px',
+              fontSize: '14px',
               fontWeight: 700,
               cursor: inputText.trim() && !loading ? 'pointer' : 'not-allowed',
-              fontFamily: 'inherit'
+              fontFamily: 'inherit',
+              height: '42px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
             }}
           >
-            إرسال
+            <span>إرسال</span>
           </button>
         </div>
       </div>

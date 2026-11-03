@@ -109,7 +109,7 @@ class AIChatService:
         return True
 
     @classmethod
-    def send_message(cls, db: Session, session_id: uuid.UUID, user_id: uuid.UUID, message_text: str = None, text: str = None) -> Dict[str, Any]:
+    def send_message(cls, db: Session, session_id: uuid.UUID, user_id: uuid.UUID, message_text: str = None, text: str = None, mode: str = "consultation", is_advanced: bool = False) -> Dict[str, Any]:
         session = cls._get_user_session(db, session_id, user_id)
         raw_text = message_text if message_text is not None else (text or "")
         clean_text = raw_text.strip()
@@ -129,21 +129,9 @@ class AIChatService:
         # 2. استرجاع السياق القانوني والضريبي عبر محرك البحث الهجين (Qdrant Semantic + Neo4j Graph)
         graph_context, citations = HybridSearchService.search(clean_text)
 
-        system_prompt = (
-            "أنت «ديوان»، المساعد الذكي والمستشار الضريبي والقانوني المعتمد لمنصة ديوان.\n"
-            "مهمتك تقديم استشارات ضريبية ونظامية احترافية وموثقة استناداً إلى نصوص المواد والأنظمة والأحكام القضائية المستخرجة من قاعدة المعرفة.\n\n"
-            "إرشادات الصياغة الإلزامية:\n"
-            "1. اعتمد بشكل أساسي ومباشر على البيانات والنصوص القانونية والأحكام المستخرجة من Neo4j المرفقة في الرسالة.\n"
-            "2. اذكر أرقام المواد، نصوص الفقرات والبنود ذات الصلة، وتواريخ سريانها كما وردت في السياق.\n"
-            "3. إذا كان للمادة تعديل لاحق (مثل تعديلات 2019)، وضّح ذلك بوضوح وتاريخ سريانه.\n"
-            "4. إذا وُجدت أحكام قضائية مرتبطة في السياق، استشهد بها كسابقة قضائية مع ذكر المحكمة.\n"
-            "5. قسّم ردك إلى أقسام واضحة:\n"
-            "   1) الجواب المباشر (خلاصة سريعة ومباشرة)\n"
-            "   2) التكييف والتحليل النظامي\n"
-            "   3) السند القانوني (المادة ونصوص الفقرات)\n"
-            "   4) التطبيقات القضائية والتعديلات (إن وجدت)\n"
-            "   5) الخلاصة والتوصية"
-        )
+        # استرجاع وتطبيق البرومبت المخصص للوضع الحالي المعتمد من قبل الأدمن
+        from services.ai.prompts import build_system_instruction_for_mode
+        system_prompt = build_system_instruction_for_mode(mode=mode, db=db)
 
         user_prompt_with_context = clean_text
         if graph_context:

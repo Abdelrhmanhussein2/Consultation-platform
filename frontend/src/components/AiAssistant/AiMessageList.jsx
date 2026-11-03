@@ -2,6 +2,7 @@
 import React, { useRef, useEffect } from 'react';
 import AiUserMessage from './AiUserMessage';
 import AiStructuredAnswer from './AiStructuredAnswer';
+import AiRichMessage from './AiRichMessage';
 import AiThinkingSteps from './AiThinkingSteps';
 import AiEmptyState from './AiEmptyState';
 
@@ -48,11 +49,12 @@ export default function AiMessageList({
           }
 
           return (
-            <div key={msg.id} className="ai-assistant-card">
-              <p className="ai-section-body" style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
-                {msg.content}
-              </p>
-            </div>
+            <AiRichMessage
+              key={msg.id}
+              content={msg.content}
+              citations={msg.citations}
+              onFollowUp={onFollowUp}
+            />
           );
         })}
 
