@@ -48,6 +48,9 @@ import ConsultantServicesPage from './pages/ConsultantServicesPage';
 import ConsultantSchedulePage from './pages/ConsultantSchedulePage';
 import DiwanAppointmentsPage from './pages/DiwanAppointmentsPage';
 import MyFoldersPage from './pages/MyFoldersPage';
+import TaxFormsPage from './pages/TaxFormsPage';
+import TaxDisclosurePage from './pages/TaxDisclosurePage';
+import TaxDirectoryPage from './pages/TaxDirectoryPage';
 
 function MainApp() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -108,6 +111,10 @@ function MainApp() {
     '/chat',
     '/regulations',
     '/regulations/law',
+    '/tax-forms',
+    '/forms',
+    '/tax-disclosure',
+    '/tax-directory',
     '/ai-assistant',
     '/subscriptions',
     '/invoices',
@@ -182,6 +189,12 @@ function MainApp() {
     }
     if (pathname.startsWith('/regulations')) {
       return <RegulationsPage navigate={navigate} currentPath={currentPath} />;
+    }
+    if (pathname === '/tax-forms' || pathname === '/forms') {
+      return <TaxFormsPage navigate={navigate} />;
+    }
+    if (pathname === '/tax-disclosure' || pathname === '/tax-directory') {
+      return <TaxDirectoryPage navigate={navigate} />;
     }
     if (pathname === '/dates-design') {
       return <DateDesignPage />;
@@ -276,8 +289,11 @@ function MainApp() {
       if (pathname === '/consultant/favorites') {
         return <ConsultantFavoritesPage navigate={navigate} />;
       }
-      if (pathname === '/consultant/templates') {
-        return <ConsultantTemplatesPage />;
+      if (pathname === '/consultant/templates' || pathname === '/consultant/tax-forms') {
+        return <TaxFormsPage navigate={navigate} />;
+      }
+      if (pathname === '/consultant/tax-disclosure' || pathname === '/consultant/tax-directory') {
+        return <TaxDirectoryPage navigate={navigate} />;
       }
     }
 

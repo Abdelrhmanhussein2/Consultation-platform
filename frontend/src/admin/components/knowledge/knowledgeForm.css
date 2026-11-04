@@ -1,0 +1,216 @@
+/* Full-Width Form Card */
+.knowledge-form-card {
+  width: 100%;
+  padding: 1.5rem;
+}
+.knowledge-form-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0D3C5C;
+  margin: 0 0 1.25rem 0;
+}
+.knowledge-dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  border: 1.5px dashed #CBD5E1;
+  background: #F8FAFC;
+  border-radius: 10px;
+  padding: 0.85rem 1.25rem;
+  color: #475569;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.knowledge-dropzone:hover {
+  background: #F1F5F9;
+  border-color: #94A3B8;
+}
+.knowledge-dropzone.extracting {
+  opacity: 0.7;
+  pointer-events: none;
+}
+.knowledge-form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+}
+@media (min-width: 640px) {
+  .knowledge-form-grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.knowledge-textarea {
+  width: 100%;
+  padding: 0.85rem;
+  border: 1px solid #E2E8F0;
+  border-radius: 9px;
+  background: #FFFFFF;
+  color: #0F172A;
+  font-size: 0.875rem;
+  font-family: inherit;
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 170px;
+  box-sizing: border-box;
+}
+.btn-primary-action {
+  width: 100%;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 10px;
+  border: none;
+  background: #0D3C5C;
+  color: #FFFFFF;
+  font-size: 0.925rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+.btn-primary-action:hover:not(:disabled) {
+  background: #09283E;
+  box-shadow: 0 4px 12px rgba(13, 60, 92, 0.2);
+}
+.btn-primary-action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.btn-secondary-action {
+  width: 100%;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  color: #475569;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  font-family: inherit;
+}
+.btn-secondary-action:hover {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+}
+
+/* Full-Width Sources List Underneath */
+.knowledge-sources-section {
+  width: 100%;
+  padding: 1.5rem;
+}
+.knowledge-sources-head {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0D3C5C;
+  margin: 0 0 1rem 0;
+}
+.knowledge-source-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+  background: #F8FAFC;
+  transition: border-color 0.2s;
+  margin-bottom: 0.85rem;
+}
+@media (min-width: 992px) {
+  .knowledge-source-item {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+.knowledge-source-item:hover {
+  border-color: #CBD5E1;
+}
+.source-item-meta {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  flex: 1;
+}
+.source-icon-wrap {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #EEF2F6;
+  color: #0D3C5C;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  color: #475569;
+}
+.source-badge.badge-active {
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #059669;
+  background: #ECFDF5;
+}
+.source-badge.badge-inactive {
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #DC2626;
+  background: #FEF2F2;
+}
+.source-actions-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.btn-card-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 7px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+.btn-card-action:hover {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+}
+.btn-card-delete {
+  padding: 0.45rem 0.55rem;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #DC2626;
+  cursor: pointer;
+  border-radius: 7px;
+  transition: all 0.15s ease;
+}
+.btn-card-delete:hover {
+  background: #FEF2F2;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+

@@ -227,6 +227,32 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
     }
   }, [cleanCurrentPath, isSupportGroupRoute]);
 
+  const isTaxFormsGroupRoute = Boolean(
+    cleanCurrentPath && (
+      cleanCurrentPath === '/tax-forms' ||
+      cleanCurrentPath.startsWith('/tax-forms') ||
+      cleanCurrentPath === '/forms' ||
+      cleanCurrentPath.startsWith('/forms') ||
+      cleanCurrentPath === '/tax-disclosure' ||
+      cleanCurrentPath === '/tax-directory' ||
+      cleanCurrentPath.startsWith('/tax-disclosure') ||
+      cleanCurrentPath === '/consultant/templates' ||
+      cleanCurrentPath.startsWith('/consultant/templates') ||
+      cleanCurrentPath === '/consultant/tax-forms' ||
+      cleanCurrentPath.startsWith('/consultant/tax-forms') ||
+      cleanCurrentPath === '/consultant/tax-disclosure' ||
+      cleanCurrentPath.startsWith('/consultant/tax-disclosure')
+    )
+  );
+
+  const [taxFormsOpen, setTaxFormsOpen] = useState(isTaxFormsGroupRoute);
+
+  useEffect(() => {
+    if (isTaxFormsGroupRoute) {
+      setTaxFormsOpen(true);
+    }
+  }, [cleanCurrentPath, isTaxFormsGroupRoute]);
+
   const clientNavItems = [
     { path: '/dashboard', label: 'الرئيسية', IconComponent: DashboardIcon },
     { path: '/calendar', label: 'جدول المواعيد والتقويم', IconComponent: AppointmentsIcon },
@@ -235,6 +261,16 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
     { path: '/consultants', label: 'المستشارون', IconComponent: ConsultantsIcon },
     { path: '/my-appointments', label: 'استشاراتي والمواعيد', IconComponent: AppointmentsIcon },
     { path: '/regulations', label: 'البحث الدلالي', IconComponent: RegulationsIcon },
+    {
+      id: 'tax_forms_group',
+      label: 'النماذج الضريبية',
+      IconComponent: TaxFormsIcon,
+      isGroup: true,
+      subItems: [
+        { path: '/tax-forms', label: 'النماذج الضريبية' },
+        { path: '/tax-disclosure', label: 'الكشف الضريبي' }
+      ]
+    },
     { path: '/ai-assistant', label: 'المساعد الذكي', IconComponent: AiIcon },
     { path: '/invoices', label: 'الفواتير والمدفوعات', IconComponent: InvoicesIcon },
     { path: '/tickets', label: 'الدعم والمساعدة', IconComponent: TicketsIcon },
@@ -266,7 +302,16 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
     { path: '/chat', label: 'الرسائل والتنبيهات', IconComponent: MessagesAlertsIcon },
     { path: '/tickets', label: 'مساعدة الأعمال', IconComponent: BusinessHelpIcon },
     { path: '/consultant/earnings', label: 'التقارير المالية', IconComponent: FinancialReportsIcon },
-    { path: '/consultant/templates', label: 'النماذج الضريبية', IconComponent: TaxFormsIcon },
+    {
+      id: 'consultant_tax_forms_group',
+      label: 'النماذج الضريبية',
+      IconComponent: TaxFormsIcon,
+      isGroup: true,
+      subItems: [
+        { path: '/consultant/templates', label: 'النماذج الضريبية' },
+        { path: '/consultant/tax-disclosure', label: 'الكشف الضريبي' }
+      ]
+    },
     { path: '/invoices', label: 'الفواتير والمدفوعات', IconComponent: InvoicesPaymentsIcon },
     { path: '/consultant/subscriptions', label: 'الإشتراكات', IconComponent: SubscriptionsCrownIcon },
     {
@@ -327,6 +372,15 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
     if (item.path === '/regulations') {
       return cleanPath === '/regulations' || cleanPath.startsWith('/regulations');
     }
+    if (item.path === '/tax-forms' || item.path === '/consultant/templates') {
+      return (
+        cleanPath === '/tax-forms' ||
+        cleanPath.startsWith('/tax-forms') ||
+        cleanPath === '/forms' ||
+        cleanPath.startsWith('/forms') ||
+        cleanPath === '/consultant/templates'
+      );
+    }
     if (item.path === '/tickets') {
       return cleanPath === '/tickets';
     }
@@ -373,10 +427,16 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
       <nav className="sidebar-nav">
         {navItems.map((item) => {
           if (item.isGroup) {
-            const isOpen = item.id === 'consulting_services_group' ? servicesOpen : supportOpen;
+            const isOpen = item.id === 'consulting_services_group'
+              ? servicesOpen
+              : (item.id === 'tax_forms_group' || item.id === 'consultant_tax_forms_group')
+                ? taxFormsOpen
+                : supportOpen;
             const toggleOpen = () => {
               if (item.id === 'consulting_services_group') {
                 setServicesOpen(prev => !prev);
+              } else if (item.id === 'tax_forms_group' || item.id === 'consultant_tax_forms_group') {
+                setTaxFormsOpen(prev => !prev);
               } else {
                 setSupportOpen(prev => !prev);
               }
@@ -384,7 +444,11 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
 
             const exactSubMatch = item.subItems.find(sub =>
               cleanCurrentPath === sub.path ||
-              (sub.path === '/consultant/calendar' && cleanCurrentPath === '/calendar')
+              (sub.path === '/consultant/calendar' && cleanCurrentPath === '/calendar') ||
+              (sub.path === '/tax-forms' && (cleanCurrentPath === '/forms' || cleanCurrentPath === '/consultant/templates' || cleanCurrentPath === '/consultant/tax-forms')) ||
+              (sub.path === '/consultant/templates' && (cleanCurrentPath === '/tax-forms' || cleanCurrentPath === '/forms' || cleanCurrentPath === '/consultant/tax-forms')) ||
+              (sub.path === '/tax-disclosure' && cleanCurrentPath === '/consultant/tax-disclosure') ||
+              (sub.path === '/consultant/tax-disclosure' && cleanCurrentPath === '/tax-disclosure')
             );
             const activeSubPath = exactSubMatch
               ? exactSubMatch.path
@@ -434,7 +498,11 @@ export default function UserSidebar({ currentPath, navigate, isCollapsed }) {
                       const isSubActive =
                         cleanCurrentPath === subItem.path ||
                         cleanCurrentPath.startsWith(subItem.path + '/') ||
-                        (subItem.path === '/consultant/calendar' && cleanCurrentPath === '/calendar');
+                        (subItem.path === '/consultant/calendar' && cleanCurrentPath === '/calendar') ||
+                        (subItem.path === '/tax-forms' && (cleanCurrentPath === '/forms' || cleanCurrentPath === '/consultant/templates' || cleanCurrentPath === '/consultant/tax-forms')) ||
+                        (subItem.path === '/consultant/templates' && (cleanCurrentPath === '/tax-forms' || cleanCurrentPath === '/forms' || cleanCurrentPath === '/consultant/tax-forms')) ||
+                        (subItem.path === '/tax-disclosure' && cleanCurrentPath === '/consultant/tax-disclosure') ||
+                        (subItem.path === '/consultant/tax-disclosure' && cleanCurrentPath === '/tax-disclosure');
                       return (
                         <button
                           key={subItem.path}

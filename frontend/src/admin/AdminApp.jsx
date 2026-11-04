@@ -16,6 +16,9 @@ import AdminAiMonitoringPage from './pages/AdminAiMonitoringPage';
 import AdminSubscriptionsPage from './pages/AdminSubscriptionsPage';
 import AdminPaymentsPage from './pages/AdminPaymentsPage';
 import AdminTaxFormsPage from './pages/AdminTaxFormsPage';
+import TaxFormsPage from '../pages/TaxFormsPage';
+import TaxDisclosurePage from '../pages/TaxDisclosurePage';
+import TaxDirectoryPage from '../pages/TaxDirectoryPage';
 import AdminKnowledgePage from './pages/AdminKnowledgePage';
 import AdminPromptsPage from './pages/AdminPromptsPage';
 import AdminReportsPage from './pages/AdminReportsPage';
@@ -123,7 +126,10 @@ export default function AdminApp({ currentPath = '/admin', navigate }) {
       case '/admin/payments':
         return <AdminPaymentsPage navigate={navigate} />;
       case '/admin/tax-forms':
-        return <AdminTaxFormsPage navigate={navigate} />;
+      case '/admin/forms':
+        return <TaxFormsPage navigate={navigate} isAdmin={true} />;
+      case '/admin/tax-disclosure':
+        return <TaxDisclosurePage navigate={navigate} />;
       case '/admin/knowledge':
         return <AdminKnowledgePage navigate={navigate} />;
       case '/admin/prompts':

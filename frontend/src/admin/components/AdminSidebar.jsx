@@ -142,9 +142,10 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
       label: 'قاعدة البيانات',
       icon: IconDatabase,
       subItems: [
-        { id: 'legislation', label: 'التشريعات والقوانين' },
+        { id: 'legislation', label: 'التشريعات والقوانين', path: '/admin/knowledge' },
         { id: 'legal_alerts', label: 'التنبيهات التشريعية' },
-        { id: 'tax_forms_sub', label: 'النماذج الضريبية' },
+        { id: 'tax_forms_sub', label: 'النماذج الضريبية', path: '/admin/tax-forms' },
+        { id: 'tax_disclosure_sub', label: 'الكشف الضريبي', path: '/admin/tax-disclosure' },
         { id: 'tax_glossary', label: 'مكتبة المصطلحات الضريبية' }
       ]
     },
