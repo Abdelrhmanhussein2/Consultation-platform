@@ -113,14 +113,18 @@ export function formatTime(dateInput, timezoneOverride) {
   const timeZone = timezoneOverride || getAppTimezone();
 
   try {
-    return new Intl.DateTimeFormat('ar-JO', {
+    return new Intl.DateTimeFormat('ar-JO-u-nu-latn', {
       timeZone,
       hour: '2-digit',
       minute: '2-digit',
       hour12: true
     }).format(d);
   } catch {
-    return d.toLocaleTimeString('ar-JO');
+    let h = d.getHours();
+    const m = String(d.getMinutes()).padStart(2, '0');
+    const p = h >= 12 ? 'م' : 'ص';
+    h = h % 12 || 12;
+    return `${String(h).padStart(2, '0')}:${m} ${p}`;
   }
 }
 

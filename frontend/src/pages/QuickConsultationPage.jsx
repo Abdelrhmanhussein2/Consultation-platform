@@ -616,7 +616,13 @@ export default function QuickConsultationPage({ navigate }) {
                 {slots.map((s, idx) => {
                   const startTime = new Date(s.start_time);
                   const endTime = new Date(s.end_time);
-                  const formatTime = (d) => d.toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit', hour12: true });
+                  const formatTime = (d) => {
+                    let h = d.getHours();
+                    const m = String(d.getMinutes()).padStart(2, '0');
+                    const p = h >= 12 ? 'م' : 'ص';
+                    h = h % 12 || 12;
+                    return `${String(h).padStart(2, '0')}:${m} ${p}`;
+                  };
                   const timeString = `${formatTime(startTime)} - ${formatTime(endTime)}`;
                   const isSelected = selectedSlot && selectedSlot.start_time === s.start_time;
                   return (
@@ -668,8 +674,18 @@ export default function QuickConsultationPage({ navigate }) {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '10px' }}>
                 <span style={{ color: '#64748B', fontSize: '13px' }}>التاريخ والوقت:</span>
-                <span style={{ fontWeight: '700', color: '#1E293B' }}>
-                  {selectedDate?.toLocaleDateString('ar-JO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} في تمام الساعة {new Date(selectedSlot?.start_time).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' })}
+                <span style={{ fontWeight: '700', color: '#1E293B', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span>{selectedDate ? `${selectedDate.getFullYear()}/${String(selectedDate.getMonth() + 1).padStart(2, '0')}/${String(selectedDate.getDate()).padStart(2, '0')}` : '—'}</span>
+                  <span>-</span>
+                  <span>{(() => {
+                    if (!selectedSlot?.start_time) return '';
+                    const d = new Date(selectedSlot.start_time);
+                    let h = d.getHours();
+                    const m = String(d.getMinutes()).padStart(2, '0');
+                    const p = h >= 12 ? 'م' : 'ص';
+                    h = h % 12 || 12;
+                    return `${String(h).padStart(2, '0')}:${m} ${p}`;
+                  })()}</span>
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '10px' }}>

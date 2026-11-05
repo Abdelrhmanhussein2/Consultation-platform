@@ -12,6 +12,16 @@ class EmbeddingsService:
         """
         return cls._provider.get_embeddings(texts, is_query, strict_mode)
 
+    @classmethod
+    def get_embedding(cls, text: str, is_query: bool = False, strict_mode: bool = False) -> list[float]:
+        """
+        Convenience helper to get embedding vector for a single text.
+        """
+        if not text:
+            return []
+        res = cls.get_embeddings([text], is_query=is_query, strict_mode=strict_mode)
+        return res[0] if res and len(res) > 0 else []
+
     @staticmethod
     def generate_deterministic_uuid(entity_type: str, entity_id: str) -> str:
         """

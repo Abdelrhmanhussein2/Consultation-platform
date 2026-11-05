@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from routes.auth import auth_router
-from routes.ai import ai_chat_router, chat_ai_router, legal_router
+from routes.ai import ai_chat_router, chat_ai_router, legal_router, ai_analytics_router
 from routes.finance import (
     invoice_router, recurring_invoice_router, refunded_invoice_router, subscription_router
 )
@@ -21,6 +21,7 @@ api_router = APIRouter(prefix="/api")
 
 api_router.include_router(auth_router)
 api_router.include_router(ai_chat_router)
+api_router.include_router(ai_analytics_router)
 api_router.include_router(chat_ai_router)
 api_router.include_router(legal_router)
 api_router.include_router(invoice_router)

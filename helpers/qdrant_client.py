@@ -58,5 +58,22 @@ class QdrantDB:
         except Exception as e:
             print(f"Warning: Could not initialize Qdrant collection. Error: {e}")
 
+        # Also ensure 'ai_semantic_cache' collection exists
+        try:
+            cache_col = "ai_semantic_cache"
+            collections = self.client.get_collections()
+            collection_names = [col.name for col in collections.collections]
+            if cache_col not in collection_names:
+                self.client.create_collection(
+                    collection_name=cache_col,
+                    vectors_config=models.VectorParams(
+                        size=self.vector_size,
+                        distance=models.Distance.COSINE
+                    )
+                )
+                print(f"Collection '{cache_col}' created successfully.")
+        except Exception as e:
+            print(f"Warning: Could not initialize semantic cache collection. Error: {e}")
+
 # Global Qdrant database manager instance
 qdrant_db = QdrantDB()
