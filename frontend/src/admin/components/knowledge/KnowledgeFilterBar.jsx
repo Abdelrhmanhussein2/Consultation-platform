@@ -1,6 +1,8 @@
 import React from 'react';
 import { IconSearchKnowledge } from './KnowledgeIcons';
 import { KIND_OPTIONS, ENTITY_TYPE_OPTIONS, SECTOR_OPTIONS } from './knowledgeData';
+import ModernSelect from '../../../components/ModernSelect';
+import FilterResetButton from '../../../components/FilterResetButton';
 
 export default function KnowledgeFilterBar({
   search,
@@ -12,8 +14,14 @@ export default function KnowledgeFilterBar({
   sector,
   onSectorChange,
   minRevenue,
-  onMinRevenueChange
+  onMinRevenueChange,
+  onReset
 }) {
+  const kindOptions = Object.entries(KIND_OPTIONS).map(([val, label]) => ({
+    value: val,
+    label
+  }));
+
   return (
     <section className="knowledge-bento-panel knowledge-filter-bar">
       <div className="knowledge-filter-grid">
@@ -31,45 +39,30 @@ export default function KnowledgeFilterBar({
         </div>
 
         <div>
-          <select
+          <ModernSelect
+            options={kindOptions}
             value={kind}
-            onChange={(e) => onKindChange(e.target.value)}
-            className="knowledge-select"
-          >
-            {Object.entries(KIND_OPTIONS).map(([val, label]) => (
-              <option key={val} value={val}>
-                {label}
-              </option>
-            ))}
-          </select>
+            onChange={onKindChange}
+            placeholder="كل الأنواع"
+          />
         </div>
 
         <div>
-          <select
+          <ModernSelect
+            options={ENTITY_TYPE_OPTIONS}
             value={entityType}
-            onChange={(e) => onEntityTypeChange(e.target.value)}
-            className="knowledge-select"
-          >
-            {ENTITY_TYPE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+            onChange={onEntityTypeChange}
+            placeholder="كل الصفات"
+          />
         </div>
 
         <div>
-          <select
+          <ModernSelect
+            options={SECTOR_OPTIONS}
             value={sector}
-            onChange={(e) => onSectorChange(e.target.value)}
-            className="knowledge-select"
-          >
-            {SECTOR_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+            onChange={onSectorChange}
+            placeholder="كل القطاعات"
+          />
         </div>
 
         <div>
@@ -81,8 +74,15 @@ export default function KnowledgeFilterBar({
             className="knowledge-input"
           />
         </div>
+
+        {onReset && (
+          <FilterResetButton
+            onClick={onReset}
+            size={42}
+            title="إعادة ضبط الفلاتر"
+          />
+        )}
       </div>
     </section>
   );
 }
-

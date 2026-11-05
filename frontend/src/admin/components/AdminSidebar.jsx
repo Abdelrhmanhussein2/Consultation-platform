@@ -145,8 +145,7 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
         { id: 'legislation', label: 'التشريعات والقوانين', path: '/admin/knowledge' },
         { id: 'legal_alerts', label: 'التنبيهات التشريعية' },
         { id: 'tax_forms_sub', label: 'النماذج الضريبية', path: '/admin/tax-forms' },
-        { id: 'tax_disclosure_sub', label: 'الكشف الضريبي', path: '/admin/tax-disclosure' },
-        { id: 'tax_glossary', label: 'مكتبة المصطلحات الضريبية' }
+        { id: 'tax_disclosure_sub', label: 'مكتبة الكشف الضريبي', path: '/admin/tax-disclosure' }
       ]
     },
 
@@ -157,7 +156,6 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
       icon: IconLightbulb,
       subItems: [
         { id: 'ai_search_monitor', label: 'رقابة AI والبحث', path: '/admin/ai-monitoring' },
-        { id: 'ai_knowledge_coord', label: 'منسق معرفة AI', path: '/admin/knowledge' },
         { id: 'prompts_library', label: 'مكتبة البرومبت', path: '/admin/prompts' }
       ]
     },

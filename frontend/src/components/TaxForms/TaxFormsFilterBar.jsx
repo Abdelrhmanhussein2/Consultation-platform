@@ -1,6 +1,7 @@
 // frontend/src/components/TaxForms/TaxFormsFilterBar.jsx
 import React from 'react';
 import { TAX_FORM_CATEGORIES } from './taxFormsData';
+import FilterResetButton from '../FilterResetButton';
 
 const SearchIcon = ({ size = 17, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -13,33 +14,44 @@ export default function TaxFormsFilterBar({
   searchQuery,
   onSearchChange,
   selectedCategory,
-  onSelectCategory
+  onSelectCategory,
+  onReset
 }) {
   return (
     <div className="tax-filters-section">
-      {/* Search Input Box */}
-      <div className="tax-search-wrap">
-        <span className="tax-search-icon" aria-hidden="true">
-          <SearchIcon size={18} />
-        </span>
-        <input
-          type="text"
-          className="tax-search-input"
-          placeholder="ابحث عن نموذج..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          aria-label="ابحث عن نموذج"
-        />
-        {searchQuery && (
-          <button
-            type="button"
-            className="tax-search-clear"
-            onClick={() => onSearchChange('')}
-            title="مسح البحث"
-            aria-label="مسح البحث"
-          >
-            ✕
-          </button>
+      {/* Search Input Box with FilterResetButton */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', maxWidth: '780px', marginBottom: '18px' }}>
+        <div className="tax-search-wrap" style={{ flex: 1, maxWidth: 'none', marginBottom: 0 }}>
+          <span className="tax-search-icon" aria-hidden="true">
+            <SearchIcon size={18} />
+          </span>
+          <input
+            type="text"
+            className="tax-search-input"
+            placeholder="ابحث عن نموذج..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            aria-label="ابحث عن نموذج"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              className="tax-search-clear"
+              onClick={() => onSearchChange('')}
+              title="مسح البحث"
+              aria-label="مسح البحث"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {onReset && (
+          <FilterResetButton
+            onClick={onReset}
+            size={44}
+            title="إعادة ضبط البحث والتصنيف"
+          />
         )}
       </div>
 
@@ -64,4 +76,3 @@ export default function TaxFormsFilterBar({
     </div>
   );
 }
-

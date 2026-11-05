@@ -85,4 +85,15 @@
 .td-modal-bottom { display: flex; justify-content: flex-start; background: #F8FAFC; padding: 14px 28px; border-top: 1px solid #E2E8F0; }
 .td-toast { position: fixed; bottom: 25px; left: 25px; background: #0D3C5C; color: #FFFFFF; border: 1px solid #1E4E70; padding: 11px 18px; border-radius: 10px; box-shadow: 0 10px 30px rgba(13, 60, 92, 0.2); z-index: 1100; font-size: 12.5px; font-weight: 700; opacity: 0; transform: translateY(10px); transition: 0.22s; pointer-events: none; }
 .td-toast.show { opacity: 1; transform: translateY(0); }
+.td-admin-toolbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.td-btn-admin-add { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 9px; border: none; background: #0D3C5C; color: #FFFFFF; font-size: 12.5px; font-weight: 700; cursor: pointer; transition: 0.15s; font-family: inherit; }
+.td-btn-admin-add:hover { background: #07253B; transform: translateY(-1px); }
+.td-btn-admin-import { display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px; border-radius: 9px; border: 1px solid #CBD5E1; background: #F8FAFC; color: #334155; font-size: 12.5px; font-weight: 700; cursor: pointer; transition: 0.15s; font-family: inherit; }
+.td-btn-admin-import:hover { background: #EEF2F6; border-color: #94A3B8; color: #0D3C5C; }
+.td-btn-admin-export { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 9px; border: 1px solid #E2E8F0; background: #FFFFFF; color: #64748B; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.15s; font-family: inherit; }
+.td-btn-admin-export:hover { border-color: #0D3C5C; color: #0D3C5C; }
+.td-row-actions { display: inline-flex; align-items: center; gap: 6px; }
+.td-row-btn { width: 30px; height: 30px; border-radius: 6px; border: 1px solid #E2E8F0; background: #FFFFFF; color: #64748B; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.15s; }
+.td-row-btn.edit:hover { background: #EFF6FF; border-color: #93C5FD; color: #1E40AF; }
+.td-row-btn.delete:hover { background: #FEF2F2; border-color: #F87171; color: #DC2626; }
 @media (max-width: 768px) { .td-shell { padding: 16px 14px 28px; } .td-stats { grid-template-columns: 1fr; } .td-details-grid { grid-template-columns: 1fr; } .td-tax-card { flex-direction: column; align-items: flex-start; } .td-copy-btn { align-self: flex-start; } }

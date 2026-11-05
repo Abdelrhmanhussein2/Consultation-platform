@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { IconUpload, IconSave, IconSync } from './KnowledgeIcons';
 import { COURT_OPTIONS } from './knowledgeData';
+import ModernSelect from '../../../components/ModernSelect';
 
 export default function KnowledgeRulingForm({
   formData,
@@ -90,17 +91,12 @@ export default function KnowledgeRulingForm({
 
         <div className="knowledge-form-grid-2">
           <div>
-            <select
+            <ModernSelect
+              options={COURT_OPTIONS}
               value={formData.court}
-              onChange={(e) => setFormData({ ...formData, court: e.target.value })}
-              className="knowledge-select"
-            >
-              {COURT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setFormData({ ...formData, court: val })}
+              placeholder="اختر المحكمة"
+            />
           </div>
 
           <div>

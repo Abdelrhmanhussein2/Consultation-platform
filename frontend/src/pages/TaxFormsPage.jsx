@@ -16,6 +16,7 @@ export default function TaxFormsPage({ isAdmin = false }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('الكل');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingForm, setEditingForm] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
 
   const showToast = (msg) => {
@@ -95,6 +96,19 @@ export default function TaxFormsPage({ isAdmin = false }) {
     showToast('تمت إضافة النموذج الضريبي بنجاح');
   };
 
+  const handleUpdateForm = (updatedForm) => {
+    const targetId = updatedForm.id || updatedForm.code;
+    setFormsList((prev) =>
+      prev.map((item) => ((item.id || item.code) === targetId ? updatedForm : item))
+    );
+    showToast('تم تحديث بيانات النموذج بنجاح');
+  };
+
+  const handleEditForm = (form) => {
+    setEditingForm(form);
+    setIsAddModalOpen(true);
+  };
+
   const handleDeleteForm = (form) => {
     const targetId = form.id || form.code;
     setFormsList((prev) => prev.filter((item) => (item.id || item.code) !== targetId));
@@ -121,7 +135,10 @@ export default function TaxFormsPage({ isAdmin = false }) {
     <div className="tax-forms-container">
       <TaxFormsHeader
         isAdmin={isEffectiveAdmin}
-        onOpenAddModal={() => setIsAddModalOpen(true)}
+        onOpenAddModal={() => {
+          setEditingForm(null);
+          setIsAddModalOpen(true);
+        }}
       />
 
       <TaxFormsFilterBar
@@ -129,6 +146,10 @@ export default function TaxFormsPage({ isAdmin = false }) {
         onSearchChange={setSearchQuery}
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
+        onReset={() => {
+          setSearchQuery('');
+          setSelectedCategory('الكل');
+        }}
       />
 
       <TaxFormsGrid
@@ -137,6 +158,7 @@ export default function TaxFormsPage({ isAdmin = false }) {
         isAdmin={isEffectiveAdmin}
         onDownload={handleDownload}
         onToggleFavorite={handleToggleFavorite}
+        onEdit={handleEditForm}
         onDelete={handleDeleteForm}
         onResetFilters={() => {
           setSearchQuery('');
@@ -147,8 +169,13 @@ export default function TaxFormsPage({ isAdmin = false }) {
       {isEffectiveAdmin && (
         <AddTaxFormModal
           isOpen={isAddModalOpen}
-          onClose={() => setIsAddModalOpen(false)}
+          initialForm={editingForm}
+          onClose={() => {
+            setIsAddModalOpen(false);
+            setEditingForm(null);
+          }}
           onAddForm={handleAddForm}
+          onUpdateForm={handleUpdateForm}
         />
       )}
 

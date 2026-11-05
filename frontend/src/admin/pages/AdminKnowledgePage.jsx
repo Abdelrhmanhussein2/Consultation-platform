@@ -176,6 +176,13 @@ export default function AdminKnowledgePage() {
           onSectorChange={setSectorFilter}
           minRevenue={minRevenueFilter}
           onMinRevenueChange={setMinRevenueFilter}
+          onReset={() => {
+            setSearch('');
+            setKindFilter('all');
+            setEntityTypeFilter('all');
+            setSectorFilter('all');
+            setMinRevenueFilter('');
+          }}
         />
 
         {/* Form 1: القانون والمادة */}

@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { IconUpload, IconSave, IconSync } from './KnowledgeIcons';
 import { KIND_SELECT_OPTIONS } from './knowledgeData';
+import ModernSelect from '../../../components/ModernSelect';
 
 export default function KnowledgeSourceForm({
   formData,
@@ -88,17 +89,12 @@ export default function KnowledgeSourceForm({
 
         <div className="knowledge-form-grid-2">
           <div>
-            <select
+            <ModernSelect
+              options={KIND_SELECT_OPTIONS}
               value={formData.kind}
-              onChange={(e) => setFormData({ ...formData, kind: e.target.value })}
-              className="knowledge-select"
-            >
-              {KIND_SELECT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setFormData({ ...formData, kind: val })}
+              placeholder="نوع القانون"
+            />
           </div>
 
           <div>

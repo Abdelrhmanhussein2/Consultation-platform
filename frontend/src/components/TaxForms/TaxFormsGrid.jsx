@@ -16,6 +16,7 @@ export default function TaxFormsGrid({
   isAdmin = false,
   onDownload,
   onToggleFavorite,
+  onEdit,
   onDelete,
   onResetFilters
 }) {
@@ -55,6 +56,7 @@ export default function TaxFormsGrid({
           isAdmin={isAdmin}
           onDownload={onDownload}
           onToggleFavorite={onToggleFavorite}
+          onEdit={onEdit}
           onDelete={onDelete}
         />
       ))}
