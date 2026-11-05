@@ -1,5 +1,6 @@
 import uuid
-from fastapi import Depends, HTTPException, status
+from typing import Optional
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
@@ -12,8 +13,8 @@ from services.auth.token_service import TokenService
 from models import User
 import redis
 
-# Point oauth2 schema to the central login endpoint
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+# Point oauth2 schema to the central login endpoint (auto_error=False to allow cookie fallback)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login", auto_error=False)
 
 # Roles that are considered "consultant" for access control purposes
 CONSULTANT_ROLES = {UserRole.consultant, UserRole.platform_consultant}
@@ -21,17 +22,24 @@ ADMIN_ROLES = {UserRole.admin, UserRole.super_admin}
 
 
 def get_current_token_payload(
-    token: str = Depends(oauth2_scheme),
+    request: Request,
+    token: Optional[str] = Depends(oauth2_scheme),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> dict:
     """
-    Validates the bearer access token format and checks if it is blacklisted in Redis.
+    Validates the bearer access token format from Authorization header or cookie,
+    and checks if it is blacklisted in Redis.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    if not token and request:
+        token = request.cookies.get("token") or request.cookies.get("access_token")
+    if not token:
+        raise credentials_exception
+
     payload = verify_access_token(token)
     if payload is None:
         raise credentials_exception
@@ -41,6 +49,38 @@ def get_current_token_payload(
         raise credentials_exception
 
     return payload
+
+
+def get_current_user_optional(
+    request: Request,
+    db: Session = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+) -> Optional[User]:
+    """Retrieves current user if token exists in header or cookies, else None without raising 401."""
+    token = None
+    if request:
+        auth = request.headers.get("Authorization")
+        if auth and auth.startswith("Bearer "):
+            token = auth[7:]
+        elif "token" in request.cookies:
+            token = request.cookies.get("token")
+        elif "access_token" in request.cookies:
+            token = request.cookies.get("access_token")
+    if not token:
+        return None
+    payload = verify_access_token(token)
+    if not payload:
+        return None
+    jti = payload.get("jti")
+    if jti and TokenService.is_jti_blacklisted(redis_client, jti):
+        return None
+    user_id_str = payload.get("sub")
+    if not user_id_str:
+        return None
+    try:
+        return UserService.get_user_by_id(db, uuid.UUID(user_id_str))
+    except Exception:
+        return None
 
 
 def get_current_user(

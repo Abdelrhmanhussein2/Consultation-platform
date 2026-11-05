@@ -79,7 +79,7 @@ export default function TaxDirectoryToolbar({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".csv,.txt"
+                  accept=".csv,.xlsx,.xls,.txt"
                   style={{ display: 'none' }}
                   onChange={handleFileChange}
                 />

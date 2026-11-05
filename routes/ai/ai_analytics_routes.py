@@ -21,7 +21,7 @@ COST_PER_TOKEN = 0.0009 / 1_000_000
 
 @router.get("/analytics")
 def get_ai_analytics(
-    period: str = Query("14d", regex="^(7d|14d|30d)$"),
+    period: str = Query("14d", pattern="^(7d|14d|30d)$"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):

@@ -1,7 +1,16 @@
 // frontend/src/components/TaxForms/TaxFormsFilterBar.jsx
 import React from 'react';
-import { TAX_FORM_CATEGORIES } from './taxFormsData';
 import FilterResetButton from '../FilterResetButton';
+
+const TAX_FORM_CATEGORIES = [
+  'الكل',
+  'ضريبة الدخل',
+  'ضريبة المبيعات',
+  'العقود',
+  'الشركات',
+  'العمل والضمان',
+  'عام'
+];
 
 const SearchIcon = ({ size = 17, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

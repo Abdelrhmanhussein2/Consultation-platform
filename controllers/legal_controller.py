@@ -16,6 +16,10 @@ class LegalController:
         effective_from: str
     ):
         try:
+            with neo4j_db.get_session() as session:
+                chk = session.run("MATCH (l) WHERE (l:Law OR l:`قانون`) AND (l.law_id = $lid OR l.`معرف` = $lid OR l.title = $title OR l.`العنوان` = $title) RETURN l.title as t LIMIT 1", lid=law_id, title=title).single()
+                if chk: raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"هذا القانون موجود مسبقاً في قاعدة المعرفة: ({chk['t']})")
+
             # 1. Parse the law DOCX
             parsed = DocxParserService.parse_law_docx(
                 file_bytes, law_id, version_name, effective_from
@@ -147,6 +151,12 @@ class LegalController:
             
             judgment = parsed["judgment"]
             citations = parsed["citations"]
+
+            r_id = judgment.get("ruling_id")
+            t_name = judgment.get("title") or ""
+            with neo4j_db.get_session() as session:
+                chk = session.run("MATCH (j) WHERE (j:Judgment OR j:JudicialRuling OR j:`حكم_قضائي`) AND ((j.ruling_id = $rid AND $rid IS NOT NULL) OR (j.title = $t AND $t <> '') OR (j.`العنوان` = $t AND $t <> '')) RETURN j.title as t LIMIT 1", rid=r_id, t=t_name).single()
+                if chk: raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"هذا الحكم القضائي موجود مسبقاً في قاعدة المعرفة: ({chk['t']})")
             
             # 2. Save Judgment node
             LegalGraphService.create_judgment(

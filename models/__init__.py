@@ -9,7 +9,7 @@ from helpers.enums import (
 from models.auth import RefreshToken
 
 # AI models
-from models.ai import AIChatSession, AIChatMessage, LegalTerm
+from models.ai import AIChatSession, AIChatMessage, LegalTerm, LegalImportJob
 
 # Finance models
 from models.finance import (
@@ -29,7 +29,7 @@ from models.consultations import (
 # Users & Content models
 from models.users import (
     User, UserDocument, UserFolder, UserFolderItem, UserFolderFile,
-    UserHighlight, Favorite, OfficialTemplate, FileDownloadLog, UserPolicyAgreement
+    UserHighlight, Favorite, OfficialTemplate, TaxEntity, FileDownloadLog, UserPolicyAgreement
 )
 
 # Admin models

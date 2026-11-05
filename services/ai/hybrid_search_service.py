@@ -40,11 +40,15 @@ class HybridSearchService:
 
             query_vector = query_vectors[0]
 
-            # 3. البحث الدلالي في Qdrant
+            # 3. البحث الدلالي في Qdrant مع استبعاد المحذوف
+            active_filter = models.Filter(
+                must_not=[models.FieldCondition(key="is_active", match=models.MatchValue(value=False))]
+            )
             if hasattr(client, "query_points"):
                 query_res = client.query_points(
                     collection_name=collection,
                     query=query_vector,
+                    query_filter=active_filter,
                     limit=limit
                 )
                 scored_points = query_res.points
@@ -52,6 +56,7 @@ class HybridSearchService:
                 scored_points = client.search(
                     collection_name=collection,
                     query_vector=query_vector,
+                    query_filter=active_filter,
                     limit=limit
                 )
 
@@ -66,6 +71,8 @@ class HybridSearchService:
 
             for pt in scored_points:
                 payload = pt.payload or {}
+                if payload.get("is_active") is False:
+                    continue
                 item_type = payload.get("type")
                 score = pt.score
 

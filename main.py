@@ -20,6 +20,11 @@ try:
         seed_legal_terms(quiet=True)
     except Exception as _seed_err:
         print(f"Notice: Legal terms seed skipped: {_seed_err}")
+    try:
+        from scripts.seed_official_templates import seed_official_templates
+        seed_official_templates(quiet=True)
+    except Exception as _seed_err:
+        print(f"Notice: Official templates seed skipped: {_seed_err}")
 except Exception as e:
     print(f"Warning: Could not create tables on startup. Make sure database is running and credentials are correct. Error: {e}")
 

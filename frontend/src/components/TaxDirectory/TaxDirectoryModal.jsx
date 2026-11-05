@@ -90,8 +90,8 @@ export default function TaxDirectoryModal({ record, onClose, onCopyTax }) {
           </div>
 
           <div className="td-details-heading">
-            <span aria-hidden="true" />
-            <span>بيانات الجهة</span>
+            <span className="td-heading-bar" aria-hidden="true" />
+            <span className="td-heading-text">بيانات الجهة</span>
           </div>
 
           <div className="td-details-grid">

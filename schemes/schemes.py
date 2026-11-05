@@ -1481,11 +1481,20 @@ class OfficialTemplateOut(BaseModel):
     file_type: Optional[str] = None
     language: Optional[str] = None
     downloads_count: int
+    is_active: bool = True
     created_at: datetime
     updated_at: datetime
 
     class Config:
         from_attributes = True
+
+
+class OfficialTemplateUpdate(BaseModel):
+    title: Optional[str] = None
+    code: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    language: Optional[str] = None
 
 
 class FavoriteOut(BaseModel):

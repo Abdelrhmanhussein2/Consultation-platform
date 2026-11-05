@@ -1,54 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
-import {
-  IconDashboard,
-  IconUsers,
-  IconConsultant,
-  IconFinancial,
-  IconPayment,
-  IconSubscription,
-  IconTaxForms,
-  IconAiMonitoring,
-  IconSessions,
-  IconKnowledge,
-  IconAiCoordinator,
-  IconPrompts,
-  IconNotifications,
-  IconTickets,
-  IconSecurity,
-  IconRbac,
-  IconAudit,
-  IconSettings,
-  IconReports,
-  IconSparkles,
-  IconDatabase,
-  IconLightbulb
-} from './AdminIcons';
-
-
-const ChevronIcon = ({ isOpen }) => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    style={{
-      transition: 'transform 0.2s ease',
-      transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-      marginLeft: 'auto',
-      marginRight: '0',
-      flexShrink: 0,
-      color: '#94A3B8'
-    }}
-  >
-    <polyline points="6 9 12 15 18 9" />
-  </svg>
-);
+import { ADMIN_MENU_ITEMS, ChevronIcon } from './adminSidebarData';
 
 export default function AdminSidebar({ currentPath, navigate, userRole = 'super_admin', permissions = [], isCollapsed }) {
   const { logout } = useAuth();
@@ -56,158 +9,24 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // STREAMLINED & REORGANIZED MENU HIERARCHY
-  // ══════════════════════════════════════════════════════════════════════════
-  const menuItems = [
-    // 1. Dashboard
-    { id: 'dashboard', label: 'لوحة التحكم', path: '/admin', icon: IconDashboard },
-
-    // Control Center (Group with Sub-Items)
-    {
-      id: 'control_center_group',
-      label: 'مركز التحكم الإداري',
-      icon: IconSparkles,
-      defaultPath: '/admin/control-center',
-      subItems: [
-        { id: 'control_center_ops', label: 'لوحة التحكم والعمليات', path: '/admin/control-center' },
-        { id: 'unified_registry', label: 'السجل الإداري الموحد', path: '/admin/unified-registry' }
-      ]
-    },
-
-    // 2. Reports & Analytics
-    { id: 'reports', label: 'التقارير والتحليلات', path: '/admin/reports', icon: IconReports },
-
-    // 3. Accounts (Users & Consultants)
-    {
-      id: 'accounts',
-      label: 'المستخدمون والمستشارون',
-      icon: IconUsers,
-      defaultPath: '/admin/users',
-      subItems: [
-        { id: 'users', label: 'إدارة المستخدمين', path: '/admin/users' },
-        { id: 'consultants', label: 'إدارة المستشارين', path: '/admin/consultants' },
-        { id: 'consultant_applications', label: 'طلبات انضمام المستشارين', path: '/admin/consultant-applications' }
-      ]
-    },
-
-    // 4. User Accounts & Login History (New Hub)
-    {
-      id: 'user_accounts_group',
-      label: 'إدارة الحسابات',
-      icon: IconSecurity,
-      defaultPath: '/admin/user-accounts',
-      subItems: [
-        { id: 'uacc_list', label: 'إدارة حسابات المستخدمين', path: '/admin/user-accounts' },
-        { id: 'uacc_history', label: 'سجل دخول المستخدمين', path: '/admin/user-accounts/history' },
-        { id: 'uacc_roles', label: 'أدوار وصلاحيات الحسابات', path: '/admin/user-accounts/roles' }
-      ]
-    },
-
-    // 4. RBAC Roles & Permissions
-    {
-      id: 'rbac_group',
-      label: 'الأدوار والصلاحيات',
-      icon: IconRbac,
-      defaultPath: '/admin/rbac',
-      subItems: [
-        { id: 'rbac_roles', label: 'الأدوار والصلاحيات', path: '/admin/rbac' },
-        { id: 'rbac_users', label: 'المستخدمون وإسناد الأدوار', path: '/admin/rbac/users' }
-      ]
-    },
-
-    // 5. Calendar & Appointments
-    { id: 'calendar', label: 'إدارة المواعيد والتقويم', path: '/admin/calendar', icon: IconSessions },
-
-    // 6. Sessions & Consultations
-    { id: 'sessions', label: 'سجل الحجوزات', path: '/admin/sessions', icon: IconSessions },
-
-    // 7. Financial & Subscriptions - Grouped
-    {
-      id: 'finance_group',
-      label: 'المالية والاشتراكات',
-      icon: IconFinancial,
-      defaultPath: '/admin/payments',
-      subItems: [
-        { id: 'payments', label: 'طلبات الدفع والتحويلات', path: '/admin/payments' },
-        { id: 'subscriptions', label: 'الباقات والاشتراكات', path: '/admin/subscriptions' },
-        { id: 'invoices', label: 'الفواتير', path: '/admin/invoices' },
-        { id: 'financial', label: 'النظام المالي والمحافظ', path: '/admin/financial' }
-      ]
-    },
-
-    // 8. Database Group (Tabs only)
-    {
-      id: 'database_group',
-      label: 'قاعدة البيانات',
-      icon: IconDatabase,
-      subItems: [
-        { id: 'legislation', label: 'التشريعات والقوانين', path: '/admin/knowledge' },
-        { id: 'legal_alerts', label: 'التنبيهات التشريعية' },
-        { id: 'tax_forms_sub', label: 'النماذج الضريبية', path: '/admin/tax-forms' },
-        { id: 'tax_disclosure_sub', label: 'مكتبة الكشف الضريبي', path: '/admin/tax-disclosure' }
-      ]
-    },
-
-    // 9. AI Management Group (Tabs only)
-    {
-      id: 'ai_management_group',
-      label: 'إدارة الذكاء الاصطناعي',
-      icon: IconLightbulb,
-      subItems: [
-        { id: 'ai_search_monitor', label: 'رقابة AI والبحث', path: '/admin/ai-monitoring' },
-        { id: 'prompts_library', label: 'مكتبة البرومبت', path: '/admin/prompts' }
-      ]
-    },
-
-    // 11. Support & Tickets
-    { id: 'tickets', label: 'الدعم والتذاكر', path: '/admin/tickets', icon: IconTickets },
-
-    // 12. Notifications
-    { id: 'notifications', label: 'الإشعارات', path: '/admin/notifications', icon: IconNotifications },
-
-    // 13. Security & Audit Logs - Grouped
-    {
-      id: 'security_group',
-      label: 'الأمان وسجل التدقيق',
-      icon: IconSecurity,
-      defaultPath: '/admin/security',
-      subItems: [
-        { id: 'security', label: 'مركز الأمان وحماية البيانات', path: '/admin/security' },
-        { id: 'audit', label: 'سجل التدقيق والعمليات', path: '/admin/audit-logs' }
-      ]
-    },
-
-    // 14. Platform Settings
-    { id: 'settings', label: 'إعدادات المنصة', path: '/admin/settings', icon: IconSettings }
-  ];
-
-  // Track which groups are expanded
   const [expandedGroups, setExpandedGroups] = useState(() => {
     const initial = {};
-    menuItems.forEach(item => {
-      if (item.subItems) {
-        // Auto-expand if currentPath matches any subItem
-        const isChildActive = item.subItems.some(sub => sub.path === currentPath);
-        if (isChildActive) initial[item.id] = true;
+    ADMIN_MENU_ITEMS.forEach(item => {
+      if (item.subItems && item.subItems.some(sub => sub.path === currentPath)) {
+        initial[item.id] = true;
       }
     });
     return initial;
   });
 
-  // Auto-expand group when currentPath changes
   useEffect(() => {
-    menuItems.forEach(item => {
-      if (item.subItems) {
-        const isChildActive = item.subItems.some(sub => sub.path === currentPath);
-        if (isChildActive) {
-          setExpandedGroups(prev => ({ ...prev, [item.id]: true }));
-        }
+    ADMIN_MENU_ITEMS.forEach(item => {
+      if (item.subItems && item.subItems.some(sub => sub.path === currentPath)) {
+        setExpandedGroups(prev => ({ ...prev, [item.id]: true }));
       }
     });
   }, [currentPath]);
 
-  // Click on single or sub item
   const handleItemClick = (e, path, id) => {
     e.preventDefault();
     if (path) {
@@ -218,42 +37,30 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
     }
   };
 
-  // Click on parent group:
   const handleGroupClick = (e, item) => {
     e.preventDefault();
     const isCurrentlyExpanded = !!expandedGroups[item.id];
-
-    // Toggle expand state
-    setExpandedGroups(prev => ({ ...prev, [item.id]: !isCurrentlyExpanded }));
-
-    // Automatically navigate to default sub-item if configured
     if (item.defaultPath) {
-      setActiveDummySubId(null);
-      navigate(item.defaultPath);
+      if (currentPath === item.defaultPath) {
+        setExpandedGroups(prev => ({ ...prev, [item.id]: !isCurrentlyExpanded }));
+      } else {
+        setExpandedGroups(prev => ({ ...prev, [item.id]: true }));
+        setActiveDummySubId(null);
+        navigate(item.defaultPath);
+      }
+    } else {
+      setExpandedGroups(prev => ({ ...prev, [item.id]: !isCurrentlyExpanded }));
     }
-  };
-
-  // Logout handler (Custom Dialog)
-  const handleLogoutClick = (e) => {
-    e.preventDefault();
-    setShowLogoutConfirm(true);
   };
 
   const handleConfirmLogout = async () => {
     setLoggingOut(true);
     try {
-      if (logout) {
-        await logout();
-      } else {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('role');
-        localStorage.removeItem('admin');
+      if (logout) { await logout(); } else {
+        localStorage.clear();
         window.location.href = '/login';
       }
-    } catch (err) {
-      console.error('Logout error:', err);
-    } finally {
+    } catch {} finally {
       setLoggingOut(false);
       setShowLogoutConfirm(false);
     }
@@ -261,137 +68,67 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
 
   return (
     <aside className={`portal-sidebar admin-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
-      {/* Platform White Logo Header */}
       <div className="sidebar-header">
         <div
           className="brand-wrapper"
           onClick={() => navigate('/admin')}
           style={{
-            cursor: 'pointer',
-            gap: isCollapsed ? '0' : '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: isCollapsed ? 'center' : 'flex-start',
-            width: '100%'
+            cursor: 'pointer', gap: isCollapsed ? '0' : '12px', display: 'flex',
+            alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', width: '100%'
           }}
         >
-          <img
-            src="/logo_white.png"
-            alt="شعار منصة ديوان"
-            style={{ height: isCollapsed ? '48px' : '68px', width: 'auto', objectFit: 'contain', transition: 'all 0.3s ease' }}
-            onError={(e) => { e.target.src = '/logo.png'; }}
-          />
+          <img src="/logo_white.png" alt="شعار منصة ديوان" style={{ height: isCollapsed ? '44px' : '56px', width: 'auto', objectFit: 'contain' }} onError={(e) => { e.target.src = '/logo.png'; }} />
           {!isCollapsed && (
             <div className="brand-text-box">
-              <span className="brand-title">منصة ديوان</span>
-              <span className="brand-subtitle" style={{ color: '#F5A52A', fontWeight: '700' }}>
-                للاستشارات الضريبية
-              </span>
+              <span className="brand-title" style={{ color: '#FFFFFF', fontWeight: '800', fontSize: '15px', lineHeight: '1.2' }}>منصة ديوان</span>
+              <span className="brand-subtitle" style={{ color: '#F5A52A', fontWeight: '700', fontSize: '10px', marginTop: '2px', display: 'block' }}>للاستشارات الضريبية</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Main Navigation Items */}
       <nav className="sidebar-nav">
-        {menuItems.map((item) => {
+        {ADMIN_MENU_ITEMS.map((item) => {
           const Icon = item.icon;
-
-          // Expandable Submenu Group
           if (item.subItems) {
             const isGroupOpen = !!expandedGroups[item.id];
-
-            // Prioritize exact route match over prefix match to prevent multiple subItems highlighting simultaneously
             const exactSubMatch = item.subItems.find(sub => sub.path && currentPath === sub.path);
-            const activeSubId = exactSubMatch
-              ? exactSubMatch.id
-              : item.subItems.find(sub => sub.path && currentPath.startsWith(sub.path + '/'))?.id;
-
+            const activeSubId = exactSubMatch ? exactSubMatch.id : item.subItems.find(sub => sub.path && currentPath.startsWith(sub.path + '/'))?.id;
             const isAnySubActive = !!activeSubId || item.subItems.some(sub => sub.id === activeDummySubId);
 
             return (
               <div key={item.id} className="support-accordion-group" style={{ width: '100%' }}>
                 <button
                   type="button"
-                  onClick={(e) => {
-                    if (isCollapsed) {
-                      if (item.defaultPath) navigate(item.defaultPath);
-                    } else {
-                      handleGroupClick(e, item);
-                    }
-                  }}
+                  onClick={(e) => { if (isCollapsed) { if (item.defaultPath) navigate(item.defaultPath); } else { handleGroupClick(e, item); } }}
                   className={`nav-item ${isAnySubActive ? 'active' : ''}`}
                   title={item.label}
-                  style={{
-                    display: 'flex',
-                    width: '100%',
-                    alignItems: 'center',
-                    justifyContent: isCollapsed ? 'center' : 'space-between',
-                    padding: isCollapsed ? '10px 0' : '7px 10px',
-                    gap: isCollapsed ? '0' : '6px'
-                  }}
+                  style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', padding: isCollapsed ? '10px 0' : '7px 10px', gap: isCollapsed ? '0' : '6px' }}
                 >
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: isCollapsed ? 'center' : 'flex-start',
-                    gap: isCollapsed ? '0' : '8px',
-                    flex: isCollapsed ? 'none' : 1,
-                    minWidth: 0
-                  }}>
-                    <span className="nav-icon" style={{ flexShrink: 0 }}>
-                      <Icon size={18} color={isAnySubActive ? '#FFFFFF' : '#CBD5E1'} />
-                    </span>
-                    {!isCollapsed && (
-                      <span className="nav-label" style={{ fontSize: '12px', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {item.label}
-                      </span>
-                    )}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: isCollapsed ? '0' : '8px', flex: isCollapsed ? 'none' : 1, minWidth: 0 }}>
+                    <span className="nav-icon" style={{ flexShrink: 0 }}><Icon size={18} color={isAnySubActive ? '#FFFFFF' : '#CBD5E1'} /></span>
+                    {!isCollapsed && <span className="nav-label" style={{ fontSize: '12px', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>}
                   </div>
                   {!isCollapsed && <ChevronIcon isOpen={isGroupOpen} />}
                 </button>
 
-                {/* Submenu list */}
                 {isGroupOpen && !isCollapsed && (
                   <div className="sidebar-sub-nav" style={{ paddingRight: '36px', display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
                     {item.subItems.map(sub => {
                       const isSubActive = sub.id === activeSubId || sub.id === activeDummySubId;
                       return (
                         <button
-                          key={sub.id}
-                          type="button"
-                          onClick={(e) => handleItemClick(e, sub.path, sub.id)}
+                          key={sub.id} type="button" onClick={(e) => handleItemClick(e, sub.path, sub.id)}
                           className={`nav-sub-item ${isSubActive ? 'active' : ''}`}
                           style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: isSubActive ? '#FFFFFF' : '#94A3B8',
-                            padding: '6px 10px',
-                            textAlign: 'right',
-                            fontSize: '12px',
-                            cursor: 'pointer',
-                            borderRadius: '6px',
-                            fontWeight: isSubActive ? '700' : 'normal',
-                            boxShadow: 'none',
-                            transition: 'all 0.2s',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            width: '100%'
+                            background: 'transparent', border: 'none', color: isSubActive ? '#FFFFFF' : '#94A3B8',
+                            padding: '6px 10px', textAlign: 'right', fontSize: '12px', cursor: 'pointer', borderRadius: '6px',
+                            fontWeight: isSubActive ? '700' : 'normal', display: 'flex', alignItems: 'center', gap: '8px', width: '100%'
                           }}
                           onMouseEnter={(e) => { if (!isSubActive) e.target.style.color = '#FFFFFF'; }}
                           onMouseLeave={(e) => { if (!isSubActive) e.target.style.color = '#94A3B8'; }}
                         >
-                          <span style={{
-                            width: '6px',
-                            height: '6px',
-                            borderRadius: '50%',
-                            background: '#FFFFFF',
-                            opacity: isSubActive ? 1 : 0,
-                            display: 'inline-block',
-                            flexShrink: 0,
-                            transition: 'opacity 0.2s ease'
-                          }} />
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#FFFFFF', opacity: isSubActive ? 1 : 0, display: 'inline-block', flexShrink: 0 }} />
                           {sub.label}
                         </button>
                       );
@@ -402,27 +139,14 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
             );
           }
 
-          // Regular Single Nav Item
           const isActive = (item.path && (currentPath === item.path || (item.path === '/admin' && currentPath === '/admin/dashboard'))) || activeDummySubId === item.id;
           return (
             <button
-              key={item.id}
-              type="button"
-              onClick={(e) => handleItemClick(e, item.path, item.id)}
-              className={`nav-item ${isActive ? 'active' : ''}`}
-              title={item.label}
-              style={{
-                display: 'flex',
-                width: '100%',
-                alignItems: 'center',
-                justifyContent: isCollapsed ? 'center' : 'flex-start',
-                padding: isCollapsed ? '10px 0' : '7px 10px',
-                gap: isCollapsed ? '0' : '8px'
-              }}
+              key={item.id} type="button" onClick={(e) => handleItemClick(e, item.path, item.id)}
+              className={`nav-item ${isActive ? 'active' : ''}`} title={item.label}
+              style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '10px 0' : '7px 10px', gap: isCollapsed ? '0' : '8px' }}
             >
-              <span className="nav-icon" style={{ flexShrink: 0 }}>
-                <Icon size={18} color={isActive ? '#FFFFFF' : '#CBD5E1'} />
-              </span>
+              <span className="nav-icon" style={{ flexShrink: 0 }}><Icon size={18} color={isActive ? '#FFFFFF' : '#CBD5E1'} /></span>
               {!isCollapsed && <span className="nav-label" style={{ fontSize: '12px', fontWeight: '600' }}>{item.label}</span>}
               {!isCollapsed && item.badge && <span className="admin-nav-badge">{item.badge}</span>}
             </button>
@@ -430,44 +154,26 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
         })}
       </nav>
 
-      {/* Sidebar Footer Logout */}
       <div className="sidebar-footer">
         <button
-          type="button"
-          className="nav-item logout-nav-item"
-          onClick={handleLogoutClick}
+          type="button" className="nav-item logout-nav-item" onClick={(e) => { e.preventDefault(); setShowLogoutConfirm(true); }}
           title="تسجيل الخروج"
-          style={{
-            display: 'flex',
-            width: '100%',
-            alignItems: 'center',
-            justifyContent: isCollapsed ? 'center' : 'flex-start',
-            padding: isCollapsed ? '10px 0' : '7px 10px',
-            gap: isCollapsed ? '0' : '8px'
-          }}
+          style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '10px 0' : '7px 10px', gap: isCollapsed ? '0' : '8px' }}
         >
           <span className="nav-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
             </svg>
           </span>
           {!isCollapsed && <span className="nav-label" style={{ color: '#F87171' }}>تسجيل الخروج</span>}
         </button>
       </div>
 
-      {/* Elegant Custom Logout Confirmation Modal */}
       <ConfirmModal
-        isOpen={showLogoutConfirm}
-        title="تسجيل الخروج من لوحة التحكم"
+        isOpen={showLogoutConfirm} title="تسجيل الخروج من لوحة التحكم"
         message="هل أنت متأكد من رغبتك في تسجيل الخروج وإنهاء الجلسة الإدارية الحالية؟"
-        confirmText="تسجيل الخروج"
-        cancelText="البقاء في اللوحة"
-        variant="danger"
-        isLoading={loggingOut}
-        onConfirm={handleConfirmLogout}
-        onCancel={() => setShowLogoutConfirm(false)}
+        confirmText="تسجيل الخروج" cancelText="البقاء في اللوحة" variant="danger"
+        isLoading={loggingOut} onConfirm={handleConfirmLogout} onCancel={() => setShowLogoutConfirm(false)}
       />
     </aside>
   );

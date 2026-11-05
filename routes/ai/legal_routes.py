@@ -201,10 +201,11 @@ async def upload_law(
     effective_from: str = Form(..., description="Effective date (YYYY-MM-DD)"),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role not in (UserRole.admin, UserRole.super_admin):
+    role_str = current_user.role.value if hasattr(current_user.role, "value") else str(current_user.role)
+    if role_str not in ("admin", "super_admin"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only administrators can upload law documents."
+            detail="صلاحية المشرف مطلوبة لرفع وثائق القوانين"
         )
     file_bytes = await file.read()
     return LegalController.upload_law(
@@ -234,10 +235,11 @@ async def upload_judgment(
     title: str = Form(None, description="Override title (optional)"),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role not in (UserRole.admin, UserRole.super_admin):
+    role_str = current_user.role.value if hasattr(current_user.role, "value") else str(current_user.role)
+    if role_str not in ("admin", "super_admin"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only administrators can upload judgment documents."
+            detail="صلاحية المشرف مطلوبة لرفع وثائق الأحكام القضائية"
         )
     file_bytes = await file.read()
     return LegalController.upload_judgment(

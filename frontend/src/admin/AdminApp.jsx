@@ -129,6 +129,7 @@ export default function AdminApp({ currentPath = '/admin', navigate }) {
       case '/admin/forms':
         return <TaxFormsPage navigate={navigate} isAdmin={true} />;
       case '/admin/tax-disclosure':
+      case '/admin/tax-directory':
         return <TaxDisclosurePage navigate={navigate} />;
       case '/admin/knowledge':
         return <AdminKnowledgePage navigate={navigate} />;

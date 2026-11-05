@@ -1,7 +1,9 @@
 from fastapi import APIRouter
 
 from routes.auth import auth_router
-from routes.ai import ai_chat_router, chat_ai_router, legal_router, ai_analytics_router
+from routes.ai import (
+    ai_chat_router, chat_ai_router, legal_router, legal_sources_router, ai_analytics_router
+)
 from routes.finance import (
     invoice_router, recurring_invoice_router, refunded_invoice_router, subscription_router
 )
@@ -9,7 +11,7 @@ from routes.consultations import (
     appointment_router, consultant_router, session_router, specialization_router
 )
 from routes.users import (
-    user_router, user_document_router, template_router,
+    user_router, user_document_router, template_router, tax_directory_router,
     folder_router, favorite_router, highlight_router
 )
 from routes.admin import super_admin_router, settings_router
@@ -24,6 +26,7 @@ api_router.include_router(ai_chat_router)
 api_router.include_router(ai_analytics_router)
 api_router.include_router(chat_ai_router)
 api_router.include_router(legal_router)
+api_router.include_router(legal_sources_router)
 api_router.include_router(invoice_router)
 api_router.include_router(recurring_invoice_router)
 api_router.include_router(refunded_invoice_router)
@@ -35,6 +38,7 @@ api_router.include_router(specialization_router)
 api_router.include_router(user_router)
 api_router.include_router(user_document_router)
 api_router.include_router(template_router)
+api_router.include_router(tax_directory_router)
 api_router.include_router(folder_router)
 api_router.include_router(favorite_router)
 api_router.include_router(highlight_router)

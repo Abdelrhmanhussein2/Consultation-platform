@@ -58,6 +58,8 @@ export default function TaxFormCard({
   onEdit,
   onDelete
 }) {
+  const displayTitle = (form.title || '').replace(/_/g, ' ');
+
   return (
     <article className="tax-card">
       <div>
@@ -68,7 +70,7 @@ export default function TaxFormCard({
           <span className="tax-cat-badge">{form.cat}</span>
         </div>
 
-        <h3 className="tax-card-title">{form.title}</h3>
+        <h3 className="tax-card-title" title={displayTitle}>{displayTitle}</h3>
         <p className="tax-card-desc">{form.desc}</p>
 
         <div className="tax-meta-badges">
@@ -88,19 +90,21 @@ export default function TaxFormCard({
           <span>تحميل</span>
         </button>
 
-        <button
-          type="button"
-          className={`tax-btn-bookmark ${isFavorite ? 'active' : ''}`}
-          onClick={() => onToggleFavorite(form)}
-          title={isFavorite ? 'إزالة من المفضلة' : 'حفظ في المفضلة'}
-          aria-label={isFavorite ? 'إزالة من المفضلة' : 'حفظ في المفضلة'}
-        >
-          <BookmarkIcon
-            size={16}
-            filled={isFavorite}
-            color={isFavorite ? '#E58A13' : '#64748B'}
-          />
-        </button>
+        {!isAdmin && onToggleFavorite && (
+          <button
+            type="button"
+            className={`tax-btn-bookmark ${isFavorite ? 'active' : ''}`}
+            onClick={() => onToggleFavorite(form)}
+            title={isFavorite ? 'إزالة من المفضلة' : 'حفظ في المفضلة'}
+            aria-label={isFavorite ? 'إزالة من المفضلة' : 'حفظ في المفضلة'}
+          >
+            <BookmarkIcon
+              size={16}
+              filled={isFavorite}
+              color={isFavorite ? '#E58A13' : '#64748B'}
+            />
+          </button>
+        )}
 
         {isAdmin && onEdit && (
           <button

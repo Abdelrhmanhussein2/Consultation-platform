@@ -111,15 +111,10 @@
   padding: 1rem 1.25rem;
 }
 .knowledge-filter-grid {
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: 1fr;
-}
-@media (min-width: 900px) {
-  .knowledge-filter-grid {
-    grid-template-columns: minmax(0, 1.8fr) 150px 160px 145px 125px 42px;
-    align-items: center;
-  }
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
 }
 .knowledge-input-wrap {
   position: relative;

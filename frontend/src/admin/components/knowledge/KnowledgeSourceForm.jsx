@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { IconUpload, IconSave, IconSync } from './KnowledgeIcons';
-import { KIND_SELECT_OPTIONS } from './knowledgeData';
+import { KIND_SELECT_OPTIONS, getAuthHeaders } from './knowledgeData';
 import ModernSelect from '../../../components/ModernSelect';
 
 export default function KnowledgeSourceForm({
@@ -18,25 +18,35 @@ export default function KnowledgeSourceForm({
     if (!file) return;
     setIsExtracting(true);
     try {
-      const fileNameWithoutExt = file.name.replace(/\.[^.]+$/, '');
-      let extractedText = '';
-
-      if (file.type.includes('text') || file.name.endsWith('.txt') || file.name.endsWith('.csv')) {
-        extractedText = await file.text();
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('source_type', 'law');
+      const res = await fetch('/api/legal/extract-preview', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: fd
+      });
+      if (res.ok) {
+        const result = await res.json();
+        const d = result.data || {};
+        setFormData((prev) => ({
+          ...prev,
+          file: file,
+          fileName: file.name,
+          fileSize: file.size,
+          title: d.title || prev.title,
+          code: d.code || prev.code,
+          year: d.year || prev.year,
+          tags: d.tags || prev.tags,
+          body: d.body || prev.body
+        }));
+        onNotify('تم استخراج بيانات القانون والمواد كاملة تلقائياً بنجاح');
       } else {
-        // Simulation / placeholder for binary files
-        extractedText = `تم استخراج النص المرجعي من الملف المرفق: ${file.name}\nالحجم: ${(file.size / 1024).toFixed(1)} ك.ب.\n\nتاريخ الرفع: ${new Date().toLocaleDateString('ar-JO')}`;
+        const cleanName = file.name.replace(/\.[^.]+$/, '').replace(/_/g, ' ');
+        setFormData((prev) => ({ ...prev, file, fileName: file.name, fileSize: file.size, title: prev.title || cleanName }));
+        onNotify('تم رفع الملف؛ يمكنك مراجعة البيانات وحفظها');
       }
-
-      setFormData((prev) => ({
-        ...prev,
-        title: prev.title || fileNameWithoutExt,
-        body: extractedText || prev.body,
-        fileName: file.name,
-        fileSize: file.size
-      }));
-
-      onNotify(extractedText ? 'تم استخراج النص وربط الملف بالمادة' : 'تم رفع الملف؛ أضف النص يدويًا قبل الفهرسة');
     } catch (err) {
       onNotify('حدث خطأ أثناء قراءة الملف: ' + err.message);
     } finally {

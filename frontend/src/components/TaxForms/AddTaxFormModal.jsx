@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { TAX_FORM_CATEGORIES } from './taxFormsData';
 import ModernSelect from '../ModernSelect';
+
+const TAX_FORM_CATEGORIES = [
+  'ضريبة الدخل',
+  'ضريبة المبيعات',
+  'العقود',
+  'الشركات',
+  'العمل والضمان',
+  'عام'
+];
 
 const CloseIcon = ({ size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
@@ -29,12 +37,8 @@ export default function AddTaxFormModal({
   const isEditing = Boolean(initialForm);
 
   const [formData, setFormData] = useState({
-    title: '',
-    code: '',
-    cat: availableCategories[0] || 'ضريبة الدخل',
-    lang: 'AR / EN',
-    format: 'PDF · DOCX',
-    desc: ''
+    title: '', code: '', cat: availableCategories[0] || 'ضريبة الدخل',
+    lang: 'AR / EN', format: 'PDF · DOCX · XLSX', desc: ''
   });
 
   const [selectedFile, setSelectedFile] = useState(null);
@@ -42,25 +46,19 @@ export default function AddTaxFormModal({
   useEffect(() => {
     if (initialForm) {
       setFormData({
-        title: initialForm.title || '',
-        code: initialForm.code || '',
+        title: initialForm.title || '', code: initialForm.code || '',
         cat: initialForm.cat || availableCategories[0] || 'ضريبة الدخل',
         lang: initialForm.lang || 'AR / EN',
-        format: initialForm.format || 'PDF · DOCX',
+        format: initialForm.format || 'PDF · DOCX · XLSX',
         desc: initialForm.desc || ''
       });
-      setSelectedFile(null);
     } else {
       setFormData({
-        title: '',
-        code: '',
-        cat: availableCategories[0] || 'ضريبة الدخل',
-        lang: 'AR / EN',
-        format: 'PDF · DOCX',
-        desc: ''
+        title: '', code: '', cat: availableCategories[0] || 'ضريبة الدخل',
+        lang: 'AR / EN', format: 'PDF · DOCX · XLSX', desc: ''
       });
-      setSelectedFile(null);
     }
+    setSelectedFile(null);
   }, [initialForm, isOpen]);
 
   if (!isOpen) return null;
@@ -69,11 +67,12 @@ export default function AddTaxFormModal({
     const file = e.target.files?.[0];
     if (!file) return;
     setSelectedFile(file);
-    const ext = file.name.split('.').pop().toUpperCase();
-    const detectedFormat = ext === 'PDF' ? 'PDF' : ext.startsWith('DOC') ? 'DOCX' : 'PDF · DOCX';
+    const ext = file.name.split('.').pop().toLowerCase();
+    const detectedFormat = ext === 'pdf' ? 'PDF' : ext.startsWith('doc') ? 'DOCX' : ext.startsWith('xls') ? 'XLSX' : 'PDF · DOCX · XLSX';
+    const cleanName = file.name.replace(/\.[^.]+$/, '').replace(/_/g, ' ');
     setFormData((prev) => ({
       ...prev,
-      title: prev.title || file.name.replace(/\.[^.]+$/, ''),
+      title: prev.title || cleanName,
       format: detectedFormat
     }));
   };
@@ -103,13 +102,9 @@ export default function AddTaxFormModal({
     };
 
     if (isEditing) {
-      onUpdateForm?.({ ...initialForm, ...payload });
+      onUpdateForm?.({ ...initialForm, ...payload }, selectedFile);
     } else {
-      onAddForm?.({
-        ...payload,
-        id: 'form-' + Date.now(),
-        isNew: true
-      });
+      onAddForm?.(payload, selectedFile);
     }
 
     setSelectedFile(null);
@@ -171,7 +166,7 @@ export default function AddTaxFormModal({
               <input
                 type="text"
                 className="tax-form-input"
-                placeholder="PDF · DOCX"
+                placeholder="PDF · DOCX · XLSX"
                 value={formData.format}
                 onChange={(e) => setFormData({ ...formData, format: e.target.value })}
               />
@@ -200,9 +195,9 @@ export default function AddTaxFormModal({
             />
           </div>
 
-          {/* Upload PDF / Word Dropzone */}
+          {/* Upload PDF / Word / Excel Dropzone */}
           <div className="tax-form-group">
-            <label className="tax-form-label">إرفاق ملف النموذج (PDF أو Word)</label>
+            <label className="tax-form-label">إرفاق ملف النموذج (PDF أو Word أو Excel)</label>
             <label className="tax-file-upload-box">
               <UploadIcon size={18} />
               <span>
@@ -210,11 +205,11 @@ export default function AddTaxFormModal({
                   ? `الملف المختار: ${selectedFile.name}`
                   : initialForm?.file_name
                   ? `الملف الحالي: ${initialForm.file_name} (اضغط للتغيير)`
-                  : 'اضغط هنا لرفع ملف بصيغة PDF أو Word (.docx, .doc)'}
+                  : 'اضغط هنا لرفع ملف بصيغة PDF أو Word (.docx) أو Excel (.xlsx, .xls)'}
               </span>
               <input
                 type="file"
-                accept=".pdf,.docx,.doc"
+                accept=".pdf,.docx,.doc,.xlsx,.xls"
                 style={{ display: 'none' }}
                 onChange={handleFileChange}
               />

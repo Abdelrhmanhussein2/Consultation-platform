@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { IconUpload, IconSave, IconSync } from './KnowledgeIcons';
-import { COURT_OPTIONS } from './knowledgeData';
+import { COURT_OPTIONS, getAuthHeaders } from './knowledgeData';
 import ModernSelect from '../../../components/ModernSelect';
 
 export default function KnowledgeRulingForm({
@@ -18,23 +18,36 @@ export default function KnowledgeRulingForm({
     if (!file) return;
     setIsExtracting(true);
     try {
-      const fileNameWithoutExt = file.name.replace(/\.[^.]+$/, '');
-      let extractedText = '';
-
-      if (file.type.includes('text') || file.name.endsWith('.txt') || file.name.endsWith('.csv')) {
-        extractedText = await file.text();
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('source_type', 'judgment');
+      const res = await fetch('/api/legal/extract-preview', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: fd
+      });
+      if (res.ok) {
+        const result = await res.json();
+        const d = result.data || {};
+        setFormData((prev) => ({
+          ...prev,
+          file: file,
+          fileName: file.name,
+          title: d.title || prev.title,
+          court: d.court || prev.court,
+          year: d.year || prev.year,
+          caseNumber: d.case_number || prev.caseNumber,
+          legalArticle: d.dispute_item || prev.legalArticle,
+          tags: d.tags || prev.tags,
+          principle: d.principle || prev.principle
+        }));
+        onNotify('تم استخراج بيانات الحكم والنص الكامل تلقائياً بنجاح');
       } else {
-        extractedText = `تم استخراج منطوق ومبدأ الحكم القضائي من الملف المرفق: ${file.name}\nالحجم: ${(file.size / 1024).toFixed(1)} ك.ب.\n\nتاريخ الرفع: ${new Date().toLocaleDateString('ar-JO')}`;
+        const cleanName = file.name.replace(/\.[^.]+$/, '').replace(/_/g, ' ');
+        setFormData((prev) => ({ ...prev, file, fileName: file.name, title: prev.title || cleanName }));
+        onNotify('تم رفع الملف؛ أضف المبدأ القانوني يدوياً');
       }
-
-      setFormData((prev) => ({
-        ...prev,
-        title: prev.title || fileNameWithoutExt,
-        principle: extractedText || prev.principle,
-        fileName: file.name
-      }));
-
-      onNotify(extractedText ? 'تم استخراج منطوق الحكم وربط الملف بالسجل' : 'تم رفع الملف؛ أضف المبدأ القانوني يدوياً');
     } catch (err) {
       onNotify('حدث خطأ أثناء قراءة ملف الحكم: ' + err.message);
     } finally {

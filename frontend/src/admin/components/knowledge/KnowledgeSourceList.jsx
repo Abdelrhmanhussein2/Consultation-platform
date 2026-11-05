@@ -1,9 +1,25 @@
 import React from 'react';
-import { IconDoc, IconInspect, IconEdit, IconBroadcast, IconTrash, IconPaperclip } from './KnowledgeIcons';
+import { IconDoc, IconEdit, IconBroadcast, IconTrash, IconPaperclip } from './KnowledgeIcons';
 import { KIND_OPTIONS } from './knowledgeData';
+import KnowledgeFilterBar from './KnowledgeFilterBar';
 
 export default function KnowledgeSourceList({
   sources,
+  kindFilter = 'all',
+  onKindFilterChange,
+  statusFilter = 'all',
+  onStatusFilterChange,
+  yearFilter = '',
+  onYearFilterChange,
+  entityTypeFilter = 'all',
+  onEntityTypeFilterChange,
+  sectorFilter = 'all',
+  onSectorFilterChange,
+  minRevenueFilter = '',
+  onMinRevenueFilterChange,
+  searchQuery = '',
+  onSearchChange,
+  onReset,
   onInspect,
   onEdit,
   onBroadcast,
@@ -11,13 +27,36 @@ export default function KnowledgeSourceList({
 }) {
   return (
     <section className="knowledge-bento-panel knowledge-sources-section">
-      <h2 className="knowledge-sources-head">
-        المصادر الحالية ({sources.length})
-      </h2>
+      <div style={{ marginBottom: '1.25rem', paddingBottom: '0.85rem', borderBottom: '1px solid #E2E8F0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+          <h2 className="knowledge-sources-head" style={{ margin: 0 }}>
+            المصادر الحالية ({sources.length})
+          </h2>
+        </div>
+
+        <KnowledgeFilterBar
+          search={searchQuery}
+          onSearchChange={onSearchChange}
+          kind={kindFilter}
+          onKindChange={onKindFilterChange}
+          status={statusFilter}
+          onStatusChange={onStatusFilterChange}
+          year={yearFilter}
+          onYearChange={onYearFilterChange}
+          entityType={entityTypeFilter}
+          onEntityTypeChange={onEntityTypeFilterChange}
+          sector={sectorFilter}
+          onSectorChange={onSectorFilterChange}
+          minRevenue={minRevenueFilter}
+          onMinRevenueChange={onMinRevenueFilterChange}
+          onReset={onReset}
+          isInline={true}
+        />
+      </div>
 
       {sources.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94A3B8' }}>
-          لا توجد مصادر مطابقة لمعايير البحث الحالية.
+          لا توجد مصادر مطابقة لمعايير البحث والفلترة المحددة.
         </div>
       ) : (
         <div>
@@ -74,15 +113,6 @@ export default function KnowledgeSourceList({
               <div className="source-actions-wrap">
                 <button
                   type="button"
-                  onClick={() => onInspect(item)}
-                  className="btn-card-action"
-                >
-                  <IconInspect className="size-4 text-[#0D3C5C]" />
-                  <span>فحص</span>
-                </button>
-
-                <button
-                  type="button"
                   onClick={() => onEdit(item)}
                   className="btn-card-action"
                 >
@@ -101,7 +131,7 @@ export default function KnowledgeSourceList({
 
                 <button
                   type="button"
-                  onClick={() => onDelete(item.id)}
+                  onClick={() => onDelete(item.id, item.source_type || (item.kind === 'precedent' ? 'judgment' : 'law'))}
                   className="btn-card-delete"
                   title="حذف المصدر وفهارسه"
                 >

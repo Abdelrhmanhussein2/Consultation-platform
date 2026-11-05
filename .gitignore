@@ -111,3 +111,6 @@ Thumbs.db
 # Logs
 *.log
 
+# Uploaded template files
+static/templates/
+

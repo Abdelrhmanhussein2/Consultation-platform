@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, DateTime, Integer, func
+from sqlalchemy import Column, String, DateTime, Integer, Boolean, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID
 
 from helpers.database import Base
@@ -17,5 +17,7 @@ class OfficialTemplate(Base):
     file_type = Column(String(50), nullable=True)  # e.g. PDF, DOCX, XLSX
     language = Column(String(50), nullable=True)  # e.g. AR, EN, AR/EN
     downloads_count = Column(Integer, nullable=False, default=0, server_default="0")
+    is_active = Column(Boolean, nullable=False, default=True, server_default="true")
+    updated_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())

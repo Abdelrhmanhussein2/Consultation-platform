@@ -4,6 +4,7 @@ from .user_folder import UserFolder, UserFolderItem, UserFolderFile
 from .user_highlight import UserHighlight
 from .favorite import Favorite
 from .official_template import OfficialTemplate
+from .tax_entity import TaxEntity
 from .file_download_log import FileDownloadLog
 from .user_policy_agreement import UserPolicyAgreement
 
@@ -16,6 +17,7 @@ __all__ = [
     "UserHighlight",
     "Favorite",
     "OfficialTemplate",
+    "TaxEntity",
     "FileDownloadLog",
     "UserPolicyAgreement"
 ]

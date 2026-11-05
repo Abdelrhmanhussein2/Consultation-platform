@@ -73,7 +73,7 @@ from schemes.schemes import (
     SMTPSettingsSchema, BankTransferGatewaySchema, CliQGatewaySchema, PayPalGatewaySchema,
     StripeGatewaySchema, PaymentGatewaysSchema, SMSSettingsSchema, AISettingsSchema, PoliciesSettingsSchema,
     AllPlatformSettingsOut, PublicPaymentGatewayOut, PublicPlatformSettingsOut, TestEmailRequest,
-    TestEmailResponse, UserDocumentOut, OfficialTemplateOut, FavoriteOut, FavoriteToggle,
+    TestEmailResponse, UserDocumentOut, OfficialTemplateOut, OfficialTemplateUpdate, FavoriteOut, FavoriteToggle,
 )
 from schemes.invoice_schemes import InvoiceCreate, InvoiceOut
 from schemes.recurring_invoice_schemes import RecurringInvoiceCreate, RecurringInvoiceOut
@@ -81,6 +81,10 @@ from schemes.refunded_invoice_schemes import RefundedInvoiceCreate, RefundedInvo
 from schemes.automation_rule_schemas import AutomationRuleCreate, AutomationRuleUpdate, AutomationRuleOut
 from schemes.r360_schemas import Entity360SearchItem, Entity360Response
 from schemes.ai_control_schemas import AIServiceConfigUpdate, AISystemStatsOut
+from schemes.tax_directory_schemes import (
+    TaxEntityBase, TaxEntityCreate, TaxEntityUpdate, TaxEntityOut,
+    TaxDirectoryStats, ImportPreviewItem, ImportDryRunResult, ImportCommitResult
+)
 
 
 
