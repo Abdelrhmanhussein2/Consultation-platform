@@ -78,9 +78,9 @@ export const getAuthHeaders = () => {
   try {
     const m = document.cookie.match(/(?:^|;\s*)(?:token|access_token)=([^;]+)/);
     if (m) token = decodeURIComponent(m[1]);
-  } catch { }
+  } catch {}
   if (!token) {
-    try { token = localStorage.getItem('token') || localStorage.getItem('access_token'); } catch { }
+    try { token = localStorage.getItem('token') || localStorage.getItem('access_token'); } catch {}
   }
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
