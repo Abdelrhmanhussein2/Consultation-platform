@@ -10,6 +10,51 @@ from services.ai.llm_service import LLMService
 from services.ai.hybrid_search_service import HybridSearchService
 
 
+def detect_advanced_intent(text: str) -> Optional[str]:
+    """
+    تحليل نية المستخدم واكتشاف ما إذا كان يطلب تفعيل أحد أنماط البحث المتقدم في نصه:
+    - 'deep': تحليل تشريعي عميق
+    - 'compare': مقارنة تشريعية
+    - 'compliance': الالتزام والامتثال
+    - 'consultation': استشارة ضريبية متقدمة
+    """
+    if not text:
+        return None
+    t = text.lower().strip()
+
+    # 1. تحليل تشريعي عميق
+    deep_keywords = [
+        "تحليل تشريعي", "تحليل عميق", "تحليلا تشريعيا", "حلل تشريعيا", "حلل تشريعياً",
+        "تحليل تشريعي عميق", "سوابق التمييز", "قرارات التمييز", "محكمة التمييز",
+        "تطور الاحكام", "تطور الأحكام", "نصوص المواد وتطورها", "تتبع المادة"
+    ]
+    if any(k in t for k in deep_keywords):
+        return "deep"
+
+    # 2. مقارنة تشريعية
+    compare_keywords = [
+        "مقارنة تشريعية", "مقارنة", "قارن بين", "قارن المواد", "مقارنة النصوص",
+        "الفرق بين القانونين", "الفرق بين المادتين", "قبل التعديل وبعده"
+    ]
+    if any(k in t for k in compare_keywords):
+        return "compare"
+
+    # 3. الالتزام والامتثال
+    compliance_keywords = [
+        "امتثال", "الامتثال", "الالتزام", "الالتزام والامتثال", "المواعيد القانونية",
+        "الغرامات", "غرامات التأخير", "فحص الامتثال", "مواعيد الإقرار", "مهلة السداد",
+        "غرامة التأخير"
+    ]
+    if any(k in t for k in compliance_keywords):
+        return "compliance"
+
+    # 4. طلب استشارة متقدمة
+    if "بحث متقدم" in t or "استشارة متقدمة" in t:
+        return "consultation"
+
+    return None
+
+
 class AIChatService:
 
     @staticmethod
@@ -126,21 +171,56 @@ class AIChatService:
         )
         db.add(user_msg)
 
-        # 2. استرجاع السياق القانوني والضريبي عبر محرك البحث الهجين (Qdrant Semantic + Neo4j Graph)
-        graph_context, citations = HybridSearchService.search(clean_text)
+        # 2. فحص نية المستخدم (Intent Detection): هل طلب المستخدم مساراً تشريعياً متقدماً؟
+        detected_mode = detect_advanced_intent(clean_text)
 
-        # استرجاع وتطبيق البرومبت المخصص للوضع الحالي المعتمد من قبل الأدمن
-        from services.ai.prompts import build_system_instruction_for_mode
-        system_prompt = build_system_instruction_for_mode(mode=mode, db=db)
+        # يعتبر متقدماً إذا تم الضغط على زر بحث متقدم أو إذا طلب المستخدم مساراً متقدماً في كلامه
+        effective_is_advanced = bool(is_advanced or detected_mode)
+        effective_mode = detected_mode if detected_mode else (mode or "consultation")
 
-        user_prompt_with_context = clean_text
-        if graph_context:
-            user_prompt_with_context = (
-                f"{clean_text}\n\n"
-                f"--- [البيانات والنصوص المستخرجة من قاعدة المعرفة الرسم البياني Neo4j] ---\n"
-                f"{graph_context}\n"
-                f"--- [نهاية بيانات Neo4j] ---"
-            )
+        graph_context = None
+        citations = []
+
+        if effective_is_advanced:
+            # صياغة استعلام البحث في حال كان طلب المستخدم متابعة مختصرة
+            search_query = clean_text
+            if detected_mode and len(clean_text) < 90:
+                # استرجاع موضوع السؤال السابق في الجلسة لضمان دقة استرجاع نصوص القوانين من Qdrant وNeo4j
+                last_user_msg = (
+                    db.query(AIChatMessage)
+                    .filter(AIChatMessage.session_id == session.id, AIChatMessage.role == AIChatRole.user)
+                    .order_by(AIChatMessage.created_at.desc())
+                    .offset(1)
+                    .first()
+                )
+                if last_user_msg:
+                    try:
+                        prev_text = decrypt_text(last_user_msg.content_encrypted)
+                        search_query = f"{prev_text} ({clean_text})"
+                    except Exception:
+                        pass
+
+            # استدعاء أدوات البحث الهجين (Qdrant Semantic + Neo4j Graph RAG)
+            graph_context, citations = HybridSearchService.search(search_query)
+
+            # استرجاع وتطبيق البرومبت المخصص للوضع المتقدم المعتمد من قبل الأدمن
+            from services.ai.prompts import build_system_instruction_for_mode
+            system_prompt = build_system_instruction_for_mode(mode=effective_mode, db=db)
+
+            user_prompt_with_context = clean_text
+            if graph_context:
+                user_prompt_with_context = (
+                    f"{clean_text}\n\n"
+                    f"--- [البيانات والنصوص المستخرجة من قاعدة المعرفة الرسم البياني Neo4j] ---\n"
+                    f"{graph_context}\n"
+                    f"--- [نهاية بيانات Neo4j] ---"
+                )
+        else:
+            # الوضع الافتراضي التفاعلي السريع: بدون استدعاء الـ Tools (لتوفير السرعة والموارد)
+            # مع تحليل السؤال واقتراح مسارات التعمق في ختام الإجابة
+            from services.ai.prompts import build_default_system_instruction
+            system_prompt = build_default_system_instruction(db=db)
+            user_prompt_with_context = clean_text
 
         try:
             reply = LLMService.generate_response(user_prompt_with_context, system_instruction=system_prompt)

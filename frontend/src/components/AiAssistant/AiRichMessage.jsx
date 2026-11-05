@@ -1,5 +1,6 @@
 // frontend/src/components/AiAssistant/AiRichMessage.jsx
 import React, { useState } from 'react';
+import { ModeIcon } from './AiModeSelector';
 
 /**
  * دالة مساعدة لتحويل النصوص العريضة والروابط القانونية إلى عناصر React
@@ -46,7 +47,8 @@ function renderInlineFormatting(text) {
                 whiteSpace: 'nowrap'
               }}
             >
-              ⚖️ {sub.trim()}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
+              <span>{sub.trim()}</span>
             </span>
           );
         }
@@ -131,15 +133,6 @@ export default function AiRichMessage({ content, citations = [], onFollowUp }) {
     navigator.clipboard.writeText(content || '');
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleShare = (type) => {
-    const text = 'استشارة ضريبية من ديوان:\n\n' + content;
-    if (type === 'whatsapp') {
-      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-    } else if (type === 'email') {
-      window.location.href = `mailto:?subject=${encodeURIComponent('استشارة من ديوان')}&body=${encodeURIComponent(text)}`;
-    }
   };
 
   if (!content) return null;
@@ -300,7 +293,7 @@ export default function AiRichMessage({ content, citations = [], onFollowUp }) {
                 boxShadow: '0 2px 8px rgba(13, 60, 92, 0.15)'
               }}
             >
-              <span style={{ fontSize: '18px' }}>⚖️</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
               <span>{b.text}</span>
             </div>
           );
@@ -377,7 +370,7 @@ export default function AiRichMessage({ content, citations = [], onFollowUp }) {
                 color: '#0D3C5C'
               }}
             >
-              <span>🔹</span>
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#0D3C5C', display: 'inline-block' }} />
               <span>{b.title}</span>
             </div>
           );
@@ -399,7 +392,7 @@ export default function AiRichMessage({ content, citations = [], onFollowUp }) {
               }}
             >
               <div style={{ fontWeight: 800, fontSize: '14px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>💡</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
                 <span>{b.title}</span>
               </div>
               {b.rest && (
@@ -462,8 +455,9 @@ export default function AiRichMessage({ content, citations = [], onFollowUp }) {
       {/* المراجع المستند إليها إن وجدت */}
       {citations && citations.length > 0 && (
         <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: '12px', color: '#64748B', fontWeight: 800, marginBottom: '6px' }}>
-            📚 نصوص وسوابق مستند إليها:
+          <div style={{ fontSize: '12px', color: '#64748B', fontWeight: 800, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
+            <span>نصوص وسوابق مستند إليها:</span>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
             {citations.map((c, cIdx) => (
@@ -472,7 +466,7 @@ export default function AiRichMessage({ content, citations = [], onFollowUp }) {
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px',
+                  gap: '5px',
                   background: '#F1F5F9',
                   color: '#334155',
                   padding: '4px 10px',
@@ -482,14 +476,112 @@ export default function AiRichMessage({ content, citations = [], onFollowUp }) {
                   border: '1px solid #CBD5E1'
                 }}
               >
-                📌 {c.article || c.ruling || c.law || 'مرجع قانوني'}
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
+                <span>{c.article || c.ruling || c.law || 'مرجع قانوني'}</span>
               </span>
             ))}
           </div>
         </div>
       )}
 
-      {/* تنبيه قانوني */}
+      {/* مسارات التحليل المتقدم التفاعلية السريعة */}
+      {content && (content.includes('مسارات التحليل المتقدم') || content.includes('التحليل المتقدم')) && onFollowUp && (
+        <div
+          style={{
+            marginTop: '18px',
+            padding: '14px 18px',
+            background: 'linear-gradient(135deg, #F8FAFC 0%, #F0F9FF 100%)',
+            border: '1.5px dashed #BAE6FD',
+            borderRadius: '12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px'
+          }}
+        >
+          <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0369A1', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span>انقر على أحد المسارات لتفعيل البحث والتحليل التشريعي المعمق فوراً:</span>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={() => onFollowUp('أريد إجراء تحليل تشريعي عميق حول هذا الموضوع')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                background: '#FFFFFF',
+                border: '1.5px solid #0284C7',
+                color: '#0369A1',
+                fontSize: '12.5px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                boxShadow: '0 2px 4px rgba(2, 132, 199, 0.08)'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#0284C7'; e.currentTarget.style.color = '#FFFFFF'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.color = '#0369A1'; }}
+            >
+              <ModeIcon id="deep" size={14} />
+              <span>تحليل تشريعي عميق</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onFollowUp('أريد مقارنة تشريعية حول هذا الموضوع')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                background: '#FFFFFF',
+                border: '1.5px solid #0D3C5C',
+                color: '#0D3C5C',
+                fontSize: '12.5px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                boxShadow: '0 2px 4px rgba(13, 60, 92, 0.08)'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#0D3C5C'; e.currentTarget.style.color = '#FFFFFF'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.color = '#0D3C5C'; }}
+            >
+              <ModeIcon id="compare" size={14} />
+              <span>مقارنة تشريعية</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onFollowUp('أريد فحص متطلبات الالتزام والامتثال لهذا الموضوع')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                background: '#FFFFFF',
+                border: '1.5px solid #16A34A',
+                color: '#15803D',
+                fontSize: '12.5px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                boxShadow: '0 2px 4px rgba(22, 163, 74, 0.08)'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#16A34A'; e.currentTarget.style.color = '#FFFFFF'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.color = '#15803D'; }}
+            >
+              <ModeIcon id="compliance" size={14} />
+              <span>الالتزام والامتثال</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* تنبيه استرشادي */}
       <div
         style={{
           marginTop: '16px',
@@ -504,82 +596,68 @@ export default function AiRichMessage({ content, citations = [], onFollowUp }) {
           gap: '6px'
         }}
       >
-        <span>⚠️</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         <span>
           هذه الإجابة استرشادية مبنية على النصوص المسجلة بالنظام. للمسائل الجوهرية والقرارات الملزمة، يُنصح بحجز استشارة معتمدة.
         </span>
       </div>
 
-      {/* شريط الأدوات أسفل الرسالة (نسخ، طباعة، مشاركة) */}
+      {/* شريط الأدوات أسفل الرسالة (أيقونة نسخ الإجابة فقط بتنسيق SVG بدون نصوص وبدون أزرار أخرى) */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'flex-end',
-          gap: '8px',
-          marginTop: '14px',
-          paddingTop: '10px',
+          marginTop: '12px',
+          paddingTop: '8px',
           borderTop: '1px solid #F1F5F9'
         }}
       >
         <button
+          type="button"
           onClick={handleCopy}
+          title={copied ? 'تم النسخ' : 'نسخ الإجابة'}
+          aria-label="نسخ الإجابة"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '4px',
-            padding: '5px 10px',
-            borderRadius: '6px',
-            border: '1px solid #E2E8F0',
+            justifyContent: 'center',
+            width: '32px',
+            height: '32px',
+            borderRadius: '8px',
+            border: '1px solid',
+            borderColor: copied ? '#A7F3D0' : '#E2E8F0',
             background: copied ? '#ECFDF5' : '#FFFFFF',
             color: copied ? '#059669' : '#64748B',
-            fontSize: '11.5px',
-            fontWeight: 700,
-            cursor: 'pointer'
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)'
+          }}
+          onMouseEnter={(e) => {
+            if (!copied) {
+              e.currentTarget.style.borderColor = '#CBD5E1';
+              e.currentTarget.style.color = '#0D3C5C';
+              e.currentTarget.style.background = '#F8FAFC';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!copied) {
+              e.currentTarget.style.borderColor = '#E2E8F0';
+              e.currentTarget.style.color = '#64748B';
+              e.currentTarget.style.background = '#FFFFFF';
+            }
           }}
         >
-          <span>{copied ? '✓' : '📋'}</span>
-          <span>{copied ? 'تم النسخ' : 'نسخ الإجابة'}</span>
-        </button>
-
-        <button
-          onClick={() => window.print()}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            padding: '5px 10px',
-            borderRadius: '6px',
-            border: '1px solid #E2E8F0',
-            background: '#FFFFFF',
-            color: '#64748B',
-            fontSize: '11.5px',
-            fontWeight: 700,
-            cursor: 'pointer'
-          }}
-        >
-          <span>🖨️</span>
-          <span>طباعة</span>
-        </button>
-
-        <button
-          onClick={() => handleShare('whatsapp')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            padding: '5px 10px',
-            borderRadius: '6px',
-            border: '1px solid #E2E8F0',
-            background: '#FFFFFF',
-            color: '#16A34A',
-            fontSize: '11.5px',
-            fontWeight: 700,
-            cursor: 'pointer'
-          }}
-        >
-          <span>💬</span>
-          <span>واتساب</span>
+          {copied ? (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          ) : (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+          )}
         </button>
       </div>
     </div>
