@@ -8,6 +8,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d consultation_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - consultation_network
 
@@ -63,6 +68,7 @@ services:
       REDIS_URL: redis://consultation_redis:6379/0
       QDRANT_HOST: consultation_vector
       QDRANT_PORT: 6333
+    command: sh -c "alembic upgrade head && exec uvicorn main:app --host 0.0.0.0 --port 5000"
     ports:
       - "5000:5000"
     volumes:
@@ -70,10 +76,14 @@ services:
     networks:
       - consultation_network
     depends_on:
-      - postgres
-      - neo4j
-      - redis
-      - qdrant
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_started
+      redis:
+        condition: service_started
+      qdrant:
+        condition: service_started
 
 networks:
   consultation_network:

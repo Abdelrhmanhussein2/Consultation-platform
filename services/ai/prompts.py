@@ -93,8 +93,9 @@ def get_all_prompts(db: Optional[Session] = None) -> List[Dict[str, Any]]:
             stored = json.loads(setting.value_json)
             if isinstance(stored, list) and len(stored) > 0:
                 return stored
-    except Exception as e:
-        print(f"[Prompts Warning] Could not load stored prompts from DB: {e}")
+    except Exception:
+        # في حال عدم توفر اتصال بقاعدة البيانات (مثل تشغيل السكريبتات المحلية)، نعتمد الإعدادات الافتراضية بسلاسة
+        pass
     finally:
         if close_db: db.close()
     return DEFAULT_ADVANCED_BUTTONS

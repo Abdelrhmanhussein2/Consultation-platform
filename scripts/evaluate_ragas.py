@@ -20,8 +20,13 @@ import os
 import sys
 import json
 import argparse
+import warnings
 from datetime import datetime
 from typing import List, Dict, Any, Tuple
+
+# كتم التنبيهات الفرعية لترقية مكتبات الذكاء الاصطناعي
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
 
 # إضافة مسار المشروع للمسارات العامة
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -36,36 +41,61 @@ from services.ai.prompts import build_system_instruction_for_mode
 
 # استيراد Ragas و LangChain
 from ragas import evaluate, EvaluationDataset, SingleTurnSample
-from ragas.metrics import Faithfulness, AnswerRelevancy
+from ragas.metrics import Faithfulness, AnswerRelevancy, ContextPrecision, ContextRecall
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 
-# مجموعة أسئلة قياسية معتمدة للاختبار الشامل (Benchmark Dataset)
+# مجموعة أسئلة قياسية معتمدة للاختبار الشامل مع الإسناد النموذجي (Benchmark Dataset with Golden References)
 GOLDEN_BENCHMARK = [
     {
         "id": "tax_rates_art11",
         "question": "ما هي نسب وشرائح ضريبة الدخل المفروضة على الأفراد وفق المادة 11 من القانون، وما هي نسبة ضريبة الدخل المفروضة على البنوك؟",
-        "category": "شرائح ونسب ضريبية"
+        "category": "شرائح ونسب ضريبية",
+        "reference": (
+            "وفقاً لأحكام المادة 11 من قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته: تستوفى الضريبة عن الدخل الخاضع للضريبة "
+            "للشخص الطبيعي بنسب تصاعدية تبدأ بـ 5% عن كل دينار من الـ 5,000 دينار الأولى وتتدرج إلى 10%، 15%، 20%، وتصل إلى 25% "
+            "عما زاد عن 20,000 دينار مع مراعاة المساهمة الوطنية. أما بالنسبة للبنوك والشركات المالية فتستوفى الضريبة بنسبة قطعية قدرها (35%)."
+        )
     },
     {
         "id": "withholding_rent_art12",
         "question": "هل يلتزم المستأجر باقتطاع ضريبة دخل من بدل إيجار العقار المدفوع لمالك غير مقيم وفق أحكام المادة 12، وما هي النسبة المقررة؟",
-        "category": "اقتطاع من المصدر"
+        "category": "اقتطاع من المصدر",
+        "reference": (
+            "نعم، يلتزم المستأجر باقتطاع ضريبة دخل بنسبة (10%) من المبالغ المدفوعة كبدل إيجار عقار لشخص غير مقيم وفقاً "
+            "لأحكام المادة 12 فقرة (ب) من قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته، حيث يترتب على كل شخص يدفع دخلاً غير معفى "
+            "لشخص غير مقيم اقتطاع 10% وتوريدها للدائرة خلال ثلاثين يوماً من تاريخ دفعها."
+        )
     },
     {
         "id": "evasion_penalties_art66",
         "question": "ما هي عقوبات التهرب الضريبي المقررة وفق أحكام قانون ضريبة الدخل الأردني؟",
-        "category": "عقوبات وجزاءات"
+        "category": "عقوبات وجزاءات",
+        "reference": (
+            "وفقاً للمادة 66 من قانون ضريبة الدخل: يعاقب كل من ارتكب أياً من أفعال التهرب الضريبي بغرامة تعويضية تعادل مثل الفرق الضريبي "
+            "المترتب عليه، وتضاعف العقوبة مع الحبس مدة لا تقل عن أربعة أشهر ولا تزيد على سنة في حالة التكرار للمرة الثانية، "
+            "وبالحبس مدة لا تقل عن سنة ولا تزيد على سنتين للمرة الثالثة، وتتضاعف في المرات اللاحقة."
+        )
     },
     {
         "id": "professional_fees_withholding",
         "question": "هل تلتزم الشركات باقتطاع ضريبة دخل بنسبة 5% عند دفع أتعاب للمحامين والمهندسين والأطباء المقيمين في الأردن؟",
-        "category": "أتعاب مهنية واقتطاعات"
+        "category": "أتعاب مهنية واقتطاعات",
+        "reference": (
+            "نعم، تلتزم الشركات والأشخاص الاعتباريون باقتطاع نسبة (5%) كدفعة على حساب الضريبة من أي مبالغ مدفوعة كأتعاب أو بدل "
+            "خدمات مهنية للأطباء والمحامين والمهندسين والخبراء والمستشارين المقيمين في المملكة بموجب المادة 12 من قانون ضريبة الدخل "
+            "والتعليمات التنفيذية الصادرة بمقتضاه."
+        )
     },
     {
         "id": "end_of_service_exemption",
         "question": "ما هو الإعفاء الضريبي المقرر لمكافأة نهاية الخدمة وبدل الإجازات وفق قانون ضريبة الدخل؟",
-        "category": "إعفاءات الدخل"
+        "category": "إعفاءات الدخل",
+        "reference": (
+            "وفقاً لأحكام قانون ضريبة الدخل (المادة 4): تعفى من الضريبة مكافأة نهاية الخدمة المستحقة للموظف أو العامل عن خدماته "
+            "بنسبة 100% للفترات السابقة لتاريخ 31-12-2009، وبنسب محددة للمدد اللاحقة، كما يعفى بدل الإجازات وبدل إنهاء الخدمة "
+            "ضمن السقوف والشروط المنصوص عليها تشريعياً."
+        )
     }
 ]
 
@@ -154,22 +184,10 @@ def evaluate_with_ragas(samples_data: List[Dict[str, Any]]) -> Dict[str, Any]:
     تقييم قائمة العينات باستخدام Ragas لحساب:
     - Faithfulness (الأمانة العلمية بالنسبة للـ Chunks).
     - Answer Relevancy (ملاءمة الإجابة للسؤال).
+    - Context Precision (دقة الاسترجاع وترتيب الـ Chunks الأكثر صلة في المقدمة).
+    - Context Recall (شمولية استرجاع وتغطية كافة نصوص وسياقات المسألة القانونية).
     """
-    print("\n[3/3] جاري تشغيل تقييم Ragas على الـ Chunks والإجابات المولدة...")
-
-    samples = []
-    for item in samples_data:
-        # إذا لم يتم استرجاع أي chunk نضع تنبيهاً لكي يستطيع Ragas التقييم
-        retrieved_contexts = item["chunks"] if item["chunks"] else ["لا تتوفر نصوص قانونية مسترجعة في السياق."]
-        
-        sample = SingleTurnSample(
-            user_input=item["question"],
-            retrieved_contexts=retrieved_contexts,
-            response=item["answer"]
-        )
-        samples.append(sample)
-
-    eval_dataset = EvaluationDataset(samples=samples)
+    print("\n[3/3] جاري تشغيل تقييم Ragas على الـ Chunks والإجابات المولدة (المعايير الـ 4)...")
 
     evaluator_llm = ChatOpenAI(
         model="gpt-4o-mini",
@@ -181,7 +199,39 @@ def evaluate_with_ragas(samples_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         api_key=settings.OPENAI_API_KEY
     )
 
-    metrics_to_run = [Faithfulness(), AnswerRelevancy()]
+    samples = []
+    for item in samples_data:
+        # إذا لم يتم استرجاع أي chunk نضع تنبيهاً لكي يستطيع Ragas التقييم
+        retrieved_contexts = item["chunks"] if item["chunks"] else ["لا تتوفر نصوص قانونية مسترجعة في السياق."]
+        
+        # التأكد من وجود مرجع (Ground Truth) لحساب الـ Context Recall والـ Context Precision
+        reference_text = item.get("reference")
+        if not reference_text or not reference_text.strip():
+            # توليد مرجع نموذجي عبر نموذج التقييم إذا لم يكن مزوداً
+            try:
+                gen_prompt = f"أعطِ إجابة نموذجية قانونية مباشرة ومختصرة جداً (مرجع معياري Ground Truth) للسؤال التالي:\nالسؤال: {item['question']}"
+                reference_text = evaluator_llm.invoke(gen_prompt).content.strip()
+                item["reference"] = reference_text
+            except Exception:
+                reference_text = item["answer"]
+                item["reference"] = reference_text
+
+        sample = SingleTurnSample(
+            user_input=item["question"],
+            retrieved_contexts=retrieved_contexts,
+            response=item["answer"],
+            reference=reference_text
+        )
+        samples.append(sample)
+
+    eval_dataset = EvaluationDataset(samples=samples)
+
+    metrics_to_run = [
+        Faithfulness(),
+        AnswerRelevancy(),
+        ContextPrecision(),
+        ContextRecall()
+    ]
 
     results = evaluate(
         dataset=eval_dataset,
@@ -196,7 +246,7 @@ def evaluate_with_ragas(samples_data: List[Dict[str, Any]]) -> Dict[str, Any]:
 def print_colored_summary(evaluated_items: List[Dict[str, Any]], overall_scores: Dict[str, float]):
     """طباعة ملخص منظم وجذاب في الطرفية."""
     print("\n" + "=" * 80)
-    print(" 📊 نتائج تقييم RAGAS لمنظومة الذكاء الاصطناعي (Chunks & Answer Evaluation)")
+    print(" 📊 نتائج تقييم RAGAS لمنظومة الذكاء الاصطناعي (4 Core RAG Metrics)")
     print("=" * 80)
 
     for idx, item in enumerate(evaluated_items, 1):
@@ -212,9 +262,13 @@ def print_colored_summary(evaluated_items: List[Dict[str, Any]], overall_scores:
         if "scores" in item:
             f_score = item['scores'].get('faithfulness', 0.0)
             r_score = item['scores'].get('answer_relevancy', 0.0)
+            p_score = item['scores'].get('context_precision', 0.0)
+            rc_score = item['scores'].get('context_recall', 0.0)
             print(f"   🎯 النتائج الفردية:")
-            print(f"      - Faithfulness (الأمانة العلمية وعدم الهلوسة): {f_score:.2%}")
-            print(f"      - Answer Relevancy (ملاءمة الإجابة للسؤال):     {r_score:.2%}")
+            print(f"      - Faithfulness (الأمانة العلمية وعدم الهلوسة):    {f_score:.2%}")
+            print(f"      - Answer Relevancy (ملاءمة الإجابة للسؤال):        {r_score:.2%}")
+            print(f"      - Context Precision (دقة ترتيب وترجيح السياق):     {p_score:.2%}")
+            print(f"      - Context Recall (شمولية استرجاع السند القانوني):  {rc_score:.2%}")
 
     print("\n" + "-" * 80)
     print(" 🏆 الدرجات الإجمالية لمنظومة الـ RAG (Overall Scores):")
@@ -238,21 +292,31 @@ def save_reports(evaluated_items: List[Dict[str, Any]], overall_scores: Dict[str
         "evaluations": evaluated_items
     }
 
+    metric_descriptions = {
+        "faithfulness": "الأمانة العلمية والاستناد على النصوص المسترجعة دون هلوسة",
+        "answer_relevancy": "ملاءمة الإجابة المولدة للسؤال المطلوب بدقة واكتمال",
+        "context_precision": "دقة الاسترجاع وترتيب الـ Chunks القانونية ذات الصلة في المقدمة",
+        "context_recall": "شمولية الاسترجاع وتغطية السند القانوني والوقائع بالكامل"
+    }
+
     with open(report_json_path, "w", encoding="utf-8") as f:
         json.dump(report_payload, f, ensure_ascii=False, indent=2)
 
     with open(report_md_path, "w", encoding="utf-8") as f:
-        f.write("# تقرير تقييم منظومة RAG بواسطة Ragas\n\n")
+        f.write("# تقرير تقييم منظومة RAG بواسطة Ragas (المعايير الأربعة الأساسية)\n\n")
         f.write(f"- **تاريخ التقييم:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
         f.write("## 1. الدرجات الإجمالية (Overall Metrics)\n\n")
         f.write("| المعيار (Metric) | النتيجة | الوصف |\n")
         f.write("| :--- | :---: | :--- |\n")
         for k, v in overall_scores.items():
-            f.write(f"| **{k}** | `{v:.4f}` ({v:.1%}) | {'الأمانة العلمية والاستناد على النصوص دون هلوسة' if k == 'faithfulness' else 'ملاءمة الإجابة المولدة للسؤال المطلوب'} |\n")
+            desc = metric_descriptions.get(k, "معيار جودة RAG")
+            f.write(f"| **{k}** | `{v:.4f}` ({v:.1%}) | {desc} |\n")
         f.write("\n## 2. تفاصيل الحالات والـ Chunks المسترجعة\n\n")
         for idx, item in enumerate(evaluated_items, 1):
             f.write(f"### الحالة {idx}: {item['question']}\n\n")
             f.write(f"**عدد الـ Chunks المسترجعة:** {len(item['chunks'])}\n\n")
+            if item.get("reference"):
+                f.write(f"**المرجع المعياري (Ground Truth):**\n> {item['reference']}\n\n")
             f.write("<details><summary><b>عرض الـ Chunks المسترجعة من Neo4j/Qdrant</b></summary>\n\n")
             for c_idx, ch in enumerate(item['chunks'], 1):
                 f.write(f"**Chunk #{c_idx}:**\n```text\n{ch}\n```\n\n")
@@ -271,19 +335,25 @@ def save_reports(evaluated_items: List[Dict[str, Any]], overall_scores: Dict[str
 def main():
     parser = argparse.ArgumentParser(description="تقييم منظومة RAG باستخدام مكتبة Ragas على الـ Chunks والإجابات المولدة")
     parser.add_argument("--query", "-q", type=str, help="سؤال مخصص لاختباره بمفرده")
+    parser.add_argument("--reference", "-r", type=str, help="المرجع القانوني أو السند النموذجي (Ground Truth) لحساب Recall و Precision")
     parser.add_argument("--benchmark", "-b", action="store_true", help="تشغيل الاختبار على حزمة الأسئلة القياسية الخمسة")
     args = parser.parse_args()
 
     questions = []
     if args.query:
-        questions.append({"id": "custom", "question": args.query, "category": "سؤال مخصص"})
+        questions.append({
+            "id": "custom",
+            "question": args.query,
+            "category": "سؤال مخصص",
+            "reference": args.reference
+        })
     elif args.benchmark:
         questions = GOLDEN_BENCHMARK
     else:
         # افتراضياً: اختبار سؤالين ممثلين
         questions = GOLDEN_BENCHMARK[:2]
 
-    print("🚀 بدء تشغيل تقييم Ragas على منظومة RAG...")
+    print("🚀 بدء تشغيل تقييم Ragas على منظومة RAG (التقييم الرباعي: Faithfulness, Relevancy, Precision, Recall)...")
     print(f"عدد الأسئلة المراد تقييمها: {len(questions)}")
 
     evaluated_items = []
@@ -294,6 +364,7 @@ def main():
             "id": q_item.get("id"),
             "category": q_item.get("category"),
             "question": q_text,
+            "reference": q_item.get("reference"),
             "chunks": chunks,
             "answer": answer,
             "citations": citations
@@ -303,18 +374,24 @@ def main():
     ragas_result = evaluate_with_ragas(evaluated_items)
     
     # دمج درجات كل عينة
-    scores_dict = {}
     if hasattr(ragas_result, "scores"):
-        # في حال كانت scores مصفوفة عينات
         scores_data = ragas_result.scores
         if isinstance(scores_data, list):
             for i, s in enumerate(scores_data):
                 if i < len(evaluated_items):
                     evaluated_items[i]["scores"] = dict(s)
+    elif hasattr(ragas_result, "to_pandas"):
+        df = ragas_result.to_pandas()
+        for i, row in df.iterrows():
+            if i < len(evaluated_items):
+                evaluated_items[i]["scores"] = {
+                    col: float(row[col]) for col in ["faithfulness", "answer_relevancy", "context_precision", "context_recall"]
+                    if col in df.columns and row[col] is not None
+                }
     
-    # استخراج الدرجات العامة
+    # استخراج الدرجات العامة لجميع المعايير الأربعة
     overall_scores = {}
-    for metric_name in ["faithfulness", "answer_relevancy"]:
+    for metric_name in ["faithfulness", "answer_relevancy", "context_precision", "context_recall"]:
         val = ragas_result.get(metric_name) if isinstance(ragas_result, dict) else getattr(ragas_result, metric_name, None)
         if val is None and hasattr(ragas_result, "to_pandas"):
             df = ragas_result.to_pandas()
