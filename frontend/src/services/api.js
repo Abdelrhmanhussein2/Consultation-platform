@@ -148,7 +148,7 @@ export const apiFetch = async (url, options = {}, token = null) => {
   }
 
   let response;
-  const timeoutMs = options.timeout || 12000;
+  const timeoutMs = options.timeout || 30000;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   const signal = options.signal || controller.signal;
@@ -163,6 +163,11 @@ export const apiFetch = async (url, options = {}, token = null) => {
         response = await fetch(url, { ...options, signal, headers: buildHeaders(newAccess), body });
       }
     }
+  } catch (err) {
+    if (err.name === 'AbortError' || signal.aborted) {
+      throw new Error('استغرقت العملية وقتاً أطول من المتوقع، يرجى إعادة المحاولة.');
+    }
+    throw err;
   } finally {
     clearTimeout(timeoutId);
   }

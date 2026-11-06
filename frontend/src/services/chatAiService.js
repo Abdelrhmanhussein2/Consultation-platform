@@ -8,6 +8,7 @@ export const chatAiService = {
     return await apiFetch('/api/chat/ai/generate-reply', {
       method: 'POST',
       body: params,
+      timeout: 60000,
     });
   },
 
@@ -18,6 +19,7 @@ export const chatAiService = {
     return await apiFetch('/api/chat/ai/direct-ask', {
       method: 'POST',
       body: { question, context },
+      timeout: 60000,
     });
   },
 
@@ -62,6 +64,7 @@ export const chatAiService = {
     return await apiFetch(`/api/ai-assistant/sessions/${sessionId}/messages`, {
       method: 'POST',
       body: { message, mode, is_advanced: isAdvanced },
+      timeout: 90000,
     });
   },
 
