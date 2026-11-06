@@ -99,10 +99,10 @@ class AIChatService:
                     except Exception:
                         pass
 
-            graph_context, citations = HybridSearchService.search(search_query)
+            graph_context, citations = HybridSearchService.search(search_query, mode=effective_mode)
             from services.ai.prompts import build_system_instruction_for_mode
             system_prompt = build_system_instruction_for_mode(mode=effective_mode, db=db)
-            user_prompt = f"{clean_text}\n\n--- [بيانات Neo4j] ---\n{graph_context}\n--- [نهاية بيانات Neo4j] ---" if graph_context else clean_text
+            user_prompt = f"{clean_text}\n\n{graph_context}" if graph_context else clean_text
         else:
             from services.ai.prompts import build_default_system_instruction
             system_prompt = build_default_system_instruction(db=db)
@@ -118,8 +118,24 @@ class AIChatService:
             reply = "عذراً، تعذر معالجة الطلب حالياً. يرجى إعادة المحاولة."
             usage, model_name, latency_ms = {}, "", 0
 
-        # فحص ما إذا كان الـ AI غير متأكد أو عجز عن الإجابة (Flagging)
+        # تنظيف أي تسريب تقني غير مقصود لضمان عدم ظهور أي ألفاظ تقنية نهائياً
         import re
+        tech_leaks = [
+            r"نظراً لعدم وجود نصوص في البيانات المسترجعة.*?(?:،|\.|\n|$)",
+            r"في البيانات المسترجعة من Neo4j",
+            r"في البيانات المسترجعة من Qdrant",
+            r"في البيانات المسترجعة",
+            r"البيانات المسترجعة",
+            r"من Neo4j",
+            r"من Qdrant",
+            r"Neo4j",
+            r"Qdrant",
+        ]
+        for pattern in tech_leaks:
+            reply = re.sub(pattern, "", reply, flags=re.IGNORECASE)
+        reply = re.sub(r"\n{3,}", "\n\n", reply).strip()
+
+        # فحص ما إذا كان الـ AI غير متأكد أو عجز عن الإجابة (Flagging)
         is_unresolved, unresolved_reason = False, None
         if "[UNRESOLVED_QUERY" in reply:
             match = re.search(r"\[UNRESOLVED_QUERY:?\s*(.*?)\]", reply, re.IGNORECASE)

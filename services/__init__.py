@@ -7,7 +7,8 @@ from services.auth import (
 from services.ai import (
     BaseLLM, GroqLLM, OpenAILLM, LLMService,
     BaseEmbeddings, CohereEmbeddings, EmbeddingsService, VectorIndexService,
-    Neo4jRAGService, HybridSearchService, AIChatService, LegalGraphService, DocxParserService
+    Neo4jRAGService, HybridSearchService, AIChatService, LegalGraphService, DocxParserService,
+    LegalTools, OPENAI_LEGAL_TOOLS
 )
 from services.finance import (
     InvoiceService, RecurringInvoiceService, RefundedInvoiceService, WalletService
@@ -33,6 +34,7 @@ __all__ = [
     "BaseLLM", "GroqLLM", "OpenAILLM", "LLMService",
     "BaseEmbeddings", "CohereEmbeddings", "EmbeddingsService", "VectorIndexService",
     "Neo4jRAGService", "HybridSearchService", "AIChatService", "LegalGraphService", "DocxParserService",
+    "LegalTools", "OPENAI_LEGAL_TOOLS",
     # Finance
     "InvoiceService", "RecurringInvoiceService", "RefundedInvoiceService", "WalletService",
     # Consultations

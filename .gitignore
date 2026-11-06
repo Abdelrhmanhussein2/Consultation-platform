@@ -95,6 +95,9 @@ reports/
 dry_run_report.json
 *dry_run*.json
 *_out.txt
+ragas_report_*.json
+ragas_evaluation_report.md
+
 
 
 # IDE & Editor Files

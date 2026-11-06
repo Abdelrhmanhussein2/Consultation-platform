@@ -183,7 +183,7 @@ class Neo4jRAGService:
 
         context_parts = []
         if articles_found:
-            context_parts.append("### [المواد والأنظمة القانونية المسترجعة من الرسم البياني المعرفي Neo4j]:")
+            context_parts.append("### [النصوص والأنظمة القانونية المعتمدة]:")
             for art in articles_found:
                 law_title = art.get('law_name') or "قانون ضريبة الدخل"
                 art_name = art.get('name') or "المادة"
@@ -214,7 +214,7 @@ class Neo4jRAGService:
                         context_parts.append(f"    - {r.get('ruling')} ({r.get('court')}): {snippet}...")
 
         if rulings_found:
-            context_parts.append("\n### [سوابق وتطبيقات قضائية من Neo4j]:")
+            context_parts.append("\nسوابق وتطبيقات قضائية:")
             for r in rulings_found:
                 court = r.get("court") or "المحكمة المختصة"
                 title = r.get("title") or r.get("name")

@@ -11,6 +11,7 @@ from .hybrid_search_service import HybridSearchService
 from .ai_chat_service import AIChatService
 from .legal_graph_service import LegalGraphService
 from .docx_parser_service import DocxParserService
+from .legal_tools import LegalTools, OPENAI_LEGAL_TOOLS
 
 __all__ = [
     "BaseLLM",
@@ -23,6 +24,8 @@ __all__ = [
     "VectorIndexService",
     "Neo4jRAGService",
     "HybridSearchService",
+    "LegalTools",
+    "OPENAI_LEGAL_TOOLS",
     "AIChatService",
     "LegalGraphService",
     "DocxParserService",
