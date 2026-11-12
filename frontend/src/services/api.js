@@ -118,7 +118,7 @@ export const refreshAccessTokenSilently = () => {
 };
 
 export const apiFetch = async (url, options = {}, token = null) => {
-  let currentToken = token || getCookie('token');
+  let currentToken = token || getCookie('token') || getCookie('admin_token') || (typeof window !== 'undefined' ? (localStorage.getItem('token') || localStorage.getItem('admin_token')) : null);
 
   // Proactive Refresh: If token expires within 2 minutes, refresh BEFORE sending request
   if (currentToken && isTokenExpiringSoon(currentToken) && !url.includes('/api/auth/')) {

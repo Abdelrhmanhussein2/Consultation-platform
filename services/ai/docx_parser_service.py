@@ -181,7 +181,21 @@ class DocxParserService:
         - Items are matched using digit numbers: 1-, 2-, 3)
         """
         text = cls.extract_docx_text(file_bytes)
-        lines = [line.strip() for line in text.split('\n') if line.strip()]
+        
+        try:
+            from services.ai.legal_preview_helper import extract_law_metadata
+            metadata = extract_law_metadata(text)
+        except Exception:
+            metadata = {}
+
+        # Strip trailing index/TOC so index entries don't overwrite substantive articles
+        clean_text = text
+        if "الفهرس" in clean_text:
+            idx_pos = clean_text.rfind("الفهرس")
+            if idx_pos > len(clean_text) * 0.4:
+                clean_text = clean_text[:idx_pos]
+
+        lines = [line.strip() for line in clean_text.split('\n') if line.strip()]
         
         # Regex patterns for Arabic legal structure
         article_pattern = re.compile(r'^المادة\s*\(?(\d+)\)?[\-\:\s\.]*')
@@ -191,6 +205,7 @@ class DocxParserService:
         articles = []
         paragraphs = []
         items = []
+        seen_article_nums = set()
         
         current_article = None
         current_paragraph = None
@@ -200,6 +215,9 @@ class DocxParserService:
             art_match = article_pattern.match(line)
             if art_match:
                 art_num = int(art_match.group(1))
+                if art_num in seen_article_nums:
+                    continue
+                seen_article_nums.add(art_num)
                 art_version_id = f"{law_id}_art_{art_num}_v_{version_name}"
                 
                 # Check for explicit title on the same line after "المادة 1: ..."
@@ -269,7 +287,8 @@ class DocxParserService:
         return {
             "articles": articles,
             "paragraphs": paragraphs,
-            "items": items
+            "items": items,
+            "metadata": metadata
         }
 
     @classmethod

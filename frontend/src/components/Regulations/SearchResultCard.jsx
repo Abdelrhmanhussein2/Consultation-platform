@@ -31,19 +31,19 @@ export default function SearchResultCard({ law, onOpenReader, onOpenPreview, onO
       <div className="result-law-meta">
         <div>
           <span>تاريخ الإصدار</span>
-          <strong>{law.issue_date || '30-12-2014'}</strong>
+          <strong>{law.issue_date || (law.year ? `${law.year}` : '—')}</strong>
         </div>
         <div>
           <span>تاريخ السريان</span>
-          <strong>{law.effective_date || '01-01-2015'}</strong>
+          <strong>{law.effective_date || '—'}</strong>
         </div>
         <div>
           <span>آخر تعديل</span>
-          <strong>{law.amended_date || (law.type?.includes('أصلية') ? 'لا ينطبق (نص أصلي)' : '01-01-2019')}</strong>
+          <strong>{law.amended_date || (law.type?.includes('أصلية') ? 'لا ينطبق (نص أصلي)' : '—')}</strong>
         </div>
         <div>
           <span>عدد المواد</span>
-          <strong>{law.total_articles ? `${law.total_articles} مادة` : '82 مادة'}</strong>
+          <strong>{law.total_articles !== undefined && law.total_articles !== null ? `${law.total_articles} مادة` : '—'}</strong>
         </div>
       </div>
 

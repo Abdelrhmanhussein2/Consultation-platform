@@ -2,6 +2,8 @@ import json
 from typing import Dict, Any, List, Optional
 from helpers.neo4j_db import neo4j_db
 from services.ai.vector_index_service import VectorIndexService
+from services.ai.legal_detail_helper import get_source_detail as _get_source_detail
+from services.ai.legal_preview_helper import extract_file_preview as _extract_preview
 
 
 class LegalSourcesService:
@@ -103,6 +105,10 @@ class LegalSourcesService:
         return {"status": "success", "message": "تمت مزامنة النواة المرجعية وفهارس المعرفة بنجاح", "stats": stats}
 
     @classmethod
+    def get_source_detail(cls, source_id: str, source_type: str = "law") -> Optional[Dict[str, Any]]:
+        return _get_source_detail(source_id, source_type)
+
+    @classmethod
     def update_source(cls, source_id: str, source_type: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Updates title, year, number, status, court, and body for a law or judgment."""
         title, year, is_active = payload.get("title", ""), payload.get("year"), payload.get("is_active", True)
@@ -127,13 +133,25 @@ class LegalSourcesService:
     @classmethod
     def create_manual_law(cls, payload: Dict[str, Any]) -> Dict[str, Any]:
         import uuid; from fastapi import HTTPException
+        from services.ai.legal_preview_helper import extract_law_metadata
         law_id = payload.get("code") or f"law_{uuid.uuid4().hex[:8]}"
         title, year, body = payload.get("title", "تشريع جديد"), int(payload.get("year") or 2026), payload.get("body", "")
+        meta = extract_law_metadata(body)
         version_id, art_id = f"{law_id}_v1", f"{law_id}_v1_art1"
         with neo4j_db.get_session() as session:
             chk = session.run("MATCH (l) WHERE (l:Law OR l:`قانون`) AND (l.law_id = $lid OR l.`معرف` = $lid OR l.title = $title OR l.`العنوان` = $title) RETURN l.title as t LIMIT 1", lid=law_id, title=title).single()
             if chk: raise HTTPException(status_code=409, detail=f"هذا القانون موجود مسبقاً في قاعدة المعرفة: ({chk['t']})")
-            session.run("MERGE (l:Law {law_id: $lid}) SET l.title = $title, l.year = $year, l.body = $body, l.full_text = $body, l.is_active = true, l.created_at = datetime() MERGE (lv:LawVersion {version_id: $vid}) SET lv.version_name = 'الأصلية', lv.effective_from = '2026-01-01', lv.law_id = $lid MERGE (l)-[:HAS_VERSION]->(lv) MERGE (av:ArticleVersion {version_id: $aid}) SET av.title = $title, av.text = $body, av.number = 1, av.is_active = true MERGE (lv)-[:HAS_ARTICLE]->(av)", lid=law_id, title=title, year=year, vid=version_id, aid=art_id, body=body)
+            session.run("""
+                MERGE (l:Law {law_id: $lid})
+                SET l.title = $title, l.year = $year, l.body = $body, l.full_text = $body, l.is_active = true, l.created_at = datetime(),
+                    l.gazette = $gazette, l.replaced_law = $replaced_law, l.issue_date = $issue_date, l.effective_date = $effective_date, l.subject = $subject
+                MERGE (lv:LawVersion {version_id: $vid}) SET lv.version_name = 'الأصلية', lv.effective_from = '2026-01-01', lv.law_id = $lid
+                MERGE (l)-[:HAS_VERSION]->(lv)
+                MERGE (av:ArticleVersion {version_id: $aid}) SET av.title = $title, av.text = $body, av.number = 1, av.is_active = true
+                MERGE (lv)-[:HAS_ARTICLE]->(av)
+            """, lid=law_id, title=title, year=year, vid=version_id, aid=art_id, body=body,
+                gazette=meta.get("gazette", ""), replaced_law=meta.get("replaced_law", ""),
+                issue_date=meta.get("issue_date", str(year)), effective_date=meta.get("effective_date", ""), subject=meta.get("subject", ""))
         try: VectorIndexService.index_law(law_id=law_id, title=title, version_id=version_id, articles=[{"version_id": art_id, "number": 1, "text": body}], paragraphs=[], items=[])
         except Exception: pass
         return {"status": "success", "id": law_id, "title": title}
@@ -177,50 +195,4 @@ class LegalSourcesService:
 
     @classmethod
     def extract_file_preview(cls, file_bytes: bytes, filename: str, source_type: str = "law") -> Dict[str, Any]:
-        import re, io, zipfile, xml.etree.ElementTree as ET
-        ext = filename.split('.')[-1].lower() if '.' in filename else ''
-        full_text = ""
-        if ext in ('docx', 'doc'):
-            try:
-                import docx
-                d = docx.Document(io.BytesIO(file_bytes))
-                parts = [p.text for p in d.paragraphs if p.text.strip()]
-                for t in d.tables:
-                    for row in t.rows: parts.extend([c.text.strip() for c in row.cells if c.text.strip()])
-                full_text = "\n".join(parts)
-            except Exception:
-                try:
-                    with zipfile.ZipFile(io.BytesIO(file_bytes)) as z:
-                        tree = ET.fromstring(z.read('word/document.xml'))
-                        p_list = [''.join([n.text or '' for n in p.iter('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t')]).strip() for p in tree.iter('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}p')]
-                        full_text = "\n".join([x for x in p_list if x])
-                except Exception as e: full_text = f"تعذر قراءة DOCX: {e}"
-        else:
-            try: full_text = file_bytes.decode('utf-8', errors='ignore')
-            except Exception: full_text = ""
-
-        clean_name = re.sub(r'\.[^.]+$', '', filename).replace('_', ' ').strip()
-        data = {"title": clean_name, "year": 2024, "tags": "", "full_text": full_text}
-        yr_m = re.search(r'(?:لسنة|عام|سنة)[_\s]*(\d{4})', filename) or re.search(r'\b(19\d{2}|20\d{2})\b', filename) or re.search(r'(?:لسنة|عام|سنة)[_\s]*(\d{4})', full_text[:1500])
-        if yr_m: data["year"] = int(yr_m.group(1))
-
-        if source_type == "judgment":
-            data["principle"] = full_text
-            court = "cassation_rights"
-            if "إدارية" in filename or "الإدارية العليا" in full_text[:1500]: court = "admin_supreme"
-            elif "جزاء" in filename or "الجزائية" in full_text[:1500]: court = "cassation_penal"
-            elif "بداية" in filename or "البداية الضريبية" in full_text[:1500]: court = "tax_first_instance"
-            elif "استئناف" in filename or "الاستئناف الضريبية" in full_text[:1500]: court = "tax_appeal"
-            data["court"] = court
-            c_num = re.search(r'(?:رقم|الحكم رقم|قرار رقم)[_\s]*(\d+)', filename)
-            data["case_number"] = f"{c_num.group(1) if c_num else '1'}/{data['year']}"
-            dispute = re.findall(r'(?:المادة|مادة)[_\s]*\(?(\d+)\)?', full_text[:3000])
-            data["dispute_item"] = f"المادة {sorted(list(set(dispute)), key=lambda x: int(x) if x.isdigit() else 999)[0]} - قانون ضريبة الدخل" if dispute else "مادة 3 - قانون ضريبة الدخل"
-            data["tags"] = f"أحكام قضائية، {'جزاء' if 'penal' in court else 'حقوق'}، ضرائب"
-        else:
-            data["body"] = full_text
-            c_code = re.search(r'رقم[_\s]*(\d+)', filename)
-            data["code"] = f"{c_code.group(1) if c_code else '1'}/{data['year']}"
-            data["tags"] = "تشريع، ضرائب، ضريبة الدخل"
-
-        return {"status": "success", "data": data}
+        return _extract_preview(file_bytes, filename, source_type)

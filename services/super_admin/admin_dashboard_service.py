@@ -101,14 +101,17 @@ class AdminDashboardService:
 
         # 2. Real Lists directly from PostgreSQL (NO fake fallback data)
 
-        # 1. Recent Legislation / Policies (آخر التشريعات المضافة)
-        recent_policies_q = db.query(SystemPolicy).filter(
-            SystemPolicy.is_active == True
-        ).order_by(SystemPolicy.created_at.desc()).limit(5).all()
-        recent_policies = [
-            [p.title[:36], p.policy_type or "تشريع", format_time_ago(p.created_at)]
-            for p in recent_policies_q
-        ]
+        # 1. Recent Legislation / Policies (آخر التشريعات المضافة من قاعدة المعرفة)
+        from services.super_admin.admin_ai_dashboard_helper import AdminAiDashboardHelper
+        recent_policies = AdminAiDashboardHelper.get_recent_legislation(limit=5)
+        if not recent_policies:
+            recent_policies_q = db.query(SystemPolicy).filter(
+                SystemPolicy.is_active == True
+            ).order_by(SystemPolicy.created_at.desc()).limit(5).all()
+            recent_policies = [
+                [p.title[:36], p.policy_type or "تشريع", format_time_ago(p.created_at)]
+                for p in recent_policies_q
+            ]
 
         # 2. Recent Ratings Pending Review (آخر التقييمات بانتظار المراجعة)
         recent_ratings_q = db.query(Rating).order_by(Rating.created_at.desc()).limit(5).all()
@@ -212,15 +215,12 @@ class AdminDashboardService:
             ])
 
         # 9. AI Management Alerts (تنبيهات واستشارات الذكاء الاصطناعي الحية)
-        ai_msgs_q = db.query(ChatMessage).order_by(ChatMessage.created_at.desc()).limit(5).all()
-        ai_alerts = []
-        for msg in ai_msgs_q:
-            ai_alerts.append([
-                f"محادثة ذكاء اصطناعي #{str(msg.id)[:6]}",
-                (msg.message_text[:35] + "...") if msg.message_text else "استشارة مسجلة",
-                "info",
-                format_time_ago(msg.created_at)
-            ])
+        ai_metrics = AdminAiDashboardHelper.get_ai_metrics(
+            db, period_start, period=period, format_time_ago_fn=format_time_ago
+        )
+        total_ai = ai_metrics["total_ai"]
+        ai_points = ai_metrics["ai_points"]
+        ai_alerts = ai_metrics["ai_alerts"]
 
         # 10. System Alerts & Warnings (آخر التنبيهات وإشعارات النظام الحية)
         recent_notifs = db.query(Notification).order_by(Notification.created_at.desc()).limit(5).all()
@@ -281,12 +281,6 @@ class AdminDashboardService:
             ["الباقات والاشتراكات", pct_c3, f"{int(rev_subscriptions):,} د.أ", "#3a92d8"],
             ["خدمات إضافية", pct_c4, f"{int(rev_other):,} د.أ", "#f6a800"]
         ]
-
-        # 5. Real AI line chart points (actual message volume over 7 intervals)
-        ai_points = [0, 0, 0, 0, 0, 0, 0]
-        if total_ai > 0:
-            ai_period_count = db.query(ChatMessage).filter(ChatMessage.created_at >= period_start).count()
-            ai_points = [0, 0, 0, 0, 0, 0, ai_period_count]
 
         return {
             "period": period,

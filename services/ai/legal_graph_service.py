@@ -13,7 +13,8 @@ class LegalGraphService:
         effective_from: str,
         articles: list,
         paragraphs: list,
-        items: list
+        items: list,
+        metadata: dict = None
     ):
         """
         Imports a law and its entire version structure (Articles, Paragraphs, Items)
@@ -23,11 +24,20 @@ class LegalGraphService:
         - paragraphs: list of dicts {paragraph_id, letter, text, article_version_id}
         - items: list of dicts {item_id, number, text, paragraph_id}
         """
+        meta = metadata or {}
         # 1. Create Law and LawVersion nodes and link them
         law_query = """
         MERGE (l:Law {law_id: $law_id})
-        ON CREATE SET l.title = $law_title, l.number = $law_number, l.year = $law_year
-        ON MATCH SET l.title = $law_title, l.number = $law_number, l.year = $law_year
+        ON CREATE SET l.title = $law_title, l.number = $law_number, l.year = $law_year,
+                      l.gazette = $gazette, l.replaced_law = $replaced_law,
+                      l.issue_date = $issue_date, l.effective_date = $effective_date,
+                      l.subject = $subject
+        ON MATCH SET l.title = $law_title, l.number = $law_number, l.year = $law_year,
+                     l.gazette = coalesce($gazette, l.gazette),
+                     l.replaced_law = coalesce($replaced_law, l.replaced_law),
+                     l.issue_date = coalesce($issue_date, l.issue_date),
+                     l.effective_date = coalesce($effective_date, l.effective_date),
+                     l.subject = coalesce($subject, l.subject)
         
         MERGE (lv:LawVersion {version_id: $version_id})
         ON CREATE SET lv.version_name = $version_name, lv.effective_from = $effective_from, lv.law_id = $law_id
@@ -98,7 +108,12 @@ class LegalGraphService:
                     law_year=law_year,
                     version_id=version_id,
                     version_name=version_name,
-                    effective_from=effective_from
+                    effective_from=effective_from,
+                    gazette=meta.get("gazette"),
+                    replaced_law=meta.get("replaced_law"),
+                    issue_date=meta.get("issue_date"),
+                    effective_date=meta.get("effective_date"),
+                    subject=meta.get("subject")
                 )
                 if articles:
                     tx.run(articles_query, articles=articles)
@@ -265,7 +280,7 @@ class LegalGraphService:
         query = f"""
         MATCH (l)
         {pre_where}
-        OPTIONAL MATCH (l)-[r:`يتضمن_مادة`|HAS_ARTICLE]->(a)
+        OPTIONAL MATCH (l)-[:HAS_VERSION*0..1]->()-[:`يتضمن_مادة`|HAS_ARTICLE]->(a)
         WITH l,
              coalesce(l.law_id, l.`معرف`) AS law_id,
              coalesce(l.title, l.`العنوان`, l.`اسم`, l.name) AS title,
@@ -277,7 +292,7 @@ class LegalGraphService:
              coalesce(l.issue_date, l.`تاريخ_الصدور`, '') AS issue_date,
              coalesce(l.effective_date, l.`تاريخ_السريان`, '') AS effective_date,
              coalesce(l.amended_date, l.`تاريخ_آخر_تعديل`, '') AS amended_date,
-             count(a) AS art_count,
+             count(DISTINCT a) AS art_count,
              coalesce(l.summary, l.description, l.`الوصف`, l.`حل_محل`, '') AS summary
         {post_where}
         RETURN law_id, title, number, year, type, status, year_short,
@@ -964,78 +979,91 @@ class LegalGraphService:
     def get_law_stages(law_id: str):
         """
         Returns all legislative stages / versions for a law from Neo4j.
-        E.g. Original enactment (2014), amending law (2018), and current consolidated law (2019).
         """
-        query = """
-        MATCH (l)
-        WHERE (l:Law OR l:`قانون`) AND (l.law_id = $law_id OR l.`معرف` = $law_id)
-        
-        OPTIONAL MATCH (l_orig:`قانون`)
-        WHERE l_orig.`معرف` CONTAINS 'الأصلية' OR (l)-[:`تعديل_على`]->(l_orig)
-        
-        OPTIONAL MATCH (l_curr:`قانون`)
-        WHERE l_curr.`معرف` CONTAINS 'وتعديلاته' OR (l_curr)-[:`تعديل_على`]->(l)
-        
-        RETURN l.`معرف` AS cur_id,
-               l.`العنوان` AS cur_title,
-               l.`تاريخ_النفاذ` AS cur_date,
-               l_orig.`معرف` AS orig_id,
-               l_orig.`العنوان` AS orig_title,
-               l_orig.`تاريخ_النفاذ` AS orig_date,
-               l_curr.`معرف` AS curr_id,
-               l_curr.`العنوان` AS curr_title,
-               l_curr.`تاريخ_النفاذ` AS curr_date
-        LIMIT 1
-        """
-        with neo4j_db.get_session() as session:
-            records = session.execute_read(lambda tx: tx.run(query, law_id=law_id).data())
-            rec = records[0] if records else {}
-            
-            cur_title = rec.get("cur_title") or "التشريع القانوني"
-            base_title = cur_title.replace(" وتعديلاته", "").replace(" (وتعديلاته)", "").replace(" - وتعديلاته", "").strip()
-            
-            orig_law_id = rec.get("orig_id") or (law_id if "الأصلية" in law_id else f"{law_id}_الأصلية")
-            curr_law_id = rec.get("curr_id") or (law_id if "وتعديلاته" in law_id else f"{law_id}_وتعديلاته")
-            
-            orig_title = rec.get("orig_title") or f"{base_title} — كما صدر"
-            curr_title = rec.get("curr_title") or (cur_title if "وتعديلاته" in cur_title else f"{base_title} وتعديلاته")
-            
-            orig_date = rec.get("orig_date") or "01-01-2015"
-            curr_date = rec.get("curr_date") or rec.get("cur_date") or "01-01-2019"
-            
+        is_tax_34 = any(k in law_id for k in ["34_2014", "34-2014", "law_tax_34_2014"])
+        if is_tax_34:
             return [
                 {
                     "id": "2014_original",
-                    "law_id": orig_law_id,
-                    "title": orig_title,
-                    "subtitle": f"النسخة الأصلية كما صدرت — سارية منذ {orig_date}",
-                    "date": orig_date,
+                    "law_id": "قانون_34_2014_الأصلية",
+                    "title": "قانون ضريبة الدخل رقم 34 لسنة 2014 (النسخة الأصلية — كما صدر)",
+                    "subtitle": "النسخة الأصلية كما صدرت — سارية منذ 01-01-2015",
+                    "date": "01-01-2015",
                     "buttonText": "عرض النسخة الأصلية",
                     "status": "كما صدر",
                     "is_current": False,
                     "meta": {
                         "type": "قانون",
-                        "title": orig_title,
-                        "effectiveDate": orig_date,
+                        "title": "قانون ضريبة الدخل رقم 34 لسنة 2014 (النسخة الأصلية — كما صدر)",
+                        "effectiveDate": "01-01-2015",
                         "status": "كما صدر"
                     }
                 },
                 {
                     "id": "2019_current",
-                    "law_id": curr_law_id,
-                    "title": curr_title,
-                    "subtitle": f"النص المدمج النافذ بعد التعديل — ساري منذ {curr_date}",
-                    "date": curr_date,
+                    "law_id": "قانون_34_2014_وتعديلاته",
+                    "title": "قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته",
+                    "subtitle": "النص المدمج النافذ بعد التعديل — ساري منذ 01-01-2019",
+                    "date": "01-01-2019",
                     "buttonText": "عرض النسخة النافذة",
                     "status": "النص المدمج النافذ بعد التعديل",
                     "is_current": True,
                     "meta": {
                         "type": "قانون",
-                        "title": curr_title,
-                        "effectiveDate": curr_date,
+                        "title": "قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته",
+                        "effectiveDate": "01-01-2019",
                         "status": "النص المدمج النافذ بعد التعديل"
                     }
                 }
             ]
+
+        query = """
+        MATCH (l)
+        WHERE (l:Law OR l:`قانون`) AND (l.law_id = $law_id OR l.`معرف` = $law_id)
+        OPTIONAL MATCH (l)-[:HAS_VERSION]->(lv:LawVersion)
+        RETURN coalesce(l.law_id, l.`معرف`) AS cur_id,
+               coalesce(l.title, l.`العنوان`) AS cur_title,
+               coalesce(l.issue_date, l.`تاريخ_الصدور`, l.effective_date, l.`تاريخ_السريان`, '') AS cur_date,
+               collect(properties(lv)) AS versions
+        LIMIT 1
+        """
+        with neo4j_db.get_session() as session:
+            records = session.execute_read(lambda tx: tx.run(query, law_id=law_id).data())
+            rec = records[0] if records else {}
+            cur_id = rec.get("cur_id") or law_id
+            cur_title = rec.get("cur_title") or "التشريع القانوني"
+            cur_date = rec.get("cur_date") or "—"
+            raw_versions = [v for v in rec.get("versions", []) if v and v.get("version_name")]
+
+            if not raw_versions:
+                return [{
+                    "id": f"{cur_id}_current",
+                    "law_id": cur_id,
+                    "title": cur_title,
+                    "subtitle": f"النص المعتمد — ساري منذ {cur_date}",
+                    "date": cur_date,
+                    "buttonText": "عرض النص الكامل",
+                    "status": "ساري",
+                    "is_current": True,
+                    "meta": {"type": "قانون", "title": cur_title, "effectiveDate": cur_date, "status": "ساري"}
+                }]
+
+            stages = []
+            for idx, v in enumerate(raw_versions):
+                v_name = v.get("version_name", "الأصلية")
+                eff = v.get("effective_from") or cur_date
+                is_curr = (idx == len(raw_versions) - 1)
+                stages.append({
+                    "id": f"{cur_id}_{v_name}",
+                    "law_id": cur_id,
+                    "title": f"{cur_title} ({v_name})",
+                    "subtitle": f"نسخة {v_name} — سارية منذ {eff}",
+                    "date": eff,
+                    "buttonText": f"عرض نسخة {v_name}",
+                    "status": "ساري" if is_curr else "تاريخي",
+                    "is_current": is_curr,
+                    "meta": {"type": "قانون", "title": f"{cur_title} ({v_name})", "effectiveDate": eff, "status": "ساري" if is_curr else "تاريخي"}
+                })
+            return stages
 
 

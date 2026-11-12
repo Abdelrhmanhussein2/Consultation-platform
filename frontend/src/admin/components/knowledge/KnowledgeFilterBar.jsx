@@ -1,6 +1,6 @@
 import React from 'react';
 import { IconSearchKnowledge } from './KnowledgeIcons';
-import { KIND_FILTER_OPTIONS, STATUS_OPTIONS, ENTITY_TYPE_OPTIONS, SECTOR_OPTIONS } from './knowledgeData';
+import { KIND_FILTER_OPTIONS, STATUS_OPTIONS } from './knowledgeData';
 import ModernSelect from '../../../components/ModernSelect';
 import FilterResetButton from '../../../components/FilterResetButton';
 import YearComboInput from './YearComboInput';
@@ -14,12 +14,6 @@ export default function KnowledgeFilterBar({
   onStatusChange,
   year = '',
   onYearChange,
-  entityType = 'all',
-  onEntityTypeChange,
-  sector = 'all',
-  onSectorChange,
-  minRevenue = '',
-  onMinRevenueChange,
   onReset,
   isInline = false
 }) {
@@ -44,8 +38,8 @@ export default function KnowledgeFilterBar({
         value={kind}
         onChange={onKindChange}
         placeholder="نوع المصدر"
-        dropdownWidth="145px"
-        style={{ width: '135px', minWidth: '120px' }}
+        dropdownWidth="150px"
+        style={{ width: '150px', minWidth: '135px' }}
       />
 
       <ModernSelect
@@ -53,8 +47,8 @@ export default function KnowledgeFilterBar({
         value={status}
         onChange={onStatusChange}
         placeholder="حالة التفعيل"
-        dropdownWidth="130px"
-        style={{ width: '120px', minWidth: '110px' }}
+        dropdownWidth="150px"
+        style={{ width: '155px', minWidth: '145px' }}
       />
 
       <YearComboInput
@@ -62,35 +56,6 @@ export default function KnowledgeFilterBar({
         onChange={onYearChange}
         placeholder="سنة الصدور"
       />
-
-      <ModernSelect
-        options={ENTITY_TYPE_OPTIONS}
-        value={entityType}
-        onChange={onEntityTypeChange}
-        placeholder="كل الصفات"
-        dropdownWidth="155px"
-        style={{ width: '130px', minWidth: '115px' }}
-      />
-
-      <ModernSelect
-        options={SECTOR_OPTIONS}
-        value={sector}
-        onChange={onSectorChange}
-        placeholder="كل القطاعات"
-        dropdownWidth="140px"
-        style={{ width: '125px', minWidth: '110px' }}
-      />
-
-      <div style={{ width: '105px', minWidth: '90px' }}>
-        <input
-          type="number"
-          value={minRevenue}
-          onChange={(e) => onMinRevenueChange && onMinRevenueChange(e.target.value)}
-          placeholder="إيراد أدنى"
-          className="knowledge-input"
-          style={{ height: '38px', borderRadius: '10px' }}
-        />
-      </div>
 
       {onReset && (
         <FilterResetButton

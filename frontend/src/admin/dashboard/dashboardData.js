@@ -150,7 +150,7 @@ export const row2Cards = [
   {
     t: 'تنبيهات الذكاء الاصطناعي',
     kind: 'ai_alerts',
-    path: '/admin/control-center',
+    path: '/admin/ai-monitoring',
     rows: []
   },
   {

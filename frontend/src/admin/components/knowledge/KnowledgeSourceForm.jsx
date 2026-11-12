@@ -10,6 +10,7 @@ export default function KnowledgeSourceForm({
   onReset,
   isExtracting,
   setIsExtracting,
+  isSaving = false,
   onNotify
 }) {
   const fileInputRef = useRef(null);
@@ -161,12 +162,22 @@ export default function KnowledgeSourceForm({
 
         <button
           type="button"
-          disabled={!isFormValid}
+          disabled={!isFormValid || isSaving}
           onClick={onSave}
           className="btn-primary-action"
+          style={isSaving ? { opacity: 0.65, cursor: 'not-allowed', filter: 'grayscale(0.4)', pointerEvents: 'none' } : undefined}
         >
-          <IconSave className="size-4" />
-          <span>حفظ وفهرسة وربط تلقائي</span>
+          {isSaving ? (
+            <>
+              <IconSync className="size-4 spin-animate" />
+              <span>جارٍ رفع القانون وفهرسته...</span>
+            </>
+          ) : (
+            <>
+              <IconSave className="size-4" />
+              <span>حفظ وفهرسة وربط تلقائي</span>
+            </>
+          )}
         </button>
 
         {formData.id && (

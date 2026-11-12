@@ -1,89 +1,17 @@
 // frontend/src/components/Regulations/TextPreviewModal.jsx
-// Modal معاينة القانون - يجلب البيانات الحقيقية من legalService (Neo4j)
-// يعرض الميتاداتا + أول 3 مواد حقيقية مع fallback للـ Mock
-// زر "فتح النص الكامل" ينقل لصفحة /regulations/law/:id
-
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { getLawTree, parseArticleClauses } from '../../services/legalService';
+import { getLawTree } from '../../services/legalService';
+import PreviewArticleCard from './PreviewArticleCard';
 
-// ── مكوّن عرض مادة واحدة بشكل مبسط ────────────────────────────────────────
-function PreviewArticle({ article }) {
-  if (!article) return null;
-
-  const num     = article.num || article.number || '?';
-  const title   = article.title || `المادة ${num}`;
-  const parsed  = parseArticleClauses(article);
-  const displayDefs = (parsed.definitions && parsed.definitions.length > 0) ? parsed.definitions : (article.definitions || []);
-  const hasDefs = Boolean((parsed.hasDefinitions || article.has_definitions) && displayDefs && displayDefs.length > 0);
-  const clauses = (parsed.clauses && parsed.clauses.length > 0) ? parsed.clauses : (article.clauses || []);
-  const intro   = parsed.introText || article.intro_text || '';
-
-  // نص الخام من أي حقل متاح
-  const rawText = article.content || article.text || '';
-
-  return (
-    <div className="preview-article">
-      <div className="preview-article-kicker">المادة {num}</div>
-      <h3>{title}</h3>
-      <div className="preview-article-body">
-
-        {/* نص تمهيدي */}
-        {intro && <p>{intro}</p>}
-
-        {/* تعريفات إن وجدت */}
-        {hasDefs && (
-          <div className="preview-definitions-table">
-            {displayDefs.slice(0, 5).map((def, i) => (
-              <div className="preview-def-row" key={i}>
-                <div className="preview-def-term">{def.term}</div>
-                <div className="preview-def-val">{def.value}</div>
-              </div>
-            ))}
-            {displayDefs.length > 5 && (
-              <div className="preview-def-row" style={{ color: '#64748B', fontStyle: 'italic' }}>
-                <div className="preview-def-term">...</div>
-                <div className="preview-def-val">و {displayDefs.length - 5} تعريفاً آخر</div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* البنود بتدرج هرمي مطابق */}
-        {!hasDefs && clauses.length > 0 && clauses.slice(0, 6).map((clause, i) => {
-          const level = typeof clause === 'object' && clause.level ? clause.level : 0;
-          const text = typeof clause === 'object' ? clause.text : clause;
-          return (
-            <p
-              key={i}
-              className={`preview-clause level-${level}`}
-              style={level > 0 ? { marginRight: `${level * 24}px` } : undefined}
-            >
-              {text}
-            </p>
-          );
-        })}
-
-        {/* نص خام كاحتياط */}
-        {!hasDefs && clauses.length === 0 && rawText && (
-          <p>{rawText.slice(0, 300)}{rawText.length > 300 ? '...' : ''}</p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Modal الرئيسي ─────────────────────────────────────────────────────────────
 export default function TextPreviewModal({ isOpen, onClose, law, onOpenFullReader }) {
   const [isFavorite, setIsFavorite] = useState(false);
-  const [isSaved, setIsSaved]       = useState(false);
-
+  const [isSaved, setIsSaved] = useState(false);
   const [previewArticles, setPreviewArticles] = useState([]);
-  const [lawMeta, setLawMeta]                 = useState(null);
-  const [loadingPreview, setLoadingPreview]   = useState(false);
-  const [fetchError, setFetchError]           = useState(false);
+  const [lawMeta, setLawMeta] = useState(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
 
-  // نحدد الـ law_id بشكل آمن مع fallback
   const lawId = law?.law_id || law?.id || 'قانون_34_2014_وتعديلاته';
 
   useEffect(() => {
@@ -104,7 +32,6 @@ export default function TextPreviewModal({ isOpen, onClose, law, onOpenFullReade
       .then(data => {
         if (cancelled || !data) return;
         setLawMeta(data);
-        // نجمع كل المواد من كل الفصول
         const allArticles = (data.sections || []).flatMap(s => s.articles || []);
         setPreviewArticles(allArticles.slice(0, 3));
         setLoadingPreview(false);
@@ -119,20 +46,17 @@ export default function TextPreviewModal({ isOpen, onClose, law, onOpenFullReade
     return () => { cancelled = true; };
   }, [isOpen, lawId]);
 
-
   if (!isOpen || !law) return null;
 
-  // الميتاداتا: نأخذ من lawMeta (Neo4j) أولاً ثم من law (نتيجة البحث)
   const meta = {
-    number:         lawMeta?.number         || law.number         || `${law.year_short || '2014'}`,
-    issue_date:     lawMeta?.issue_date     || law.issue_date     || '—',
+    number: lawMeta?.number || law.number || `${law.year_short || '2014'}`,
+    issue_date: lawMeta?.issue_date || law.issue_date || '—',
     effective_date: lawMeta?.effective_date || law.effective_date || '—',
-    amended_date:   lawMeta?.amended_date   || law.amended_date   || '—',
-    title:          lawMeta?.title          || law.title          || 'القانون',
+    amended_date: lawMeta?.amended_date || law.amended_date || '—',
+    title: lawMeta?.title || law.title || 'القانون',
   };
 
   const handleSave = () => setIsSaved(prev => !prev);
-
   const handleOpenFull = () => {
     if (onOpenFullReader) onOpenFullReader(law);
   };
@@ -140,8 +64,6 @@ export default function TextPreviewModal({ isOpen, onClose, law, onOpenFullReade
   return ReactDOM.createPortal(
     <div className="text-preview-backdrop" onClick={onClose}>
       <div className="text-preview-modal" onClick={(e) => e.stopPropagation()}>
-
-        {/* ── Header ── */}
         <div className="text-preview-head">
           <div className="text-preview-head-info">
             <small>معاينة التشريع</small>
@@ -150,10 +72,7 @@ export default function TextPreviewModal({ isOpen, onClose, law, onOpenFullReade
           <button className="text-preview-close-btn" onClick={onClose} title="إغلاق">✕</button>
         </div>
 
-        {/* ── Body ── */}
         <div className="text-preview-body">
-
-          {/* ── Metadata Grid ── */}
           <div className="preview-file-info">
             <div>
               <b>رقم القانون</b>
@@ -169,11 +88,10 @@ export default function TextPreviewModal({ isOpen, onClose, law, onOpenFullReade
             </div>
             <div>
               <b>آخر تعديل نافذ</b>
-              <span>{meta.amended_date}</span>
+              <span>{meta.amended_date || '—'}</span>
             </div>
           </div>
 
-          {/* ── Loading ── */}
           {loadingPreview && (
             <div style={{ textAlign: 'center', padding: '32px 0', color: '#64748B' }}>
               <div style={{
@@ -185,12 +103,10 @@ export default function TextPreviewModal({ isOpen, onClose, law, onOpenFullReade
             </div>
           )}
 
-          {/* ── المواد الأولى من Neo4j ── */}
           {!loadingPreview && previewArticles.length > 0 && previewArticles.map((article) => (
-            <PreviewArticle key={article.num || article.number} article={article} />
+            <PreviewArticleCard key={article.num || article.number} article={article} />
           ))}
 
-          {/* ── fallback: ما في مواد ── */}
           {!loadingPreview && previewArticles.length === 0 && !fetchError && (
             <div className="preview-article">
               <div className="preview-article-kicker">ملاحظة</div>
@@ -200,7 +116,6 @@ export default function TextPreviewModal({ isOpen, onClose, law, onOpenFullReade
             </div>
           )}
 
-          {/* ── End Gate ── */}
           <div className="preview-end-gate">
             <div>
               <strong>هذه معاينة مختصرة من نص القانون</strong>
@@ -212,7 +127,6 @@ export default function TextPreviewModal({ isOpen, onClose, law, onOpenFullReade
           </div>
         </div>
 
-        {/* ── Footer ── */}
         <div className="text-preview-footer">
           <div className="preview-footer-actions">
             <button type="button" className="preview-action-card-btn"
@@ -248,7 +162,6 @@ export default function TextPreviewModal({ isOpen, onClose, law, onOpenFullReade
             </button>
           </div>
         </div>
-
       </div>
     </div>,
     document.body

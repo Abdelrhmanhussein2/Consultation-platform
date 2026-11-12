@@ -11,12 +11,6 @@ export default function KnowledgeSourceList({
   onStatusFilterChange,
   yearFilter = '',
   onYearFilterChange,
-  entityTypeFilter = 'all',
-  onEntityTypeFilterChange,
-  sectorFilter = 'all',
-  onSectorFilterChange,
-  minRevenueFilter = '',
-  onMinRevenueFilterChange,
   searchQuery = '',
   onSearchChange,
   onReset,
@@ -43,12 +37,6 @@ export default function KnowledgeSourceList({
           onStatusChange={onStatusFilterChange}
           year={yearFilter}
           onYearChange={onYearFilterChange}
-          entityType={entityTypeFilter}
-          onEntityTypeChange={onEntityTypeFilterChange}
-          sector={sectorFilter}
-          onSectorChange={onSectorFilterChange}
-          minRevenue={minRevenueFilter}
-          onMinRevenueChange={onMinRevenueFilterChange}
           onReset={onReset}
           isInline={true}
         />

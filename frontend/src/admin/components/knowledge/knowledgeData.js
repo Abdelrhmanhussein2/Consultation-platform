@@ -20,33 +20,13 @@ export const KIND_SELECT_OPTIONS = [
 export const KIND_FILTER_OPTIONS = [
   { value: 'all', label: 'كل الأنواع' },
   { value: 'law', label: 'تشريعات وقوانين' },
-  { value: 'precedent', label: 'أحكام قضائية' }
+  { value: 'precedent', label: 'أحكام' }
 ];
 
 export const STATUS_OPTIONS = [
   { value: 'all', label: 'كل الحالات' },
   { value: 'active', label: 'مفعل' },
   { value: 'inactive', label: 'غير مفعل' }
-];
-
-export const ENTITY_TYPE_OPTIONS = [
-  { value: 'all', label: 'كل الصفات' },
-  { value: 'individual', label: 'الأفراد' },
-  { value: 'sole_proprietorship', label: 'مؤسسات فردية' },
-  { value: 'llc', label: 'ذات مسؤولية محدودة' },
-  { value: 'private_shareholding', label: 'مساهمة خاصة' },
-  { value: 'public_shareholding', label: 'مساهمة عامة' },
-  { value: 'general_partnership', label: 'تضامن' },
-  { value: 'limited_partnership', label: 'توصية بسيطة' },
-  { value: 'non_profit', label: 'غير ربحية' }
-];
-
-export const SECTOR_OPTIONS = [
-  { value: 'all', label: 'كل القطاعات' },
-  { value: 'industrial', label: 'صناعي' },
-  { value: 'commercial', label: 'تجاري' },
-  { value: 'services', label: 'خدمات' },
-  { value: 'agricultural', label: 'زراعي' }
 ];
 
 export const EMPTY_FORM = {

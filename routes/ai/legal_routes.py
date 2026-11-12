@@ -268,27 +268,27 @@ def get_laws(
 ):
     return LegalController.get_laws(q=q, year_from=year_from, year_to=year_to)
 
-@router.get("/laws/{law_id}")
+@router.get("/laws/{law_id:path}/related")
+def get_related_files(
+    law_id: str
+):
+    return LegalController.get_related_files(law_id)
+
+@router.get("/laws/{law_id:path}/stages")
+def get_law_stages(
+    law_id: str
+):
+    return LegalController.get_law_stages(law_id)
+
+@router.get("/laws/{law_id:path}")
 def get_law_tree(
     law_id: str,
     version_name: str = None
 ):
     return LegalController.get_law_tree(law_id, version_name)
 
-@router.get("/laws/{law_id}/related")
-def get_related_files(
-    law_id: str
-):
-    return LegalController.get_related_files(law_id)
 
-@router.get("/laws/{law_id}/stages")
-def get_law_stages(
-    law_id: str
-):
-    return LegalController.get_law_stages(law_id)
-
-
-@router.get("/articles/{law_id}/{article_number}/history")
+@router.get("/articles/{law_id:path}/{article_number}/history")
 def get_article_history(
     law_id: str,
     article_number: int

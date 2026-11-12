@@ -56,19 +56,9 @@ export const ADMIN_MENU_ITEMS = [
   { id: 'calendar', label: 'إدارة المواعيد والتقويم', path: '/admin/calendar', icon: IconSessions },
   { id: 'sessions', label: 'سجل الحجوزات', path: '/admin/sessions', icon: IconSessions },
   {
-    id: 'finance_group', label: 'المالية والاشتراكات', icon: IconFinancial, defaultPath: '/admin/payments',
-    subItems: [
-      { id: 'payments', label: 'طلبات الدفع والتحويلات', path: '/admin/payments' },
-      { id: 'subscriptions', label: 'الباقات والاشتراكات', path: '/admin/subscriptions' },
-      { id: 'invoices', label: 'الفواتير', path: '/admin/invoices' },
-      { id: 'financial', label: 'النظام المالي والمحافظ', path: '/admin/financial' }
-    ]
-  },
-  {
     id: 'database_group', label: 'قاعدة البيانات', icon: IconDatabase, defaultPath: '/admin/knowledge',
     subItems: [
       { id: 'legislation', label: 'التشريعات والقوانين', path: '/admin/knowledge' },
-      { id: 'legal_alerts', label: 'التنبيهات التشريعية' },
       { id: 'tax_forms_sub', label: 'النماذج الضريبية', path: '/admin/tax-forms' },
       { id: 'tax_disclosure_sub', label: 'مكتبة الكشف الضريبي', path: '/admin/tax-disclosure' }
     ]

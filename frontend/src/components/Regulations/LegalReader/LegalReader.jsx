@@ -44,7 +44,8 @@ const SORT_OPTIONS = [
 
 export default function LegalReader({ lawId, onClose }) {
   const { token } = useAuth();
-  const [lawTree, setLawTree] = useState(() => getMockLawDetail(lawId));
+  const is34 = !lawId || String(lawId).includes('34');
+  const [lawTree, setLawTree] = useState(() => (is34 ? getMockLawDetail(lawId) : null));
   const [leftTab, setLeftTab] = useState('content'); // 'content' | 'highlights'
   const [fileTab, setFileTab] = useState('info'); // 'info' | 'description' | 'related' | 'timeline'
   const [showFileInfoModal, setShowFileInfoModal] = useState(false);
@@ -58,7 +59,7 @@ export default function LegalReader({ lawId, onClose }) {
   const [isSavedInFolders, setIsSavedInFolders] = useState(false);
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [splitStage, setSplitStage] = useState(null); // null | '2014_original' | '2018_amending' | '2019_current'
-  const [mainStageId, setMainStageId] = useState('2019_current');
+  const [mainStageId, setMainStageId] = useState(() => (is34 ? '2019_current' : null));
   const [showRelatedDrawer, setShowRelatedDrawer] = useState(false);
   const [selectedRelatedFile, setSelectedRelatedFile] = useState(null);
   const [showRelatedFilter, setShowRelatedFilter] = useState(false);
@@ -68,7 +69,7 @@ export default function LegalReader({ lawId, onClose }) {
   const sortDropdownRef = useRef(null);
   const [relatedFilterSearch, setRelatedFilterSearch] = useState('');
   const [isDocPaneMaximized, setIsDocPaneMaximized] = useState(false);
-  const [stagesList, setStagesList] = useState(DEFAULT_STAGES);
+  const [stagesList, setStagesList] = useState(() => (is34 ? DEFAULT_STAGES : []));
   const [backendRelatedFiles, setBackendRelatedFiles] = useState([]);
 
   // Close sort dropup on click outside
@@ -94,7 +95,7 @@ export default function LegalReader({ lawId, onClose }) {
       .then(data => {
         if (data) setIsSavedInFolders(data.is_saved);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [token, lawId, lawTree?.law_id, lawTree?.id]);
 
   // Fetch highlights from database on mount / when law changes
@@ -133,9 +134,13 @@ export default function LegalReader({ lawId, onClose }) {
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
           setStagesList(data);
+          const currentStage = data.find(s => s.is_current) || data[0];
+          if (currentStage && !is34) {
+            setMainStageId(currentStage.id);
+          }
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     getRelatedFiles(curId)
       .then(data => {
@@ -143,7 +148,7 @@ export default function LegalReader({ lawId, onClose }) {
           setBackendRelatedFiles(data);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [lawId]);
 
   // Related files data source with guaranteed field enrichment
@@ -197,20 +202,20 @@ export default function LegalReader({ lawId, onClose }) {
     if (k.includes('بداية') && (norm(meta.subCategory).includes('بداية') || norm(meta.source).includes('بداية') || norm(title).includes('بداية'))) return true;
 
     // 3. Predecessor / Repealed law matches
-    if ((k.includes('ملغ') || k.includes('ألغي') || k.includes('أُلغي') || k.includes('سابق')) && 
-        (norm(meta.group).includes('ألغي') || norm(meta.group).includes('أُلغي') || norm(meta.category).includes('ملغ') || norm(meta.type).includes('سابق') || norm(title).includes('ملغ'))) {
+    if ((k.includes('ملغ') || k.includes('ألغي') || k.includes('أُلغي') || k.includes('سابق')) &&
+      (norm(meta.group).includes('ألغي') || norm(meta.group).includes('أُلغي') || norm(meta.category).includes('ملغ') || norm(meta.type).includes('سابق') || norm(title).includes('ملغ'))) {
       return true;
     }
 
     // 4. Amendments matches
-    if (k.includes('تعديل') && 
-        (norm(meta.group).includes('تعديل') || norm(meta.category).includes('تعديل') || norm(meta.type).includes('تعديل') || norm(title).includes('معدل') || norm(title).includes('تعديل'))) {
+    if (k.includes('تعديل') &&
+      (norm(meta.group).includes('تعديل') || norm(meta.category).includes('تعديل') || norm(meta.type).includes('تعديل') || norm(title).includes('معدل') || norm(title).includes('تعديل'))) {
       return true;
     }
 
     // 5. Executive instructions matches
-    if ((k.includes('تعليمات') || k.includes('صادر بموجب') || k.includes('صدر بموجب')) && 
-        (norm(meta.group).includes('صدر بموجب') || norm(meta.subCategory).includes('تعليمات') || norm(meta.type).includes('تعليمات') || norm(title).includes('تعليمات'))) {
+    if ((k.includes('تعليمات') || k.includes('صادر بموجب') || k.includes('صدر بموجب')) &&
+      (norm(meta.group).includes('صدر بموجب') || norm(meta.subCategory).includes('تعليمات') || norm(meta.type).includes('تعليمات') || norm(title).includes('تعليمات'))) {
       return true;
     }
 
@@ -268,7 +273,7 @@ export default function LegalReader({ lawId, onClose }) {
           .then(data => {
             if (data) setLawTree(data);
           })
-          .catch(() => {});
+          .catch(() => { });
       } else {
         const stageArticles = getArticlesForStage(stageId, lawTree);
         setLawTree(prev => ({
@@ -626,7 +631,7 @@ export default function LegalReader({ lawId, onClose }) {
           setLawTree(data);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [lawId]);
 
   // Track active article while scrolling right pane
@@ -734,183 +739,183 @@ export default function LegalReader({ lawId, onClose }) {
                 </button>
               </div>
 
-                  {leftTab === 'content' ? (
-                    <div id="leftContent">
-                      <div className="toc">
-                        <button className="toc-item" onClick={() => jumpTo('preamble-box')}>
-                          الاطلاع على الديباجة
-                        </button>
-                        {(() => {
-                          const seenLabels = new Set();
-                          return lawTree.sections?.map(sec =>
-                            sec.articles?.map((art, artIdx) => {
-                              let cleanSub = (art.subject || '').trim();
-                              if (Number(art.num) === 4) {
-                                cleanSub = 'الإعفاءات والأنشطة المعفاة';
-                              }
-                              if (!cleanSub) {
-                                cleanSub = (art.title || '').replace(/^المادة\s*\d+\s*[:\-\s]*/, '').trim();
-                              }
-                              const isGeneric = !cleanSub || cleanSub === `المادة ${art.num}` || cleanSub === `المادة (${art.num})` || (cleanSub.includes('الخاضع للضريبة') && Number(art.num) !== 3);
-                              if (isGeneric || seenLabels.has(cleanSub)) {
-                                const raw = art.content || art.text || art.intro_text || (art.clauses?.[0]?.text) || (art.paragraphs?.[0]?.text) || '';
-                                cleanSub = getDistinctArticleSubject(raw, art.num, seenLabels);
-                              }
-                              seenLabels.add(cleanSub);
-                              const label = `المادة ${art.num}: ${cleanSub}`;
+              {leftTab === 'content' ? (
+                <div id="leftContent">
+                  <div className="toc">
+                    <button className="toc-item" onClick={() => jumpTo('preamble-box')}>
+                      الاطلاع على الديباجة
+                    </button>
+                    {(() => {
+                      const seenLabels = new Set();
+                      return lawTree.sections?.map(sec =>
+                        sec.articles?.map((art, artIdx) => {
+                          let cleanSub = (art.subject || '').trim();
+                          if (Number(art.num) === 4) {
+                            cleanSub = 'الإعفاءات والأنشطة المعفاة';
+                          }
+                          if (!cleanSub) {
+                            cleanSub = (art.title || '').replace(/^المادة\s*\d+\s*[:\-\s]*/, '').trim();
+                          }
+                          const isGeneric = !cleanSub || cleanSub === `المادة ${art.num}` || cleanSub === `المادة (${art.num})` || (cleanSub.includes('الخاضع للضريبة') && Number(art.num) !== 3);
+                          if (isGeneric || seenLabels.has(cleanSub)) {
+                            const raw = art.content || art.text || art.intro_text || (art.clauses?.[0]?.text) || (art.paragraphs?.[0]?.text) || '';
+                            cleanSub = getDistinctArticleSubject(raw, art.num, seenLabels);
+                          }
+                          seenLabels.add(cleanSub);
+                          const label = `المادة ${art.num}: ${cleanSub}`;
 
-                              return (
-                                <button
-                                  key={`${art.num}-${artIdx}`}
-                                  className={`toc-item ${activeArticleId === art.num ? 'active' : ''}`}
-                                  onClick={() => jumpTo(`art-item-${art.num}`, art.num)}
-                                >
-                                  {label}
-                                </button>
-                              );
-                            })
-                          );
-                        })()}
-                      </div>
-                      <div className="left-related">
-                        <h4>ملفات ذات صلة <span>↗</span></h4>
-                        <small>{activeArtTitle}</small>
-                        {activeArticle?.related_files && activeArticle.related_files.length > 0 ? (
-                          <ul className="left-related-list">
-                            {activeArticle.related_files.map((file, idx) => (
-                              <li key={file.id || idx}>
-                                <a
-                                  href="#"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    const matched = RELATED_FILES.find(f => 
-                                      String(f.id) === String(file.id) || 
-                                      f.title === file.title || 
-                                      (file.case_number && (f.case_number === file.case_number || f.meta?.number?.includes(file.case_number)))
-                                    ) || file;
-                                    setSelectedRelatedFile(matched);
-                                    setShowRelatedDrawer(true);
-                                  }}
-                                >
-                                  {file.title || file}
-                                </a>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <div className="empty-related">
-                            لا توجد ملفات ذات صلة مضافة لهذه المادة في بيانات العرض الحالية.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div id="leftHighlights">
-                      <div className="highlights">
-                        {highlights.length === 0 ? (
-                          <div className="no-highlights">
-                            أي ملاحظة أو تحديد تضيفه داخل مواد النص سيظهر هنا.
-                          </div>
-                        ) : (
-                          highlights.map(hl => {
-                          const cardColor = hl.color || '#3B82F6';
                           return (
-                            <div
-                              key={hl.id}
-                              className={`highlight-card ${hl.note ? 'has-note' : ''}`}
-                              style={{
-                                borderColor: cardColor,
-                                borderWidth: '1.5px',
-                                borderStyle: 'solid'
-                              }}
+                            <button
+                              key={`${art.num}-${artIdx}`}
+                              className={`toc-item ${activeArticleId === art.num ? 'active' : ''}`}
+                              onClick={() => jumpTo(`art-item-${art.num}`, art.num)}
                             >
-                              {/* Card Top: Dot + Text on right, Delete on left */}
-                              <div className="hl-card-top">
-                                <div className="hl-card-title-wrap">
-                                  <span
-                                    className="hl-color-indicator"
-                                    style={{ backgroundColor: cardColor }}
-                                  />
-                                  <strong className="hl-snippet" title={hl.text}>
-                                    {hl.text.length > 35 ? `${hl.text.slice(0, 35)}...` : hl.text}
-                                  </strong>
-                                </div>
-                                <button
-                                  className="hl-delete-btn"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteHighlight(hl.id);
-                                  }}
-                                  title="حذف التحديد"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-
-                              {/* Subtitle / Article Info */}
-                              <div className="hl-card-sub">
-                                {hl.artTitle || `المادة ${hl.artNum}`}
-                              </div>
-
-                              {/* If note exists, show note badge and note box */}
-                              {hl.note && (
-                                <div className="hl-note-container">
-                                  <div
-                                    className="hl-note-badge"
-                                    style={{
-                                      color: cardColor,
-                                      backgroundColor: hl.bgTint || `${cardColor}18`
-                                    }}
-                                  >
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                      <path d="M12 20h9"></path>
-                                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-                                    </svg>
-                                    <span>ملاحظة</span>
-                                  </div>
-                                  <div
-                                    className="hl-note-box"
-                                    style={{
-                                      borderColor: `${cardColor}50`,
-                                      backgroundColor: hl.bgTint || `${cardColor}10`
-                                    }}
-                                  >
-                                    {hl.note}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Bottom Actions: Star & Popout */}
-                              <div className="hl-card-actions">
-                                <button
-                                  className={`hl-action-icon-btn ${hl.starred ? 'active' : ''}`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleToggleStarHighlight(hl.id);
-                                  }}
-                                  title={hl.starred ? 'إزالة من المفضلة' : 'تمييز بنجمة'}
-                                >
-                                  {hl.starred ? '★' : '☆'}
-                                </button>
-                                <button
-                                  className="hl-action-icon-btn"
-                                  onClick={() => jumpTo(`art-item-${hl.artNum}`, hl.artNum)}
-                                  title="الانتقال إلى المادة"
-                                >
-                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                                    <polyline points="15 3 21 3 21 9"></polyline>
-                                    <line x1="10" y1="14" x2="21" y2="3"></line>
-                                  </svg>
-                                </button>
-                              </div>
-                            </div>
+                              {label}
+                            </button>
                           );
                         })
-                      )}
+                      );
+                    })()}
+                  </div>
+                  <div className="left-related">
+                    <h4>ملفات ذات صلة <span>↗</span></h4>
+                    <small>{activeArtTitle}</small>
+                    {activeArticle?.related_files && activeArticle.related_files.length > 0 ? (
+                      <ul className="left-related-list">
+                        {activeArticle.related_files.map((file, idx) => (
+                          <li key={file.id || idx}>
+                            <a
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                const matched = RELATED_FILES.find(f =>
+                                  String(f.id) === String(file.id) ||
+                                  f.title === file.title ||
+                                  (file.case_number && (f.case_number === file.case_number || f.meta?.number?.includes(file.case_number)))
+                                ) || file;
+                                setSelectedRelatedFile(matched);
+                                setShowRelatedDrawer(true);
+                              }}
+                            >
+                              {file.title || file}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="empty-related">
+                        لا توجد ملفات ذات صلة مضافة لهذه المادة في بيانات العرض الحالية.
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div id="leftHighlights">
+                  <div className="highlights">
+                    {highlights.length === 0 ? (
+                      <div className="no-highlights">
+                        أي ملاحظة أو تحديد تضيفه داخل مواد النص سيظهر هنا.
+                      </div>
+                    ) : (
+                      highlights.map(hl => {
+                        const cardColor = hl.color || '#3B82F6';
+                        return (
+                          <div
+                            key={hl.id}
+                            className={`highlight-card ${hl.note ? 'has-note' : ''}`}
+                            style={{
+                              borderColor: cardColor,
+                              borderWidth: '1.5px',
+                              borderStyle: 'solid'
+                            }}
+                          >
+                            {/* Card Top: Dot + Text on right, Delete on left */}
+                            <div className="hl-card-top">
+                              <div className="hl-card-title-wrap">
+                                <span
+                                  className="hl-color-indicator"
+                                  style={{ backgroundColor: cardColor }}
+                                />
+                                <strong className="hl-snippet" title={hl.text}>
+                                  {hl.text.length > 35 ? `${hl.text.slice(0, 35)}...` : hl.text}
+                                </strong>
+                              </div>
+                              <button
+                                className="hl-delete-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteHighlight(hl.id);
+                                }}
+                                title="حذف التحديد"
+                              >
+                                ✕
+                              </button>
+                            </div>
+
+                            {/* Subtitle / Article Info */}
+                            <div className="hl-card-sub">
+                              {hl.artTitle || `المادة ${hl.artNum}`}
+                            </div>
+
+                            {/* If note exists, show note badge and note box */}
+                            {hl.note && (
+                              <div className="hl-note-container">
+                                <div
+                                  className="hl-note-badge"
+                                  style={{
+                                    color: cardColor,
+                                    backgroundColor: hl.bgTint || `${cardColor}18`
+                                  }}
+                                >
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M12 20h9"></path>
+                                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                                  </svg>
+                                  <span>ملاحظة</span>
+                                </div>
+                                <div
+                                  className="hl-note-box"
+                                  style={{
+                                    borderColor: `${cardColor}50`,
+                                    backgroundColor: hl.bgTint || `${cardColor}10`
+                                  }}
+                                >
+                                  {hl.note}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Bottom Actions: Star & Popout */}
+                            <div className="hl-card-actions">
+                              <button
+                                className={`hl-action-icon-btn ${hl.starred ? 'active' : ''}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleStarHighlight(hl.id);
+                                }}
+                                title={hl.starred ? 'إزالة من المفضلة' : 'تمييز بنجمة'}
+                              >
+                                {hl.starred ? '★' : '☆'}
+                              </button>
+                              <button
+                                className="hl-action-icon-btn"
+                                onClick={() => jumpTo(`art-item-${hl.artNum}`, hl.artNum)}
+                                title="الانتقال إلى المادة"
+                              >
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                  <polyline points="15 3 21 3 21 9"></polyline>
+                                  <line x1="10" y1="14" x2="21" y2="3"></line>
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
             </aside>
           )}
 
@@ -1113,9 +1118,9 @@ export default function LegalReader({ lawId, onClose }) {
                       onCompareVersion={handleCompareVersion}
                       highlights={highlights}
                       onSelectRelatedFile={(file) => {
-                        const matched = RELATED_FILES.find(f => 
-                          String(f.id) === String(file.id) || 
-                          f.title === file.title || 
+                        const matched = RELATED_FILES.find(f =>
+                          String(f.id) === String(file.id) ||
+                          f.title === file.title ||
                           (file.case_number && (f.case_number === file.case_number || f.meta?.number?.includes(file.case_number)))
                         ) || file;
                         setSelectedRelatedFile(matched);
@@ -1145,7 +1150,8 @@ export default function LegalReader({ lawId, onClose }) {
         {compareArticleNum && (
           <LegalArticleCompare
             articleNum={compareArticleNum}
-            lawTitle={lawTree.title}
+            lawId={lawTree?.law_id || lawTree?.id || lawId}
+            lawTitle={lawTree?.title}
             onClose={() => setCompareArticleNum(null)}
           />
         )}

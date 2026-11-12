@@ -28,6 +28,7 @@ class LegalController:
             articles = parsed["articles"]
             paragraphs = parsed["paragraphs"]
             items = parsed["items"]
+            metadata = parsed.get("metadata", {})
             
             # 2. Insert structure into Neo4j
             version_id = f"{law_id}_v_{version_name}"
@@ -41,7 +42,8 @@ class LegalController:
                 effective_from=effective_from,
                 articles=articles,
                 paragraphs=paragraphs,
-                items=items
+                items=items,
+                metadata=metadata
             )
             
             # 2.5 Index structure in Qdrant

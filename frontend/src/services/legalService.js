@@ -694,16 +694,17 @@ export function makeArticleTitlesUnique(articles) {
 
 function normalizeLawTree(data, lawId) {
   if (!data) return getMockLawDetail(lawId);
+  const is34 = !lawId || String(lawId).includes('34') || String(data.law_id || '').includes('34');
   const commonMeta = {
     law_id: data.law_id || lawId,
-    title: data.title || data.law_title || "قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته",
-    number: data.number || data.law_number || "34",
-    year: data.year || data.law_year || "2014",
-    gazette: data.gazette || data.official_gazette || "عدد 5320 — ص 7390 — تاريخ النشر: 31-12-2014",
-    replaced_law: data.replaced_law || data.replaced || "قانون مؤقت رقم 28 لسنة 2009 (قانون ضريبة الدخل المؤقت لسنة 2009)",
-    issue_date: data.issue_date || data.issueDate || "30-12-2014",
-    effective_date: data.effective_date || data.effective_from || "01-01-2015",
-    amended_date: data.amended_date || data.amendedDate || "01-01-2019",
+    title: data.title || data.law_title || (is34 ? "قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته" : (lawId ? `قانون رقم ${lawId}` : "التشريع القانوني")),
+    number: data.number || data.law_number || (is34 ? "34" : "—"),
+    year: data.year || data.law_year || (is34 ? "2014" : "—"),
+    gazette: data.gazette || data.official_gazette || (is34 ? "عدد 5320 — ص 7390 — تاريخ النشر: 31-12-2014" : "—"),
+    replaced_law: data.replaced_law || data.replaced || (is34 ? "قانون مؤقت رقم 28 لسنة 2009 (قانون ضريبة الدخل المؤقت لسنة 2009)" : "—"),
+    issue_date: data.issue_date || data.issueDate || (is34 ? "30-12-2014" : (data.year ? `${data.year}` : "—")),
+    effective_date: data.effective_date || data.effective_from || (is34 ? "01-01-2015" : "—"),
+    amended_date: data.amended_date || data.amendedDate || (is34 ? "01-01-2019" : "—"),
     amendments_count: data.amendments_count || 1,
     summary: data.summary || data.description || ""
   };

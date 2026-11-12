@@ -10,6 +10,7 @@ export default function KnowledgeRulingForm({
   onReset,
   isExtracting,
   setIsExtracting,
+  isSaving = false,
   onNotify
 }) {
   const fileInputRef = useRef(null);
@@ -55,11 +56,9 @@ export default function KnowledgeRulingForm({
     }
   };
 
-  const isFormValid =
-    formData.title &&
-    formData.title.trim().length >= 2 &&
-    formData.principle &&
-    formData.principle.trim().length >= 20;
+  const isFormValid = Boolean(
+    formData.title?.trim().length >= 2 && formData.principle?.trim().length >= 20
+  );
 
   return (
     <section className="knowledge-bento-panel knowledge-form-card">
@@ -166,12 +165,22 @@ export default function KnowledgeRulingForm({
 
         <button
           type="button"
-          disabled={!isFormValid}
+          disabled={!isFormValid || isSaving}
           onClick={onSave}
           className="btn-primary-action"
+          style={isSaving ? { opacity: 0.65, cursor: 'not-allowed', filter: 'grayscale(0.4)', pointerEvents: 'none' } : undefined}
         >
-          <IconSave className="size-4" />
-          <span>حفظ وفهرسة الحكم القضائي</span>
+          {isSaving ? (
+            <>
+              <IconSync className="size-4 spin-animate" />
+              <span>جارٍ رفع الحكم وفهرسته...</span>
+            </>
+          ) : (
+            <>
+              <IconSave className="size-4" />
+              <span>حفظ وفهرسة الحكم القضائي</span>
+            </>
+          )}
         </button>
 
         {formData.id && (

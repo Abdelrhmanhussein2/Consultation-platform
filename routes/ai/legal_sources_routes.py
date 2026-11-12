@@ -56,7 +56,18 @@ def get_unified_sources(
         page=page, page_size=page_size
     )
 
-@router.put("/sources/{source_id}")
+@router.get("/sources/{source_id:path}")
+def get_source_detail(
+    source_id: str,
+    source_type: str = Query("law", pattern="^(law|judgment)$")
+):
+    """Returns full details and body for a single law or judicial ruling."""
+    item = LegalSourcesService.get_source_detail(source_id=source_id, source_type=source_type)
+    if not item:
+        raise HTTPException(status_code=404, detail="المصدر غير موجود")
+    return item
+
+@router.put("/sources/{source_id:path}")
 def update_source(
     source_id: str,
     payload: Dict[str, Any],
@@ -78,7 +89,7 @@ async def extract_preview(
     content = await file.read()
     return LegalSourcesService.extract_file_preview(content, file.filename or "file.docx", source_type)
 
-@router.delete("/sources/{source_id}")
+@router.delete("/sources/{source_id:path}")
 def delete_source(
     source_id: str,
     source_type: str = Query(..., pattern="^(law|judgment)$"),
