@@ -19,6 +19,8 @@ class User(Base):
     legal_form = Column(PG_ENUM(LegalForm, name="legal_form", inherit_schema=True), nullable=True)
     company_name = Column(String(200), nullable=True)
     tax_number = Column(String(50), nullable=True)
+    commercial_register_number = Column(String(50), nullable=True)
+    country = Column(String(50), nullable=False, default="الأردن", server_default="الأردن")
     sector = Column(PG_ENUM(BusinessSector, name="business_sector", inherit_schema=True), nullable=True)
     language = Column(String(5), nullable=False, default="ar")
     email_notifications = Column(Boolean, nullable=False, default=True)

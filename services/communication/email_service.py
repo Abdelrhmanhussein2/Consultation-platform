@@ -1,5 +1,6 @@
 import smtplib
 import logging
+from email.header import Header
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from helpers.config import settings
@@ -25,11 +26,18 @@ class EmailService:
             logger.info("==========================================")
             return
 
+        to_email_str = str(to_email).strip()
+        if not to_email_str.isascii():
+            logger.error(f"Cannot send email to invalid non-ASCII address: {to_email_str}")
+            return
+
         try:
             msg = MIMEMultipart("alternative")
-            msg["Subject"] = subject
-            msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>"
-            msg["To"] = to_email
+            msg["Subject"] = Header(subject, "utf-8").encode()
+            
+            from_name = Header(settings.SMTP_FROM_NAME or "Diwan", "utf-8").encode()
+            msg["From"] = f"{from_name} <{settings.SMTP_FROM_EMAIL}>"
+            msg["To"] = to_email_str
 
             part = MIMEText(html_content, "html", "utf-8")
             msg.attach(part)
@@ -45,12 +53,11 @@ class EmailService:
             if settings.SMTP_USERNAME and settings.SMTP_PASSWORD:
                 server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
 
-            server.sendmail(settings.SMTP_FROM_EMAIL, [to_email], msg.as_string())
+            server.sendmail(settings.SMTP_FROM_EMAIL, [to_email_str], msg.as_string())
             server.quit()
-            logger.info(f"Successfully sent email to {to_email} with subject: {subject}")
+            logger.info(f"Successfully sent email to {to_email_str} with subject: {subject}")
         except Exception as e:
-            logger.error(f"Failed to send SMTP email to {to_email}: {str(e)}")
-            raise e
+            logger.error(f"Failed to send SMTP email to {to_email_str}: {str(e)}")
 
     @staticmethod
     def send_password_reset_email(to_email: str, name: str, reset_link: str, lang: str = "ar") -> None:
@@ -290,6 +297,97 @@ class EmailService:
         EmailService.send_email(to_email, subject, html_content)
 
     @staticmethod
+    def send_register_otp_email(to_email: str, name: str, otp_code: str, lang: str = "ar") -> None:
+        """
+        Sends an email with a 6-digit OTP code to verify account registration.
+        """
+        user_name = name or "مستخدم ديوان"
+        if lang == "ar":
+            subject = "رمز تأكيد حسابك - منصة ديوان للاستشارات الضريبية"
+            html_content = f"""<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; color: #333333; }}
+        .container {{ max-width: 580px; margin: 30px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e1e8ed; }}
+        .header {{ background: linear-gradient(135deg, #0D3C5C 0%, #005D9C 100%); color: #ffffff; text-align: center; padding: 30px 20px; }}
+        .header h1 {{ margin: 0; font-size: 22px; font-weight: 700; }}
+        .content {{ padding: 30px; line-height: 1.8; text-align: right; }}
+        .greeting {{ font-size: 16px; font-weight: bold; color: #0D3C5C; margin-bottom: 15px; }}
+        .info-text {{ font-size: 14px; color: #555555; margin-bottom: 25px; }}
+        .otp-box {{ text-align: center; margin: 25px 0; background: #f0f7ff; border: 2px dashed #005D9C; border-radius: 10px; padding: 20px; }}
+        .otp-code {{ font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #0D3C5C; display: inline-block; }}
+        .warning-text {{ font-size: 12.5px; color: #64748B; background-color: #f8fafc; padding: 12px 15px; border-radius: 6px; border-right: 4px solid #E5A83B; margin-top: 20px; }}
+        .footer {{ background-color: #f8f9fa; text-align: center; padding: 20px; font-size: 12px; color: #777777; border-top: 1px solid #e1e8ed; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>منصة ديوان للاستشارات الضريبية الذكية</h1>
+        </div>
+        <div class="content">
+            <div class="greeting">مرحباً {user_name}،</div>
+            <div class="info-text">
+                أهلاً بك في منصة ديوان. يرجى استخدام رمز التحقق التالي لتأكيد حسابك وإتمام عملية التسجيل:
+            </div>
+            <div class="otp-box">
+                <span class="otp-code">{otp_code}</span>
+            </div>
+            <div class="warning-text">
+                🔒 تنبيه: هذا الرمز صالح لمدة 10 دقائق فقط. نستخدم رمز التحقق لحماية حسابك والتأكد من هويتك.
+            </div>
+        </div>
+        <div class="footer">
+            <p>هذا البريد تم إرساله تلقائياً من منصة ديوان للاستشارات الضريبية، يرجى عدم الرد عليه.</p>
+            <p>&copy; 2026 منصة ديوان. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>"""
+        else:
+            subject = "Account Verification Code - Diwan Tax Platform"
+            html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; color: #333333; }}
+        .container {{ max-width: 580px; margin: 30px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e1e8ed; }}
+        .header {{ background: linear-gradient(135deg, #0D3C5C 0%, #005D9C 100%); color: #ffffff; text-align: center; padding: 30px 20px; }}
+        .header h1 {{ margin: 0; font-size: 22px; font-weight: 700; }}
+        .content {{ padding: 30px; line-height: 1.8; }}
+        .greeting {{ font-size: 16px; font-weight: bold; color: #0D3C5C; margin-bottom: 15px; }}
+        .info-text {{ font-size: 14px; color: #555555; margin-bottom: 25px; }}
+        .otp-box {{ text-align: center; margin: 25px 0; background: #f0f7ff; border: 2px dashed #005D9C; border-radius: 10px; padding: 20px; }}
+        .otp-code {{ font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #0D3C5C; display: inline-block; }}
+        .footer {{ background-color: #f8f9fa; text-align: center; padding: 20px; font-size: 12px; color: #777777; border-top: 1px solid #e1e8ed; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Diwan Tax Platform</h1>
+        </div>
+        <div class="content">
+            <div class="greeting">Hello {user_name},</div>
+            <div class="info-text">
+                Welcome to Diwan Tax. Please use the following verification code to verify your account:
+            </div>
+            <div class="otp-box">
+                <span class="otp-code">{otp_code}</span>
+            </div>
+        </div>
+        <div class="footer">
+            <p>&copy; 2026 Diwan Tax Platform. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>"""
+        EmailService.send_email(to_email, subject, html_content)
+
+    @staticmethod
     def send_password_otp_email(to_email: str, name: str, otp_code: str, lang: str = "ar") -> None:
         """
         Sends an email with a 6-digit OTP code for password reset.
@@ -385,6 +483,97 @@ class EmailService:
         EmailService.send_email(to_email, subject, html_content)
 
     @staticmethod
+    def send_register_otp_email(to_email: str, name: str, otp_code: str, lang: str = "ar") -> None:
+        """
+        Sends an email with a 6-digit OTP code to verify account registration.
+        """
+        user_name = name or "مستخدم ديوان"
+        if lang == "ar":
+            subject = "رمز تأكيد حسابك - منصة ديوان للاستشارات الضريبية"
+            html_content = f"""<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; color: #333333; }}
+        .container {{ max-width: 580px; margin: 30px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e1e8ed; }}
+        .header {{ background: linear-gradient(135deg, #0D3C5C 0%, #005D9C 100%); color: #ffffff; text-align: center; padding: 30px 20px; }}
+        .header h1 {{ margin: 0; font-size: 22px; font-weight: 700; }}
+        .content {{ padding: 30px; line-height: 1.8; text-align: right; }}
+        .greeting {{ font-size: 16px; font-weight: bold; color: #0D3C5C; margin-bottom: 15px; }}
+        .info-text {{ font-size: 14px; color: #555555; margin-bottom: 25px; }}
+        .otp-box {{ text-align: center; margin: 25px 0; background: #f0f7ff; border: 2px dashed #005D9C; border-radius: 10px; padding: 20px; }}
+        .otp-code {{ font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #0D3C5C; display: inline-block; }}
+        .warning-text {{ font-size: 12.5px; color: #64748B; background-color: #f8fafc; padding: 12px 15px; border-radius: 6px; border-right: 4px solid #E5A83B; margin-top: 20px; }}
+        .footer {{ background-color: #f8f9fa; text-align: center; padding: 20px; font-size: 12px; color: #777777; border-top: 1px solid #e1e8ed; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>منصة ديوان للاستشارات الضريبية الذكية</h1>
+        </div>
+        <div class="content">
+            <div class="greeting">مرحباً {user_name}،</div>
+            <div class="info-text">
+                أهلاً بك في منصة ديوان. يرجى استخدام رمز التحقق التالي لتأكيد حسابك وإتمام عملية التسجيل:
+            </div>
+            <div class="otp-box">
+                <span class="otp-code">{otp_code}</span>
+            </div>
+            <div class="warning-text">
+                🔒 تنبيه: هذا الرمز صالح لمدة 10 دقائق فقط. نستخدم رمز التحقق لحماية حسابك والتأكد من هويتك.
+            </div>
+        </div>
+        <div class="footer">
+            <p>هذا البريد تم إرساله تلقائياً من منصة ديوان للاستشارات الضريبية، يرجى عدم الرد عليه.</p>
+            <p>&copy; 2026 منصة ديوان. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>"""
+        else:
+            subject = "Account Verification Code - Diwan Tax Platform"
+            html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; color: #333333; }}
+        .container {{ max-width: 580px; margin: 30px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e1e8ed; }}
+        .header {{ background: linear-gradient(135deg, #0D3C5C 0%, #005D9C 100%); color: #ffffff; text-align: center; padding: 30px 20px; }}
+        .header h1 {{ margin: 0; font-size: 22px; font-weight: 700; }}
+        .content {{ padding: 30px; line-height: 1.8; }}
+        .greeting {{ font-size: 16px; font-weight: bold; color: #0D3C5C; margin-bottom: 15px; }}
+        .info-text {{ font-size: 14px; color: #555555; margin-bottom: 25px; }}
+        .otp-box {{ text-align: center; margin: 25px 0; background: #f0f7ff; border: 2px dashed #005D9C; border-radius: 10px; padding: 20px; }}
+        .otp-code {{ font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #0D3C5C; display: inline-block; }}
+        .footer {{ background-color: #f8f9fa; text-align: center; padding: 20px; font-size: 12px; color: #777777; border-top: 1px solid #e1e8ed; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Diwan Tax Platform</h1>
+        </div>
+        <div class="content">
+            <div class="greeting">Hello {user_name},</div>
+            <div class="info-text">
+                Welcome to Diwan Tax. Please use the following verification code to verify your account:
+            </div>
+            <div class="otp-box">
+                <span class="otp-code">{otp_code}</span>
+            </div>
+        </div>
+        <div class="footer">
+            <p>&copy; 2026 Diwan Tax Platform. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>"""
+        EmailService.send_email(to_email, subject, html_content)
+
+    @staticmethod
     def send_email_change_otp(to_email: str, name: str, otp_code: str, lang: str = "ar") -> None:
         """
         Sends an email with a 6-digit OTP code to verify a new email address.
@@ -473,6 +662,97 @@ class EmailService:
         <div class="footer">
             <p>This is an automated message, please do not reply.</p>
             <p>&copy; 2026 Consultation Platform. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>"""
+        EmailService.send_email(to_email, subject, html_content)
+
+    @staticmethod
+    def send_register_otp_email(to_email: str, name: str, otp_code: str, lang: str = "ar") -> None:
+        """
+        Sends an email with a 6-digit OTP code to verify account registration.
+        """
+        user_name = name or "مستخدم ديوان"
+        if lang == "ar":
+            subject = "رمز تأكيد حسابك - منصة ديوان للاستشارات الضريبية"
+            html_content = f"""<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; color: #333333; }}
+        .container {{ max-width: 580px; margin: 30px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e1e8ed; }}
+        .header {{ background: linear-gradient(135deg, #0D3C5C 0%, #005D9C 100%); color: #ffffff; text-align: center; padding: 30px 20px; }}
+        .header h1 {{ margin: 0; font-size: 22px; font-weight: 700; }}
+        .content {{ padding: 30px; line-height: 1.8; text-align: right; }}
+        .greeting {{ font-size: 16px; font-weight: bold; color: #0D3C5C; margin-bottom: 15px; }}
+        .info-text {{ font-size: 14px; color: #555555; margin-bottom: 25px; }}
+        .otp-box {{ text-align: center; margin: 25px 0; background: #f0f7ff; border: 2px dashed #005D9C; border-radius: 10px; padding: 20px; }}
+        .otp-code {{ font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #0D3C5C; display: inline-block; }}
+        .warning-text {{ font-size: 12.5px; color: #64748B; background-color: #f8fafc; padding: 12px 15px; border-radius: 6px; border-right: 4px solid #E5A83B; margin-top: 20px; }}
+        .footer {{ background-color: #f8f9fa; text-align: center; padding: 20px; font-size: 12px; color: #777777; border-top: 1px solid #e1e8ed; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>منصة ديوان للاستشارات الضريبية الذكية</h1>
+        </div>
+        <div class="content">
+            <div class="greeting">مرحباً {user_name}،</div>
+            <div class="info-text">
+                أهلاً بك في منصة ديوان. يرجى استخدام رمز التحقق التالي لتأكيد حسابك وإتمام عملية التسجيل:
+            </div>
+            <div class="otp-box">
+                <span class="otp-code">{otp_code}</span>
+            </div>
+            <div class="warning-text">
+                🔒 تنبيه: هذا الرمز صالح لمدة 10 دقائق فقط. نستخدم رمز التحقق لحماية حسابك والتأكد من هويتك.
+            </div>
+        </div>
+        <div class="footer">
+            <p>هذا البريد تم إرساله تلقائياً من منصة ديوان للاستشارات الضريبية، يرجى عدم الرد عليه.</p>
+            <p>&copy; 2026 منصة ديوان. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>"""
+        else:
+            subject = "Account Verification Code - Diwan Tax Platform"
+            html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; color: #333333; }}
+        .container {{ max-width: 580px; margin: 30px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e1e8ed; }}
+        .header {{ background: linear-gradient(135deg, #0D3C5C 0%, #005D9C 100%); color: #ffffff; text-align: center; padding: 30px 20px; }}
+        .header h1 {{ margin: 0; font-size: 22px; font-weight: 700; }}
+        .content {{ padding: 30px; line-height: 1.8; }}
+        .greeting {{ font-size: 16px; font-weight: bold; color: #0D3C5C; margin-bottom: 15px; }}
+        .info-text {{ font-size: 14px; color: #555555; margin-bottom: 25px; }}
+        .otp-box {{ text-align: center; margin: 25px 0; background: #f0f7ff; border: 2px dashed #005D9C; border-radius: 10px; padding: 20px; }}
+        .otp-code {{ font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #0D3C5C; display: inline-block; }}
+        .footer {{ background-color: #f8f9fa; text-align: center; padding: 20px; font-size: 12px; color: #777777; border-top: 1px solid #e1e8ed; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Diwan Tax Platform</h1>
+        </div>
+        <div class="content">
+            <div class="greeting">Hello {user_name},</div>
+            <div class="info-text">
+                Welcome to Diwan Tax. Please use the following verification code to verify your account:
+            </div>
+            <div class="otp-box">
+                <span class="otp-code">{otp_code}</span>
+            </div>
+        </div>
+        <div class="footer">
+            <p>&copy; 2026 Diwan Tax Platform. All rights reserved.</p>
         </div>
     </div>
 </body>

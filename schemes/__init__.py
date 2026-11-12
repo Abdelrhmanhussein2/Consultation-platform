@@ -4,6 +4,7 @@ from schemes.schemes import (
     ConsultantRegister, RefreshRequest, LogoutRequest, ForgotPasswordRequest, ResetPasswordRequest,
     EmailChangeRequest, EmailChangeVerify, PhoneChangeRequest, PhoneChangeVerify,
     RequestPasswordOtpRequest, VerifyPasswordOtpAndResetRequest,
+    RequestRegisterOtpRequest, VerifyRegisterOtpRequest,
     VerifyMyPasswordOtpAndResetRequest, AccountDeleteRequest,
     ConsultantApplicationAction, ConsultantApplicationStatus,
 

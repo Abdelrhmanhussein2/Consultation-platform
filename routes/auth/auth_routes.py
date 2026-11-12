@@ -11,7 +11,8 @@ from helpers.config import settings
 from schemes import (
     UserCreate, ConsultantRegister, UserLogin, Token, RefreshRequest, LogoutRequest,
     ForgotPasswordRequest, ResetPasswordRequest, RequestPasswordOtpRequest,
-    VerifyPasswordOtpAndResetRequest, SystemPolicyOut
+    VerifyPasswordOtpAndResetRequest, SystemPolicyOut,
+    RequestRegisterOtpRequest, VerifyRegisterOtpRequest
 )
 from controllers.auth_controller import AuthController
 from controllers.super_admin_controller import SuperAdminController
@@ -21,21 +22,66 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 @limiter.limit(settings.RATE_LIMIT_REGISTER)
-def register_user(request: Request, user_in: UserCreate, db: Session = Depends(get_db)):
+def register_user(
+    request: Request,
+    user_in: UserCreate,
+    db: Session = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis)
+):
     """
     Registers a standard client user. Returns confirmation message.
     """
-    return AuthController.register_user(db, user_in)
+    return AuthController.register_user(db, user_in, redis_client=redis_client)
 
 @router.post("/register/consultant", status_code=status.HTTP_201_CREATED)
 @limiter.limit(settings.RATE_LIMIT_REGISTER)
 def register_consultant(
-    request: Request, consultant_in: ConsultantRegister, db: Session = Depends(get_db)
+    request: Request,
+    consultant_in: ConsultantRegister,
+    db: Session = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis)
 ):
     """
     Submits a consultant registration application for review.
     """
-    return AuthController.register_consultant(db, consultant_in)
+    return AuthController.register_consultant(db, consultant_in, redis_client=redis_client)
+
+@router.post("/register-otp/request", status_code=status.HTTP_200_OK, summary="Request 6-digit OTP for registration")
+@limiter.limit("5/minute")
+def request_registration_otp(
+    request: Request,
+    otp_in: RequestRegisterOtpRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis)
+):
+    """
+    Sends a 6-digit OTP code to the user's email with 60-second cooldown lock.
+    """
+    return AuthController.request_register_otp(
+        db=db,
+        redis_client=redis_client,
+        email=otp_in.email,
+        phone=otp_in.phone,
+        full_name=otp_in.full_name,
+        background_tasks=background_tasks
+    )
+
+@router.post("/register-otp/verify", status_code=status.HTTP_200_OK, summary="Verify 6-digit OTP for registration")
+@limiter.limit("10/minute")
+def verify_registration_otp(
+    request: Request,
+    verify_in: VerifyRegisterOtpRequest,
+    redis_client: redis.Redis = Depends(get_redis)
+):
+    """
+    Verifies the 6-digit OTP code against Redis with rate-limiting and maximum 5 attempts.
+    """
+    return AuthController.verify_register_otp(
+        redis_client=redis_client,
+        email=verify_in.email,
+        otp_code=verify_in.otp_code
+    )
 
 @router.post("/login", response_model=Token)
 @limiter.limit(settings.RATE_LIMIT_LOGIN)

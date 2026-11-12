@@ -16,15 +16,27 @@ from services.auth.token_service import TokenService
 
 class AuthController:
     @staticmethod
-    def register_user(db: Session, user_in: UserCreate):
+    def register_user(db: Session, user_in: UserCreate, redis_client=None):
         """
-        Registers a standard client user and returns a pending review message.
+        Registers a standard client user and returns access tokens.
+        Enforces OTP email verification if Redis is available.
         """
+        email_clean = str(user_in.email).strip().lower()
+
+        # Enforce email OTP verification lock
+        if redis_client:
+            is_verified = redis_client.get(f"reg_verified:{email_clean}")
+            if not is_verified:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="يجب التحقق من البريد الإلكتروني عبر رمز التحقق (OTP) أولاً قبل إتمام إنشاء الحساب."
+                )
+
         existing_user = UserService.get_user_by_email(db, user_in.email)
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered"
+                detail="البريد الإلكتروني مسجل بالفعل"
             )
         
         # User is created with UserRole.user explicitly
@@ -35,6 +47,13 @@ class AuthController:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(e)
             )
+
+        # Remove verification key after successful account creation
+        if redis_client:
+            try:
+                redis_client.delete(f"reg_verified:{email_clean}")
+            except Exception:
+                pass
         
         access_token = create_access_token(data={"sub": str(db_user.id), "role": db_user.role.value})
         refresh_token = create_refresh_token(data={"sub": str(db_user.id)})
@@ -47,15 +66,147 @@ class AuthController:
         }
 
     @staticmethod
-    def register_consultant(db: Session, consultant_in: ConsultantRegister):
+    def request_register_otp(
+        db: Session,
+        redis_client,
+        email: str,
+        phone: str = None,
+        full_name: str = None,
+        background_tasks: BackgroundTasks = None
+    ) -> dict:
+        """
+        Generates a 6-digit OTP code, stores it in Redis with rate limiting, and sends email.
+        """
+        import random
+        email = str(email).strip().lower()
+
+        if not email.isascii():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="البريد الإلكتروني يجب أن يحتوي على أحرف وأرقام إنجليزية فقط بدون حروف عربية"
+            )
+
+        # Check if email is already registered
+        existing_user = UserService.get_user_by_email(db, email)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="البريد الإلكتروني مسجل بالفعل بحساب آخر"
+            )
+
+        # Rate limiting: 60 seconds cooldown lock
+        if redis_client:
+            lock_key = f"reg_otp_lock:{email}"
+            if redis_client.get(lock_key):
+                ttl = redis_client.ttl(lock_key) or 60
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail=f"يرجى الانتظار {ttl} ثانية قبل إعادة إرسال الرمز"
+                )
+
+        otp_code = f"{random.randint(100000, 999999)}"
+        if redis_client:
+            redis_client.setex(f"reg_otp:{email}", 600, otp_code)
+            redis_client.setex(f"reg_otp_lock:{email}", 60, "1")
+            redis_client.setex(f"reg_otp_attempts:{email}", 600, "0")
+
+        # Send via email service
+        name = full_name or "المستخدم"
+        if background_tasks:
+            background_tasks.add_task(
+                EmailService.send_register_otp_email,
+                to_email=email,
+                name=name,
+                otp_code=otp_code,
+                lang="ar"
+            )
+        else:
+            EmailService.send_register_otp_email(
+                to_email=email,
+                name=name,
+                otp_code=otp_code,
+                lang="ar"
+            )
+
+        return {
+            "message": "تم إرسال رمز التحقق بنجاح",
+            "email": email,
+            "resend_after": 60,
+            "expires_in": 600
+        }
+
+    @staticmethod
+    def verify_register_otp(
+        redis_client,
+        email: str,
+        otp_code: str
+    ) -> dict:
+        """
+        Verifies the 6-digit OTP code sent to user email.
+        """
+        email = str(email).strip().lower()
+        otp_code = str(otp_code).strip()
+
+        if redis_client:
+            attempts_key = f"reg_otp_attempts:{email}"
+            attempts = int(redis_client.get(attempts_key) or 0)
+            if attempts >= 5:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="تم استنفاد عدد المحاولات المسموحة. يرجى طلب رمز تحقق جديد."
+                )
+            redis_client.incr(attempts_key)
+
+            stored_otp = redis_client.get(f"reg_otp:{email}")
+            if isinstance(stored_otp, bytes):
+                stored_otp = stored_otp.decode('utf-8')
+
+            if not stored_otp:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="انتهت صلاحية رمز التحقق أو أنه غير موجود. يرجى طلب رمز جديد."
+                )
+
+            if stored_otp != otp_code:
+                remaining = max(0, 4 - attempts)
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"رمز التحقق غير صحيح. متبقي لديك {remaining} محاولات."
+                )
+
+            # Verified successfully -> cleanup Redis
+            redis_client.delete(f"reg_otp:{email}")
+            redis_client.delete(attempts_key)
+            redis_client.delete(f"reg_otp_lock:{email}")
+            redis_client.setex(f"reg_verified:{email}", 3600, "1")
+
+        return {
+            "message": "تم التحقق من الرمز بنجاح",
+            "verified": True
+        }
+
+    @staticmethod
+    def register_consultant(db: Session, consultant_in: ConsultantRegister, redis_client=None):
         """
         Registers a consultant. Consultant profile is created as pending.
+        Enforces OTP email verification if Redis is available.
         """
+        email_clean = str(consultant_in.email).strip().lower()
+
+        # Enforce email OTP verification lock
+        if redis_client:
+            is_verified = redis_client.get(f"reg_verified:{email_clean}")
+            if not is_verified:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="يجب التحقق من البريد الإلكتروني عبر رمز التحقق (OTP) أولاً قبل إتمام إنشاء الحساب."
+                )
+
         existing_user = UserService.get_user_by_email(db, consultant_in.email)
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered"
+                detail="البريد الإلكتروني مسجل بالفعل"
             )
         
         # Create user with role=consultant
@@ -100,6 +251,13 @@ class AuthController:
         except Exception as ex:
             print("Error notifying admins on consultant registration:", ex)
             
+        # Remove verification key after successful consultant registration
+        if redis_client:
+            try:
+                redis_client.delete(f"reg_verified:{email_clean}")
+            except Exception:
+                pass
+
         return {
             "message": "تم تسجيل طلب الانضمام كمستشار بنجاح وهو قيد المراجعة حالياً من قبل الإدارة."
         }

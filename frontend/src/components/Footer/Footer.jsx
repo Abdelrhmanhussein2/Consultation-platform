@@ -20,7 +20,7 @@ export default function Footer({ openPolicy, navigate }) {
         {/* 1. Brand & info column (Right-most in RTL) */}
         <div className="footer-column footer-brand-col">
           <div className="footer-logo-wrapper">
-            <img src="/logo_white.png" alt="ديوان" className="footer-logo" />
+            <img src="/diwan-logo-white.png" onError={(e) => { e.target.src = '/logo_white.png'; }} alt="ديوان" className="footer-logo" />
           </div>
           <p className="brand-description">
             المنصة الأولى للاستشارات الضريبية المدعومة بتقنيات الذكاء الاصطناعي في المملكة الأردنية الهاشمية

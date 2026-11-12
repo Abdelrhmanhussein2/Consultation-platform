@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import './RegisterForm.css';
 import ModernSelect from '../ModernSelect';
+import OtpVerificationStep from './OtpVerificationStep';
 
 export default function RegisterForm({ openPolicy, navigate }) {
   // Account Type ('user' or 'consultant')
   const [accountType, setAccountType] = useState('user');
-  
-  // Current Step (1 to 4)
+
+  // Current Step (1 or 2)
   const [currentStep, setCurrentStep] = useState(1);
 
   // Specializations list for consultant
@@ -17,34 +18,36 @@ export default function RegisterForm({ openPolicy, navigate }) {
   const [email, setEmail] = useState('');
   const [countryCode, setCountryCode] = useState('+962'); // Default Jordan code
   const [phoneNum, setPhoneNum] = useState('');
+  const [address, setAddress] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [captchaChecked, setCaptchaChecked] = useState(false);
 
-  // Step 2: Entity & Professional Details (User)
-  const [entityType, setEntityType] = useState('individual'); // 'individual', 'company', 'researcher'
+  // Step 2: Entity & Details (User)
   const [legalForm, setLegalForm] = useState('individual');
+  const [sector, setSector] = useState('services');
   const [companyName, setCompanyName] = useState('');
+  const [crNumber, setCrNumber] = useState('');
   const [taxNumber, setTaxNumber] = useState('');
-  const [sector, setSector] = useState('commercial');
+  const [country, setCountry] = useState('الأردن');
   const [crFileUrl, setCrFileUrl] = useState('');
+  const [crFileName, setCrFileName] = useState('');
   const [uploadingCr, setUploadingCr] = useState(false);
 
   // Step 2: Professional Details (Consultant)
   const [title, setTitle] = useState('');
-  const [address, setAddress] = useState('');
-  const [mainSpecializationId, setMainSpecializationId] = useState('');
+  const [mainSpecializationId, setMainSpecializationId] = useState('1');
   const [activityType, setActivityType] = useState('');
   const [yearsOfExperience, setYearsOfExperience] = useState('');
   const [certificatesLicenses, setCertificatesLicenses] = useState('');
   const [certificatesFileUrl, setCertificatesFileUrl] = useState('');
+  const [certificatesFileName, setCertificatesFileName] = useState('');
   const [uploadingCertificates, setUploadingCertificates] = useState(false);
   const [bio, setBio] = useState('');
 
-  // Step 3: Terms & Policies Agreement
-  const [acceptedPrivacyPolicy, setAcceptedPrivacyPolicy] = useState(false);
+  // Agreement
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [acceptedAccuracy, setAcceptedAccuracy] = useState(false);
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -65,6 +68,44 @@ export default function RegisterForm({ openPolicy, navigate }) {
     { code: '+970', flag: '🇵🇸', name: 'فلسطين (+970)' },
   ];
 
+  // Countries List for Step 2
+  const countriesList = [
+    { value: 'الأردن', label: '🇯🇴 الأردن' },
+    { value: 'السعودية', label: '🇸🇦 المملكة العربية السعودية' },
+    { value: 'الإمارات', label: '🇦🇪 الإمارات العربية المتحدة' },
+    { value: 'مصر', label: '🇪🇬 جمهورية مصر العربية' },
+    { value: 'قطر', label: '🇶🇦 قطر' },
+    { value: 'الكويت', label: '🇰🇼 الكويت' },
+    { value: 'البحرين', label: '🇧🇭 البحرين' },
+    { value: 'عمان', label: '🇴🇲 سلطنة عمان' },
+    { value: 'العراق', label: '🇮🇶 العراق' },
+    { value: 'فلسطين', label: '🇵🇸 فلسطين' },
+  ];
+
+  // 11 Legal forms as shown in Lovable
+  const legalFormOptions = [
+    { value: 'individual', label: 'فرد' },
+    { value: 'sole_proprietorship', label: 'مؤسسة فردية' },
+    { value: 'llc', label: 'شركة ذات مسؤولية محدودة' },
+    { value: 'private_joint_stock', label: 'شركة مساهمة خاصة' },
+    { value: 'public_joint_stock', label: 'شركة مساهمة عامة' },
+    { value: 'general_partnership', label: 'شركة تضامن' },
+    { value: 'limited_partnership', label: 'شركة توصية بسيطة' },
+    { value: 'independent_entity', label: 'هيئة مستقلة' },
+    { value: 'researcher', label: 'باحث / أكاديمي' },
+    { value: 'association', label: 'جمعيات' },
+    { value: 'non_profit', label: 'غير ربحية' },
+  ];
+
+  // 5 Sectors as shown in Lovable
+  const sectorOptions = [
+    { value: 'services', label: 'قطاع خدمات' },
+    { value: 'technology', label: 'قطاع تكنولوجيا' },
+    { value: 'industrial', label: 'قطاع صناعي' },
+    { value: 'commercial', label: 'قطاع تجاري' },
+    { value: 'agricultural', label: 'قطاع زراعي' },
+  ];
+
   // Fetch Specializations for Consultants on mount
   useEffect(() => {
     fetch('/api/specializations/')
@@ -80,7 +121,6 @@ export default function RegisterForm({ openPolicy, navigate }) {
         }
       })
       .catch(() => {
-        // Fallback official 15 specializations list
         const official15 = [
           { id: 1, name: 'ضريبة الدخل والمبيعات' },
           { id: 2, name: 'المناطق الحرة والتنموية' },
@@ -105,41 +145,51 @@ export default function RegisterForm({ openPolicy, navigate }) {
       });
   }, []);
 
-  const validateEmail = (str) => /\S+@\S+\.\S+/.test(str);
+  const validateEmail = (str) => {
+    // Must be valid ASCII email format without any Arabic or non-ASCII characters
+    return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(str);
+  };
 
   // Step Validation logic
   const validateStep = (stepNumber) => {
     setError('');
-    
+
     if (stepNumber === 1) {
       if (!fullName.trim()) {
-        setError('يرجى إدخال الاسم بالكامل');
+        setError('يرجى إدخال الاسم الكامل');
         return false;
       }
-      if (!email.trim() || !validateEmail(email)) {
-        setError('يرجى إدخال بريد إلكتروني صحيح');
+      if (!email.trim() || !validateEmail(email.trim())) {
+        setError('يرجى إدخال بريد إلكتروني صحيح باللغة الإنجليزية (تأكد من عدم وجود أحرف عربية)');
         return false;
       }
       if (!phoneNum.trim() || phoneNum.trim().length < 6) {
         setError('يرجى إدخال رقم هاتف صحيح');
         return false;
       }
-      if (!password || password.length < 8) {
-        setError('كلمة المرور يجب أن لا تقل عن 8 خانات');
+      if (!address.trim()) {
+        setError('يرجى إدخال العنوان');
         return false;
       }
-      // Check password complexity (Uppercase, Lowercase, Number, Special)
+      if (!password || password.length < 8) {
+        setError('كلمة المرور يجب أن لا تقل عن 8 أحرف');
+        return false;
+      }
       const hasUpper = /[A-Z]/.test(password);
       const hasLower = /[a-z]/.test(password);
       const hasDigit = /[0-9]/.test(password);
       const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password);
 
       if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
-        setError('كلمة المرور يجب أن تحتوي على حرف كبير، حرف صغير، رقم، ورمز خاص واحد على الأقل (مثل @ # $ % ! & *)');
+        setError('كلمة المرور يجب أن تحتوي على حرف كبير، حرف صغير، رقم، ورمز خاص');
         return false;
       }
       if (password !== confirmPassword) {
         setError('تأكيد كلمة المرور غير متطابق مع كلمة المرور');
+        return false;
+      }
+      if (!captchaChecked) {
+        setError('يرجى تأكيد أنك لست برنامج روبوت (reCAPTCHA)');
         return false;
       }
       return true;
@@ -147,39 +197,24 @@ export default function RegisterForm({ openPolicy, navigate }) {
 
     if (stepNumber === 2) {
       if (accountType === 'user') {
-        const isCompanyForm = legalForm && !['individual', 'independent_entity', 'researcher'].includes(legalForm);
-        if (entityType === 'company' || isCompanyForm) {
-          if (!companyName.trim()) {
-            setError('يرجى إدخال اسم الشركة / المؤسسة');
-            return false;
-          }
-          if (!crFileUrl) {
-            setError('مستند السجل التجاري مطلوب للصفة القانونية المحددة. يرجى رفع الملف للمتابعة.');
-            return false;
-          }
+        const isIndividual = legalForm === 'individual';
+        if (!isIndividual && !companyName.trim()) {
+          setError('يرجى إدخال اسم المنشأة');
+          return false;
+        }
+        if (!acceptedTerms) {
+          setError('يرجى الموافقة على الشروط والأحكام وسياسة الخصوصية للمتابعة');
+          return false;
         }
       } else {
-        // Consultant fields
         if (!title.trim()) {
           setError('يرجى إدخال المسمى الوظيفي');
           return false;
         }
-      }
-      return true;
-    }
-
-    if (stepNumber === 3) {
-      if (!acceptedPrivacyPolicy) {
-        setError('يجب الموافقة على سياسة الخصوصية للمتابعة');
-        return false;
-      }
-      if (!acceptedTerms) {
-        setError('يجب الموافقة على شروط وأحكام الاستخدام للمتابعة');
-        return false;
-      }
-      if (!acceptedAccuracy) {
-        setError('يجب الإقرار بصحة البيانات المدخلة');
-        return false;
+        if (!acceptedTerms) {
+          setError('يرجى الموافقة على الشروط والأحكام وسياسة الخصوصية للمتابعة');
+          return false;
+        }
       }
       return true;
     }
@@ -188,21 +223,28 @@ export default function RegisterForm({ openPolicy, navigate }) {
   };
 
   const handleNextStep = () => {
-    if (validateStep(currentStep)) {
+    if (validateStep(1)) {
       setError('');
-      setCurrentStep((prev) => Math.min(prev + 1, 4));
+      setCurrentStep(2);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handlePrevStep = () => {
     setError('');
-    setCurrentStep((prev) => Math.max(prev - 1, 1));
+    setCurrentStep(1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Upload Commercial Register file handler
   const handleCrFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('حجم الملف يجب ألا يتجاوز 5 ميجابايت');
+      return;
+    }
 
     const formData = new FormData();
     formData.append('file', file);
@@ -218,6 +260,7 @@ export default function RegisterForm({ openPolicy, navigate }) {
       const data = await res.json();
       if (res.ok && data.url) {
         setCrFileUrl(data.url);
+        setCrFileName(file.name);
       } else {
         setError(data.detail || 'فشل رفع الملف. يرجى إعادة المحاولة.');
       }
@@ -232,6 +275,11 @@ export default function RegisterForm({ openPolicy, navigate }) {
   const handleCertificatesUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('حجم الملف يجب ألا يتجاوز 5 ميجابايت');
+      return;
+    }
 
     const formData = new FormData();
     formData.append('file', file);
@@ -248,6 +296,7 @@ export default function RegisterForm({ openPolicy, navigate }) {
       if (res.ok && data.url) {
         setCertificatesFileUrl(data.url);
         setCertificatesLicenses(data.url);
+        setCertificatesFileName(file.name);
       } else {
         setError(data.detail || 'فشل رفع الملف. يرجى إعادة المحاولة.');
       }
@@ -258,9 +307,54 @@ export default function RegisterForm({ openPolicy, navigate }) {
     }
   };
 
-  const handleSubmitRegistration = async () => {
-    if (!validateStep(3)) return;
+  const handleProceedToOtp = async () => {
+    if (!validateStep(2)) return;
 
+    setLoading(true);
+    setError('');
+
+    const cleanPhone = phoneNum.trim().replace(/^0+/, '');
+    const fullPhone = `${countryCode}${cleanPhone}`;
+
+    try {
+      const res = await fetch('/api/auth/register-otp/request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          phone: fullPhone,
+          full_name: fullName.trim()
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setCurrentStep(3);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        let errorMsg = 'فشل إرسال رمز التحقق. يرجى التحقق من صحة البيانات.';
+        if (data && data.detail) {
+          if (typeof data.detail === 'string') {
+            errorMsg = data.detail;
+          } else if (Array.isArray(data.detail)) {
+            errorMsg = data.detail
+              .map((e) => (e.msg ? e.msg.replace(/^Value error,\s*/i, '') : JSON.stringify(e)))
+              .join(' | ');
+          }
+        }
+        setError(errorMsg);
+      }
+    } catch {
+      setError('تعذر الاتصال بالخادم لإرسال رمز التحقق.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFinalSubmit = async () => {
     setLoading(true);
     setError('');
 
@@ -272,18 +366,24 @@ export default function RegisterForm({ openPolicy, navigate }) {
       let payload = {};
 
       if (accountType === 'user') {
+        const isIndividual = legalForm === 'individual' || legalForm === 'researcher';
+        const backendSector = sector === 'technology' ? 'services' : sector;
+
         payload = {
           full_name: fullName.trim(),
           email: email.trim(),
           password: password,
           phone: fullPhone,
-          entity_type: entityType,
+          address: address.trim() || null,
+          country: 'الأردن',
+          entity_type: isIndividual ? 'individual' : 'company',
           legal_form: legalForm,
-          company_name: entityType === 'company' ? companyName.trim() : null,
-          tax_number: entityType === 'company' ? taxNumber.trim() : null,
-          sector: sector,
+          company_name: !isIndividual && companyName.trim() ? companyName.trim() : null,
+          tax_number: taxNumber.trim() ? taxNumber.trim() : null,
+          commercial_register_number: crNumber.trim() ? crNumber.trim() : null,
+          sector: backendSector,
           commercial_register_url: crFileUrl || null,
-          accepted_privacy_policy: acceptedPrivacyPolicy,
+          accepted_privacy_policy: acceptedTerms,
         };
       } else {
         endpoint = '/api/auth/register/consultant';
@@ -292,6 +392,7 @@ export default function RegisterForm({ openPolicy, navigate }) {
           email: email.trim(),
           password: password,
           phone: fullPhone,
+          country: 'الأردن',
           title: title.trim(),
           address: address.trim() || null,
           company_name: companyName.trim() || null,
@@ -300,7 +401,7 @@ export default function RegisterForm({ openPolicy, navigate }) {
           activity_type: activityType.trim() || null,
           years_of_experience: yearsOfExperience ? parseInt(yearsOfExperience) : null,
           certificates_licenses: certificatesLicenses.trim() || null,
-          accepted_privacy_policy: acceptedPrivacyPolicy,
+          accepted_privacy_policy: acceptedTerms,
         };
       }
 
@@ -317,8 +418,9 @@ export default function RegisterForm({ openPolicy, navigate }) {
 
       if (response.ok) {
         setSuccess(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
-        let errorMessage = 'فشل عملية التسجيل. يرجى التأكد من البيانات المدخلة.';
+        let errorMessage = 'فشل استكمال عملية التسجيل. يرجى إعادة المحاولة.';
         if (data && data.detail) {
           if (typeof data.detail === 'string') {
             errorMessage = data.detail;
@@ -326,35 +428,9 @@ export default function RegisterForm({ openPolicy, navigate }) {
             errorMessage = data.detail.map((err) => err.msg || err.detail).join(' | ');
           }
         }
-
-        // Map backend validation messages to clear Arabic messages
-        if (errorMessage.includes('Password must contain at least one special character')) {
-          errorMessage = 'كلمة المرور يجب أن تحتوي على رمز خاص واحد على الأقل (مثل @ # $ % ! & *)';
-        } else if (errorMessage.includes('Password must contain at least one uppercase letter')) {
-          errorMessage = 'كلمة المرور يجب أن تحتوي على حرف كبير واحد على الأقل (A-Z)';
-        } else if (errorMessage.includes('Password must contain at least one lowercase letter')) {
-          errorMessage = 'كلمة المرور يجب أن تحتوي على حرف صغير واحد على الأقل (a-z)';
-        } else if (errorMessage.includes('Password must contain at least one digit')) {
-          errorMessage = 'كلمة المرور يجب أن تحتوي على رقم واحد على الأقل (0-9)';
-        } else if (errorMessage.includes('Password must be at least 8 characters long')) {
-          errorMessage = 'كلمة المرور يجب أن لا تقل عن 8 خانات';
-        } else if (errorMessage.includes('Email already registered') || errorMessage.includes('already exists')) {
-          errorMessage = 'البريد الإلكتروني أو رقم الهاتف مستخدم بالفعل في حساب آخر';
-        }
-
-        // Auto-redirect user back to the step containing the field with error
-        const isStep1Error = /password|Password|email|Email|phone|Phone|full_name|name/i.test(errorMessage) || /password|email|phone/i.test(JSON.stringify(data.detail || ''));
-        const isStep2Error = /company|tax|title|sector|legal_form|commercial_register/i.test(errorMessage) || /company|tax|title/i.test(JSON.stringify(data.detail || ''));
-
-        if (isStep1Error) {
-          setCurrentStep(1);
-        } else if (isStep2Error) {
-          setCurrentStep(2);
-        }
-
         setError(errorMessage);
       }
-    } catch (err) {
+    } catch {
       setError('تعذر الاتصال بالخادم. يرجى التأكد من اتصالك وإعادة المحاولة.');
     } finally {
       setLoading(false);
@@ -362,374 +438,576 @@ export default function RegisterForm({ openPolicy, navigate }) {
   };
 
   return (
-    <div className="register-card-wrapper slide-up">
-      {/* Brand Logo */}
-      <div className="register-logo-container">
-        <img src="/logo.png" alt="شعار ديوان" className="register-logo" />
+    <div className="auth-page-wrapper">
+      {/* Brand Full Logo */}
+      <div className="auth-logo-container">
+        <a href="/" onClick={(e) => { e.preventDefault(); navigate ? navigate('/') : window.location.href = '/'; }}>
+          <img
+            src="/diwan-logo-full.png"
+            onError={(e) => { e.target.src = '/logo.png'; }}
+            alt="ديوان للاستشارات الضريبية"
+            className="auth-main-logo"
+          />
+        </a>
       </div>
 
-      <div className="register-card">
-        {/* Corner Brackets */}
-        <div className="corner-bracket top-left"></div>
-        <div className="corner-bracket bottom-right"></div>
+      {/* Auth Card Frame with Corner Brackets */}
+      <div className="auth-frame relative">
+        <div className="auth-card">
+          {/* SUCCESS SCREEN */}
+          {success ? (
+            <div className="auth-success-screen fade-in">
+              <div className="auth-success-circle">
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#16A34A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="m9 12 2 2 4-4"></path>
+                </svg>
+              </div>
+              <div className="auth-success-greeting">مرحباً بك في ديوان</div>
+              <h2 className="auth-success-title">تم إنشاء حسابك بنجاح</h2>
+              <p className="auth-success-description">
+                {accountType === 'user'
+                  ? 'يمكنك الآن تسجيل الدخول والبدء باستخدام خدمات المنصة.'
+                  : 'تم تقديم طلب اعتماد حساب المستشار بنجاح. سيتم مراجعة طلبك وإشعارك قريباً.'}
+              </p>
 
-        {/* Card Header */}
-        <div className="register-header">
-          <h2 className="register-title">إنشاء حساب جديد</h2>
-          <p className="register-subtitle">انضم إلى منصة ديوان للاستشارات الضريبية الذكية</p>
-        </div>
+              <div className="auth-package-pill">
+                <span className="package-check">✓</span>
+                <span>باقة الاشتراك: الباقة المجانية</span>
+              </div>
 
-        {/* Tabs Control: Account Type */}
-        <div className="register-tabs">
-          <button
-            type="button"
-            className={`tab-btn ${accountType === 'user' ? 'active' : ''}`}
-            onClick={() => {
-              setAccountType('user');
-              setError('');
-            }}
-            disabled={loading || currentStep > 1}
-          >
-            مستخدم / كيان تجاري
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${accountType === 'consultant' ? 'active' : ''}`}
-            onClick={() => {
-              setAccountType('consultant');
-              setError('');
-            }}
-            disabled={loading || currentStep > 1}
-          >
-            مستشار ضريبي
-          </button>
-        </div>
-
-        {/* Progress Bar Component */}
-        <div className="progress-bar-container">
-          <div className="progress-track">
-            <div
-              className="progress-fill"
-              style={{ width: `${((currentStep - 1) / 3) * 100}%` }}
-            ></div>
-          </div>
-          <div className="progress-steps">
-            {[
-              { step: 1, title: 'الأساسية' },
-              { step: 2, title: accountType === 'user' ? 'الكيان' : 'الخبرات' },
-              { step: 3, title: 'الشروط' },
-              { step: 4, title: 'المراجعة' },
-            ].map((item) => (
-              <div
-                key={item.step}
-                className={`step-item ${currentStep === item.step ? 'active' : ''} ${
-                  currentStep > item.step ? 'completed' : ''
-                }`}
+              <button
+                type="button"
+                className="auth-btn-primary"
                 onClick={() => {
-                  if (item.step < currentStep) setCurrentStep(item.step);
+                  if (navigate) navigate('/login');
+                  else window.location.href = '/login';
                 }}
               >
-                <div className="step-circle">
-                  {currentStep > item.step ? '✓' : item.step}
-                </div>
-                <span className="step-label">{item.title}</span>
+                تسجيل الدخول
+              </button>
+
+              <button
+                type="button"
+                className="auth-btn-secondary"
+                onClick={() => {
+                  if (navigate) navigate('/');
+                  else window.location.href = '/';
+                }}
+              >
+                الصفحة الرئيسية
+              </button>
+
+              <div className="auth-support-text">
+                تحتاج إلى مساعدة؟ <a href="mailto:support@diwanjo.com">support@diwanjo.com</a>
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Alert Messages */}
-        {error && (
-          <div className="alert alert-danger fade-in">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
-            </svg>
-            <span>{error}</span>
-          </div>
-        )}
+              <div className="auth-footer-prompt">
+                <span>لديك حساب؟ </span>
+                <a
+                  href="/login"
+                  className="auth-link-bold"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (navigate) navigate('/login');
+                    else window.location.href = '/login';
+                  }}
+                >
+                  تسجيل الدخول
+                </a>
+              </div>
+            </div>
+          ) : (
+            /* FORM CONTENT */
+            <div className="auth-content-container">
+              {/* Card Header */}
+              <div className="auth-header">
+                <h1 className="auth-title">إنشاء حساب</h1>
+                <p className="auth-subtitle">مرحباً بك في منصة ديوان للاستشارات الضريبية</p>
+              </div>
 
-        {/* SUCCESS STATE */}
-        {success ? (
-          <div className="success-screen fade-in">
-            <div className="success-icon">✓</div>
-            <h3>تم إنشاء الحساب بنجاح!</h3>
-            <p>
-              {accountType === 'user'
-                ? 'أهلاً بك! يمكنك الآن تسجيل الدخول والاستفادة من استشارات المنصة.'
-                : 'تم تقديم طلب اعتماد حساب المستشار بنجاح. سيتم مراجعة طلبك وإشعارك قريباً.'}
-            </p>
-            <button
-              className="submit-btn"
-              onClick={() => {
-                if (navigate) navigate('/login');
-                else window.location.href = '/login';
-              }}
-            >
-              الانتقال لتسجيل الدخول
-            </button>
-          </div>
-        ) : (
-          /* STEP FORM CONTENT */
-          <div className="step-content-wrapper">
-            {/* STEP 1: Basic Information */}
-            {currentStep === 1 && (
-              <div className="step-pane fade-in">
-                {/* Row 1: Full Name + Email side by side */}
-                <div className="form-row-2col">
-                  <div className="form-group">
-                    <label htmlFor="fullName">الاسم الكامل *</label>
-                    <div className="input-wrapper">
+              {/* Segmented Switch: المستخدمين / المستشارين */}
+              <div className="auth-tabs">
+                <button
+                  type="button"
+                  className={`auth-tab-btn ${accountType === 'user' ? 'active' : ''}`}
+                  onClick={() => {
+                    setAccountType('user');
+                    setError('');
+                  }}
+                  disabled={loading || currentStep > 1}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="tab-icon">
+                    <circle cx="12" cy="8" r="5"></circle>
+                    <path d="M20 21a8 8 0 0 0-16 0"></path>
+                  </svg>
+                  <span>المستخدمين</span>
+                </button>
+                <button
+                  type="button"
+                  className={`auth-tab-btn ${accountType === 'consultant' ? 'active' : ''}`}
+                  onClick={() => {
+                    setAccountType('consultant');
+                    setError('');
+                  }}
+                  disabled={loading || currentStep > 1}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="tab-icon">
+                    <path d="M12 12h.01"></path>
+                    <path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"></path>
+                    <path d="M22 13a18.15 18.15 0 0 1-20 0"></path>
+                    <rect width="20" height="14" x="2" y="6" rx="2"></rect>
+                  </svg>
+                  <span>المستشارين</span>
+                </button>
+              </div>
+
+              {/* Alert Feedback */}
+              {error && (
+                <div className="auth-alert auth-alert-danger fade-in">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+                  </svg>
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {/* STEP 1: Basic Information */}
+              {currentStep === 1 && (
+                <div className="auth-step-pane fade-in">
+                  {/* Full Name */}
+                  <div className="auth-field-group">
+                    <label className="auth-label" htmlFor="user-name">
+                      الاسم الكامل <span className="required-star">*</span>
+                    </label>
+                    <div className="auth-input-wrapper">
+                      <span className="auth-input-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="8" r="5"></circle>
+                          <path d="M20 21a8 8 0 0 0-16 0"></path>
+                        </svg>
+                      </span>
                       <input
+                        id="user-name"
                         type="text"
-                        id="fullName"
-                        placeholder="أدخل الاسم بالكامل"
+                        className="auth-input"
+                        placeholder="أدخل الاسم الكامل"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                       />
                     </div>
                   </div>
 
-                  <div className="form-group">
-                    <label htmlFor="email">البريد الإلكتروني *</label>
-                    <div className="input-wrapper">
+                  {/* Email */}
+                  <div className="auth-field-group">
+                    <label className="auth-label" htmlFor="user-email">
+                      البريد الإلكتروني <span className="required-star">*</span>
+                    </label>
+                    <div className="auth-input-wrapper">
+                      <span className="auth-input-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"></path>
+                          <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                        </svg>
+                      </span>
                       <input
+                        id="user-email"
                         type="email"
-                        id="email"
-                        placeholder="example@domain.com"
+                        dir="ltr"
+                        className="auth-input ltr-input"
+                        placeholder="name@example.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                       />
                     </div>
                   </div>
-                </div>
 
-                {/* Row 2: Phone (full width) */}
-                <div className="form-group">
-                  <label htmlFor="phone">رقم الهاتف الجوال *</label>
-                  <div className="phone-input-container">
-                    <select
-                      className="country-code-select"
-                      value={countryCode}
-                      onChange={(e) => setCountryCode(e.target.value)}
-                    >
-                      {countryCodes.map((c) => (
-                        <option key={c.code} value={c.code}>
-                          {c.flag} {c.code}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      type="tel"
-                      id="phone"
-                      placeholder="791234567"
-                      className="phone-number-input"
-                      value={phoneNum}
-                      onChange={(e) => setPhoneNum(e.target.value)}
-                    />
-                  </div>
-                  <span className="input-hint">سيتم تسجيل رقمك بالصيغة: {countryCode}{phoneNum || '79xxxxxxx'}</span>
-                </div>
-
-                {/* Row 3: Password + Confirm side by side */}
-                <div className="form-row-2col">
-                  <div className="form-group">
-                    <label htmlFor="password">كلمة المرور *</label>
-                    <div className="input-wrapper password-wrapper">
+                  {/* Phone */}
+                  <div className="auth-field-group">
+                    <label className="auth-label">
+                      رقم الهاتف <span className="required-star">*</span>
+                    </label>
+                    <div dir="ltr" className="auth-phone-container">
                       <input
-                        type={showPassword ? 'text' : 'password'}
-                        id="password"
-                        placeholder="8 خانات على الأقل"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        type="tel"
+                        dir="ltr"
+                        className="auth-phone-input"
+                        placeholder="7X XXX XXXX"
+                        value={phoneNum}
+                        onChange={(e) => setPhoneNum(e.target.value)}
                       />
-                      <button
-                        type="button"
-                        className="password-toggle"
-                        onClick={() => setShowPassword(!showPassword)}
-                        tabIndex="-1"
-                        title={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
-                      >
-                        {showPassword ? (
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                            <line x1="1" y1="1" x2="23" y2="23" />
-                          </svg>
-                        ) : (
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                            <circle cx="12" cy="12" r="3" />
-                          </svg>
-                        )}
-                      </button>
+                      <div className="auth-phone-prefix">
+                        <span className="phone-flag" aria-hidden="true">🇯🇴</span>
+                        <span className="phone-code">+962</span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="form-group">
-                    <label htmlFor="confirmPassword">تأكيد كلمة المرور *</label>
-                    <div className="input-wrapper">
+                  {/* Address */}
+                  <div className="auth-field-group">
+                    <label className="auth-label" htmlFor="user-address">
+                      العنوان <span className="required-star">*</span>
+                    </label>
+                    <div className="auth-input-wrapper">
+                      <span className="auth-input-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path>
+                          <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                      </span>
                       <input
-                        type={showPassword ? 'text' : 'password'}
-                        id="confirmPassword"
-                        placeholder="أعد كتابة كلمة المرور"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        id="user-address"
+                        type="text"
+                        className="auth-input"
+                        placeholder="أدخل عنوانك"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
                       />
                     </div>
                   </div>
-                </div>
 
-                {/* Password Requirements Checklist (full width) */}
-                <div className="password-rules-hints" style={{ marginTop: '-4px', fontSize: '0.78rem', color: '#64748B', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', background: 'rgba(13,60,92,0.03)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(13,60,92,0.08)' }}>
-                  <span style={{ color: password.length >= 8 ? '#166534' : '#B0BEC5', fontWeight: password.length >= 8 ? '700' : '400' }}>
-                    {password.length >= 8 ? '✓' : '○'} 8 خانات على الأقل
-                  </span>
-                  <span style={{ color: /[A-Z]/.test(password) ? '#166534' : '#B0BEC5', fontWeight: /[A-Z]/.test(password) ? '700' : '400' }}>
-                    {/[A-Z]/.test(password) ? '✓' : '○'} حرف كبير (A-Z)
-                  </span>
-                  <span style={{ color: /[a-z]/.test(password) ? '#166534' : '#B0BEC5', fontWeight: /[a-z]/.test(password) ? '700' : '400' }}>
-                    {/[a-z]/.test(password) ? '✓' : '○'} حرف صغير (a-z)
-                  </span>
-                  <span style={{ color: /[0-9]/.test(password) ? '#166534' : '#B0BEC5', fontWeight: /[0-9]/.test(password) ? '700' : '400' }}>
-                    {/[0-9]/.test(password) ? '✓' : '○'} رقم (0-9)
-                  </span>
-                  <span style={{ color: /[!@#$%^&*()_+\-=\[\]{};':"|,.<>\/?~`]/.test(password) ? '#166534' : '#B0BEC5', fontWeight: /[!@#$%^&*()_+\-=\[\]{};':"|,.<>\/?~`]/.test(password) ? '700' : '400', gridColumn: 'span 2' }}>
-                    {/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password) ? '✓' : '○'} رمز خاص (@ # $ % ! & * _ -)
-                  </span>
-                </div>
-              </div>
-            )}
+                  {/* Passwords 2 Columns */}
+                  <div className="auth-row-2col">
+                    <div className="auth-field-group">
+                      <label className="auth-label" htmlFor="user-password">
+                        كلمة المرور <span className="required-star">*</span>
+                      </label>
+                      <div className="auth-input-wrapper">
+                        <span className="auth-input-icon">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="16" r="1"></circle>
+                            <rect x="3" y="10" width="18" height="12" rx="2"></rect>
+                            <path d="M7 10V7a5 5 0 0 1 10 0v3"></path>
+                          </svg>
+                        </span>
+                        <input
+                          id="user-password"
+                          type={showPassword ? 'text' : 'password'}
+                          className="auth-input has-toggle"
+                          placeholder="8 أحرف على الأقل"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          className="auth-password-toggle-btn"
+                          onClick={() => setShowPassword(!showPassword)}
+                          aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                        >
+                          {showPassword ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                              <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                              <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    </div>
 
-
-            {/* STEP 2: Entity & Professional Details */}
-            {currentStep === 2 && (
-              <div className="step-pane fade-in">
-                {accountType === 'user' ? (
-                  <>
-                    {/* Row 1: Entity Type + Legal Form side by side */}
-                    <div className="form-row-2col">
-                      <div className="form-group">
-                        <label>نوع الكيان المستخدم</label>
-                        <ModernSelect
-                          options={[
-                            { value: 'individual', label: '👤 فرد / أفراد' },
-                            { value: 'company',    label: '🏢 شركة / مؤسسة تجارية' },
-                            { value: 'researcher', label: '🎓 باحث / أكاديمي' },
-                          ]}
-                          value={entityType}
-                          onChange={(val) => {
-                            setEntityType(val);
-                            if (val === 'individual') setLegalForm('individual');
-                            else if (val === 'researcher') setLegalForm('researcher');
-                            else if (val === 'company') setLegalForm('llc');
-                          }}
-                          placeholder="اختر نوع الكيان..."
-                          style={{ width: '100%' }}
+                    <div className="auth-field-group">
+                      <label className="auth-label" htmlFor="user-confirm">
+                        تأكيد كلمة المرور <span className="required-star">*</span>
+                      </label>
+                      <div className="auth-input-wrapper">
+                        <span className="auth-input-icon">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="16" r="1"></circle>
+                            <rect x="3" y="10" width="18" height="12" rx="2"></rect>
+                            <path d="M7 10V7a5 5 0 0 1 10 0v3"></path>
+                          </svg>
+                        </span>
+                        <input
+                          id="user-confirm"
+                          type={showPassword ? 'text' : 'password'}
+                          className="auth-input"
+                          placeholder="أعد إدخال كلمة المرور"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
                         />
                       </div>
+                    </div>
+                  </div>
 
-                      <div className="form-group">
-                        <label>الشكل القانوني</label>
+                  {/* Password Checklist Rules */}
+                  <div className="auth-password-rules">
+                    <span className={password.length >= 8 ? 'rule-met' : 'rule-unmet'}>
+                      {password.length >= 8 ? '✓' : '○'} 8 أحرف على الأقل
+                    </span>
+                    <span className={/[A-Z]/.test(password) ? 'rule-met' : 'rule-unmet'}>
+                      {/[A-Z]/.test(password) ? '✓' : '○'} حرف كبير (A-Z)
+                    </span>
+                    <span className={/[a-z]/.test(password) ? 'rule-met' : 'rule-unmet'}>
+                      {/[a-z]/.test(password) ? '✓' : '○'} حرف صغير (a-z)
+                    </span>
+                    <span className={/[0-9]/.test(password) ? 'rule-met' : 'rule-unmet'}>
+                      {/[0-9]/.test(password) ? '✓' : '○'} رقم (0-9)
+                    </span>
+                    <span className={`rule-span-2 ${/[!@#$%^&*()_+\-=\[\]{};':"|,.<>\/?~`]/.test(password) ? 'rule-met' : 'rule-unmet'}`}>
+                      {/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password) ? '✓' : '○'} رمز خاص (@ # $ % ! & * _ -)
+                    </span>
+                  </div>
+
+                  {/* reCAPTCHA Simulator Box */}
+                  <div dir="ltr" className="recaptcha-card">
+                    <label className="recaptcha-label" onClick={() => setCaptchaChecked(!captchaChecked)}>
+                      <div className={`recaptcha-check-box ${captchaChecked ? 'checked' : ''}`}>
+                        {captchaChecked && (
+                          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#16A34A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        )}
+                      </div>
+                      <span className="recaptcha-text">I'm not a robot</span>
+                    </label>
+                    <div className="recaptcha-brand">
+                      <div className="recaptcha-icon-box">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="16" r="1"></circle>
+                          <rect x="3" y="10" width="18" height="12" rx="2"></rect>
+                          <path d="M7 10V7a5 5 0 0 1 10 0v3"></path>
+                        </svg>
+                      </div>
+                      <span className="recaptcha-brand-title">reCAPTCHA</span>
+                      <span className="recaptcha-legal-links">Privacy - Terms</span>
+                    </div>
+                  </div>
+
+                  {/* Next Button */}
+                  <button
+                    type="button"
+                    className="auth-btn-gold"
+                    onClick={handleNextStep}
+                  >
+                    المتابعة
+                  </button>
+
+                  {/* Footer link to Login */}
+                  <div className="auth-footer-prompt">
+                    <span>لديك حساب؟ </span>
+                    <a
+                      href="/login"
+                      className="auth-link-bold"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (navigate) navigate('/login');
+                        else window.location.href = '/login';
+                      }}
+                    >
+                      تسجيل الدخول
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 2: Entity & Professional Details */}
+              {currentStep === 2 && (
+                <div className="auth-step-pane fade-in">
+                  {accountType === 'user' ? (
+                    <>
+                      {/* Legal Form Dropdown */}
+                      <div className="auth-field-group">
+                        <label className="auth-label">
+                          الشكل القانوني <span className="required-star">*</span>
+                        </label>
                         <ModernSelect
-                          options={[
-                            { value: 'individual',         label: 'فرد' },
-                            { value: 'sole_proprietorship', label: 'مؤسسة فردية' },
-                            { value: 'llc',                label: 'شركة ذات مسؤولية محدودة (LLC)' },
-                            { value: 'private_joint_stock', label: 'شركة مساهمة خاصة' },
-                            { value: 'public_joint_stock',  label: 'شركة مساهمة عامة' },
-                            { value: 'non_profit',          label: 'جهة غير ربحية / جمعية' },
-                          ]}
+                          options={legalFormOptions}
                           value={legalForm}
                           onChange={(val) => setLegalForm(val)}
                           placeholder="اختر الشكل القانوني..."
+                          prefixIcon={
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect width="16" height="20" x="4" y="2" rx="2" ry="2"></rect>
+                              <path d="M9 22v-4h6v4"></path>
+                              <path d="M8 6h.01"></path>
+                              <path d="M16 6h.01"></path>
+                              <path d="M12 6h.01"></path>
+                              <path d="M12 10h.01"></path>
+                              <path d="M12 14h.01"></path>
+                              <path d="M16 10h.01"></path>
+                              <path d="M16 14h.01"></path>
+                              <path d="M8 10h.01"></path>
+                              <path d="M8 14h.01"></path>
+                            </svg>
+                          }
                           style={{ width: '100%' }}
                         />
                       </div>
-                    </div>
 
-                    {/* Row 2: Sector (full width) */}
-                    <div className="form-group">
-                      <label>القطاع التجاري / الاقتصادي</label>
-                      <ModernSelect
-                        options={[
-                          { value: 'commercial',   label: 'القطاع التجاري' },
-                          { value: 'services',     label: 'قطاع الخدمات' },
-                          { value: 'industrial',   label: 'القطاع الصناعي' },
-                          { value: 'banking',      label: 'القطاع المالي والبنكي' },
-                          { value: 'contracting',  label: 'المقاولات والإنشاءات' },
-                          { value: 'agricultural', label: 'القطاع الزراعي' },
-                          { value: 'other',        label: 'قطاعات أخرى' },
-                        ]}
-                        value={sector}
-                        onChange={(val) => setSector(val)}
-                        placeholder="اختر القطاع..."
-                        style={{ width: '100%' }}
-                      />
-                    </div>
+                      {/* Sector / Activity Dropdown */}
+                      <div className="auth-field-group">
+                        <label className="auth-label">
+                          نشاط المنشأة <span className="required-star">*</span>
+                        </label>
+                        <ModernSelect
+                          options={sectorOptions}
+                          value={sector}
+                          onChange={(val) => setSector(val)}
+                          placeholder="اختر نشاط المنشأة"
+                          prefixIcon={
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M12 12h.01"></path>
+                              <path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"></path>
+                              <path d="M22 13a18.15 18.15 0 0 1-20 0"></path>
+                              <rect width="20" height="14" x="2" y="6" rx="2"></rect>
+                            </svg>
+                          }
+                          style={{ width: '100%' }}
+                        />
+                      </div>
 
-                    {(entityType === 'company' || (legalForm && !['individual', 'independent_entity', 'researcher'].includes(legalForm))) && (
-                      <>
-                        {/* Row 3: Company Name + Tax Number side by side */}
-                        <div className="form-row-2col">
-                          <div className="form-group">
-                            <label htmlFor="companyName">اسم الشركة / المؤسسة *</label>
-                            <div className="input-wrapper">
-                              <input
-                                type="text"
-                                id="companyName"
-                                placeholder="أدخل اسم الشركة الرسمي"
-                                value={companyName}
-                                onChange={(e) => setCompanyName(e.target.value)}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="form-group">
-                            <label htmlFor="taxNumber">الرقم الضريبي (اختياري)</label>
-                            <div className="input-wrapper">
-                              <input
-                                type="text"
-                                id="taxNumber"
-                                placeholder="الرقم الضريبي المسجل"
-                                value={taxNumber}
-                                onChange={(e) => setTaxNumber(e.target.value)}
-                              />
-                            </div>
-                          </div>
+                      {/* Company / Entity Name */}
+                      <div className="auth-field-group">
+                        <label className="auth-label" htmlFor="company-name">
+                          اسم المنشأة <span className="required-star">{legalForm !== 'individual' ? '*' : ''}</span>
+                        </label>
+                        <div className="auth-input-wrapper">
+                          <span className="auth-input-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect width="16" height="20" x="4" y="2" rx="2" ry="2"></rect>
+                              <path d="M9 22v-4h6v4"></path>
+                            </svg>
+                          </span>
+                          <input
+                            id="company-name"
+                            type="text"
+                            className="auth-input"
+                            placeholder="أدخل اسم المنشأة"
+                            value={companyName}
+                            onChange={(e) => setCompanyName(e.target.value)}
+                          />
                         </div>
+                      </div>
 
-                        <div className="form-group">
-                          <label>مستند السجل التجاري (مطلوب للصفة القانونية * )</label>
-                          <div className="file-upload-box">
+                      {/* Two Column Row: CR Number + Tax Number */}
+                      <div className="auth-row-2col">
+                        <div className="auth-field-group">
+                          <label className="auth-label" htmlFor="cr-number">
+                            رقم السجل التجاري
+                          </label>
+                          <div className="auth-input-wrapper">
+                            <span className="auth-input-icon">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="4" y1="9" x2="20" y2="9"></line>
+                                <line x1="4" y1="15" x2="20" y2="15"></line>
+                                <line x1="10" y1="3" x2="8" y2="21"></line>
+                                <line x1="16" y1="3" x2="14" y2="21"></line>
+                              </svg>
+                            </span>
                             <input
-                              type="file"
-                              accept=".pdf,.png,.jpg,.jpeg,.webp"
-                              id="crFile"
-                              onChange={handleCrFileUpload}
-                              disabled={uploadingCr}
+                              id="cr-number"
+                              type="text"
+                              className="auth-input"
+                              placeholder="رقم السجل"
+                              value={crNumber}
+                              onChange={(e) => setCrNumber(e.target.value)}
                             />
-                            <label htmlFor="crFile" className="file-upload-label">
-                              {uploadingCr
-                                ? 'جاري رفع الملف...'
-                                : crFileUrl
-                                ? '✓ تم رفع مستند السجل التجاري'
-                                : '📁 اضغط هنا لرفع مستند السجل التجاري'}
-                            </label>
                           </div>
                         </div>
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {/* Row 1: Title + Specialization side by side */}
-                    <div className="form-row-2col">
-                      <div className="form-group">
-                        <label htmlFor="title">المسمى الوظيفي / اللقب المهني *</label>
-                        <div className="input-wrapper">
+
+                        <div className="auth-field-group">
+                          <label className="auth-label" htmlFor="tax-number">
+                            الرقم الضريبي
+                          </label>
+                          <div className="auth-input-wrapper">
+                            <span className="auth-input-icon">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="4" y1="9" x2="20" y2="9"></line>
+                                <line x1="4" y1="15" x2="20" y2="15"></line>
+                                <line x1="10" y1="3" x2="8" y2="21"></line>
+                                <line x1="16" y1="3" x2="14" y2="21"></line>
+                              </svg>
+                            </span>
+                            <input
+                              id="tax-number"
+                              type="text"
+                              className="auth-input"
+                              placeholder="الرقم الضريبي"
+                              value={taxNumber}
+                              onChange={(e) => setTaxNumber(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Country Field (Fixed to Jordan) */}
+                      <div className="auth-field-group">
+                        <label className="auth-label">
+                          الدولة <span className="required-star">*</span>
+                        </label>
+                        <div className="auth-input-wrapper">
+                          <span className="auth-input-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path>
+                              <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                          </span>
                           <input
                             type="text"
-                            id="title"
+                            className="auth-input auth-input-readonly"
+                            value="الأردن"
+                            readOnly
+                          />
+                        </div>
+                      </div>
+
+                      {/* Commercial Register File Upload Card */}
+                      <div className="auth-file-card">
+                        <div className="auth-file-info">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="auth-file-icon">
+                            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+                            <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+                          </svg>
+                          <div className="auth-file-texts">
+                            <span className="auth-file-title">السجل التجاري</span>
+                            <span className="auth-file-subtitle">
+                              {crFileName ? `✓ ${crFileName}` : 'PDF أو JPG أو PNG - بحد أقصى 5MB'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <label className={`auth-file-btn ${uploadingCr ? 'disabled' : ''}`}>
+                          <input
+                            type="file"
+                            accept=".pdf,.png,.jpg,.jpeg,.webp"
+                            onChange={handleCrFileUpload}
+                            disabled={uploadingCr}
+                            hidden
+                          />
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                          </svg>
+                          <span>{uploadingCr ? 'جاري الرفع...' : crFileUrl ? 'تم الرفع ✓' : 'رفع الملف'}</span>
+                        </label>
+                      </div>
+                    </>
+                  ) : (
+                    /* CONSULTANT STEP 2 FIELDS */
+                    <>
+                      {/* Title */}
+                      <div className="auth-field-group">
+                        <label className="auth-label" htmlFor="consultant-title">
+                          المسمى الوظيفي / اللقب المهني <span className="required-star">*</span>
+                        </label>
+                        <div className="auth-input-wrapper">
+                          <span className="auth-input-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M12 12h.01"></path>
+                              <path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"></path>
+                              <path d="M22 13a18.15 18.15 0 0 1-20 0"></path>
+                              <rect width="20" height="14" x="2" y="6" rx="2"></rect>
+                            </svg>
+                          </span>
+                          <input
+                            id="consultant-title"
+                            type="text"
+                            className="auth-input"
                             placeholder="مثال: مستشار ضريبي معتمد"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
@@ -737,290 +1015,210 @@ export default function RegisterForm({ openPolicy, navigate }) {
                         </div>
                       </div>
 
-                      <div className="form-group">
-                        <label>التخصص الرئيسي</label>
+                      {/* Main Specialization */}
+                      <div className="auth-field-group">
+                        <label className="auth-label">
+                          التخصص الرئيسي <span className="required-star">*</span>
+                        </label>
                         <ModernSelect
                           options={specializations.map((s) => ({ value: String(s.id), label: s.name }))}
                           value={String(mainSpecializationId)}
                           onChange={(val) => setMainSpecializationId(val)}
                           placeholder="اختر التخصص..."
+                          prefixIcon={
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path>
+                              <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path>
+                              <path d="M7 21h10"></path>
+                              <path d="M12 3v18"></path>
+                              <path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"></path>
+                            </svg>
+                          }
                           style={{ width: '100%' }}
                         />
                       </div>
-                    </div>
 
-                    {/* Row 2: Activity Type + Years of Experience side by side */}
-                    <div className="form-row-2col">
-                      <div className="form-group">
-                        <label htmlFor="activityType">نوع النشاط المهني</label>
-                        <div className="input-wrapper">
-                          <input
-                            type="text"
-                            id="activityType"
-                            placeholder="استشارات قانونية وضرائب المبيعات"
-                            value={activityType}
-                            onChange={(e) => setActivityType(e.target.value)}
-                          />
+                      {/* Activity Type + Years of Experience */}
+                      <div className="auth-row-2col">
+                        <div className="auth-field-group">
+                          <label className="auth-label" htmlFor="consultant-activity">
+                            نوع النشاط المهني
+                          </label>
+                          <div className="auth-input-wrapper">
+                            <span className="auth-input-icon">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                              </svg>
+                            </span>
+                            <input
+                              id="consultant-activity"
+                              type="text"
+                              className="auth-input"
+                              placeholder="استشارات قانونية وضرائب المبيعات"
+                              value={activityType}
+                              onChange={(e) => setActivityType(e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="auth-field-group">
+                          <label className="auth-label" htmlFor="consultant-years">
+                            سنوات الخبرة
+                          </label>
+                          <div className="auth-input-wrapper">
+                            <span className="auth-input-icon">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                              </svg>
+                            </span>
+                            <input
+                              id="consultant-years"
+                              type="number"
+                              min="0"
+                              max="50"
+                              className="auth-input"
+                              placeholder="مثال: 10"
+                              value={yearsOfExperience}
+                              onChange={(e) => setYearsOfExperience(e.target.value)}
+                            />
+                          </div>
                         </div>
                       </div>
 
-                      <div className="form-group">
-                        <label htmlFor="yearsExp">سنوات الخبرة</label>
-                        <div className="input-wrapper">
-                          <input
-                            type="number"
-                            id="yearsExp"
-                            placeholder="مثال: 10"
-                            min="0"
-                            max="50"
-                            value={yearsOfExperience}
-                            onChange={(e) => setYearsOfExperience(e.target.value)}
-                          />
+                      {/* Certificates File Upload Card */}
+                      <div className="auth-file-card">
+                        <div className="auth-file-info">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="auth-file-icon">
+                            <path d="M12 15a7 7 0 1 0 0-14 7 7 0 0 0 0 14Z"></path>
+                            <path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"></path>
+                          </svg>
+                          <div className="auth-file-texts">
+                            <span className="auth-file-title">الشهادات والاعتمادات</span>
+                            <span className="auth-file-subtitle">
+                              {certificatesFileName ? `✓ ${certificatesFileName}` : 'PDF أو صورة الاعتماد المهني'}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </div>
 
-                    {/* Row 3: Certificates file upload (full width) */}
-                    <div className="form-group">
-                      <label>الشهادات والاعتمادات (PDF أو صورة)</label>
-                      <div className="file-upload-box">
-                        <input
-                          type="file"
-                          accept=".pdf,.png,.jpg,.jpeg,.webp"
-                          id="certificatesFile"
-                          onChange={handleCertificatesUpload}
-                          disabled={uploadingCertificates}
-                        />
-                        <label htmlFor="certificatesFile" className="file-upload-label">
-                          {uploadingCertificates
-                            ? 'جاري رفع الملف...'
-                            : certificatesFileUrl
-                            ? '✓ تم رفع ملف الشهادات والاعتمادات'
-                            : '🎓 اضغط هنا لرفع شهاداتك واعتماداتك'}
+                        <label className={`auth-file-btn ${uploadingCertificates ? 'disabled' : ''}`}>
+                          <input
+                            type="file"
+                            accept=".pdf,.png,.jpg,.jpeg,.webp"
+                            onChange={handleCertificatesUpload}
+                            disabled={uploadingCertificates}
+                            hidden
+                          />
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                          </svg>
+                          <span>{uploadingCertificates ? 'جاري الرفع...' : certificatesFileUrl ? 'تم الرفع ✓' : 'رفع الملف'}</span>
                         </label>
                       </div>
-                    </div>
 
-                    {/* Row 4: Bio (full width) */}
-                    <div className="form-group">
-                      <label htmlFor="bio">نبذة مختصرة عن المستشار</label>
-                      <textarea
-                        id="bio"
-                        rows="3"
-                        placeholder="اكتب ملخصاً قصيراً عن مؤهلاتك وتخصصك..."
-                        className="textarea-input"
-                        value={bio}
-                        onChange={(e) => setBio(e.target.value)}
-                      ></textarea>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* STEP 3: Terms & Policies Agreement */}
-            {currentStep === 3 && (
-              <div className="step-pane fade-in">
-                <div className="policies-notice-box">
-                  <h4>💡 الشروط وسياسات المنصة</h4>
-                  <p>
-                    يرجى الاطلاع والموافقة على سياسات منصة ديوان للاستشارات الضريبية لإتمام التسجيل.
-                  </p>
-                </div>
-
-                <div className="checkbox-group">
-                  <label className="checkbox-container">
-                    <input
-                      type="checkbox"
-                      checked={acceptedPrivacyPolicy}
-                      onChange={(e) => setAcceptedPrivacyPolicy(e.target.checked)}
-                    />
-                    <span className="checkmark">✓</span>
-                    <span className="label-text">
-                      أوافق على{' '}
-                      <a
-                        href="#privacy"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          if (openPolicy) openPolicy('privacy_policy');
-                        }}
-                      >
-                        سياسة الخصوصية
-                      </a>{' '}
-                      وشروط حماية البيانات *
-                    </span>
-                  </label>
-
-                  <label className="checkbox-container">
-                    <input
-                      type="checkbox"
-                      checked={acceptedTerms}
-                      onChange={(e) => setAcceptedTerms(e.target.checked)}
-                    />
-                    <span className="checkmark">✓</span>
-                    <span className="label-text">
-                      أوافق على{' '}
-                      <a
-                        href="#terms"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          if (openPolicy) openPolicy('terms_and_conditions');
-                        }}
-                      >
-                        شروط وأحكام الاستخدام
-                      </a>{' '}
-                      الخاصة بالمنصة *
-                    </span>
-                  </label>
-
-                  <label className="checkbox-container">
-                    <input
-                      type="checkbox"
-                      checked={acceptedAccuracy}
-                      onChange={(e) => setAcceptedAccuracy(e.target.checked)}
-                    />
-                    <span className="checkmark">✓</span>
-                    <span className="label-text">
-                      أقر بأن كافة البيانات والمعلومات المدخلة صحيحة وعلى مسؤوليتي الشخصية *
-                    </span>
-                  </label>
-                </div>
-              </div>
-            )}
-
-            {/* STEP 4: Review Information */}
-            {currentStep === 4 && (
-              <div className="step-pane fade-in">
-                <h4 className="review-heading">📋 مراجعة البيانات المدخلة</h4>
-                <div className="review-summary-card">
-                  <div className="summary-row">
-                    <span className="summary-label">نوع الحساب:</span>
-                    <span className="summary-val">
-                      {accountType === 'user' ? 'مستخدم / كيان' : 'مستشار ضريبي'}
-                    </span>
-                  </div>
-
-                  <div className="summary-row">
-                    <span className="summary-label">الاسم الكامل:</span>
-                    <span className="summary-val">{fullName}</span>
-                  </div>
-
-                  <div className="summary-row">
-                    <span className="summary-label">البريد الإلكتروني:</span>
-                    <span className="summary-val">{email}</span>
-                  </div>
-
-                  <div className="summary-row">
-                    <span className="summary-label">رقم الهاتف:</span>
-                    <span className="summary-val">{countryCode} {phoneNum}</span>
-                  </div>
-
-                  {accountType === 'user' ? (
-                    <>
-                      <div className="summary-row">
-                        <span className="summary-label">نوع الكيان:</span>
-                        <span className="summary-val">
-                          {entityType === 'company'
-                            ? 'شركة / مؤسسة'
-                            : entityType === 'researcher'
-                            ? 'باحث / أكاديمي'
-                            : 'فرد'}
-                        </span>
-                      </div>
-                      {entityType === 'company' && (
-                        <div className="summary-row">
-                          <span className="summary-label">اسم الشركة:</span>
-                          <span className="summary-val">{companyName}</span>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <div className="summary-row">
-                        <span className="summary-label">المسمى الوظيفي:</span>
-                        <span className="summary-val">{title}</span>
-                      </div>
-                      <div className="summary-row">
-                        <span className="summary-label">سنوات الخبرة:</span>
-                        <span className="summary-val">{yearsOfExperience || 'غير محدد'}</span>
+                      {/* Bio */}
+                      <div className="auth-field-group">
+                        <label className="auth-label" htmlFor="consultant-bio">
+                          نبذة مختصرة عن المستشار
+                        </label>
+                        <textarea
+                          id="consultant-bio"
+                          rows="3"
+                          className="auth-textarea"
+                          placeholder="اكتب ملخصاً قصيراً عن مؤهلاتك وخبرتك المهنية..."
+                          value={bio}
+                          onChange={(e) => setBio(e.target.value)}
+                        ></textarea>
                       </div>
                     </>
                   )}
 
-                  <div className="summary-row">
-                    <span className="summary-label">حالة السياسات:</span>
-                    <span className="summary-val text-success">✓ تم إقرارها والموافقة عليها</span>
+                  {/* Terms Checkbox */}
+                  <div className="auth-terms-container">
+                    <label className="auth-terms-label">
+                      <input
+                        type="checkbox"
+                        checked={acceptedTerms}
+                        onChange={(e) => setAcceptedTerms(e.target.checked)}
+                        className="auth-checkbox"
+                      />
+                      <span className="auth-terms-text">
+                        أوافق على الشروط والأحكام وسياسة الخصوصية.{' '}
+                        <a
+                          href="#terms"
+                          className="auth-terms-link"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (openPolicy) openPolicy('privacy_policy');
+                          }}
+                        >
+                          اضغط هنا للاطلاع عليها.
+                        </a>
+                      </span>
+                    </label>
+                  </div>
+
+                  {/* Action Buttons: [ الرجوع ] [ المتابعة ] */}
+                  <div className="auth-btn-row">
+                    <button
+                      type="button"
+                      className="auth-btn-outline"
+                      onClick={handlePrevStep}
+                      disabled={loading}
+                    >
+                      الرجوع
+                    </button>
+                    <button
+                      type="button"
+                      className="auth-btn-gold"
+                      onClick={handleProceedToOtp}
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <span className="auth-spinner"></span>
+                      ) : (
+                        'المتابعة'
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Footer link to Login */}
+                  <div className="auth-footer-prompt">
+                    <span>لديك حساب؟ </span>
+                    <a
+                      href="/login"
+                      className="auth-link-bold"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (navigate) navigate('/login');
+                        else window.location.href = '/login';
+                      }}
+                    >
+                      تسجيل الدخول
+                    </a>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* Navigation Buttons Row */}
-            <div className="step-actions">
-              {currentStep > 1 && (
-                <button
-                  type="button"
-                  className="btn-prev"
-                  onClick={handlePrevStep}
-                  disabled={loading}
-                >
-                  <span>السابق</span>
-                  <svg className="btn-icon-back" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                  </svg>
-                </button>
               )}
 
-              {currentStep < 4 ? (
-                <button
-                  type="button"
-                  className="btn-next"
-                  onClick={handleNextStep}
-                >
-                  <span>التالي</span>
-                  <svg className="btn-icon-next" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="19" y1="12" x2="5" y2="12"></line>
-                    <polyline points="12 19 5 12 12 5"></polyline>
-                  </svg>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="btn-next btn-submit"
-                  onClick={handleSubmitRegistration}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <span className="spinner-loader"></span>
-                  ) : (
-                    <>
-                      <span>تأكيد وإنشاء الحساب</span>
-                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                    </>
-                  )}
-                </button>
+              {/* STEP 3: OTP Account Verification */}
+              {currentStep === 3 && (
+                <OtpVerificationStep
+                  recipient={email}
+                  email={email}
+                  fullName={fullName}
+                  onVerified={handleFinalSubmit}
+                  onBack={() => setCurrentStep(2)}
+                  navigate={navigate}
+                />
               )}
             </div>
-          </div>
-        )}
-
-        {/* Card Footer: Back to Login link */}
-        <div className="card-footer-links">
-          <span>لديك حساب بالفعل؟ </span>
-          <a
-            href="/login"
-            className="register-link"
-            onClick={(e) => {
-              e.preventDefault();
-              if (navigate) navigate('/login');
-              else window.location.href = '/login';
-            }}
-          >
-            تسجيل الدخول
-          </a>
+          )}
         </div>
       </div>
     </div>

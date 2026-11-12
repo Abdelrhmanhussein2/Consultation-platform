@@ -47,6 +47,8 @@ class UserService:
             legal_form=legal_form,
             company_name=getattr(user_in, "company_name", None),
             tax_number=getattr(user_in, "tax_number", None),
+            commercial_register_number=getattr(user_in, "commercial_register_number", None),
+            country=getattr(user_in, "country", "الأردن") or "الأردن",
             sector=getattr(user_in, "sector", None),
             commercial_register_url=commercial_register_url,
             title=getattr(user_in, "title", None),
@@ -115,6 +117,10 @@ class UserService:
             user.company_name = update_in.company_name
         if update_in.tax_number is not None:
             user.tax_number = update_in.tax_number
+        if getattr(update_in, "commercial_register_number", None) is not None:
+            user.commercial_register_number = update_in.commercial_register_number
+        if getattr(update_in, "country", None) is not None:
+            user.country = update_in.country
         if update_in.sector is not None:
             user.sector = update_in.sector
         if getattr(update_in, "address", None) is not None:

@@ -18,13 +18,23 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8)
     phone: Optional[str] = Field(None, max_length=20)
+    address: Optional[str] = Field(None, max_length=200)
+    country: Optional[str] = Field("الأردن", max_length=50)
     entity_type: Optional[EntityType] = EntityType.individual
     legal_form: Optional[LegalForm] = None
     company_name: Optional[str] = Field(None, max_length=200)
     tax_number: Optional[str] = Field(None, max_length=50)
+    commercial_register_number: Optional[str] = Field(None, max_length=50)
     sector: Optional[BusinessSector] = None
     commercial_register_url: Optional[str] = Field(None, max_length=500)
     accepted_privacy_policy: bool = Field(..., description="Must accept privacy policy")
+
+    @field_validator('email')
+    @classmethod
+    def validate_email_ascii(cls, v: EmailStr) -> EmailStr:
+        if not str(v).isascii():
+            raise ValueError("البريد الإلكتروني يجب أن يحتوي على أحرف وأرقام إنجليزية فقط بدون حروف عربية")
+        return v
 
     @field_validator('accepted_privacy_policy')
     @classmethod
@@ -63,7 +73,15 @@ class ConsultantRegister(BaseModel):
     years_of_experience: Optional[int] = None
     certificates_licenses: Optional[str] = None
     price_per_hour: Optional[Decimal] = None
+    country: Optional[str] = Field("الأردن", max_length=50)
     accepted_privacy_policy: bool = Field(..., description="Must accept privacy policy")
+
+    @field_validator('email')
+    @classmethod
+    def validate_email_ascii(cls, v: EmailStr) -> EmailStr:
+        if not str(v).isascii():
+            raise ValueError("البريد الإلكتروني يجب أن يحتوي على أحرف وأرقام إنجليزية فقط بدون حروف عربية")
+        return v
 
     @field_validator('accepted_privacy_policy')
     @classmethod
@@ -102,6 +120,8 @@ class UserProfileUpdate(BaseModel):
     legal_form: Optional[LegalForm] = None
     company_name: Optional[str] = Field(None, max_length=200)
     tax_number: Optional[str] = Field(None, max_length=50)
+    commercial_register_number: Optional[str] = Field(None, max_length=50)
+    country: Optional[str] = Field(None, max_length=50)
     sector: Optional[BusinessSector] = None
     address: Optional[str] = Field(None, max_length=200)
     language: Optional[str] = Field(None, pattern="^(ar|en)$")
@@ -158,6 +178,33 @@ class PhoneChangeVerify(BaseModel):
 
 class RequestPasswordOtpRequest(BaseModel):
     email: EmailStr
+
+class RequestRegisterOtpRequest(BaseModel):
+    email: str = Field(..., max_length=150)
+    phone: Optional[str] = None
+    full_name: Optional[str] = None
+
+    @field_validator('email')
+    @classmethod
+    def validate_email_format(cls, v: str) -> str:
+        s = str(v).strip().lower()
+        if not s.isascii():
+            raise ValueError("البريد الإلكتروني يجب أن يحتوي على أحرف وأرقام إنجليزية فقط بدون حروف عربية")
+        if '@' not in s or '.' not in s.split('@')[-1]:
+            raise ValueError("يرجى إدخال بريد إلكتروني صحيح")
+        return s
+
+class VerifyRegisterOtpRequest(BaseModel):
+    email: str = Field(..., max_length=150)
+    otp_code: str = Field(..., min_length=6, max_length=6, pattern=r"^[0-9]{6}$", description="6-digit verification code")
+
+    @field_validator('email')
+    @classmethod
+    def validate_email_format(cls, v: str) -> str:
+        s = str(v).strip().lower()
+        if not s.isascii():
+            raise ValueError("البريد الإلكتروني يجب أن يحتوي على أحرف وأرقام إنجليزية فقط بدون حروف عربية")
+        return s
 
 class VerifyPasswordOtpAndResetRequest(BaseModel):
     email: EmailStr
@@ -258,6 +305,8 @@ class UserOut(BaseModel):
     legal_form: Optional[LegalForm] = None
     company_name: Optional[str] = None
     tax_number: Optional[str] = None
+    commercial_register_number: Optional[str] = None
+    country: Optional[str] = "الأردن"
     sector: Optional[BusinessSector] = None
     commercial_register_url: Optional[str] = None
     title: Optional[str] = None
@@ -727,6 +776,8 @@ class ClientSummaryOut(BaseModel):
     legal_form: Optional[LegalForm] = None
     company_name: Optional[str] = None
     tax_number: Optional[str] = None
+    commercial_register_number: Optional[str] = None
+    country: Optional[str] = "الأردن"
     sector: Optional[BusinessSector] = None
     address: Optional[str] = None
     is_active: Optional[bool] = True
@@ -811,6 +862,8 @@ class AdminUserListOut(BaseModel):
     entity_type: EntityType
     company_name: Optional[str] = None
     tax_number: Optional[str] = None
+    commercial_register_number: Optional[str] = None
+    country: Optional[str] = "الأردن"
     sector: Optional[BusinessSector] = None
     is_active: bool
     created_at: Optional[datetime] = None
@@ -839,6 +892,8 @@ class AdminAddUserRequest(BaseModel):
     entity_type: Optional[EntityType] = EntityType.individual
     company_name: Optional[str] = Field(None, max_length=200)
     tax_number: Optional[str] = Field(None, max_length=50)
+    commercial_register_number: Optional[str] = Field(None, max_length=50)
+    country: Optional[str] = Field(None, max_length=50)
     sector: Optional[BusinessSector] = None
     bio: Optional[str] = None
     main_specialization_id: Optional[int] = None
