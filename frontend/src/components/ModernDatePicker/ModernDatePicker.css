@@ -3,104 +3,143 @@
 .modern-date-picker-wrap,
 .modern-date-picker-wrap * {
   font-family: 'Cairo', sans-serif !important;
+  box-sizing: border-box;
 }
 
 .modern-date-picker-wrap {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   width: 100%;
   direction: rtl;
 }
 
 .modern-date-label {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
-  color: #718493;
+  color: #475569;
 }
 
-.modern-date-input-box {
+/* Main Form Input Field (المربع النظيف في الفورم) */
+.modern-date-input-field {
   display: flex;
   align-items: center;
-  border: 1px solid #DCE4E9;
-  border-radius: 12px;
+  justify-content: space-between;
   background: #FAFBFC;
-  padding: 3px 6px 3px 10px;
-  transition: all 0.2s ease;
+  border: 1.5px solid #DCE4E9;
+  border-radius: 12px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  min-height: 42px;
 }
 
-.modern-date-input-box.active-focus,
-.modern-date-input-box:focus-within {
-  border-color: #0D3C5C;
+.modern-date-input-field:hover {
   background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(13, 60, 92, 0.12);
+  border-color: #0D3C5C;
 }
 
-.modern-date-input {
+.modern-date-input-field.active-focus {
+  background: #ffffff;
+  border-color: #0D3C5C;
+  box-shadow: 0 0 0 3.5px rgba(13, 60, 92, 0.12);
+}
+
+.input-field-start {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex: 1;
-  border: none;
-  outline: none;
-  background: transparent;
-  padding: 8px 10px;
-  font-size: 13px;
-  font-family: inherit;
+  overflow: hidden;
+}
+
+.calendar-svg-icon {
   color: #0D3C5C;
-  font-weight: 600;
-  direction: rtl;
+  flex-shrink: 0;
 }
 
-.modern-date-input::placeholder {
+.date-display-text {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.date-display-text.has-val {
+  color: #0D3C5C;
+}
+
+.date-display-text.is-placeholder {
   color: #94A3B8;
-  font-weight: 400;
+  font-weight: 500;
+  font-size: 12px;
 }
 
-.modern-date-toggle-btn {
-  background: #F1F5F8;
-  border: 1px solid #E2E8F0;
-  border-radius: 9px;
-  width: 32px;
-  height: 32px;
+.input-field-end {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-clear-inline-btn {
+  background: #FEE2E2;
+  border: 1px solid #FECACA;
+  color: #DC2626;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 14px;
-  color: #0D3C5C;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 0;
   transition: all 0.15s ease;
 }
 
-.modern-date-toggle-btn:hover {
-  background: #0D3C5C;
+.date-clear-inline-btn:hover {
+  background: #DC2626;
   color: #ffffff;
-  border-color: #0D3C5C;
+  border-color: #DC2626;
+  transform: scale(1.1);
 }
 
-/* Calendar Popup Modal Dropdown */
+.calendar-dropdown-chevron {
+  color: #64748B;
+  transition: transform 0.2s ease;
+}
+
+.calendar-dropdown-chevron.open {
+  transform: rotate(180deg);
+  color: #0D3C5C;
+}
+
+/* Popup Box Opened Above (المربع المنبثق فوق) */
 .modern-date-popup {
   position: absolute;
-  bottom: calc(100% + 6px);
-  top: auto;
-  right: 0;
-  z-index: 2500 !important;
-  width: 290px;
+  z-index: 3500 !important;
+  width: 320px;
+  max-width: 90vw;
   background: #ffffff;
-  border-radius: 14px;
-  border: 1px solid rgba(13, 60, 92, 0.14);
-  box-shadow: 0 16px 40px rgba(13, 60, 92, 0.22);
-  padding: 10px 12px;
+  border: 1.5px solid rgba(13, 60, 92, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 20px 48px -6px rgba(13, 60, 92, 0.26), 0 8px 18px -4px rgba(13, 60, 92, 0.12);
+  padding: 12px;
   direction: rtl;
-  animation: regScaleUp 0.16s ease;
-  outline: none;
+  user-select: none;
 }
 
 .modern-date-popup.placement-top {
-  bottom: calc(100% + 6px);
+  bottom: calc(100% + 8px);
   top: auto;
 }
 
 .modern-date-popup.placement-bottom {
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   bottom: auto;
 }
 
@@ -114,173 +153,307 @@
   right: auto;
 }
 
-.calendar-header-row {
+.cascade-popup-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Cascading Blocks */
+.cascade-step-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cascade-step-label {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #0D3C5C;
+}
+
+/* Selector Box (مربع الاختيار) */
+.cascade-selector-box {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.cal-nav-btn {
-  border: 1px solid #E2E8F0;
+  gap: 8px;
   background: #F8FAFC;
-  color: #0D3C5C;
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  font-size: 16px;
-  font-weight: 800;
+  border: 1.5px solid #DCE4E9;
+  border-radius: 10px;
+  padding: 8px 12px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   transition: all 0.15s ease;
 }
 
-.cal-nav-btn:hover {
-  background: #0D3C5C;
-  color: #ffffff;
+.cascade-selector-box:hover {
+  background: #ffffff;
   border-color: #0D3C5C;
 }
 
-.cal-title-box {
+.cascade-selector-box.active {
+  background: #ffffff;
+  border-color: #0D3C5C;
+  box-shadow: 0 0 0 3px rgba(13, 60, 92, 0.12);
+}
+
+.cascade-selector-box.has-value {
+  background: #F0F7FF;
+  border-color: #93C5FD;
+}
+
+.cascade-box-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0D3C5C;
+  flex: 1;
+}
+
+.cascade-chevron-icon {
+  color: #64748B;
+  transition: transform 0.2s ease;
+}
+
+.cascade-chevron-icon.open {
+  transform: rotate(180deg);
+  color: #0D3C5C;
+}
+
+/* Dropdown Panel */
+.cascade-dropdown-panel {
+  background: #ffffff;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+/* Search input */
+.cascade-search-wrap {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.cal-month-select,
-.cal-year-select {
+  background: #F8FAFC;
   border: 1px solid #CBD5E1;
-  background: #FAFBFC;
-  border-radius: 6px;
-  padding: 3px 6px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #0D3C5C;
-  outline: none;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 0.15s ease;
+  border-radius: 8px;
+  padding: 5px 10px;
+  margin-bottom: 6px;
 }
 
-.cal-month-select:hover,
-.cal-year-select:hover {
+.cascade-search-wrap:focus-within {
   border-color: #0D3C5C;
   background: #ffffff;
 }
 
-/* Quick Presets Bar */
-.calendar-presets-row {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid #F1F5F9;
-  padding-bottom: 6px;
-  flex-wrap: wrap;
+.cascade-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0D3C5C;
 }
 
-.calendar-presets-row button {
+.cascade-search-clear {
+  border: none;
+  background: transparent;
+  color: #94A3B8;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+}
+
+/* Scrollable items */
+.cascade-scroll-items {
+  max-height: 155px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 transparent;
+  padding-left: 2px;
+}
+
+.cascade-scroll-items::-webkit-scrollbar {
+  width: 4px;
+}
+
+.cascade-scroll-items::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 8px;
+}
+
+/* Standard Site Checklist Item (مطابق للشيك ليست الثابتة في الموقع) */
+.standard-checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  user-select: none;
+  color: #334155;
+}
+
+.standard-checklist-item:hover {
+  background: #F1F5F9;
+  color: #0D3C5C;
+}
+
+.standard-checklist-item.selected {
+  background: #F0F9FF;
+  font-weight: 800;
+  color: #0D3C5C;
+}
+
+.standard-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: #0D3C5C;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.checklist-label-text {
+  font-size: 12.5px;
+  font-weight: 700;
+  flex: 1;
+}
+
+.day-weekday-small {
+  font-size: 10.5px;
+  color: #64748B;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+/* Months Grid */
+.cascade-months-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  max-height: 165px;
+  overflow-y: auto;
+  padding-left: 2px;
+}
+
+.month-item {
+  padding: 6px 8px;
+}
+
+/* Days Scroll & Grid */
+.cascade-days-scroll {
+  max-height: 165px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 transparent;
+  padding-left: 2px;
+}
+
+.cascade-days-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+}
+
+.day-item {
+  padding: 5px 8px;
+}
+
+/* Bottom Actions Bar */
+.cascade-bottom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  border-top: 1px solid #F1F5F9;
+  padding-top: 8px;
+  margin-top: 2px;
+}
+
+.cascade-action-btn {
   border: 1px solid #E2E8F0;
   background: #F8FAFC;
   color: #475569;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 3px 8px;
+  padding: 3px 9px;
   border-radius: 999px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.calendar-presets-row button:hover {
+.cascade-action-btn:hover {
   background: #0D3C5C;
   color: #ffffff;
   border-color: #0D3C5C;
 }
 
-.calendar-presets-row button.cal-confirm-btn {
-  background: #0D3C5C !important;
-  color: #ffffff !important;
-  border-color: #0D3C5C !important;
-  font-weight: 800;
-  box-shadow: 0 2px 6px rgba(13, 60, 92, 0.2);
-}
-
-.calendar-presets-row button.cal-confirm-btn:hover {
-  background: #005D9C !important;
-  border-color: #005D9C !important;
-}
-
-.calendar-presets-row button.clear {
-  color: #EF4444;
-  margin-right: auto;
-}
-
-.calendar-presets-row button.clear:hover {
-  background: #EF4444;
+.cascade-action-btn.confirm {
+  background: #0D3C5C;
   color: #ffffff;
-  border-color: #EF4444;
-}
-
-/* Days of Week Header */
-.calendar-days-head {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  text-align: center;
-  margin-bottom: 6px;
-}
-
-.calendar-days-head span {
-  font-size: 10.5px;
+  border-color: #0D3C5C;
   font-weight: 800;
-  color: #94A3B8;
-  padding: 4px 0;
 }
 
-/* Days Grid */
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
+.cascade-action-btn.confirm:hover {
+  background: #005D9C;
+  border-color: #005D9C;
 }
 
-.cal-day {
-  height: 27px;
+.cascade-action-btn.today {
+  background: #F0FDF4;
+  border-color: #BBF7D0;
+  color: #15803D;
+  font-weight: 800;
 }
 
-.cal-day-btn {
-  height: 27px;
-  width: 27px;
-  margin: 0 auto;
-  border: none;
+.cascade-action-btn.today:hover {
+  background: #15803D;
+  color: #ffffff;
+  border-color: #15803D;
+}
+
+.cascade-action-btn.clear {
+  color: #DC2626;
+  border-color: #FEE2E2;
+  background: #FEF2F2;
+}
+
+.cascade-action-btn.clear:hover {
+  background: #DC2626;
+  color: #ffffff;
+  border-color: #DC2626;
+}
+
+.cascade-action-btn.close {
+  margin-right: auto;
+  border-color: transparent;
   background: transparent;
-  border-radius: 8px;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #334155;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  color: #94A3B8;
 }
 
-.cal-day-btn:hover {
-  background: rgba(13, 60, 92, 0.08);
-  color: #0D3C5C;
-  transform: scale(1.05);
+.cascade-action-btn.close:hover {
+  background: #F1F5F9;
+  color: #475569;
 }
 
-.cal-day-btn.today {
-  border: 1.5px solid #F5A52A;
-  color: #D97706;
-  font-weight: 800;
+/* Animation */
+@keyframes cascadeFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.cal-day-btn.selected {
-  background: linear-gradient(135deg, #0D3C5C 0%, #005D9C 100%) !important;
-  color: #ffffff !important;
-  font-weight: 800;
-  box-shadow: 0 4px 12px rgba(13, 60, 92, 0.35);
-  transform: scale(1.05);
+.fade-in {
+  animation: cascadeFadeIn 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }

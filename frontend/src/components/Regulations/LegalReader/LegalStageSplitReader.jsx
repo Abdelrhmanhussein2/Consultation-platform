@@ -57,8 +57,7 @@ export default function LegalStageSplitReader({
   const docFullText = (relatedDoc?.full_text || relatedDoc?.text || meta?.full_text || meta?.text || '').trim();
 
   useEffect(() => {
-    if (isRelated || !stageId) return;
-    const targetLawId = currentStage?.law_id;
+    const targetLawId = isRelated ? relatedDoc?.law_id : currentStage?.law_id;
     const currentLawId = lawTree?.law_id || lawTree?.id;
     if (targetLawId && targetLawId !== currentLawId) {
       setLoading(true);
@@ -69,7 +68,7 @@ export default function LegalStageSplitReader({
     } else {
       setFetchedTree(null);
     }
-  }, [stageId, isRelated, currentStage?.law_id, lawTree?.law_id, lawTree?.id]);
+  }, [stageId, isRelated, relatedDoc?.law_id, currentStage?.law_id, lawTree?.law_id, lawTree?.id]);
 
   const activeTree = fetchedTree || lawTree;
   const articles = activeTree
@@ -125,6 +124,8 @@ export default function LegalStageSplitReader({
             docCourt={docCourt}
             title={title}
             docFullText={docFullText}
+            articles={articles}
+            lawTree={activeTree || lawTree}
             copied={copied}
             handleCopyFullText={handleCopy}
             readerFontSize={readerFontSize}

@@ -3056,6 +3056,131 @@ div.advanced:hover {
   line-height: 2;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   Judicial Ruling Clean Structured Layout
+   ═══════════════════════════════════════════════════════════════ */
+.ruling-structured-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ruling-parties-box {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.ruling-parties-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0D3C5C;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #E2E8F0;
+  padding-bottom: 8px;
+}
+
+.ruling-parties-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.ruling-party-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.ruling-party-item .party-role {
+  font-weight: 700;
+  color: #64748B;
+  min-width: 140px;
+  flex-shrink: 0;
+}
+
+.ruling-party-item .party-name {
+  color: #0F172A;
+  font-weight: 600;
+  flex: 1;
+}
+
+.ruling-party-item .party-val {
+  color: #0D3C5C;
+  font-weight: 800;
+}
+
+.ruling-facts-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.ruling-section-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #F1F5F9;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  align-self: flex-start;
+}
+
+.ruling-facts-body {
+  line-height: 2.1;
+}
+
+.ruling-paragraph.is-num-point {
+  padding-right: 8px;
+  margin-bottom: 9px;
+}
+
+.ruling-verdict-card {
+  background: #F0FDF4;
+  border: 1.5px solid #86EFAC;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-top: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.ruling-verdict-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #166534;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #BBF7D0;
+  padding-bottom: 8px;
+}
+
+.ruling-verdict-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ruling-verdict-para {
+  margin: 0;
+  color: #14532D;
+  font-weight: 600;
+  line-height: 2;
+  font-size: 13.5px;
+  text-align: justify;
+}
+
 .side-reader-empty-text {
   padding: 24px;
   text-align: center;

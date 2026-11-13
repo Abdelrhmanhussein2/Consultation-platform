@@ -82,15 +82,24 @@ class TokenService:
         """
         Caches a JTI in Redis with a TTL so it is blacklisted until its natural expiry.
         """
-        redis_key = f"blacklist:{jti}"
-        # Store with value "1" and expire after ttl_seconds
-        redis_client.setex(redis_key, ttl_seconds, "1")
-        return True
+        if not redis_client:
+            return False
+        try:
+            redis_key = f"blacklist:{jti}"
+            redis_client.setex(redis_key, ttl_seconds, "1")
+            return True
+        except Exception:
+            return False
 
     @staticmethod
     def is_jti_blacklisted(redis_client: redis.Redis, jti: str) -> bool:
         """
         Checks if a JTI exists in the Redis blacklist.
         """
-        redis_key = f"blacklist:{jti}"
-        return redis_client.exists(redis_key) > 0
+        if not redis_client:
+            return False
+        try:
+            redis_key = f"blacklist:{jti}"
+            return redis_client.exists(redis_key) > 0
+        except Exception:
+            return False

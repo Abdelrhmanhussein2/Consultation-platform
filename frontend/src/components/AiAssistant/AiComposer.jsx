@@ -1,5 +1,5 @@
 // frontend/src/components/AiAssistant/AiComposer.jsx
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { CONSULTATION_MODES } from './aiAssistantData';
 import { ModeIcon } from './AiModeSelector';
 
@@ -13,10 +13,24 @@ export default function AiComposer({
   onToggleAdvanced
 }) {
   const fileInputRef = useRef(null);
+  const textareaRef = useRef(null);
   const [isListening, setIsListening] = useState(false);
   const [attachedName, setAttachedName] = useState(null);
 
   const currentModeObj = CONSULTATION_MODES.find((m) => m.id === activeMode) || CONSULTATION_MODES[0];
+
+  // Dynamic Auto-Resize: expands smoothly up to 180px like ChatGPT, then enables scrolling
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const minH = 40;
+    const maxH = 180;
+    const scrollH = el.scrollHeight;
+    const targetH = Math.min(Math.max(scrollH, minH), maxH);
+    el.style.height = `${targetH}px`;
+    el.style.overflowY = scrollH > maxH ? 'auto' : 'hidden';
+  }, [value]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -91,12 +105,21 @@ export default function AiComposer({
 
       {/* Textarea */}
       <textarea
+        ref={textareaRef}
         className="ai-textarea"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="اسألني عن أي موضوع قانوني أو ضريبي أردني…"
+        placeholder="اسألني عن أي استشارة ضريبية، مادة قانونية، أو قرار قضائي أردني..."
         disabled={disabled}
+        rows={1}
+        style={{
+          border: 'none',
+          outline: 'none',
+          boxShadow: 'none',
+          background: 'transparent',
+          resize: 'none'
+        }}
       />
 
       {/* Hidden file input */}
@@ -117,7 +140,7 @@ export default function AiComposer({
             onClick={onToggleAdvanced}
             title="تفعيل البحث المتقدم في النصوص واللوائح"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
@@ -130,7 +153,7 @@ export default function AiComposer({
             onClick={handleVoiceToggle}
             title={isListening ? 'إيقاف الإملاء الصوتي' : 'إملاء صوتي عربي'}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
               <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
               <line x1="12" y1="19" x2="12" y2="23" />
@@ -145,25 +168,29 @@ export default function AiComposer({
             onClick={() => fileInputRef.current?.click()}
             title="إرفاق ملف أو مستند ضريبي"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
             </svg>
             <span>{attachedName ? 'مرفق ✓' : 'ملف'}</span>
           </button>
         </div>
 
-        <button
-          type="button"
-          className="ai-send-btn"
-          onClick={onSend}
-          disabled={!value.trim() || disabled}
-          title="إرسال الاستشارة"
-          aria-label="إرسال"
-        >
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-          </svg>
-        </button>
+        <div className="ai-composer-actions">
+          <span className="ai-composer-hint">اضغط Enter للإرسال • Shift+Enter لسطر جديد</span>
+          <button
+            type="button"
+            className="ai-send-btn"
+            onClick={onSend}
+            disabled={!value.trim() || disabled}
+            title="إرسال الاستشارة"
+            aria-label="إرسال"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(180deg)' }}>
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,339 +1,471 @@
 // frontend/src/components/ModernDatePicker/ModernDatePicker.jsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import './ModernDatePicker.css';
 
 const ARABIC_MONTHS = [
-  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+  { index: 0, num: '01', name: 'يناير' },
+  { index: 1, num: '02', name: 'فبراير' },
+  { index: 2, num: '03', name: 'مارس' },
+  { index: 3, num: '04', name: 'أبريل' },
+  { index: 4, num: '05', name: 'مايو' },
+  { index: 5, num: '06', name: 'يونيو' },
+  { index: 6, num: '07', name: 'يوليو' },
+  { index: 7, num: '08', name: 'أغسطس' },
+  { index: 8, num: '09', name: 'سبتمبر' },
+  { index: 9, num: '10', name: 'أكتوبر' },
+  { index: 10, num: '11', name: 'نوفمبر' },
+  { index: 11, num: '12', name: 'ديسمبر' }
 ];
 
-const ARABIC_DAYS = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+const ARABIC_WEEKDAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+
+const CURRENT_YEAR = new Date().getFullYear();
+const ALL_YEARS = Array.from({ length: (CURRENT_YEAR + 2) - 1950 }, (_, i) => (CURRENT_YEAR + 1) - i);
 
 export default function ModernDatePicker({
   value = '',
   onChange,
-  placeholder = 'YYYY-MM-DD',
   label,
-  presets = true,
+  placeholder = 'اختر التاريخ...',
   format: propFormat,
   placement = 'top',
   align = 'right'
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [inputValue, setInputValue] = useState(value || '');
 
-  // Detect format: if value or prop is YYYY-MM-DD vs DD/MM/YYYY
-  const isIsoFormat = propFormat === 'YYYY-MM-DD' || (value && value.includes('-')) || (!propFormat && placeholder.includes('-'));
+  // Selected values
+  const [selectedYear, setSelectedYear] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(null);
 
-  // Calendar View State
-  const now = new Date();
-  const [viewYear, setViewYear] = useState(now.getFullYear());
-  const [viewMonth, setViewMonth] = useState(now.getMonth());
+  // Active dropdown inside popup: 'year' | 'month' | 'day' | null
+  const [activeDropdown, setActiveDropdown] = useState(null);
+
+  // Search filter for years
+  const [yearSearch, setYearSearch] = useState('');
 
   const containerRef = useRef(null);
 
-  // Sync internal state when value prop changes & set initial calendar month/year
+  // Check if ISO format
+  const isIsoFormat = propFormat === 'YYYY-MM-DD' || (value && value.includes('-')) || (!propFormat && placeholder.includes('YYYY-MM-DD'));
+
+  // Normalize Arabic numerals
+  const normalizeDigits = (str) => {
+    if (!str) return '';
+    return String(str).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+  };
+
+  // Sync state with incoming value
   useEffect(() => {
-    setInputValue(value || '');
-    if (value) {
-      if (value.includes('-')) {
-        const parts = value.split('-');
-        if (parts.length >= 2) {
-          const y = parseInt(parts[0], 10);
-          const m = parseInt(parts[1], 10) - 1;
-          if (!isNaN(y) && !isNaN(m)) {
-            setViewYear(y);
-            setViewMonth(m);
-          }
-        }
-      } else if (value.includes('/')) {
-        const parts = value.split('/');
-        if (parts.length === 3) {
-          const m = parseInt(parts[1], 10) - 1;
-          const y = parseInt(parts[2], 10);
-          if (!isNaN(y) && !isNaN(m)) {
-            setViewYear(y);
-            setViewMonth(m);
-          }
-        } else if (parts.length === 2) {
-          const m = parseInt(parts[0], 10) - 1;
-          const y = parseInt(parts[1], 10);
-          if (!isNaN(y) && !isNaN(m)) {
-            setViewYear(y);
-            setViewMonth(m);
-          }
-        }
-      } else if (/^\d{4}$/.test(value)) {
-        const y = parseInt(value, 10);
-        if (!isNaN(y)) setViewYear(y);
-      }
+    if (!value) {
+      setSelectedYear(null);
+      setSelectedMonth(null);
+      setSelectedDay(null);
+      return;
+    }
+
+    const s = normalizeDigits(String(value).trim());
+
+    // 1. DD/MM/YYYY
+    const slashFull = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (slashFull) {
+      setSelectedDay(parseInt(slashFull[1], 10));
+      setSelectedMonth(parseInt(slashFull[2], 10) - 1);
+      setSelectedYear(parseInt(slashFull[3], 10));
+      return;
+    }
+
+    // 2. YYYY-MM-DD
+    const isoFull = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (isoFull) {
+      setSelectedYear(parseInt(isoFull[1], 10));
+      setSelectedMonth(parseInt(isoFull[2], 10) - 1);
+      setSelectedDay(parseInt(isoFull[3], 10));
+      return;
+    }
+
+    // 3. MM/YYYY
+    const slashMonth = s.match(/^(\d{1,2})\/(\d{4})$/);
+    if (slashMonth) {
+      setSelectedDay(null);
+      setSelectedMonth(parseInt(slashMonth[1], 10) - 1);
+      setSelectedYear(parseInt(slashMonth[2], 10));
+      return;
+    }
+
+    // 4. YYYY-MM
+    const isoMonth = s.match(/^(\d{4})-(\d{1,2})$/);
+    if (isoMonth) {
+      setSelectedDay(null);
+      setSelectedMonth(parseInt(isoMonth[2], 10) - 1);
+      setSelectedYear(parseInt(isoMonth[1], 10));
+      return;
+    }
+
+    // 5. YYYY
+    if (/^\d{4}$/.test(s)) {
+      setSelectedDay(null);
+      setSelectedMonth(null);
+      setSelectedYear(parseInt(s, 10));
+      return;
     }
   }, [value]);
 
-  // Close calendar popup on outside click
+  // Handle outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
         setIsOpen(false);
+        setActiveDropdown(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Format manual typing
-  const handleInputChange = (e) => {
-    const val = e.target.value;
-    setInputValue(val);
-    if (onChange) onChange(val);
+  // Format outputs
+  const formatFullDate = (y, m, d) => {
+    const dStr = String(d).padStart(2, '0');
+    const mStr = String(m + 1).padStart(2, '0');
+    return isIsoFormat ? `${y}-${mStr}-${dStr}` : `${dStr}/${mStr}/${y}`;
   };
 
-  const formatDateOutput = (y, mIndex, day) => {
-    const dStr = String(day).padStart(2, '0');
-    const mStr = String(mIndex + 1).padStart(2, '0');
-    if (isIsoFormat) {
-      return `${y}-${mStr}-${dStr}`;
-    }
-    return `${dStr}/${mStr}/${y}`;
+  const formatMonthOnly = (y, m) => {
+    const mStr = String(m + 1).padStart(2, '0');
+    return isIsoFormat ? `${y}-${mStr}` : `${mStr}/${y}`;
   };
 
-  const handleConfirm = () => {
-    let val = inputValue ? inputValue.trim() : '';
-    if (!val) {
-      const mStr = String(viewMonth + 1).padStart(2, '0');
-      val = isIsoFormat ? `${viewYear}-${mStr}` : `${mStr}/${viewYear}`;
-      setInputValue(val);
-    }
-    if (onChange) onChange(val);
-    setIsOpen(false);
-  };
+  const formatYearOnly = (y) => String(y);
 
-  const handleSelectDay = (day) => {
-    const dateStr = formatDateOutput(viewYear, viewMonth, day);
-    setInputValue(dateStr);
-    if (onChange) onChange(dateStr);
-    setIsOpen(false);
-  };
-
-  const handlePrevMonth = () => {
-    if (viewMonth === 0) {
-      setViewMonth(11);
-      setViewYear(prev => prev - 1);
+  // Open popup
+  const handleToggleOpen = () => {
+    if (!isOpen) {
+      setIsOpen(true);
+      if (!selectedYear) {
+        setActiveDropdown('year');
+      } else if (selectedMonth === null) {
+        setActiveDropdown('month');
+      } else {
+        setActiveDropdown(null);
+      }
     } else {
-      setViewMonth(prev => prev - 1);
+      setIsOpen(false);
+      setActiveDropdown(null);
     }
   };
 
-  const handleNextMonth = () => {
-    if (viewMonth === 11) {
-      setViewMonth(0);
-      setViewYear(prev => prev + 1);
-    } else {
-      setViewMonth(prev => prev + 1);
-    }
+  // 1. Select Year -> Opens Month Box underneath
+  const handleSelectYear = (y) => {
+    setSelectedYear(y);
+    setYearSearch('');
+    if (onChange) onChange(formatYearOnly(y));
+    setActiveDropdown('month');
   };
 
-  const handlePresetSelect = (dateObj) => {
-    const y = dateObj.getFullYear();
-    const m = dateObj.getMonth();
-    const d = dateObj.getDate();
-    const dateStr = formatDateOutput(y, m, d);
+  // 2. Select Month -> Opens Day Box underneath
+  const handleSelectMonth = (mIdx) => {
+    setSelectedMonth(mIdx);
+    if (onChange) onChange(formatMonthOnly(selectedYear, mIdx));
+    setActiveDropdown('day');
+  };
 
-    setViewYear(y);
-    setViewMonth(m);
-    setInputValue(dateStr);
+  // 3. Select Day -> Completes date & closes popup
+  const handleSelectDay = (dNum) => {
+    setSelectedDay(dNum);
+    const dateStr = formatFullDate(selectedYear, selectedMonth, dNum);
     if (onChange) onChange(dateStr);
+    setActiveDropdown(null);
     setIsOpen(false);
   };
 
-  const handleClear = () => {
-    setInputValue('');
+  // Clear date
+  const handleClear = (e) => {
+    if (e) e.stopPropagation();
+    setSelectedYear(null);
+    setSelectedMonth(null);
+    setSelectedDay(null);
+    setActiveDropdown('year');
     if (onChange) onChange('');
+  };
+
+  // Quick preset: Today
+  const handleSelectToday = () => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    const d = now.getDate();
+    setSelectedYear(y);
+    setSelectedMonth(m);
+    setSelectedDay(d);
+    const dateStr = formatFullDate(y, m, d);
+    if (onChange) onChange(dateStr);
+    setActiveDropdown(null);
     setIsOpen(false);
   };
 
-  // Generate calendar grid for current viewMonth and viewYear
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const firstDayIndex = new Date(viewYear, viewMonth, 1).getDay();
+  // Filtered years
+  const filteredYears = useMemo(() => {
+    if (!yearSearch.trim()) return ALL_YEARS;
+    const q = normalizeDigits(yearSearch.trim());
+    return ALL_YEARS.filter(y => String(y).includes(q));
+  }, [yearSearch]);
 
-  // Parse currently selected day if matching viewMonth and viewYear
-  let selectedDay = null;
-  if (inputValue) {
-    if (inputValue.includes('-')) {
-      const parts = inputValue.split('-');
-      if (parts.length === 3) {
-        const pY = parseInt(parts[0], 10);
-        const pM = parseInt(parts[1], 10) - 1;
-        const pD = parseInt(parts[2], 10);
-        if (pM === viewMonth && pY === viewYear) {
-          selectedDay = pD;
-        }
-      }
-    } else if (inputValue.includes('/')) {
-      const parts = inputValue.split('/');
-      if (parts.length === 3) {
-        const pD = parseInt(parts[0], 10);
-        const pM = parseInt(parts[1], 10) - 1;
-        const pY = parseInt(parts[2], 10);
-        if (pM === viewMonth && pY === viewYear) {
-          selectedDay = pD;
-        }
-      }
-    }
-  }
+  // Days list for selected month
+  const daysInMonth = useMemo(() => {
+    if (!selectedYear || selectedMonth === null) return 30;
+    return new Date(selectedYear, selectedMonth + 1, 0).getDate();
+  }, [selectedYear, selectedMonth]);
+
+  const daysList = useMemo(() => {
+    if (!selectedYear || selectedMonth === null) return [];
+    const now = new Date();
+    const isCurrentMonth = now.getFullYear() === selectedYear && now.getMonth() === selectedMonth;
+
+    return Array.from({ length: daysInMonth }, (_, i) => {
+      const dayNum = i + 1;
+      const dateObj = new Date(selectedYear, selectedMonth, dayNum);
+      const weekdayName = ARABIC_WEEKDAYS[dateObj.getDay()];
+      const isToday = isCurrentMonth && now.getDate() === dayNum;
+      return { dayNum, weekdayName, isToday };
+    });
+  }, [selectedYear, selectedMonth, daysInMonth]);
+
+  const selectedMonthObj = selectedMonth !== null ? ARABIC_MONTHS[selectedMonth] : null;
 
   return (
     <div className="modern-date-picker-wrap" ref={containerRef}>
       {label && <label className="modern-date-label">{label}</label>}
 
-      <div className={`modern-date-input-box ${isOpen ? 'active-focus' : ''}`}>
-        <input
-          type="text"
-          className="modern-date-input"
-          placeholder={placeholder}
-          value={inputValue}
-          onChange={handleInputChange}
-          onFocus={() => setIsOpen(true)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              e.stopPropagation();
-              handleConfirm();
-            }
-          }}
-        />
-        
-        <button
-          type="button"
-          className="modern-date-toggle-btn"
-          onClick={() => setIsOpen(!isOpen)}
-          title="افتح التقويم"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-            <line x1="16" y1="2" x2="16" y2="6" />
-            <line x1="8" y1="2" x2="8" y2="6" />
-            <line x1="3" y1="10" x2="21" y2="10" />
+      {/* Main input field in the form */}
+      <div
+        className={`modern-date-input-field ${isOpen ? 'active-focus' : ''}`}
+        onClick={handleToggleOpen}
+        title="انقر لاختيار التاريخ"
+      >
+        <div className="input-field-start">
+          <svg className="calendar-svg-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
           </svg>
-        </button>
+          <span className={`date-display-text ${value ? 'has-val' : 'is-placeholder'}`}>
+            {value ? value : placeholder}
+          </span>
+        </div>
+
+        <div className="input-field-end">
+          {value && (
+            <button
+              type="button"
+              className="date-clear-inline-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleClear();
+                setIsOpen(false);
+              }}
+              title="مسح التاريخ"
+            >
+              ✕
+            </button>
+          )}
+          <svg className={`calendar-dropdown-chevron ${isOpen ? 'open' : ''}`} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
       </div>
 
-      {/* Calendar Dropdown Popup */}
+      {/* Popup Window Opened Above (المربع المنبثق فوق) */}
       {isOpen && (
-        <div
-          className={`modern-date-popup fade-in placement-${placement} align-${align}`}
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              e.stopPropagation();
-              handleConfirm();
-            }
-          }}
-        >
-          {/* Header Month/Year Selector */}
-          <div className="calendar-header-row">
-            <button type="button" className="cal-nav-btn" onClick={handlePrevMonth} title="الشهر السابق">
-              ‹
-            </button>
+        <div className={`modern-date-popup placement-${placement} align-${align} fade-in`}>
+          <div className="cascade-popup-inner">
 
-            <div className="cal-title-box">
-              <select
-                className="cal-month-select"
-                value={viewMonth}
-                onChange={(e) => setViewMonth(parseInt(e.target.value, 10))}
-                title="اختر الشهر"
+            {/* BOX 1: مربع السنين */}
+            <div className="cascade-step-block">
+              <label className="cascade-step-label">1. السنة:</label>
+              <div
+                className={`cascade-selector-box ${activeDropdown === 'year' ? 'active' : ''} ${selectedYear ? 'has-value' : ''}`}
+                onClick={() => setActiveDropdown(prev => prev === 'year' ? null : 'year')}
               >
-                {ARABIC_MONTHS.map((mName, mIdx) => (
-                  <option key={mIdx} value={mIdx}>{mName}</option>
-                ))}
-              </select>
+                <span className="cascade-box-title">
+                  {selectedYear ? `سنة ${selectedYear}` : 'اضغط لاختيار السنة'}
+                </span>
+                <svg className={`cascade-chevron-icon ${activeDropdown === 'year' ? 'open' : ''}`} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
 
-              <select
-                className="cal-year-select"
-                value={viewYear}
-                onChange={(e) => setViewYear(parseInt(e.target.value, 10))}
-                title="اختر السنة"
-              >
-                {Array.from({ length: 60 }, (_, i) => 1970 + i).map(y => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
+              {/* القائمة المنسدلة لسنوات */}
+              {activeDropdown === 'year' && (
+                <div className="cascade-dropdown-panel fade-in">
+                  <div className="cascade-search-wrap">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input
+                      type="text"
+                      className="cascade-search-input"
+                      placeholder="ابحث عن سنة (مثلاً 2024)..."
+                      value={yearSearch}
+                      onChange={(e) => setYearSearch(e.target.value)}
+                      autoFocus
+                    />
+                    {yearSearch && (
+                      <button type="button" className="cascade-search-clear" onClick={() => setYearSearch('')}>✕</button>
+                    )}
+                  </div>
+
+                  <div className="cascade-scroll-items">
+                    {filteredYears.map(y => {
+                      const isSelected = selectedYear === y;
+                      return (
+                        <label
+                          key={y}
+                          className={`standard-checklist-item ${isSelected ? 'selected' : ''}`}
+                          onClick={() => handleSelectYear(y)}
+                        >
+                          <input
+                            type="checkbox"
+                            className="standard-checkbox"
+                            checked={isSelected}
+                            readOnly
+                          />
+                          <span className="checklist-label-text">{y}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
-            <button type="button" className="cal-nav-btn" onClick={handleNextMonth} title="الشهر التالي">
-              ›
-            </button>
-          </div>
-
-          {presets && (
-            <div className="calendar-presets-row">
-              <button
-                type="button"
-                className="cal-confirm-btn"
-                onClick={handleConfirm}
-                title="تأكيد وحفظ التاريخ (Enter)"
-              >
-                موافق ✓
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const mStr = String(viewMonth + 1).padStart(2, '0');
-                  const val = isIsoFormat ? `${viewYear}-${mStr}` : `${mStr}/${viewYear}`;
-                  setInputValue(val);
-                  if (onChange) onChange(val);
-                  setIsOpen(false);
-                }}
-                title="اختيار هذا الشهر والسنة فقط"
-              >
-                {ARABIC_MONTHS[viewMonth]} {viewYear}
-              </button>
-              <button type="button" onClick={() => handlePresetSelect(new Date())}>اليوم</button>
-              <button type="button" onClick={() => {
-                const val = String(viewYear);
-                setInputValue(val);
-                if (onChange) onChange(val);
-                setIsOpen(false);
-              }}>سنة {viewYear}</button>
-              <button type="button" className="clear" onClick={handleClear}>مسح</button>
-            </div>
-          )}
-
-          {/* Days of Week Header */}
-          <div className="calendar-days-head">
-            {ARABIC_DAYS.map(d => (
-              <span key={d}>{d}</span>
-            ))}
-          </div>
-
-          {/* Days Grid - All 28-31 days completely rendered */}
-          <div className="calendar-grid">
-            {/* Blank cells for offset */}
-            {Array.from({ length: firstDayIndex }).map((_, i) => (
-              <span key={`empty-${i}`} className="cal-day empty" />
-            ))}
-
-            {/* Month days */}
-            {Array.from({ length: daysInMonth }).map((_, i) => {
-              const dayNum = i + 1;
-              const isSelected = selectedDay === dayNum;
-              const isToday =
-                now.getDate() === dayNum &&
-                now.getMonth() === viewMonth &&
-                now.getFullYear() === viewYear;
-
-              return (
-                <button
-                  key={dayNum}
-                  type="button"
-                  className={`cal-day-btn ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}`}
-                  onClick={() => handleSelectDay(dayNum)}
+            {/* BOX 2: مربع الشهور (يفتح تحته بمجرد اختيار السنة) */}
+            {selectedYear && (
+              <div className="cascade-step-block fade-in">
+                <label className="cascade-step-label">2. الشهر (لسنة {selectedYear}):</label>
+                <div
+                  className={`cascade-selector-box ${activeDropdown === 'month' ? 'active' : ''} ${selectedMonth !== null ? 'has-value' : ''}`}
+                  onClick={() => setActiveDropdown(prev => prev === 'month' ? null : 'month')}
                 >
-                  {dayNum}
+                  <span className="cascade-box-title">
+                    {selectedMonthObj ? selectedMonthObj.name : 'اضغط لاختيار الشهر'}
+                  </span>
+                  <svg className={`cascade-chevron-icon ${activeDropdown === 'month' ? 'open' : ''}`} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+
+                {/* القائمة المنسدلة للشهور */}
+                {activeDropdown === 'month' && (
+                  <div className="cascade-dropdown-panel fade-in">
+                    <div className="cascade-months-grid">
+                      {ARABIC_MONTHS.map(m => {
+                        const isSelected = selectedMonth === m.index;
+                        return (
+                          <label
+                            key={m.index}
+                            className={`standard-checklist-item month-item ${isSelected ? 'selected' : ''}`}
+                            onClick={() => handleSelectMonth(m.index)}
+                          >
+                            <input
+                              type="checkbox"
+                              className="standard-checkbox"
+                              checked={isSelected}
+                              readOnly
+                            />
+                            <span className="checklist-label-text">{m.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* BOX 3: مربع الأيام (يفتح تحته بمجرد اختيار الشهر) */}
+            {selectedYear && selectedMonth !== null && (
+              <div className="cascade-step-block fade-in">
+                <label className="cascade-step-label">3. اليوم ({selectedMonthObj?.name} {selectedYear}):</label>
+                <div
+                  className={`cascade-selector-box ${activeDropdown === 'day' ? 'active' : ''} ${selectedDay ? 'has-value' : ''}`}
+                  onClick={() => setActiveDropdown(prev => prev === 'day' ? null : 'day')}
+                >
+                  <span className="cascade-box-title">
+                    {selectedDay ? `يوم ${selectedDay}` : 'اضغط لاختيار اليوم'}
+                  </span>
+                  <svg className={`cascade-chevron-icon ${activeDropdown === 'day' ? 'open' : ''}`} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+
+                {/* القائمة المنسدلة للأيام */}
+                {activeDropdown === 'day' && (
+                  <div className="cascade-dropdown-panel fade-in">
+                    <div className="cascade-days-scroll">
+                      <div className="cascade-days-grid">
+                        {daysList.map(({ dayNum, weekdayName, isToday }) => {
+                          const isSelected = selectedDay === dayNum;
+                          return (
+                            <label
+                              key={dayNum}
+                              className={`standard-checklist-item day-item ${isSelected ? 'selected' : ''} ${isToday ? 'is-today' : ''}`}
+                              onClick={() => handleSelectDay(dayNum)}
+                            >
+                              <input
+                                type="checkbox"
+                                className="standard-checkbox"
+                                checked={isSelected}
+                                readOnly
+                              />
+                              <span className="checklist-label-text">
+                                {dayNum} <small className="day-weekday-small">({weekdayName})</small>
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* أزرار التأكيد السريع بالأسفل */}
+            <div className="cascade-bottom-bar">
+              {selectedYear && (
+                <button
+                  type="button"
+                  className="cascade-action-btn confirm"
+                  onClick={() => setIsOpen(false)}
+                >
+                  تأكيد وحفظ ✓
                 </button>
-              );
-            })}
+              )}
+              <button
+                type="button"
+                className="cascade-action-btn today"
+                onClick={handleSelectToday}
+              >
+                اليوم
+              </button>
+              <button
+                type="button"
+                className="cascade-action-btn clear"
+                onClick={handleClear}
+              >
+                مسح
+              </button>
+              <button
+                type="button"
+                className="cascade-action-btn close"
+                onClick={() => setIsOpen(false)}
+              >
+                إغلاق ✕
+              </button>
+            </div>
+
           </div>
         </div>
       )}

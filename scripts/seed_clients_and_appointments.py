@@ -24,14 +24,7 @@ from models.consultations.appointment import Appointment
 
 from sqlalchemy import text
 
-import importlib.util
-spec = importlib.util.spec_from_file_location(
-    "auth_utils",
-    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "services", "auth_utils.py")
-)
-_auth = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(_auth)
-hash_password = _auth.hash_password
+from services.auth.auth_utils import hash_password
 
 def fix_sequences(db):
     try:

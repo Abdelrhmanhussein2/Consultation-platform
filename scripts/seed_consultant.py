@@ -21,14 +21,7 @@ from models.consultations.specialization import Specialization
 from models.consultations.consultant_service import ConsultantService
 from models.consultations.consultant_availability import ConsultantAvailability
 
-import importlib.util
-spec = importlib.util.spec_from_file_location(
-    "auth_utils",
-    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "services", "auth_utils.py")
-)
-_auth = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(_auth)
-hash_password = _auth.hash_password
+from services.auth.auth_utils import hash_password
 
 def fix_sequences(db):
     try:
@@ -67,8 +60,8 @@ def seed_consultants():
         # 2. Consultants details
         advisors = [
             {
-                "email": "consultant2@platform.com",
-                "password": "Password123!",
+                "email": "abdelrhmanhussein886@gmail.com",
+                "password": "!Password123",
                 "full_name": "أ. عبدالرحمن حسين",
                 "phone": "+962790000002",
                 "spec_id": income_tax_spec.id,
@@ -85,6 +78,23 @@ def seed_consultants():
                     (0, time(10, 0)), (0, time(12, 0)), (0, time(14, 0)), # Monday
                     (1, time(10, 0)), (1, time(12, 0)), (1, time(14, 0))  # Tuesday
                 ]
+            },
+            {
+                "email": "consultant2@platform.com",
+                "password": "Password123!",
+                "full_name": "أ. عبدالرحمن حسين",
+                "phone": "+962790000003",
+                "spec_id": income_tax_spec.id,
+                "bio": "مستشار ضريبي بخبرة تزيد عن 20 سنة في الاستشارات الضريبية.",
+                "years_exp": 20,
+                "activity_type": "مستشار مستقل",
+                "certs": "بكالوريوس محاسبة",
+                "services": [
+                    {"name": "استشارة عامة", "price": 50.00, "duration": 60}
+                ],
+                "availabilities": [
+                    (6, time(10, 0)), (0, time(10, 0))
+                ]
             }
         ]
 
@@ -92,10 +102,12 @@ def seed_consultants():
             # Check if user already exists
             user = db.query(User).filter(User.email == advisor["email"]).first()
             if user:
-                print(f"INFO: Advisor user already exists: {advisor['email']}")
+                print(f"INFO: Advisor user already exists: {advisor['email']}, updating password & status...")
                 user.full_name = advisor["full_name"]
+                user.password_hash = hash_password(advisor["password"])
                 user.role = UserRole.consultant
                 user.verification_status = VerificationStatus.approved
+                user.is_active = True
                 db.commit()
             else:
                 user = User(

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useAuth } from "../../context/AuthContext";
@@ -1267,8 +1267,8 @@ export default function AdminInvoicesPage({ navigate }) {
         .ab:hover{background:#0D3C5C;color:#fff;border-color:#0D3C5C}
         .pb{border:none;background:#0D3C5C;color:#fff;border-radius:9px;padding:8px 18px;font-family:inherit;font-size:12.5px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
         .pb:hover{background:#0B2E4B}
-        select, input.input, textarea{border:1.5px solid #CBD5E1;border-radius:9px;padding:8px 12px;font-family:inherit;font-size:13px;color:#0D3C5C;background:#fff;outline:none;width:100%;box-sizing:border-box;transition:border-color 0.2s}
-        select:focus, input.input:focus, textarea:focus{border-color:#0D3C5C;box-shadow:0 0 0 3px rgba(13,60,92,0.1)}
+        .module-view select, .module-view input.input, .module-view textarea{border:1.5px solid #CBD5E1;border-radius:9px;padding:8px 12px;font-family:inherit;font-size:13px;color:#0D3C5C;background:#fff;outline:none;width:100%;box-sizing:border-box;transition:border-color 0.2s}
+        .module-view select:focus, .module-view input.input:focus, .module-view textarea:focus{border-color:#0D3C5C;box-shadow:0 0 0 3px rgba(13,60,92,0.1)}
         
         /* Create Editor Styles */
         .module-view { background: #F8FAFC; padding: 24px 28px; }

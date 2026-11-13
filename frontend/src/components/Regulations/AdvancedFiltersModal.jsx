@@ -116,7 +116,7 @@ export default function AdvancedFiltersModal({ isOpen, onClose, filters, setFilt
 
           {/* Time Period using ModernDatePicker */}
           <div className="filter-group">
-            <label className="filter-group-label">الفترة الزمنية (السنة أو الشهر/السنة أو التاريخ الكامل - اليوم اختياري)</label>
+            <label className="filter-group-label">الفترة الزمنية</label>
             <div className="date-range-grid">
               <div>
                 <ModernDatePicker
@@ -125,7 +125,7 @@ export default function AdvancedFiltersModal({ isOpen, onClose, filters, setFilt
                   align="right"
                   value={filters.dateFrom || ''}
                   onChange={(val) => setFilters(prev => ({ ...prev, dateFrom: val }))}
-                  placeholder="DD/MM/YYYY أو MM/YYYY أو YYYY"
+                  placeholder="اختر التاريخ..."
                 />
               </div>
               <div>
@@ -135,7 +135,7 @@ export default function AdvancedFiltersModal({ isOpen, onClose, filters, setFilt
                   align="left"
                   value={filters.dateTo || ''}
                   onChange={(val) => setFilters(prev => ({ ...prev, dateTo: val }))}
-                  placeholder="DD/MM/YYYY أو MM/YYYY أو YYYY"
+                  placeholder="اختر التاريخ..."
                 />
               </div>
             </div>

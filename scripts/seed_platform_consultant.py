@@ -15,14 +15,7 @@ from models.consultations.specialization import Specialization
 from models.consultations.consultant_service import ConsultantService
 from models.consultations.consultant_availability import ConsultantAvailability
 
-import importlib.util
-spec = importlib.util.spec_from_file_location(
-    "auth_utils",
-    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "services", "auth_utils.py")
-)
-_auth = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(_auth)
-hash_password = _auth.hash_password
+from services.auth.auth_utils import hash_password
 
 def fix_sequences(db):
     try:

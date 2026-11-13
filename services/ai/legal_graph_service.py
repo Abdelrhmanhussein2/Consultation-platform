@@ -857,10 +857,35 @@ class LegalGraphService:
                                 if fname.endswith('.docx') and r_num_digits and r_num_digits in fname:
                                     fpath = os.path.join(base_data_dir, fname)
                                     d = docx.Document(fpath)
-                                    full_text_val = '\n'.join([para.text for para in d.paragraphs if para.text.strip()])
+                                    clean_paras = []
+                                    for para in d.paragraphs:
+                                        t = para.text.strip()
+                                        if not t:
+                                            continue
+                                        t = re.sub(r'[\.\_]{2,}', ' ', t)
+                                        t = re.sub(r'\s{2,}', ' ', t).strip()
+                                        if t:
+                                            clean_paras.append(t)
+                                    full_text_val = '\n'.join(clean_paras)
                                     break
                     except Exception:
                         pass
+
+                # Dynamic fallback subject and outcome from full_text if empty
+                subject_val = str(r.get("subject") or "").strip()
+                outcome_val = str(r.get("outcome") or "").strip()
+                if not subject_val and full_text_val:
+                    sub_m = re.search(r'موضوع (?:الدعوى|الطعن|القضية|التمييز)\s*[:\-]?\s*(.+)', full_text_val.replace('ـ', ''))
+                    if sub_m:
+                        subject_val = sub_m.group(1).split('\n')[0].strip()
+                if not outcome_val and full_text_val:
+                    out_m = re.search(r'(?:تقرر المحكمة ما يلي|لذلك نقرر|لهذا نقرر|فلهذه الأسباب|وبالنتيجة تقرر)\s*[:\-]?\s*(.+)', full_text_val.replace('ـ', ''), re.DOTALL)
+                    if out_m:
+                        out_lines = [l.strip() for l in out_m.group(1).split('\n') if l.strip() and not any(w in l for w in ['القاضي', 'الديوان', 'طباعة'])]
+                        if out_lines:
+                            outcome_val = ' '.join(out_lines[:2])
+                            if len(outcome_val) > 250:
+                                outcome_val = outcome_val[:247] + '...'
 
                 results.append({
                     "id": idx + 1,
@@ -872,8 +897,8 @@ class LegalGraphService:
                     "year": r_year or "2024",
                     "court": court_str,
                     "source": court_str,
-                    "subject": r.get("subject") or "",
-                    "outcome": r.get("outcome") or "",
+                    "subject": subject_val,
+                    "outcome": outcome_val,
                     "summary": None,
                     "full_text": full_text_val,
                     "text": full_text_val,
@@ -888,8 +913,8 @@ class LegalGraphService:
                         "subCategory": court_str,
                         "court": court_str,
                         "source": court_str,
-                        "subject": r.get("subject") or "",
-                        "outcome": r.get("outcome") or "",
+                        "subject": subject_val,
+                        "outcome": outcome_val,
                         "summary": None,
                         "full_text": full_text_val,
                         "text": full_text_val
