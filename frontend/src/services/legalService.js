@@ -128,10 +128,10 @@ export async function searchLegal(query, limit = 20, token = null, filters = nul
     const res = await fetch(endpoint, { headers });
     if (!res.ok) throw new Error("Server error");
     const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) return data;
-    if (data && Array.isArray(data.laws) && data.laws.length > 0) return data.laws;
-    if (data && Array.isArray(data.results) && data.results.length > 0) return data.results;
-    throw new Error("Empty dataset");
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.laws)) return data.laws;
+    if (data && Array.isArray(data.results)) return data.results;
+    return [];
   } catch (err) {
     if (!query || !query.trim()) return MOCK_LAWS;
     const qClean = normAr(query);
@@ -749,17 +749,13 @@ export async function getArticleHistory(lawId, articleNum) {
     if (authToken) {
       headers['Authorization'] = `Bearer ${authToken}`;
     }
-    const res = await fetch(`${API_BASE}/articles/${lawId}/${articleNum}/history`, { headers });
+    const cleanLawId = encodeURIComponent(String(lawId || '34-2014'));
+    const res = await fetch(`${API_BASE}/articles/${cleanLawId}/${articleNum}/history`, { headers });
     if (!res.ok) throw new Error("Server error");
-    return await res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   } catch (err) {
-    return {
-      article_num: articleNum,
-      current_version: "النص الساري الصادر بتعديل 2019 بموجب القانون المعدل رقم 38 لسنة 2018",
-      previous_version: "النص الأصلي لعام 2014 قبل التعديل",
-      amendment_date: "01-01-2019",
-      changes_summary: "تم تعديل شرائح الإعفاء الشخصي والعائلي وتحديث نسبة الضريبة على القطاع المصرفي والمالي."
-    };
+    return [];
   }
 }
 

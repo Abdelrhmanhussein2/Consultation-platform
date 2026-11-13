@@ -16,6 +16,7 @@ export default function KnowledgeSourceList({
   onReset,
   onInspect,
   onEdit,
+  onToggleActive,
   onBroadcast,
   onDelete
 }) {
@@ -65,9 +66,15 @@ export default function KnowledgeSourceList({
                       {KIND_OPTIONS[item.kind] || item.kind}
                     </span>
 
-                    <span className={`source-badge ${item.is_active ? 'badge-active' : 'badge-inactive'}`}>
+                    <button
+                      type="button"
+                      onClick={() => onToggleActive && onToggleActive(item)}
+                      className={`source-badge ${item.is_active ? 'badge-active' : 'badge-inactive'}`}
+                      style={{ cursor: 'pointer', border: 'none' }}
+                      title={item.is_active ? 'انقر لتعطيل المصدر وإخفائه عن المستخدمين' : 'انقر لتفعيل المصدر وإتاحته في المنصة'}
+                    >
                       {item.is_active ? 'نشط' : 'موقوف'}
-                    </span>
+                    </button>
 
                     {item.file_name && (
                       <span className="source-badge">

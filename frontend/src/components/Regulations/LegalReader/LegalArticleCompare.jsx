@@ -1,35 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { ARTICLE_DIFFS } from './articleDiffs';
 import { getArticleHistory } from '../../../services/legalService';
 import { computeArticleDiff } from './diffUtil';
 import ModernSelect from '../../ModernSelect';
 
-export default function LegalArticleCompare({ articleNum, lawId, lawTitle, onClose }) {
-  const isLaw34 = !lawId || String(lawId).includes('34');
-  const [cmpLeft, setCmpLeft] = useState('2019');
-  const [cmpRight, setCmpRight] = useState('2015');
-  const [dynamicHistory, setDynamicHistory] = useState(null);
-  const [loading, setLoading] = useState(!isLaw34);
+export default function LegalArticleCompare({ articleNum, lawId, onClose }) {
+  const [cmpLeft, setCmpLeft] = useState('');
+  const [cmpRight, setCmpRight] = useState('');
+  const [history, setHistory] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setCmpLeft('2019');
-    setCmpRight('2015');
-    if (lawId && !isLaw34) {
-      setLoading(true);
-      getArticleHistory(lawId, articleNum)
-        .then(data => {
-          if (Array.isArray(data) && data.length > 0) {
-            setDynamicHistory(data);
-            setCmpLeft(data[0].version_name);
-            setCmpRight(data[data.length - 1].version_name);
-          } else {
-            setDynamicHistory([]);
-          }
-        })
-        .catch(() => setDynamicHistory([]))
-        .finally(() => setLoading(false));
-    }
-  }, [articleNum, lawId, isLaw34]);
+    if (!articleNum) return;
+    setLoading(true);
+    getArticleHistory(lawId, articleNum)
+      .then(data => {
+        const list = Array.isArray(data) ? data : [];
+        setHistory(list);
+        if (list.length > 0) {
+          setCmpLeft(list[0].version_name);
+          setCmpRight(list.length > 1 ? list[1].version_name : list[0].version_name);
+        }
+      })
+      .catch(() => setHistory([]))
+      .finally(() => setLoading(false));
+  }, [articleNum, lawId]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -41,62 +35,32 @@ export default function LegalArticleCompare({ articleNum, lawId, lawTitle, onClo
 
   if (!articleNum) return null;
 
-  const diffData = ARTICLE_DIFFS[String(articleNum)] || {
-    old: 'لا يتوفر نص سابق للمقارنة.',
-    new: 'لا يتوفر نص سار للمقارنة.',
-    changed: false,
-    oldplain: 'لا يتوفر نص سابق للمقارنة.',
-    newplain: 'لا يتوفر نص سار للمقارنة.'
-  };
+  const hasMultipleVersions = history && history.length > 1;
+  const leftItem = history?.find(h => h.version_name === cmpLeft) || history?.[0];
+  const rightItem = history?.find(h => h.version_name === cmpRight) || history?.[history?.length - 1];
 
-  const isSingleVersion = !isLaw34 && (!dynamicHistory || dynamicHistory.length <= 1);
+  const diffResult = hasMultipleVersions && leftItem && rightItem && cmpLeft !== cmpRight
+    ? computeArticleDiff(rightItem.text || '', leftItem.text || '')
+    : {
+        oldHtml: (rightItem?.text || '').replace(/\n/g, '<br/>'),
+        newHtml: (leftItem?.text || '').replace(/\n/g, '<br/>'),
+        hasDiff: false
+      };
 
-  let dynamicDiff = null;
-  if (dynamicHistory && dynamicHistory.length > 1) {
-    const vLeft = dynamicHistory.find(d => d.version_name === cmpLeft);
-    const vRight = dynamicHistory.find(d => d.version_name === cmpRight);
-    dynamicDiff = computeArticleDiff(vRight?.text || '', vLeft?.text || '');
-  }
+  const showNoChange = hasMultipleVersions && (!diffResult.hasDiff || cmpLeft === cmpRight);
 
-  const isSameVersion = cmpLeft === cmpRight;
-  const showNoChange = isSameVersion ||
-    (dynamicDiff ? !dynamicDiff.hasDiff : (!dynamicHistory && !diffData.changed));
-
-  const getVersionContent = (ver) => {
-    if (dynamicDiff) {
-      if (ver === cmpRight) return dynamicDiff.oldHtml;
-      return dynamicDiff.newHtml;
-    }
-    if (isSameVersion) {
-      const plain = ver === '2015' ? diffData.oldplain : diffData.newplain;
-      return (plain || '').replace(/\n/g, '<br/>');
-    }
-    if (ver === '2015') return diffData.old || diffData.oldplain;
-    return diffData.new || diffData.newplain;
-  };
-
-  const getVersionLabel = (ver) => {
-    if (dynamicHistory) return `نسخة ${ver}`;
-    return ver === '2015' ? 'كما صدر — 2015' : 'النص النافذ — 2019';
-  };
-
-  const leftOptions = dynamicHistory
-    ? dynamicHistory.map(d => ({ value: d.version_name, label: d.version_name }))
-    : [
-        { value: '2019', label: 'النص النافذ — 2019' },
-        { value: '2015', label: 'كما صدر — 2015' }
-      ];
-
-  const rightOptions = dynamicHistory
-    ? dynamicHistory.map(d => ({ value: d.version_name, label: d.version_name }))
-    : [
-        { value: '2015', label: 'كما صدر — 2015' },
-        { value: '2019', label: 'النص النافذ — 2019' }
-      ];
+  const versionOptions = (history || []).map(v => ({
+    value: v.version_name,
+    label: v.version_name
+  }));
 
   return (
     <div className="compare-modal-backdrop" onClick={onClose}>
-      <div className="compare-modal-box" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="compare-modal-box"
+        onClick={(e) => e.stopPropagation()}
+        style={!hasMultipleVersions ? { width: 'min(760px, 92vw)', maxWidth: '760px' } : { width: 'min(980px, 94vw)', maxWidth: '980px' }}
+      >
         <div className="compare-head">
           <strong>مقارنة النسخ — المادة {articleNum}</strong>
           <button type="button" className="modal-x" onClick={onClose} title="إغلاق">
@@ -106,30 +70,34 @@ export default function LegalArticleCompare({ articleNum, lawId, lawTitle, onClo
 
         <div className="compare-body">
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '36px', color: '#0D3C5C', fontWeight: 700 }}>
-              جاري فحص وتدقيق سجل التعديلات التشريعية...
+            <div style={{ textAlign: 'center', padding: '40px', color: '#0D3C5C', fontWeight: 700 }}>
+              جاري فحص وتدقيق النسخ التشريعية من قاعدة البيانات...
             </div>
-          ) : isSingleVersion ? (
-            <div style={{ padding: '24px 16px', color: '#334155' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                <span className="badge good" style={{ padding: '4px 10px', fontSize: '13px' }}>
-                  النسخة الأصلية المعتمدة (نسخة وحيدة)
-                </span>
+          ) : !hasMultipleVersions ? (
+            <div>
+              <div
+                className="compare-nochange"
+                style={{ margin: '0 0 16px', textAlign: 'center', fontWeight: 700 }}
+              >
+                هذا القانون صدر بنسخة أصلية واحدة فقط ولا توجد له نسخ أو تعديلات تشريعية أخرى مسجلة للمقارنة.
               </div>
-              <p style={{ fontSize: '14px', color: '#64748B', margin: '0 0 16px', lineHeight: 1.7 }}>
-                هذا القانون صدر بنسخة أصلية واحدة فقط، ولا توجد تعديلات تشريعية سابقة أو لاحقة مسجلة على هذه المادة للمقارنة.
-              </p>
-              <div style={{
-                background: '#F8FAFC',
-                padding: '20px',
-                borderRadius: '12px',
-                border: '1px solid #E2E8F0',
-                fontSize: '14px',
-                lineHeight: 2,
-                color: '#1E293B',
-                whiteSpace: 'pre-line'
-              }}>
-                {dynamicHistory?.[0]?.text || 'نص المادة معتمد بنسخته الأصلية.'}
+
+              <div
+                className="compare-grid"
+                style={{ gridTemplateColumns: '1fr', width: '100%', margin: '0 auto' }}
+              >
+                <div className="version">
+                  <span className="badge good">
+                    {history?.[0]?.version_name || 'النسخة الأصلية المعتمدة — كما صدر'}
+                  </span>
+                  <h3>المادة {articleNum}</h3>
+                  <pre
+                    className="article-body"
+                    dangerouslySetInnerHTML={{
+                      __html: (history?.[0]?.text || 'لا يتوفر نص مسجل لهذه المادة.').replace(/\n/g, '<br/>')
+                    }}
+                  />
+                </div>
               </div>
             </div>
           ) : (
@@ -140,8 +108,8 @@ export default function LegalArticleCompare({ articleNum, lawId, lawTitle, onClo
                   <ModernSelect
                     value={cmpLeft}
                     onChange={(val) => setCmpLeft(val)}
-                    options={leftOptions}
-                    placeholder="اختر النسخة..."
+                    options={versionOptions}
+                    placeholder="اختر النسخة الأولى..."
                   />
                 </div>
                 <div className="compare-control">
@@ -149,8 +117,8 @@ export default function LegalArticleCompare({ articleNum, lawId, lawTitle, onClo
                   <ModernSelect
                     value={cmpRight}
                     onChange={(val) => setCmpRight(val)}
-                    options={rightOptions}
-                    placeholder="اختر النسخة..."
+                    options={versionOptions}
+                    placeholder="اختر النسخة الثانية..."
                   />
                 </div>
               </div>
@@ -163,19 +131,19 @@ export default function LegalArticleCompare({ articleNum, lawId, lawTitle, onClo
 
               <div className="compare-grid">
                 <div className="version">
-                  <span className={`badge ${cmpLeft === '2019' || cmpLeft.includes('نافذ') ? 'good' : ''}`}>
-                    {getVersionLabel(cmpLeft)}
+                  <span className={`badge ${cmpLeft.includes('نافذ') || cmpLeft.includes('2019') ? 'good' : ''}`}>
+                    {cmpLeft}
                   </span>
                   <h3>المادة {articleNum}</h3>
-                  <pre dangerouslySetInnerHTML={{ __html: getVersionContent(cmpLeft) }} />
+                  <pre dangerouslySetInnerHTML={{ __html: diffResult.newHtml }} />
                 </div>
 
                 <div className="version">
-                  <span className={`badge ${cmpRight === '2019' || cmpRight.includes('نافذ') ? 'good' : ''}`}>
-                    {getVersionLabel(cmpRight)}
+                  <span className="badge">
+                    {cmpRight}
                   </span>
                   <h3>المادة {articleNum}</h3>
-                  <pre dangerouslySetInnerHTML={{ __html: getVersionContent(cmpRight) }} />
+                  <pre dangerouslySetInnerHTML={{ __html: diffResult.oldHtml }} />
                 </div>
               </div>
             </>

@@ -39,7 +39,7 @@ from models.admin import (
 
 # Communication models
 from models.communication import (
-    Notification, ChatMessage, SupportTicket, TicketReply, TicketAttachment
+    Notification, AdminBroadcast, ChatMessage, SupportTicket, TicketReply, TicketAttachment
 )
 
 __all__ = [

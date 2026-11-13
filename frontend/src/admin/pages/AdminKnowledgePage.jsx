@@ -9,6 +9,7 @@ import {
   saveLawSource,
   saveRulingSource,
   updateKnowledgeSource,
+  toggleKnowledgeSourceActive,
   deleteKnowledgeSource
 } from '../components/knowledge/knowledgeApi';
 import KnowledgeHeaderAndStats from '../components/knowledge/KnowledgeHeaderAndStats';
@@ -146,7 +147,7 @@ export default function AdminKnowledgePage() {
     try {
       const res = await updateKnowledgeSource(sourceId, sourceType, updatedData);
       if (res.ok) {
-        showToast('تم تحديث بيانات المصدر القانوني بنجاح');
+        showToast('تم تحديث بيانات المصدر وحالته بنجاح');
         setEditingSource(null);
         loadSources();
         loadStats();
@@ -157,11 +158,25 @@ export default function AdminKnowledgePage() {
     } catch { showToast('خطأ في الاتصال أثناء التعديل'); }
   };
 
+  const handleToggleActive = async (item) => {
+    const srcType = item.source_type || (item.kind === 'precedent' ? 'judgment' : 'law');
+    try {
+      const res = await toggleKnowledgeSourceActive(item.id, srcType);
+      if (res.ok) {
+        const d = await res.json();
+        showToast(d.is_active ? 'تم تفعيل المصدر وإتاحته في المنصة' : 'تم إيقاف المصدر وإخفاؤه من المنصة');
+        loadSources();
+        loadStats();
+      } else {
+        showToast('تعذر تغيير حالة المصدر');
+      }
+    } catch {
+      showToast('خطأ في الاتصال أثناء تغيير الحالة');
+    }
+  };
+
   const handleResetFilters = useCallback(() => {
-    setSearch('');
-    setKindFilter('all');
-    setStatusFilter('all');
-    setYearFilter('');
+    setSearch(''); setKindFilter('all'); setStatusFilter('all'); setYearFilter('');
   }, []);
 
   return (
@@ -171,7 +186,7 @@ export default function AdminKnowledgePage() {
         <KnowledgeFilterBar search={search} onSearchChange={setSearch} kind={kindFilter} onKindChange={setKindFilter} status={statusFilter} onStatusChange={setStatusFilter} year={yearFilter} onYearChange={setYearFilter} onReset={handleResetFilters} />
         <KnowledgeSourceForm formData={formData} setFormData={setFormData} onSave={handleSaveLaw} onReset={() => setFormData(EMPTY_FORM)} isExtracting={isExtractingLaw} setIsExtracting={setIsExtractingLaw} isSaving={isSavingLaw} onNotify={showToast} />
         <KnowledgeRulingForm formData={rulingFormData} setFormData={setRulingFormData} onSave={handleSaveRuling} onReset={() => setRulingFormData(EMPTY_RULING_FORM)} isExtracting={isExtractingRuling} setIsExtracting={setIsExtractingRuling} isSaving={isSavingRuling} onNotify={showToast} />
-        <KnowledgeSourceList sources={sources} kindFilter={kindFilter} onKindFilterChange={setKindFilter} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} yearFilter={yearFilter} onYearFilterChange={setYearFilter} searchQuery={search} onSearchChange={setSearch} onReset={handleResetFilters} onEdit={handleEdit} onBroadcast={(item) => setBroadcastTarget(item)} onDelete={(id, typ) => setDeleteTarget({ id, source_type: typ })} />
+        <KnowledgeSourceList sources={sources} kindFilter={kindFilter} onKindFilterChange={setKindFilter} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} yearFilter={yearFilter} onYearFilterChange={setYearFilter} searchQuery={search} onSearchChange={setSearch} onReset={handleResetFilters} onEdit={handleEdit} onToggleActive={handleToggleActive} onBroadcast={(item) => setBroadcastTarget(item)} onDelete={(id, typ) => setDeleteTarget({ id, source_type: typ })} />
       </div>
       <KnowledgeEditModal isOpen={Boolean(editingSource)} source={editingSource} onSave={handleSaveSourceEdit} onClose={() => setEditingSource(null)} />
       <KnowledgeBroadcastModal isOpen={Boolean(broadcastTarget)} source={broadcastTarget} onClose={() => setBroadcastTarget(null)} onNotify={showToast} />

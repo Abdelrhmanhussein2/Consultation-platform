@@ -290,7 +290,7 @@ export default function RegulationsPage({ navigate, currentPath }) {
   };
 
   const handleOpenReader = (law) => {
-    setReaderLawId(law.law_id || 'law_tax_34_2014');
+    setReaderLawId(law?.law_id || law?.id || 'law_tax_34_2014');
   };
 
   const handleApplyFilters = () => {
@@ -309,7 +309,7 @@ export default function RegulationsPage({ navigate, currentPath }) {
 
   // فتح صفحة القانون المستقلة بتغيير الـ URL
   const handleOpenFullPage = (law) => {
-    const lawId = law?.law_id || 'law_tax_34_2014';
+    const lawId = law?.law_id || law?.id || 'law_tax_34_2014';
     if (navigate) {
       navigate(`/regulations/law/${encodeURIComponent(lawId)}`);
     } else {

@@ -71,7 +71,14 @@ export default function AddToFolderModal({ item, isOpen, onClose, onStatusChange
     if (folder.has_item) {
       try {
         const res = await fetch(`/api/folders/${folder.id}/items/${folder.folder_item_id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-        if (res.status === 204) { notify(`تمت الإزالة من "${folder.name}"`); fetchStatus(); }
+        if (res.status === 204) {
+          notify(`تمت الإزالة من "${folder.name}"`);
+          const remainingInFolders = statusData.folders.some(f => f.id !== folder.id && f.has_item);
+          const stillSaved = statusData.is_favorite || remainingInFolders;
+          setStatusData(prev => ({ ...prev, is_in_any_folder: remainingInFolders, is_saved: stillSaved }));
+          if (onStatusChange) onStatusChange(stillSaved);
+          fetchStatus();
+        }
       } catch { notify('تعذر التحديث'); }
     } else {
       try {
@@ -80,7 +87,12 @@ export default function AddToFolderModal({ item, isOpen, onClose, onStatusChange
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ item_type: item.item_type, item_id: item.item_id, title: item.title, subtitle: item.subtitle || null })
         });
-        if (res.status === 201) { notify(`تمت الإضافة إلى "${folder.name}"`); fetchStatus(); }
+        if (res.status === 201) {
+          notify(`تمت الإضافة إلى "${folder.name}"`);
+          setStatusData(prev => ({ ...prev, is_in_any_folder: true, is_saved: true }));
+          if (onStatusChange) onStatusChange(true);
+          fetchStatus();
+        }
       } catch { notify('تعذر التحديث'); }
     }
   };
@@ -108,24 +120,14 @@ export default function AddToFolderModal({ item, isOpen, onClose, onStatusChange
     } catch { setNameError('تعذر إنشاء المجلد'); } finally { setCreating(false); }
   };
 
-  const handleDone = async () => {
-    if (statusData.is_in_any_folder || statusData.is_favorite) {
-      if (onStatusChange) onStatusChange(true);
-      onClose();
-      return;
-    }
+  const handleDone = () => {
     const customName = newFolderName.trim();
     if (customName) {
-      await submitCreateAndAdd(customName);
+      submitCreateAndAdd(customName);
       return;
     }
-    if (statusData.folders && statusData.folders.length > 0) {
-      await handleToggleFolder(statusData.folders[0]);
-      if (onStatusChange) onStatusChange(true);
-      onClose();
-      return;
-    }
-    await submitCreateAndAdd('عام');
+    if (onStatusChange) onStatusChange(Boolean(statusData.is_saved));
+    onClose();
   };
 
   return (
@@ -163,7 +165,7 @@ export default function AddToFolderModal({ item, isOpen, onClose, onStatusChange
           </button>
         )}
 
-        <button onClick={handleDone} style={{ width: '100%', background: '#0D3C5C', color: '#FFFFFF', border: 'none', borderRadius: '11px', padding: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>حفظ ومتابعة (تم)</button>
+        <button onClick={handleDone} style={{ width: '100%', background: '#0D3C5C', color: '#FFFFFF', border: 'none', borderRadius: '11px', padding: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>تم</button>
         {toastMsg && <div style={{ textAlign: 'center', color: '#059669', fontSize: '11px', fontWeight: '700', marginTop: '8px' }}>{toastMsg}</div>}
       </div>
     </div>

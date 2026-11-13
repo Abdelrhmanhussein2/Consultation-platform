@@ -32,9 +32,7 @@ export default function KnowledgeEditModal({
   }, [source]);
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isOpen) onClose();
-    };
+    const handleKeyDown = (e) => { if (e.key === 'Escape' && isOpen) onClose(); };
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'hidden';

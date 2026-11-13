@@ -215,7 +215,8 @@ async def upload_law(
         number=number,
         year=year,
         version_name=version_name,
-        effective_from=effective_from
+        effective_from=effective_from,
+        filename=file.filename or ""
     )
 
 @router.post("/upload-judgment", status_code=status.HTTP_201_CREATED)
@@ -255,7 +256,8 @@ async def upload_judgment(
         date=date,
         outcome=outcome,
         subject=subject,
-        title=title
+        title=title,
+        filename=file.filename or ""
     )
 
 @router.get("/laws")
@@ -264,9 +266,10 @@ def get_laws(
     type: Optional[str] = None,
     status: Optional[str] = None,
     year_from: Optional[int] = None,
-    year_to: Optional[int] = None
+    year_to: Optional[int] = None,
+    include_inactive: bool = Query(False)
 ):
-    return LegalController.get_laws(q=q, year_from=year_from, year_to=year_to)
+    return LegalController.get_laws(q=q, year_from=year_from, year_to=year_to, include_inactive=include_inactive)
 
 @router.get("/laws/{law_id:path}/related")
 def get_related_files(
@@ -276,16 +279,18 @@ def get_related_files(
 
 @router.get("/laws/{law_id:path}/stages")
 def get_law_stages(
-    law_id: str
+    law_id: str,
+    include_inactive: bool = Query(False)
 ):
-    return LegalController.get_law_stages(law_id)
+    return LegalController.get_law_stages(law_id, include_inactive=include_inactive)
 
 @router.get("/laws/{law_id:path}")
 def get_law_tree(
     law_id: str,
-    version_name: str = None
+    version_name: str = None,
+    include_inactive: bool = Query(False)
 ):
-    return LegalController.get_law_tree(law_id, version_name)
+    return LegalController.get_law_tree(law_id, version_name, include_inactive=include_inactive)
 
 
 @router.get("/articles/{law_id:path}/{article_number}/history")

@@ -1,9 +1,9 @@
-import json
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 from helpers.neo4j_db import neo4j_db
 from services.ai.vector_index_service import VectorIndexService
 from services.ai.legal_detail_helper import get_source_detail as _get_source_detail
 from services.ai.legal_preview_helper import extract_file_preview as _extract_preview
+from services.ai.legal_manual_helper import create_manual_law as _create_manual_law, create_manual_judgment as _create_manual_judgment
 
 
 class LegalSourcesService:
@@ -111,7 +111,9 @@ class LegalSourcesService:
     @classmethod
     def update_source(cls, source_id: str, source_type: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Updates title, year, number, status, court, and body for a law or judgment."""
-        title, year, is_active = payload.get("title", ""), payload.get("year"), payload.get("is_active", True)
+        title, year = payload.get("title", ""), payload.get("year")
+        raw_active = payload.get("is_active")
+        is_active = True if raw_active is None else bool(raw_active)
         court, number, body = payload.get("court"), payload.get("number"), payload.get("body", "")
         with neo4j_db.get_session() as session:
             if source_type == "law":
@@ -120,6 +122,9 @@ class LegalSourcesService:
                     SET l.title = $title, l.`العنوان` = $title, l.`name` = $title,
                         l.year = $year, l.`السنة` = $year, l.number = $number, l.`رقم_القانون` = $number,
                         l.body = $body, l.full_text = $body, l.is_active = $is_active
+                    WITH l
+                    OPTIONAL MATCH (l)-[:HAS_VERSION|`يتضمن_مادة`|HAS_ARTICLE*0..2]->(sub)
+                    SET sub.is_active = $is_active
                 """, sid=source_id, title=title, year=year, number=number, body=body, is_active=is_active)
             else:
                 session.run("""
@@ -128,46 +133,42 @@ class LegalSourcesService:
                         j.ruling_year = $year, j.`السنة` = $year, j.ruling_number = $number, j.`رقم_الحكم` = $number,
                         j.full_text = $body, j.`نص_الحكم` = $body, j.is_active = $is_active
                 """, sid=source_id, title=title, court=court, year=year, number=number, body=body, is_active=is_active)
-        return {"status": "success", "message": "تم تحديث بيانات المصدر القانوني بنجاح", "id": source_id}
+        try: VectorIndexService.set_source_active(source_type, source_id, is_active)
+        except Exception: pass
+        return {"status": "success", "message": "تم تحديث بيانات المصدر القانوني بنجاح", "id": source_id, "is_active": is_active}
+
+    @classmethod
+    def toggle_source_active(cls, source_id: str, source_type: str) -> Dict[str, Any]:
+        from fastapi import HTTPException
+        with neo4j_db.get_session() as session:
+            if source_type == "law":
+                rec = session.run("""
+                    MATCH (l) WHERE (l:Law OR l:`قانون`) AND (l.law_id = $sid OR l.`معرف` = $sid)
+                    SET l.is_active = NOT coalesce(l.is_active, true)
+                    WITH l
+                    OPTIONAL MATCH (l)-[:HAS_VERSION|`يتضمن_مادة`|HAS_ARTICLE*0..2]->(sub)
+                    SET sub.is_active = l.is_active
+                    RETURN head(collect(DISTINCT l.is_active)) as is_active
+                """, sid=source_id).single()
+            else:
+                rec = session.run("""
+                    MATCH (j) WHERE (j:Judgment OR j:JudicialRuling OR j:`حكم_قضائي`) AND (j.ruling_id = $sid OR j.`معرف` = $sid)
+                    SET j.is_active = NOT coalesce(j.is_active, true)
+                    RETURN j.is_active as is_active
+                """, sid=source_id).single()
+            if not rec: raise HTTPException(status_code=404, detail="المصدر غير موجود")
+            new_active = bool(rec["is_active"])
+        try: VectorIndexService.set_source_active(source_type, source_id, new_active)
+        except Exception: pass
+        return {"status": "success", "id": source_id, "is_active": new_active}
 
     @classmethod
     def create_manual_law(cls, payload: Dict[str, Any]) -> Dict[str, Any]:
-        import uuid; from fastapi import HTTPException
-        from services.ai.legal_preview_helper import extract_law_metadata
-        law_id = payload.get("code") or f"law_{uuid.uuid4().hex[:8]}"
-        title, year, body = payload.get("title", "تشريع جديد"), int(payload.get("year") or 2026), payload.get("body", "")
-        meta = extract_law_metadata(body)
-        version_id, art_id = f"{law_id}_v1", f"{law_id}_v1_art1"
-        with neo4j_db.get_session() as session:
-            chk = session.run("MATCH (l) WHERE (l:Law OR l:`قانون`) AND (l.law_id = $lid OR l.`معرف` = $lid OR l.title = $title OR l.`العنوان` = $title) RETURN l.title as t LIMIT 1", lid=law_id, title=title).single()
-            if chk: raise HTTPException(status_code=409, detail=f"هذا القانون موجود مسبقاً في قاعدة المعرفة: ({chk['t']})")
-            session.run("""
-                MERGE (l:Law {law_id: $lid})
-                SET l.title = $title, l.year = $year, l.body = $body, l.full_text = $body, l.is_active = true, l.created_at = datetime(),
-                    l.gazette = $gazette, l.replaced_law = $replaced_law, l.issue_date = $issue_date, l.effective_date = $effective_date, l.subject = $subject
-                MERGE (lv:LawVersion {version_id: $vid}) SET lv.version_name = 'الأصلية', lv.effective_from = '2026-01-01', lv.law_id = $lid
-                MERGE (l)-[:HAS_VERSION]->(lv)
-                MERGE (av:ArticleVersion {version_id: $aid}) SET av.title = $title, av.text = $body, av.number = 1, av.is_active = true
-                MERGE (lv)-[:HAS_ARTICLE]->(av)
-            """, lid=law_id, title=title, year=year, vid=version_id, aid=art_id, body=body,
-                gazette=meta.get("gazette", ""), replaced_law=meta.get("replaced_law", ""),
-                issue_date=meta.get("issue_date", str(year)), effective_date=meta.get("effective_date", ""), subject=meta.get("subject", ""))
-        try: VectorIndexService.index_law(law_id=law_id, title=title, version_id=version_id, articles=[{"version_id": art_id, "number": 1, "text": body}], paragraphs=[], items=[])
-        except Exception: pass
-        return {"status": "success", "id": law_id, "title": title}
+        return _create_manual_law(payload)
 
     @classmethod
     def create_manual_judgment(cls, payload: Dict[str, Any]) -> Dict[str, Any]:
-        import uuid; from fastapi import HTTPException
-        ruling_id = payload.get("case_number") or f"jdg_{uuid.uuid4().hex[:8]}"
-        title, court, year, principle = payload.get("title", "حكم جديد"), payload.get("court", "تمييز حقوق"), int(payload.get("year") or 2026), payload.get("principle", "")
-        with neo4j_db.get_session() as session:
-            chk = session.run("MATCH (j) WHERE (j:Judgment OR j:JudicialRuling OR j:`حكم_قضائي`) AND (j.ruling_id = $rid OR j.`معرف` = $rid OR j.title = $title OR j.`العنوان` = $title) RETURN j.title as t LIMIT 1", rid=ruling_id, title=title).single()
-            if chk: raise HTTPException(status_code=409, detail=f"هذا الحكم القضائي موجود مسبقاً في قاعدة المعرفة: ({chk['t']})")
-            session.run("MERGE (j:Judgment {ruling_id: $rid}) SET j.title = $title, j.court = $court, j.ruling_year = $year, j.full_text = $principle, j.is_active = true, j.date = '2026-01-01'", rid=ruling_id, title=title, court=court, year=year, principle=principle)
-        try: VectorIndexService.index_judgment({"ruling_id": ruling_id, "case_number": ruling_id, "ruling_number": 1, "ruling_year": year, "court": court, "court_type": "cassation", "date": "2026-01-01", "outcome": "تأييد", "subject": title, "title": title, "full_text": principle})
-        except Exception: pass
-        return {"status": "success", "id": ruling_id, "title": title}
+        return _create_manual_judgment(payload)
 
     @classmethod
     def delete_law(cls, law_id: str, force: bool = False) -> Dict[str, Any]:

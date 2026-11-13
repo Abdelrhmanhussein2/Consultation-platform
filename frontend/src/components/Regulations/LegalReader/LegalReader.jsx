@@ -87,7 +87,8 @@ export default function LegalReader({ lawId, onClose }) {
   // Check if saved in folders on mount
   useEffect(() => {
     if (!token) return;
-    const currentLawId = String(lawId || lawTree?.law_id || lawTree?.id || '34-2014');
+    const currentLawId = String(lawId || lawTree?.law_id || lawTree?.id || '');
+    if (!currentLawId) return;
     fetch(`/api/folders/check-status?item_type=regulation&item_id=${encodeURIComponent(currentLawId)}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -98,10 +99,50 @@ export default function LegalReader({ lawId, onClose }) {
       .catch(() => { });
   }, [token, lawId, lawTree?.law_id, lawTree?.id]);
 
+  const [savingFolder, setSavingFolder] = useState(false);
+
+  // Direct 1-click toggle save / unsave in user folders
+  const handleToggleSaveInFolders = async () => {
+    if (!token) return;
+    if (savingFolder) return;
+    const currentLawId = String(lawId || lawTree?.law_id || lawTree?.id || '');
+    if (!currentLawId) return;
+    const lawTitle = lawTree?.title || (lawId ? `قانون ${lawId}` : 'التشريع القانوني');
+    const nextSaved = !isSavedInFolders;
+    setIsSavedInFolders(nextSaved);
+    setSavingFolder(true);
+    try {
+      const res = await fetch('/api/folders/toggle-item', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          item_type: 'regulation',
+          item_id: currentLawId,
+          title: lawTitle,
+          subtitle: 'تشريع قانوني'
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setIsSavedInFolders(Boolean(data.is_saved));
+      } else {
+        setIsSavedInFolders(!nextSaved);
+      }
+    } catch {
+      setIsSavedInFolders(!nextSaved);
+    } finally {
+      setSavingFolder(false);
+    }
+  };
+
   // Fetch highlights from database on mount / when law changes
   useEffect(() => {
     if (!token) return;
-    const currentLawId = String(lawId || lawTree?.law_id || lawTree?.id || '34-2014');
+    const currentLawId = String(lawId || lawTree?.law_id || lawTree?.id || '');
+    if (!currentLawId) return;
     fetch(`/api/highlights?law_id=${encodeURIComponent(currentLawId)}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -144,15 +185,36 @@ export default function LegalReader({ lawId, onClose }) {
 
     getRelatedFiles(curId)
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setBackendRelatedFiles(data);
         }
       })
-      .catch(() => { });
+      .catch(() => { setBackendRelatedFiles([]); });
   }, [lawId]);
 
-  // Related files data source with guaranteed field enrichment
-  const rawRelated = backendRelatedFiles.length > 0 ? backendRelatedFiles : RELATED_FILES_DATA;
+  // Dynamic stages list for the law
+  const effectiveStages = stagesList.length > 0
+    ? stagesList
+    : (is34 ? DEFAULT_STAGES : (lawTree ? [{
+        id: `${lawTree.law_id || lawTree.id || 'curr'}_current`,
+        law_id: lawTree.law_id || lawTree.id,
+        title: lawTree.title,
+        subtitle: `النسخة المعتمدة — سارية منذ ${lawTree.effective_date || lawTree.issue_date || '—'}`,
+        date: lawTree.effective_date || lawTree.issue_date || '—',
+        buttonText: 'عرض النسخة الأصلية',
+        status: lawTree.status || 'ساري',
+        meta: {
+          type: 'قانون',
+          number: lawTree.number ? `${lawTree.number} لسنة ${lawTree.year || ''}` : '—',
+          issueDate: lawTree.issue_date || '—',
+          effectiveDate: lawTree.effective_date || '—',
+          gazette: lawTree.gazette || '—',
+          status: lawTree.status || 'ساري'
+        }
+      }] : []));
+  const rawRelated = backendRelatedFiles.length > 0
+    ? backendRelatedFiles
+    : (is34 ? RELATED_FILES_DATA : []);
   const RELATED_FILES = rawRelated.map(f => {
     const t = f.title || '';
     const yr = f.year || (f.meta?.date ? f.meta.date.split('-')[0] : '2024');
@@ -260,47 +322,15 @@ export default function LegalReader({ lawId, onClose }) {
 
   // Promote a stage version or related document to become the main document
   const handleSetStageAsMain = (docOrStageId) => {
-
-    if (typeof docOrStageId === 'string') {
-      const stageId = docOrStageId;
-      const stage = STAGES_CONFIG[stageId];
-      if (!stage) return;
-
+    if (typeof docOrStageId === 'string' || (docOrStageId && docOrStageId.id && !docOrStageId.court && !String(docOrStageId.id).startsWith('related_'))) {
+      const stageId = typeof docOrStageId === 'string' ? docOrStageId : docOrStageId.id;
+      const stage = (stagesList && stagesList.find(s => s.id === stageId)) || (typeof docOrStageId === 'object' ? docOrStageId : null);
       setMainStageId(stageId);
-
-      if (stageId === '2019_current') {
-        getLawTree(lawId)
-          .then(data => {
-            if (data) setLawTree(data);
-          })
+      const targetLawId = stage?.law_id || stageId;
+      if (targetLawId) {
+        getLawTree(targetLawId)
+          .then(data => { if (data) setLawTree(data); })
           .catch(() => { });
-      } else {
-        const stageArticles = getArticlesForStage(stageId, lawTree);
-        setLawTree(prev => ({
-          ...prev,
-          id: stage.id,
-          title: stage.title,
-          number: stage.meta?.number || prev?.number,
-          issueDate: stage.meta?.issueDate || prev?.issueDate,
-          effectiveDate: stage.meta?.effectiveDate || prev?.effectiveDate,
-          gazette: stage.meta?.gazette || prev?.gazette,
-          status: stage.meta?.status || prev?.status,
-          sections: [
-            {
-              id: 1,
-              title: 'المواد',
-              articles: stageArticles.map(a => ({
-                num: a.num,
-                title: a.title,
-                date: a.date,
-                has_definitions: a.num === 2,
-                intro_text: a.introText,
-                definitions: a.definitions,
-                content: a.content || (a.introText ? a.introText + '\n' + (a.definitions?.map(d => `${d.term}: ${d.value}`).join('\n') || '') : '')
-              }))
-            }
-          ]
-        }));
       }
       setActiveArticleId(1);
       setSplitStage(null);
@@ -456,7 +486,7 @@ export default function LegalReader({ lawId, onClose }) {
     const artTitle = selectionPopup.artTitle;
     const colorHex = color.hex;
     const bgHex = color.bg;
-    const currentLawId = String(lawId || lawTree?.id || '34-2014');
+    const currentLawId = String(lawId || lawTree?.law_id || lawTree?.id || '');
     const tempId = 'temp_' + Date.now();
 
     const newHl = {
@@ -529,7 +559,7 @@ export default function LegalReader({ lawId, onClose }) {
     const artNum = noteModal.artNum;
     const artTitle = noteModal.artTitle;
     const noteText = noteInput.trim() || 'ملاحظة';
-    const currentLawId = String(lawId || lawTree?.id || '34-2014');
+    const currentLawId = String(lawId || lawTree?.law_id || lawTree?.id || '');
     const tempId = 'temp_' + Date.now();
 
     const newHl = {
@@ -926,7 +956,12 @@ export default function LegalReader({ lawId, onClose }) {
               <div className="floating">
                 <button className={showFileInfoModal ? 'on' : ''} onClick={() => { setShowFileInfoModal(true); setModalFileTab('info'); }}>ⓘ معلومات الوثيقة</button>
                 <button className={showSearchInline ? 'on' : ''} onClick={handleToggleSearch}>⌕ بحث</button>
-                <button className={isSavedInFolders ? 'on saved' : ''} onClick={() => setShowFolderModal(true)}>
+                <button
+                  className={isSavedInFolders ? 'on saved' : ''}
+                  onClick={handleToggleSaveInFolders}
+                  disabled={savingFolder}
+                  title={isSavedInFolders ? 'إلغاء الحفظ من مجلداتي' : 'حفظ في مجلداتي'}
+                >
                   {isSavedInFolders ? '✓ في مجلداتي' : '＋ أضف إلى مجلداتي'}
                 </button>
                 <button className={readingMode ? 'on' : ''} onClick={() => setReadingMode(!readingMode)}>◉ وضع القراءة</button>
@@ -1055,7 +1090,7 @@ export default function LegalReader({ lawId, onClose }) {
                             لا توجد مراحل تشريعية مسجلة لهذه الوثيقة (صدرت كحكم قضائي نهائي).
                           </div>
                         ) : (
-                          [...(stagesList.length > 0 ? stagesList : DEFAULT_STAGES)].reverse().map((stg) => (
+                          [...effectiveStages].reverse().map((stg) => (
                             <div
                               key={stg.id}
                               className={`stage-inner-card ${mainStageId === stg.id ? 'active' : ''}`}
@@ -1471,9 +1506,12 @@ export default function LegalReader({ lawId, onClose }) {
         <aside className="stage-over-drawer" onClick={(e) => e.stopPropagation()}>
           <LegalStageSplitReader
             stageId={splitStage}
+            stageObj={effectiveStages.find(s => s.id === splitStage)}
+            stagesList={effectiveStages}
             lawTree={lawTree}
             onClose={() => setSplitStage(null)}
             onSetAsMain={handleSetStageAsMain}
+            onSelectStage={(newStageId) => setSplitStage(newStageId)}
           />
         </aside>
       )}
@@ -1481,12 +1519,23 @@ export default function LegalReader({ lawId, onClose }) {
       {/* ADD TO FOLDER / FAVORITES MODAL */}
       <AddToFolderModal
         isOpen={showFolderModal}
-        onClose={() => setShowFolderModal(false)}
+        onClose={() => {
+          setShowFolderModal(false);
+          const currentLawId = String(lawId || lawTree?.law_id || lawTree?.id || '');
+          if (token && currentLawId) {
+            fetch(`/api/folders/check-status?item_type=regulation&item_id=${encodeURIComponent(currentLawId)}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            })
+              .then(res => res.ok ? res.json() : null)
+              .then(data => { if (data) setIsSavedInFolders(Boolean(data.is_saved)); })
+              .catch(() => {});
+          }
+        }}
         item={{
           item_type: 'regulation',
-          item_id: String(lawId || lawTree?.law_id || lawTree?.id || '34-2014'),
-          title: lawTree?.title || 'قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته',
-          subtitle: 'تشريع ضريبي',
+          item_id: String(lawId || lawTree?.law_id || lawTree?.id || ''),
+          title: lawTree?.title || (lawId ? `قانون ${lawId}` : 'التشريع القانوني'),
+          subtitle: 'تشريع قانوني',
         }}
         onStatusChange={(saved) => setIsSavedInFolders(saved)}
       />
@@ -1612,7 +1661,7 @@ export default function LegalReader({ lawId, onClose }) {
                         لا توجد مراحل تشريعية مسجلة لهذه الوثيقة (صدرت كحكم قضائي نهائي).
                       </div>
                     ) : (
-                      [...(stagesList.length > 0 ? stagesList : DEFAULT_STAGES)].reverse().map((stg) => (
+                      [...effectiveStages].reverse().map((stg) => (
                         <div
                           key={stg.id}
                           className="timeline-row clickable"

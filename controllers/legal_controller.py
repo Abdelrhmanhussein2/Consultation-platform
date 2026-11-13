@@ -13,9 +13,15 @@ class LegalController:
         number: int,
         year: int,
         version_name: str,
-        effective_from: str
+        effective_from: str,
+        filename: str = ""
     ):
         try:
+            from services.ai.legal_duplicate_helper import check_file_duplicate
+            dup = check_file_duplicate(file_bytes, filename, "law")
+            if dup.get("is_duplicate"):
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=dup.get("message", "هذا القانون موجود بالفعل في المنصة."))
+
             with neo4j_db.get_session() as session:
                 chk = session.run("MATCH (l) WHERE (l:Law OR l:`قانون`) AND (l.law_id = $lid OR l.`معرف` = $lid OR l.title = $title OR l.`العنوان` = $title) RETURN l.title as t LIMIT 1", lid=law_id, title=title).single()
                 if chk: raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"هذا القانون موجود مسبقاً في قاعدة المعرفة: ({chk['t']})")
@@ -29,6 +35,9 @@ class LegalController:
             paragraphs = parsed["paragraphs"]
             items = parsed["items"]
             metadata = parsed.get("metadata", {})
+            if filename:
+                metadata["file_name"] = filename
+            metadata["file_hash"] = dup.get("file_hash", "")
             
             # 2. Insert structure into Neo4j
             version_id = f"{law_id}_v_{version_name}"
@@ -45,6 +54,9 @@ class LegalController:
                 items=items,
                 metadata=metadata
             )
+            if filename or dup.get("file_hash"):
+                with neo4j_db.get_session() as session:
+                    session.run("MATCH (l) WHERE (l:Law OR l:`قانون`) AND (l.law_id = $lid OR l.`معرف` = $lid) SET l.file_name = $fname, l.`اسم_الملف` = $fname, l.file_hash = $fhash, l.`هاش_الملف` = $fhash", lid=law_id, fname=filename, fhash=dup.get("file_hash", ""))
             
             # 2.5 Index structure in Qdrant
             try:
@@ -125,9 +137,15 @@ class LegalController:
         date: str = None,
         outcome: str = None,
         subject: str = None,
-        title: str = None
+        title: str = None,
+        filename: str = ""
     ):
         try:
+            from services.ai.legal_duplicate_helper import check_file_duplicate
+            dup = check_file_duplicate(file_bytes, filename, "judgment")
+            if dup.get("is_duplicate"):
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=dup.get("message", "هذا الحكم القضائي موجود بالفعل في المنصة."))
+
             overrides = {
                 "ruling_id": ruling_id,
                 "case_number": case_number,
@@ -138,7 +156,9 @@ class LegalController:
                 "date": date,
                 "outcome": outcome,
                 "subject": subject,
-                "title": title
+                "title": title,
+                "file_name": filename,
+                "file_hash": dup.get("file_hash", "")
             }
             # Clean overrides
             overrides = {k: v for k, v in overrides.items() if v is not None}
@@ -174,6 +194,9 @@ class LegalController:
                 title=judgment["title"],
                 full_text=judgment["full_text"]
             )
+            if filename or dup.get("file_hash"):
+                with neo4j_db.get_session() as session:
+                    session.run("MATCH (j) WHERE (j:Judgment OR j:JudicialRuling OR j:`حكم_قضائي`) AND (j.ruling_id = $rid OR j.`معرف` = $rid) SET j.file_name = $fname, j.`اسم_الملف` = $fname, j.file_hash = $fhash, j.`هاش_الملف` = $fhash", rid=judgment["ruling_id"], fname=filename, fhash=dup.get("file_hash", ""))
             
             # 3. Link CITES relationships
             if citations:
@@ -206,12 +229,12 @@ class LegalController:
             )
 
     @staticmethod
-    def get_laws(q: str = None, year_from: int = None, year_to: int = None):
-        return LegalGraphService.get_laws(q=q, year_from=year_from, year_to=year_to)
+    def get_laws(q: str = None, year_from: int = None, year_to: int = None, include_inactive: bool = False):
+        return LegalGraphService.get_laws(q=q, year_from=year_from, year_to=year_to, include_inactive=include_inactive)
 
     @staticmethod
-    def get_law_tree(law_id: str, version_name: str = None):
-        tree = LegalGraphService.get_law_version_tree(law_id, version_name)
+    def get_law_tree(law_id: str, version_name: str = None, include_inactive: bool = False):
+        tree = LegalGraphService.get_law_version_tree(law_id, version_name, include_inactive=include_inactive)
         if not tree:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -336,8 +359,11 @@ class LegalController:
 
         if scored_laws:
             # Sort by relevance score DESC, then year DESC, number ASC
+            def _to_int(val):
+                try: return int(val)
+                except Exception: return 0
             scored_laws.sort(
-                key=lambda x: (x["_numeric_score"], x.get("year", 0), -x.get("number", 0)),
+                key=lambda x: (x["_numeric_score"], _to_int(x.get("year", 0)), -_to_int(x.get("number", 0))),
                 reverse=True
             )
             for item in scored_laws:

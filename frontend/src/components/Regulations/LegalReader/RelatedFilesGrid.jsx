@@ -1,17 +1,23 @@
 // frontend/src/components/Regulations/LegalReader/RelatedFilesGrid.jsx
 import React from 'react';
-import { RELATED_PAIRS } from './relatedFilesData';
 
 export default function RelatedFilesGrid({ selectedFileId, onSelectFile, files }) {
-  let pairs = RELATED_PAIRS;
+  let pairs = [];
   if (Array.isArray(files) && files.length > 0) {
-    pairs = [];
     for (let i = 0; i < files.length; i += 2) {
       pairs.push({
         right: files[i],
-        left: files[i + 1] || files[i]
+        left: files[i + 1] || null
       });
     }
+  }
+
+  if (pairs.length === 0) {
+    return (
+      <div style={{ padding: '36px 16px', textAlign: 'center', color: '#64748B', fontSize: '13px', fontWeight: '600' }}>
+        لا توجد ملفات أو أحكام قضائية ذات صلة مسجلة لهذا القانون حالياً.
+      </div>
+    );
   }
 
   return (

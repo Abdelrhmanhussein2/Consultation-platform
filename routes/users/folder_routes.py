@@ -173,6 +173,90 @@ def check_item_status(
     }
 
 
+@router.post("/toggle-item", response_model=dict, summary="Toggle item in user folders (save if not saved, remove if saved)")
+def toggle_item_in_folders(
+    payload: FolderItemCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    from models.users.favorite import Favorite
+    folder_items = (
+        db.query(UserFolderItem)
+        .filter(
+            UserFolderItem.user_id == current_user.id,
+            UserFolderItem.item_type == payload.item_type,
+            UserFolderItem.item_id == payload.item_id
+        )
+        .all()
+    )
+    fav = (
+        db.query(Favorite)
+        .filter(
+            Favorite.user_id == current_user.id,
+            Favorite.item_type == payload.item_type,
+            Favorite.item_id == payload.item_id
+        )
+        .first()
+    )
+
+    is_currently_saved = bool(folder_items) or bool(fav)
+
+    if is_currently_saved:
+        for fi in folder_items:
+            db.delete(fi)
+        if fav:
+            db.delete(fav)
+        db.commit()
+        return {
+            "status": "removed",
+            "is_saved": False,
+            "message": "تمت الإزالة من مجلداتي والمفضلة"
+        }
+
+    default_folder = (
+        db.query(UserFolder)
+        .filter(UserFolder.user_id == current_user.id)
+        .order_by(UserFolder.created_at.asc())
+        .first()
+    )
+    if not default_folder:
+        default_folder = UserFolder(
+            user_id=current_user.id,
+            name="عام",
+            color="#0D3C5C"
+        )
+        db.add(default_folder)
+        db.flush()
+
+    new_item = UserFolderItem(
+        folder_id=default_folder.id,
+        user_id=current_user.id,
+        item_type=payload.item_type,
+        item_id=payload.item_id,
+        title=payload.title,
+        subtitle=payload.subtitle
+    )
+    db.add(new_item)
+
+    if not fav:
+        new_fav = Favorite(
+            user_id=current_user.id,
+            item_type=payload.item_type,
+            item_id=payload.item_id,
+            title=payload.title,
+            subtitle=payload.subtitle
+        )
+        db.add(new_fav)
+
+    db.commit()
+    return {
+        "status": "added",
+        "is_saved": True,
+        "folder_name": default_folder.name,
+        "message": f"تم الحفظ في مجلد {default_folder.name} والمفضلة"
+    }
+
+
 @router.get("/{folder_id}", response_model=dict, summary="Get folder with items and files")
 def get_folder(
     folder_id: str,

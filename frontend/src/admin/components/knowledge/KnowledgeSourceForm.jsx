@@ -1,7 +1,7 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { IconUpload, IconSave, IconSync } from './KnowledgeIcons';
-import { KIND_SELECT_OPTIONS, getAuthHeaders } from './knowledgeData';
-import ModernSelect from '../../../components/ModernSelect';
+import { getAuthHeaders } from './knowledgeData';
+import KnowledgeDuplicateAlert from './KnowledgeDuplicateAlert';
 
 export default function KnowledgeSourceForm({
   formData,
@@ -14,10 +14,12 @@ export default function KnowledgeSourceForm({
   onNotify
 }) {
   const fileInputRef = useRef(null);
+  const [duplicateMsg, setDuplicateMsg] = useState('');
 
   const handleFileUpload = async (file) => {
     if (!file) return;
     setIsExtracting(true);
+    setDuplicateMsg('');
     try {
       const fd = new FormData();
       fd.append('file', file);
@@ -31,6 +33,9 @@ export default function KnowledgeSourceForm({
       if (res.ok) {
         const result = await res.json();
         const d = result.data || {};
+        if (d.is_duplicate) {
+          setDuplicateMsg(d.duplicate_message || 'هذا القانون موجود بالفعل في المنصة.');
+        }
         setFormData((prev) => ({
           ...prev,
           file: file,
@@ -42,7 +47,7 @@ export default function KnowledgeSourceForm({
           tags: d.tags || prev.tags,
           body: d.body || prev.body
         }));
-        onNotify('تم استخراج بيانات القانون والمواد كاملة تلقائياً بنجاح');
+        onNotify(d.is_duplicate ? (d.duplicate_message || 'هذا القانون موجود بالفعل في المنصة.') : 'تم استخراج بيانات القانون والمواد كاملة تلقائياً بنجاح');
       } else {
         const cleanName = file.name.replace(/\.[^.]+$/, '').replace(/_/g, ' ');
         setFormData((prev) => ({ ...prev, file, fileName: file.name, fileSize: file.size, title: prev.title || cleanName }));
@@ -66,25 +71,13 @@ export default function KnowledgeSourceForm({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
         <label className={`knowledge-dropzone ${isExtracting ? 'extracting' : ''}`}>
           {isExtracting ? (
-            <>
-              <IconSync className="size-4 spin-animate" />
-              <span>جارٍ قراءة الملف واستخراج النصوص...</span>
-            </>
+            <><IconSync className="size-4 spin-animate" /><span>جارٍ قراءة ملف القانون واستخراج النصوص...</span></>
           ) : (
-            <>
-              <IconUpload className="size-4" />
-              <span>{formData.fileName ? `الملف: ${formData.fileName}` : 'رفع PDF / DOCX / XLSX / TXT واستخراج النص'}</span>
-            </>
+            <><IconUpload className="size-4" /><span>{formData.fileName ? `الملف: ${formData.fileName}` : 'تحميل ملف قانون word'}</span></>
           )}
           <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,.docx,.doc,.xlsx,.xls,.txt,.csv"
-            style={{ display: 'none' }}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleFileUpload(file);
-            }}
+            ref={fileInputRef} type="file" accept=".docx,.doc,.pdf,.txt" style={{ display: 'none' }}
+            onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFileUpload(file); }}
           />
         </label>
 
@@ -100,11 +93,13 @@ export default function KnowledgeSourceForm({
 
         <div className="knowledge-form-grid-2">
           <div>
-            <ModernSelect
-              options={KIND_SELECT_OPTIONS}
-              value={formData.kind}
-              onChange={(val) => setFormData({ ...formData, kind: val })}
-              placeholder="نوع القانون"
+            <input
+              type="text"
+              value="قانون"
+              disabled
+              readOnly
+              className="knowledge-input"
+              style={{ background: '#F8FAFC', color: '#0D3C5C', fontWeight: 750, cursor: 'default' }}
             />
           </div>
 
@@ -160,18 +155,22 @@ export default function KnowledgeSourceForm({
           />
         </div>
 
+        <KnowledgeDuplicateAlert message={duplicateMsg} />
+
         <button
           type="button"
-          disabled={!isFormValid || isSaving}
+          disabled={!isFormValid || isSaving || Boolean(duplicateMsg)}
           onClick={onSave}
           className="btn-primary-action"
-          style={isSaving ? { opacity: 0.65, cursor: 'not-allowed', filter: 'grayscale(0.4)', pointerEvents: 'none' } : undefined}
+          style={isSaving || duplicateMsg ? { opacity: 0.65, cursor: 'not-allowed', filter: duplicateMsg ? 'grayscale(0.8)' : 'grayscale(0.4)', pointerEvents: duplicateMsg ? 'none' : undefined } : undefined}
         >
           {isSaving ? (
             <>
               <IconSync className="size-4 spin-animate" />
               <span>جارٍ رفع القانون وفهرسته...</span>
             </>
+          ) : duplicateMsg ? (
+            <span>هذا القانون موجود بالفعل</span>
           ) : (
             <>
               <IconSave className="size-4" />
@@ -181,11 +180,7 @@ export default function KnowledgeSourceForm({
         </button>
 
         {formData.id && (
-          <button
-            type="button"
-            onClick={onReset}
-            className="btn-secondary-action"
-          >
+          <button type="button" onClick={() => { setDuplicateMsg(''); onReset && onReset(); }} className="btn-secondary-action">
             إضافة جديد بدل التعديل
           </button>
         )}

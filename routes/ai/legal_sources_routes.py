@@ -78,6 +78,16 @@ def update_source(
     _require_admin(current_user)
     return LegalSourcesService.update_source(source_id, source_type, payload)
 
+@router.patch("/sources/{source_id:path}/toggle-active")
+def toggle_source_active(
+    source_id: str,
+    source_type: str = Query("law", pattern="^(law|judgment)$"),
+    current_user: User = Depends(get_current_user)
+):
+    """Admin-only instant toggle for active/inactive status."""
+    _require_admin(current_user)
+    return LegalSourcesService.toggle_source_active(source_id, source_type)
+
 @router.post("/extract-preview")
 async def extract_preview(
     file: UploadFile = File(...),

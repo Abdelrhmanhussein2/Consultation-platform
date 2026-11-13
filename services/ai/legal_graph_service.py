@@ -257,13 +257,15 @@ class LegalGraphService:
             session.execute_write(lambda tx: tx.run(query, links=links))
 
     @staticmethod
-    def get_laws(q: str = None, year_from: int = None, year_to: int = None):
+    def get_laws(q: str = None, year_from: int = None, year_to: int = None, include_inactive: bool = False):
         """
         Retrieves Law nodes in the database with optional filtering and typo tolerance.
         Supports both Arabic (:قانون) and English (:Law) schemas.
         """
         params = {}
         pre_where_parts = ["(l:Law OR l:`قانون`)"]
+        if not include_inactive:
+            pre_where_parts.append("coalesce(l.is_active, true) = true")
         pre_where = "WHERE " + " AND ".join(pre_where_parts)
 
         # Post-WITH year filters
@@ -435,7 +437,7 @@ class LegalGraphService:
         return f"المادة {art_num}"
 
     @staticmethod
-    def get_law_version_tree(law_id: str, version_name: str = None):
+    def get_law_version_tree(law_id: str, version_name: str = None, include_inactive: bool = False):
         """
         Fetches the complete hierarchy of a law version:
         Supports both Arabic (:قانون -> :مادة -> :فقرة -> :بند)
@@ -449,10 +451,12 @@ class LegalGraphService:
             'law_tax_34_2014_original': 'قانون_34_2014_الأصلية'
         }
         law_id = alias_map.get(law_id, law_id)
+        alt_ids = list(set([law_id, law_id.replace('_', '/'), law_id.replace('/', '_'), law_id.replace('-', '/'), law_id.replace('/', '-')]))
 
         query = """
         MATCH (l)
-        WHERE (l:Law OR l:`قانون`) AND (l.law_id = $law_id OR l.`معرف` = $law_id)
+        WHERE (l:Law OR l:`قانون`) AND (l.law_id IN $alt_ids OR l.`معرف` IN $alt_ids)
+        AND ($include_inactive = true OR coalesce(l.is_active, true) = true)
         OPTIONAL MATCH (l)-[:HAS_VERSION]->(lv:LawVersion)-[:HAS_ARTICLE]->(av:ArticleVersion)
         OPTIONAL MATCH (l)-[:`يتضمن_مادة`]->(a_ar:`مادة`)
         WITH l, coalesce(av, a_ar) AS a_node
@@ -496,7 +500,7 @@ class LegalGraphService:
         """
         
         with neo4j_db.get_session() as session:
-            records = session.execute_read(lambda tx: tx.run(query, law_id=law_id).data())
+            records = session.execute_read(lambda tx: tx.run(query, law_id=law_id, alt_ids=alt_ids, include_inactive=include_inactive).data())
             if not records:
                 return None
             
@@ -615,12 +619,69 @@ class LegalGraphService:
     def get_article_history(law_id: str, article_number: int):
         """
         Fetches all historical versions of an article sorted by effective_from date.
+        Supports both modern versions and historical stages directly from Neo4j.
+        Reconstructs text from paragraphs if article-level text is empty.
         """
+        is_tax_34 = any(k in (str(law_id) or "") for k in ["34_2014", "34-2014", "law_tax_34_2014", "قانون_34", "34"])
+        if is_tax_34:
+            query = """
+            MATCH (l)
+            WHERE (l:Law OR l:`قانون`) AND (
+                l.law_id IN ['قانون_34_2014_وتعديلاته', 'قانون_34_2014_الأصلية'] OR
+                l.`معرف` IN ['قانون_34_2014_وتعديلاته', 'قانون_34_2014_الأصلية']
+            )
+            OPTIONAL MATCH (l)-[:HAS_VERSION]->(lv)-[:HAS_ARTICLE]->(av)
+            WHERE av.number = $article_number
+            OPTIONAL MATCH (l)-[:`يتضمن_مادة`]->(a_ar:`مادة`)
+            WHERE toInteger(a_ar.`رقم_المادة`) = $article_number OR a_ar.number = $article_number
+            WITH l, coalesce(av, a_ar) as a_node
+            WHERE a_node IS NOT NULL
+            OPTIONAL MATCH (a_node)-[:HAS_PARAGRAPH|`يتضمن_فقرة`]->(p_node)
+            WITH l, a_node, p_node
+            ORDER BY coalesce(p_node.order, p_node.`حرف_الفقرة`, p_node.`معرف`) ASC
+            WITH l, a_node,
+                 coalesce(a_node.text, a_node.`نص_المادة`, '') as direct_text,
+                 collect(
+                     CASE 
+                         WHEN p_node.`حرف_الفقرة` IS NOT NULL AND NOT coalesce(p_node.`نص_الفقرة`, p_node.text, '') STARTS WITH p_node.`حرف_الفقرة`
+                         THEN p_node.`حرف_الفقرة` + "- " + coalesce(p_node.`نص_الفقرة`, p_node.text, '')
+                         ELSE coalesce(p_node.`نص_الفقرة`, p_node.text, '')
+                     END
+                 ) as p_texts
+            RETURN coalesce(a_node.version_id, a_node.`معرف`, coalesce(l.law_id, l.`معرف`) + '_art_' + toString($article_number)) AS version_id,
+                   CASE WHEN direct_text <> '' THEN direct_text
+                        WHEN size([x IN p_texts WHERE x <> '']) > 0
+                        THEN reduce(acc = '', t IN [x IN p_texts WHERE x <> ''] | acc + (CASE WHEN acc = '' THEN '' ELSE '\n\n' END) + t)
+                        ELSE direct_text END AS text,
+                   CASE WHEN coalesce(l.law_id, l.`معرف`) CONTAINS 'الأصلية' THEN '2015-01-01' ELSE '2019-01-01' END AS effective_from,
+                   'active' AS status,
+                   CASE WHEN coalesce(l.law_id, l.`معرف`) CONTAINS 'الأصلية' THEN 'كما صدر — 2015' ELSE 'النص النافذ — 2019' END AS version_name
+            ORDER BY effective_from DESC
+            """
+            with neo4j_db.get_session() as session:
+                return session.execute_read(lambda tx: tx.run(query, article_number=article_number).data())
+
         query = """
-        MATCH (l:Law {law_id: $law_id})-[:HAS_VERSION]->(lv:LawVersion)-[:HAS_ARTICLE]->(av:ArticleVersion)
+        MATCH (l)
+        WHERE (l:Law OR l:`قانون`) AND (
+            l.law_id = $law_id OR 
+            l.law_id = replace($law_id, '_', '/') OR 
+            l.law_id = replace($law_id, '/', '_') OR
+            l.`معرف` = $law_id
+        )
+        MATCH (l)-[:HAS_VERSION]->(lv:LawVersion)-[:HAS_ARTICLE]->(av:ArticleVersion)
         WHERE av.number = $article_number
+        OPTIONAL MATCH (av)-[:HAS_PARAGRAPH|`يتضمن_فقرة`]->(p_node)
+        WITH l, lv, av, p_node
+        ORDER BY coalesce(p_node.order, p_node.`حرف_الفقرة`, p_node.`معرف`) ASC
+        WITH l, lv, av,
+             coalesce(av.text, av.`نص_المادة`, '') as direct_text,
+             collect(DISTINCT coalesce(p_node.text, p_node.`نص_الفقرة`, '')) as p_texts
         RETURN av.version_id AS version_id,
-               av.text AS text,
+               CASE WHEN direct_text <> '' THEN direct_text
+                    WHEN size([x IN p_texts WHERE x <> '']) > 0
+                    THEN reduce(acc = '', t IN [x IN p_texts WHERE x <> ''] | acc + (CASE WHEN acc = '' THEN '' ELSE '\n' END) + t)
+                    ELSE direct_text END AS text,
                av.effective_from AS effective_from,
                av.status AS status,
                lv.version_name AS version_name
@@ -660,7 +721,7 @@ class LegalGraphService:
             return session.execute_read(lambda tx: tx.run(query, target_id=target_id).data())
 
     @staticmethod
-    def get_related_files_for_law(law_id: str):
+    def get_related_files_for_law(law_id: str, include_inactive: bool = False):
         """
         Fetches all rulings, predecessor laws, and amendments directly related to this law.
         Extracts clean metadata dynamically from graph nodes for ANY law and ruling.
@@ -668,17 +729,22 @@ class LegalGraphService:
         if not law_id or law_id in ['law_tax_34_2014', '34-2014', 'قانون_ضريبة_الدخل', 'قانون_34_2014', '34', 'default']:
             law_id = 'قانون_34_2014_وتعديلاته'
 
+        alt_ids = list(set([law_id, law_id.replace('_', '/'), law_id.replace('/', '_'), law_id.replace('-', '/'), law_id.replace('/', '-')]))
+
         query = """
         MATCH (l)
-        WHERE (l:Law OR l:`قانون`) AND (l.law_id = $law_id OR l.`معرف` = $law_id OR l.`معرف` CONTAINS $law_id OR $law_id CONTAINS l.`معرف`)
+        WHERE (l:Law OR l:`قانون`) AND (l.law_id IN $alt_ids OR l.`معرف` IN $alt_ids OR ANY(x IN $alt_ids WHERE l.`معرف` CONTAINS x OR x CONTAINS l.`معرف`))
+          AND ($include_inactive = true OR coalesce(l.is_active, true) = true)
         
         OPTIONAL MATCH (r)-[:`استند_إلى_قانون`|`استند_إلى_مادة`|CITES]->(target)
         WHERE (r:`حكم_قضائي` OR r:Judgment)
+          AND ($include_inactive = true OR coalesce(r.is_active, true) = true)
           AND (target = l OR (l)-[:`يتضمن_مادة`|HAS_VERSION|HAS_ARTICLE]->(target) OR target.law_id = l.law_id)
         OPTIONAL MATCH (r)-[:`صادر_عن`]->(c:`محكمة`)
         
         OPTIONAL MATCH (l_other:`قانون`)
-        WHERE (l_other)-[:`تعديل_على`]->(l) OR (l)-[:`تعديل_على`]->(l_other)
+        WHERE ((l_other)-[:`تعديل_على`]->(l) OR (l)-[:`تعديل_على`]->(l_other))
+          AND ($include_inactive = true OR coalesce(l_other.is_active, true) = true)
         
         RETURN collect(DISTINCT {
             id: coalesce(r.`معرف`, r.ruling_id, ''),
@@ -699,12 +765,13 @@ class LegalGraphService:
             number: coalesce(toInteger(l_other.`رقم_القانون`), toInteger(l_other.number), ''),
             year: coalesce(l_other.`السنة`, l_other.year, ''),
             type: 'تشريع مرتبط',
-            summary: coalesce(l_other.`حل_محل`, '')
+            summary: coalesce(l_other.`حل_محل`, ''),
+            full_text: coalesce(l_other.`نص_القانون`, l_other.full_text, l_other.text, '')
         }) AS other_laws,
         coalesce(l.`حل_محل`, l.replaced_law, '') AS replaced_law
         """
         with neo4j_db.get_session() as session:
-            records = session.execute_read(lambda tx: tx.run(query, law_id=law_id).data())
+            records = session.execute_read(lambda tx: tx.run(query, law_id=law_id, alt_ids=alt_ids, include_inactive=include_inactive).data())
             if not records:
                 return []
             rec = records[0]
@@ -833,60 +900,37 @@ class LegalGraphService:
             # 2. Replaced predecessor law if exists
             if rec.get("replaced_law"):
                 rep_title = str(rec["replaced_law"]).strip()
-                m_num = re.search(r'رقم\s*(\d+)', rep_title)
-                rep_num = m_num.group(1) if m_num else ""
-                m_yr = re.search(r'لسنة\s*(\d{4})', rep_title)
-                rep_year = m_yr.group(1) if m_yr else ""
-                if not rep_year and m_num:
-                    m_yr2 = re.search(r'\b(19\d{2}|20\d{2})\b', rep_title)
-                    if m_yr2:
-                        rep_year = m_yr2.group(1)
-
-                formatted_rep_number = f"{rep_num} لسنة {rep_year}" if (rep_num and rep_year) else (rep_num or rep_title)
-                rep_full_text = (
-                    "نحن عبد الله الثاني ابن الحسين ملك المملكة الأردنية الهاشمية\n"
-                    "بمقتضى المادة (31) من الدستور وبناء على ما قرره مجلس الوزراء نأمر بوضع القانون المؤقت الآتي:\n"
-                    "المادة 1: يسمى هذا القانون (قانون ضريبة الدخل المؤقت رقم 28 لسنة 2009) ويعمل به من تاريخ 1/1/2010.\n"
-                    "المادة 2: يكون للكلمات والعبارات التالية المعاني المخصصة لها أدناه ما لم تدل القرينة على خلاف ذلك:\n"
-                    "الوزير: وزير المالية.\n"
-                    "الدائرة: دائرة ضريبة الدخل والمبيعات.\n"
-                    "المدير: مدير عام الدائرة.\n"
-                    "المكلف: كل شخص ملزم بأداء الضريبة أو اقتطاعها وتوريدها بموجب هذا القانون.\n"
-                    "الضريبة: ضريبة الدخل المفروضة بموجب أحكام هذا القانون.\n"
-                    "الدخل الإجمالي: مجموع الدخول الخاضعة للضريبة والمتأتية للمكلف من كافة المصادر.\n"
-                    "الدخل الصافي: ما يتبقى من الدخل الإجمالي بعد تنزيل المصاريف المقبولة قانوناً.\n"
-                    "الدخل الخاضع للضريبة: ما يتبقى من الدخل الصافي بعد تنزيل الإعفاءات الشخصية والعائلية والتبرعات المقبولة.\n"
-                    "المادة 3: يخضع للضريبة أي دخل يتأتى في المملكة لأي شخص أو يجنيه منها بغض النظر عن مكان الوفاء.\n"
-                    "يشمل ذلك الدخل المتأتي من نشاط الأعمال والمهن والحرف المستقلة.\n"
-                    "الفوائد والعمولات والخصميات وأرباح الودائع الائتمانية.\n"
-                    "أرباح بيع أو تأجير العقارات والمنقولات الواقعة داخل المملكة.\n"
-                    "بدلات الخلو والمفتاحية والأصول المعنوية بما فيها الشهرة والعلامات التجارية.\n"
-                    "عوائد الاستثمار في الأسهم والحصص وأرباح توزيعات الشركات."
-                )
-                results.append({
-                    "id": len(results) + 1,
-                    "title": f"{rep_title} ملغى" if "ملغى" not in rep_title else rep_title,
-                    "year": rep_year or "2009",
-                    "full_text": rep_full_text,
-                    "text": rep_full_text,
-                    "meta": {
-                        "type": "تشريع سابق",
-                        "numberLabel": "رقم القانون",
-                        "number": formatted_rep_number,
-                        "date": rep_year or "2009",
-                        "year": rep_year or "2009",
-                        "category": "تشريع سابق ملغى",
-                        "group": "أُلغي بموجب",
-                        "subCategory": "القوانين",
-                        "source": "الجريدة الرسمية الأردنية",
-                        "summary": f"التشريع السابق الذي أُلغي وحل محله هذا القانون استناداً لما ورد في ديباجة ونصوص القانون.",
+                if rep_title:
+                    m_num = re.search(r'رقم\s*(\d+)', rep_title)
+                    rep_num = m_num.group(1) if m_num else ""
+                    m_yr = re.search(r'لسنة\s*(\d{4})', rep_title)
+                    rep_year = m_yr.group(1) if m_yr else ""
+                    formatted_rep_number = f"{rep_num} لسنة {rep_year}" if (rep_num and rep_year) else (rep_num or rep_title)
+                    rep_full_text = f"التشريع السابق الملغى: {rep_title}"
+                    results.append({
+                        "id": len(results) + 1,
+                        "title": f"{rep_title} ملغى" if "ملغى" not in rep_title else rep_title,
+                        "year": rep_year or "",
                         "full_text": rep_full_text,
-                        "text": rep_full_text
-                    },
-                    "docTitle": rep_title
-                })
+                        "text": rep_full_text,
+                        "meta": {
+                            "type": "تشريع سابق",
+                            "numberLabel": "رقم القانون",
+                            "number": formatted_rep_number,
+                            "date": rep_year or "",
+                            "year": rep_year or "",
+                            "category": "تشريع سابق ملغى",
+                            "group": "أُلغي بموجب",
+                            "subCategory": "القوانين",
+                            "source": "الجريدة الرسمية الأردنية",
+                            "summary": f"التشريع السابق الذي أُلغي وحل محله هذا القانون استناداً لما ورد في ديباجة ونصوص القانون.",
+                            "full_text": rep_full_text,
+                            "text": rep_full_text
+                        },
+                        "docTitle": rep_title
+                    })
                 
-            # 3. Other law versions / amendments
+            # 3. Other law versions / amendments directly linked in graph
             for l_o in rec.get("other_laws", []):
                 lo_title = str(l_o.get("title") or "").strip()
                 if lo_title:
@@ -896,34 +940,19 @@ class LegalGraphService:
                     lo_yr = m_yr.group(1) if m_yr else str(l_o.get("year") or "")
 
                     formatted_lo_number = f"{lo_num} لسنة {lo_yr}" if (lo_num and lo_yr) else lo_title
-                    amend_full_text = (
-                        "قانون معدل لقانون ضريبة الدخل رقم 38 لسنة 2018\n"
-                        "نحن عبد الله الثاني ابن الحسين ملك المملكة الأردنية الهاشمية\n"
-                        "بمقتضى المادة (31) من الدستور وبناء على ما أقره مجلسا الأعيان والنواب نصادق على القانون الآتي:\n"
-                        "المادة 1: يسمى هذا القانون (قانون معدل لقانون ضريبة الدخل لسنة 2018) ويقرأ مع القانون رقم 34 لسنة 2014.\n"
-                        "المادة 2: تعدل المادة (2) من القانون الأصلي بإضافة التعاريف التالية:\n"
-                        "نظام الفوترة الوطني: نظام إلكتروني لإصدار وحفظ الفواتير الضريبية وتوثيق المعاملات التجارية.\n"
-                        "حساب المساهمة الوطنية: حساب منشأ لدى وزارة المالية لتسديد الدين العام ودعم الخزينة.\n"
-                        "المادة 3: يعدل نص المادة (9) من القانون الأصلي بحيث يمنح الشخص الطبيعي المقيم إعفاءً قدره تسعة آلاف دينار.\n"
-                        "ويمنح إعفاءً عائلياً إضافياً للمكلف عن المعالين بمبلغ تسعة آلاف دينار لسنة 2020 وما يليها.\n"
-                        "المادة 4: تعدل المادة (11) من القانون الأصلي بخصوص تحديد الشرائح الضريبية التصاعدية.\n"
-                        "تستوفى الضريبة عن كل دينار من الدخل الخاضع بنسبة تبدأ من 5% وتصل إلى 30% حسب الشريحة.\n"
-                        "المادة 5: تعدل أحكام المادة (66) الخاصة بمكافحة التهرب الضريبي وتغليظ العقوبات والغرامات التعويضية.\n"
-                        "تلتزم جميع المنشآت والشركات بالربط الإلكتروني وإصدار الفواتير الأصولية طبقاً للأنظمة الصادرة بمقتضاه.\n"
-                        "يعمل بأحكام هذا القانون المعدل اعتباراً من الأول من كانون الثاني لسنة 2019."
-                    )
+                    amend_full_text = str(l_o.get("full_text") or f"نص {lo_title}").strip()
                     results.append({
                         "id": len(results) + 1,
                         "title": lo_title,
-                        "year": lo_yr or "2018",
+                        "year": lo_yr or "",
                         "full_text": amend_full_text,
                         "text": amend_full_text,
                         "meta": {
                             "type": "تعديل تشريعي",
                             "numberLabel": "رقم التشريع",
                             "number": formatted_lo_number,
-                            "date": lo_yr or "2018",
-                            "year": lo_yr or "2018",
+                            "date": lo_yr or "",
+                            "year": lo_yr or "",
                             "category": "تعديل تشريعي نافذ",
                             "group": "تعديلات تشريعية",
                             "subCategory": "قوانين معدلة",
@@ -934,44 +963,6 @@ class LegalGraphService:
                         },
                         "docTitle": lo_title
                     })
-                    
-            # 4. Executive instructions
-            inst_full_text = (
-                "تعليمات اقتطاع ضريبة الدخل من المصدر رقم (2) لسنة 2019\n"
-                "صادرة بالاستناد لأحكام المادة (12) من قانون ضريبة الدخل رقم (34) لسنة 2014 وتعديلاته\n"
-                "المادة 1: تسمى هذه التعليمات (تعليمات اقتطاع ضريبة الدخل من المصدر لسنة 2019) ويعمل بها من تاريخ النشر.\n"
-                "المادة 2: يكون للكلمات والعبارات التالية المعاني المخصصة لها في القانون ما لم تدل القرينة على خلاف ذلك.\n"
-                "المادة 3: يتوجب على كل شخص مقيم يقوم بدفع مبالغ خاضعة للاقتطاع توريد المبالغ المقتطعة للدائرة.\n"
-                "يتم التوريد خلال ثلاثين يوماً من تاريخ الدفع أو الاستحقاق وفقاً للنماذج المعتمدة.\n"
-                "المادة 4: تطبق نسبة اقتطاع قدرها 5% على مدفوعات الأجور والبدلات لقاء الخدمات المهنية للمقيمين.\n"
-                "تطبق نسبة اقتطاع قدرها 10% على المبالغ والبدلات المدفوعة للأشخاص غير المقيمين.\n"
-                "المادة 5: يلتزم صاحب العمل باقتطاع الضريبة شهرياً من رواتب وأجور المستخدمين بعد تنزيل الإعفاءات المقررة.\n"
-                "يقدم صاحب العمل كشفاً سنوياً تفصيلياً بأسماء المستخدمين ومجموع الرواتب والضرائب المقتطعة.\n"
-                "المادة 6: في حال التخلف عن الاقتطاع والتوريد تفرض الغرامات القانونية المنصوص عليها في المادة (64) من القانون.\n"
-                "المادة 7: تصدر الدائرة الجداول الإرشادية والنماذج الإلكترونية اللازمة لتسهيل عمليات التوريد والدفع."
-            )
-            results.append({
-                "id": len(results) + 1,
-                "title": "تعليمات اقتطاع ضريبة الدخل من المصدر رقم 2 لسنة 2019",
-                "year": "2019",
-                "full_text": inst_full_text,
-                "text": inst_full_text,
-                "meta": {
-                    "type": "تعليمات تنفيذية",
-                    "numberLabel": "رقم التعليمات",
-                    "number": "2 لسنة 2019",
-                    "date": "2019-01-15",
-                    "year": "2019",
-                    "category": "تعليمات تنفيذية صادرة بموجبه",
-                    "group": "صدر بموجبه",
-                    "subCategory": "التعليمات",
-                    "source": "دائرة ضريبة الدخل والمبيعات",
-                    "summary": "تعليمات تنفيذية صادرة استناداً لأحكام المادة 12 من قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته تنظم إجراءات اقتطاع وتوريد الضريبة من الرواتب والأجور والبدلات.",
-                    "full_text": inst_full_text,
-                    "text": inst_full_text
-                },
-                "docTitle": "تعليمات اقتطاع ضريبة الدخل رقم 2 لسنة 2019"
-            })
 
             return results
 
@@ -980,12 +971,13 @@ class LegalGraphService:
         """
         Returns all legislative stages / versions for a law from Neo4j.
         """
-        is_tax_34 = any(k in law_id for k in ["34_2014", "34-2014", "law_tax_34_2014"])
+        is_tax_34 = any(k in law_id for k in ["34_2014", "34-2014", "law_tax_34_2014", "قانون_34"])
         if is_tax_34:
             return [
                 {
                     "id": "2014_original",
                     "law_id": "قانون_34_2014_الأصلية",
+                    "version_name": "كما صدر",
                     "title": "قانون ضريبة الدخل رقم 34 لسنة 2014 (النسخة الأصلية — كما صدر)",
                     "subtitle": "النسخة الأصلية كما صدرت — سارية منذ 01-01-2015",
                     "date": "01-01-2015",
@@ -995,13 +987,17 @@ class LegalGraphService:
                     "meta": {
                         "type": "قانون",
                         "title": "قانون ضريبة الدخل رقم 34 لسنة 2014 (النسخة الأصلية — كما صدر)",
+                        "number": "34 لسنة 2014",
+                        "issueDate": "30-12-2014",
                         "effectiveDate": "01-01-2015",
+                        "gazette": "عدد 5320 — ص 7390 — تاريخ النشر: 31-12-2014",
                         "status": "كما صدر"
                     }
                 },
                 {
                     "id": "2019_current",
                     "law_id": "قانون_34_2014_وتعديلاته",
+                    "version_name": "النص النافذ",
                     "title": "قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته",
                     "subtitle": "النص المدمج النافذ بعد التعديل — ساري منذ 01-01-2019",
                     "date": "01-01-2019",
@@ -1011,7 +1007,10 @@ class LegalGraphService:
                     "meta": {
                         "type": "قانون",
                         "title": "قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته",
+                        "number": "34 لسنة 2014",
+                        "issueDate": "30-12-2014",
                         "effectiveDate": "01-01-2019",
+                        "gazette": "عدد 5320 — ص 7390 — تاريخ النشر: 31-12-2014",
                         "status": "النص المدمج النافذ بعد التعديل"
                     }
                 }
@@ -1019,33 +1018,58 @@ class LegalGraphService:
 
         query = """
         MATCH (l)
-        WHERE (l:Law OR l:`قانون`) AND (l.law_id = $law_id OR l.`معرف` = $law_id)
+        WHERE (l:Law OR l:`قانون`) AND (
+            l.law_id = $law_id OR 
+            l.law_id = replace($law_id, '_', '/') OR 
+            l.law_id = replace($law_id, '/', '_') OR 
+            l.`معرف` = $law_id
+        ) AND ($include_inactive = true OR coalesce(l.is_active, true) = true)
         OPTIONAL MATCH (l)-[:HAS_VERSION]->(lv:LawVersion)
         RETURN coalesce(l.law_id, l.`معرف`) AS cur_id,
-               coalesce(l.title, l.`العنوان`) AS cur_title,
-               coalesce(l.issue_date, l.`تاريخ_الصدور`, l.effective_date, l.`تاريخ_السريان`, '') AS cur_date,
+               coalesce(l.title, l.`العنوان`, l.`اسم`, l.name) AS cur_title,
+               coalesce(l.number, toInteger(l.`رقم_القانون`), "") AS law_number,
+               coalesce(l.year, toInteger(l.`السنة`), "") AS law_year,
+               coalesce(l.gazette, l.`الجريدة_الرسمية`, l.`الجريدة`, "") AS gazette,
+               coalesce(l.replaced_law, l.`حل_محل`, "") AS replaced_law,
+               coalesce(l.issue_date, l.`تاريخ_الصدور`, "") AS issue_date,
+               coalesce(l.effective_date, l.`تاريخ_السريان`, "") AS effective_date,
                collect(properties(lv)) AS versions
         LIMIT 1
         """
         with neo4j_db.get_session() as session:
-            records = session.execute_read(lambda tx: tx.run(query, law_id=law_id).data())
+            records = session.execute_read(lambda tx: tx.run(query, law_id=law_id, include_inactive=include_inactive).data())
             rec = records[0] if records else {}
             cur_id = rec.get("cur_id") or law_id
             cur_title = rec.get("cur_title") or "التشريع القانوني"
-            cur_date = rec.get("cur_date") or "—"
+            cur_date = rec.get("effective_date") or rec.get("issue_date") or "—"
             raw_versions = [v for v in rec.get("versions", []) if v and v.get("version_name")]
+            doc_num = f"{rec.get('law_number')} لسنة {rec.get('law_year')}" if rec.get('law_number') and rec.get('law_year') else (str(rec.get('law_number')) or "—")
+
+            base_meta = {
+                "type": "قانون",
+                "title": cur_title,
+                "number": doc_num,
+                "law_number": str(rec.get("law_number") or ""),
+                "law_year": str(rec.get("law_year") or ""),
+                "issueDate": str(rec.get("issue_date") or "—"),
+                "effectiveDate": str(rec.get("effective_date") or cur_date or "—"),
+                "gazette": str(rec.get("gazette") or "—"),
+                "replaced_law": str(rec.get("replaced_law") or "—"),
+                "status": "ساري"
+            }
 
             if not raw_versions:
                 return [{
                     "id": f"{cur_id}_current",
                     "law_id": cur_id,
+                    "version_name": "الأصلية",
                     "title": cur_title,
                     "subtitle": f"النص المعتمد — ساري منذ {cur_date}",
                     "date": cur_date,
                     "buttonText": "عرض النص الكامل",
                     "status": "ساري",
                     "is_current": True,
-                    "meta": {"type": "قانون", "title": cur_title, "effectiveDate": cur_date, "status": "ساري"}
+                    "meta": base_meta
                 }]
 
             stages = []
@@ -1056,13 +1080,19 @@ class LegalGraphService:
                 stages.append({
                     "id": f"{cur_id}_{v_name}",
                     "law_id": cur_id,
+                    "version_name": v_name,
                     "title": f"{cur_title} ({v_name})",
                     "subtitle": f"نسخة {v_name} — سارية منذ {eff}",
                     "date": eff,
                     "buttonText": f"عرض نسخة {v_name}",
-                    "status": "ساري" if is_curr else "تاريخي",
+                    "status": "ساري" if is_curr else "كما صدر",
                     "is_current": is_curr,
-                    "meta": {"type": "قانون", "title": f"{cur_title} ({v_name})", "effectiveDate": eff, "status": "ساري" if is_curr else "تاريخي"}
+                    "meta": {
+                        **base_meta,
+                        "title": f"{cur_title} ({v_name})",
+                        "effectiveDate": eff,
+                        "status": "ساري" if is_curr else "كما صدر"
+                    }
                 })
             return stages
 

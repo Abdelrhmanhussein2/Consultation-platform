@@ -3,9 +3,14 @@ import { useAuth } from '../../context/AuthContext';
 import ModernSelect from '../../components/ModernSelect';
 import FilterResetButton from '../../components/FilterResetButton';
 import { notificationService } from '../../services/notificationService';
-import { sendBroadcastNotification } from '../services/adminApi';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import { getNotificationTarget } from '../../utils/notificationRouter';
+import BroadcastModal from '../components/notifications/BroadcastModal';
+import {
+  fetchBroadcastsApi,
+  resendBroadcastApi,
+  deleteBroadcastApi
+} from '../components/notifications/broadcastApi';
 
 // Clean SVG Icons
 const IconBroadcast = ({ size = 20, color = 'currentColor' }) => (
@@ -97,16 +102,7 @@ export default function AdminNotificationsPage({ navigate }) {
   const [filterType, setFilterType] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
 
-  // New Broadcast Form State
-  const [newBroadcast, setNewBroadcast] = useState({
-    title: '',
-    message: '',
-    audience: 'all',
-    type: 'update',
-    priority: 'normal',
-    channels: ['in_app', 'push'],
-    actionUrl: ''
-  });
+  const [templatePreset, setTemplatePreset] = useState(null);
 
   const showToast = (msg) => {
     setToastMsg(msg);
@@ -129,10 +125,23 @@ export default function AdminNotificationsPage({ navigate }) {
     }
   };
 
+  const fetchBroadcasts = async () => {
+    try {
+      const data = await fetchBroadcastsApi();
+      if (Array.isArray(data)) setBroadcasts(data);
+    } catch (e) {
+      console.warn('Error fetching broadcasts:', e);
+    }
+  };
+
   useEffect(() => {
     fetchLiveNotifications();
+    fetchBroadcasts();
     const interval = setInterval(fetchLiveNotifications, 3000);
-    const onFocus = () => fetchLiveNotifications();
+    const onFocus = () => {
+      fetchLiveNotifications();
+      fetchBroadcasts();
+    };
     window.addEventListener('focus', onFocus);
     return () => {
       clearInterval(interval);
@@ -193,22 +202,6 @@ export default function AdminNotificationsPage({ navigate }) {
       audience: 'all'
     },
     {
-      label: 'تذكير بالإقرارات الضريبية',
-      title: 'تذكير: اقتراب الموعد النهائي للإقرارات الضريبية',
-      message: 'يرجى مراجعة وتجهيز الإقرارات الضريبية قبل نهاية الشهر الحالي لتجنب أي غرامات تأخير.',
-      type: 'update',
-      priority: 'high',
-      audience: 'clients'
-    },
-    {
-      label: 'إيداع مستحقات المستشارين',
-      title: 'تم إيداع مستحقات الاستشارات في حسابك',
-      message: 'تم تحويل أرباح ومستحقات الاستشارات عن الفترة الماضية بنجاح إلى حسابك البنكي.',
-      type: 'financial',
-      priority: 'high',
-      audience: 'consultants'
-    },
-    {
       label: 'إطلاق ميزة جديدة بالمنصة',
       title: 'ميزة جديدة: المساعد الذكي المطور أصبح متاحاً',
       message: 'تم إطلاق النسخة المحدثة من المساعد الذكي مع دعم تحليل الوثائق القانونية بدقة فائقة.',
@@ -219,100 +212,47 @@ export default function AdminNotificationsPage({ navigate }) {
   ];
 
   const applyTemplate = (tpl) => {
-    setNewBroadcast(prev => ({
-      ...prev,
+    setTemplatePreset({
       title: tpl.title,
       message: tpl.message,
-      type: tpl.type,
       priority: tpl.priority,
-      audience: tpl.audience
-    }));
+      targetGroup: tpl.audience === 'consultants' ? 'consultants' : tpl.audience === 'clients' ? 'users' : 'all'
+    });
+    setModalOpen(true);
     showToast(`تم تطبيق قالب: ${tpl.label}`);
   };
 
-  const handleSendBroadcast = async () => {
-    if (!newBroadcast.title.trim() || !newBroadcast.message.trim()) {
-      alert('يرجى كتابة عنوان الإشعار ونص الرسالة');
-      return;
-    }
-
-    try {
-      await sendBroadcastNotification({
-        title: newBroadcast.title,
-        message: newBroadcast.message,
-        audience: newBroadcast.audience,
-        type: newBroadcast.type,
-        priority: newBroadcast.priority
-      });
-    } catch (e) {
-      console.warn('Backend broadcast error fallback:', e);
-    }
-
-    const now = new Date();
-    const dateStr = `${now.getFullYear()}-0${now.getMonth() + 1}-${now.getDate()} ${now.getHours()}:${now.getMinutes() < 10 ? '0' : ''}${now.getMinutes()}`;
-
-    const audienceLabels = {
-      all: 'كافة المستخدمين',
-      consultants: 'المستشارون فقط',
-      clients: 'العملاء والشركات'
-    };
-
-    const typeLabels = {
-      update: 'تحديث نظام',
-      financial: 'إشعار مالي',
-      maintenance: 'صيانة وتحديث',
-      promo: 'عرض ترويجي',
-      security: 'أمني وتحذيري'
-    };
-
-    const created = {
-      id: `bc_${Date.now()}`,
-      title: newBroadcast.title,
-      message: newBroadcast.message,
-      audience: newBroadcast.audience,
-      audienceLabel: audienceLabels[newBroadcast.audience] || 'الكل',
-      type: newBroadcast.type,
-      typeLabel: typeLabels[newBroadcast.type] || 'عام',
-      priority: newBroadcast.priority,
-      channels: newBroadcast.channels,
-      sentAt: `${dateStr} ص`,
-      deliveredCount: newBroadcast.audience === 'consultants' ? 48 : newBroadcast.audience === 'clients' ? 310 : 420,
-      openRate: '100%'
-    };
-
-    setBroadcasts([created, ...broadcasts]);
-    setModalOpen(false);
-    setNewBroadcast({
-      title: '',
-      message: '',
-      audience: 'all',
-      type: 'update',
-      priority: 'normal',
-      channels: ['in_app', 'push'],
-      actionUrl: ''
-    });
-    showToast('تم بث الإشعار الفوري لكافة المستخدمين بنجاح.');
+  const handleBroadcastSent = (data) => {
+    fetchBroadcasts();
+    setTemplatePreset(null);
+    showToast(`تم بث الإشعار بنجاح إلى ${data.sentCount || 0} مستخدم.`);
   };
 
-  const handleResendBroadcast = (b) => {
-    const cloned = {
-      ...b,
-      id: `bc_${Date.now()}`,
-      sentAt: 'الآن'
-    };
-    setBroadcasts([cloned, ...broadcasts]);
-    showToast(`تمت إعادة بث الإشعار: "${b.title}" بنجاح.`);
+  const handleResendBroadcast = async (b) => {
+    try {
+      await resendBroadcastApi(b.id);
+      await fetchBroadcasts();
+      showToast(`تمت إعادة بث الإشعار: "${b.title}" بنجاح.`);
+    } catch (e) {
+      showToast(e.message || 'خطأ في إعادة بث الإشعار');
+    }
   };
 
   const handleDeleteBroadcast = (id) => {
     setConfirmModalConfig({
       title: 'حذف من سجل البث',
-      message: 'هل أنت متأكد من رغبتك في حذف هذا الإشعار من سجل البث؟',
+      message: 'هل أنت متأكد من رغبتك في حذف هذا الإشعار من سجل البث نهائياً؟',
       confirmText: 'حذف السجل',
-      onConfirm: () => {
-        setBroadcasts(broadcasts.filter(b => b.id !== id));
-        showToast('تم حذف الإشعار من السجل بنجاح.');
-        setConfirmModalConfig(null);
+      onConfirm: async () => {
+        try {
+          await deleteBroadcastApi(id);
+          setBroadcasts(prev => prev.filter(b => b.id !== id));
+          showToast('تم حذف الإشعار من السجل بنجاح.');
+        } catch (e) {
+          showToast('خطأ في حذف الإشعار من السجل');
+        } finally {
+          setConfirmModalConfig(null);
+        }
       }
     });
   };
@@ -342,13 +282,21 @@ export default function AdminNotificationsPage({ navigate }) {
   // Filtered Broadcasts
   const filteredBroadcasts = useMemo(() => {
     return broadcasts.filter(b => {
-      const q = broadcastSearch.toLowerCase().trim();
-      if (q && !b.title.toLowerCase().includes(q) && !b.message.toLowerCase().includes(q) && !b.audienceLabel.toLowerCase().includes(q)) {
-        return false;
+      const q = (broadcastSearch || '').toLowerCase().trim();
+      if (q) {
+        const titleMatch = (b.title || '').toLowerCase().includes(q);
+        const msgMatch = (b.message || '').toLowerCase().includes(q);
+        const audMatch = (b.audienceLabel || b.audience || '').toLowerCase().includes(q);
+        const prioMatch = (b.priority || '').toLowerCase().includes(q);
+        if (!titleMatch && !msgMatch && !audMatch && !prioMatch) return false;
       }
-      if (filterAudience !== 'all' && b.audience !== filterAudience) return false;
-      if (filterType !== 'all' && b.type !== filterType) return false;
-      if (filterPriority !== 'all' && b.priority !== filterPriority) return false;
+      if (filterAudience !== 'all') {
+        const aud = (b.audience || '').toLowerCase();
+        if (filterAudience === 'users' && aud !== 'users' && aud !== 'clients') return false;
+        if (filterAudience === 'consultants' && aud !== 'consultants') return false;
+      }
+      if (filterType !== 'all' && (b.type || '').toLowerCase() !== filterType.toLowerCase()) return false;
+      if (filterPriority !== 'all' && (b.priority || '').toLowerCase() !== filterPriority.toLowerCase()) return false;
       return true;
     });
   }, [broadcasts, broadcastSearch, filterAudience, filterType, filterPriority]);
@@ -724,7 +672,7 @@ export default function AdminNotificationsPage({ navigate }) {
                 options={[
                   { value: 'all', label: 'كل الشرائح' },
                   { value: 'consultants', label: 'المستشارون فقط' },
-                  { value: 'clients', label: 'العملاء والشركات' }
+                  { value: 'users', label: 'المستخدمين والشركات' }
                 ]}
               />
 
@@ -740,26 +688,34 @@ export default function AdminNotificationsPage({ navigate }) {
                 ]}
               />
 
-              <button
-                type="button"
+              <FilterResetButton
                 onClick={() => {
                   setBroadcastSearch('');
                   setFilterAudience('all');
                   setFilterType('all');
                   setFilterPriority('all');
                 }}
-                style={{ padding: '10px 16px', background: '#F1F5F9', border: '1px solid #CBD5E1', borderRadius: '10px', fontSize: '13px', fontWeight: '700', color: '#475569', cursor: 'pointer' }}
-              >
-                مسح الفلاتر
-              </button>
+                title="إعادة تعيين فلاتر الإذاعات"
+                size={38}
+              />
             </div>
           </div>
 
           {/* Broadcasts Table */}
           <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0e3b5e', margin: 0 }}>سجل الإذاعات والإشعارات المرسلة</h3>
-              <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '700' }}>{filteredBroadcasts.length} إذاعة مسجلة</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0e3b5e', margin: 0 }}>سجل الإذاعات والإشعارات المرسلة</h3>
+                <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '700' }}>({filteredBroadcasts.length} إذاعة مسجلة)</span>
+              </div>
+              <button
+                type="button"
+                onClick={fetchBroadcasts}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#F8FAFC', border: '1px solid #CBD5E1', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', color: '#0A3C64', cursor: 'pointer' }}
+              >
+                <IconRefresh size={14} />
+                <span>تحديث السجل</span>
+              </button>
             </div>
 
             <div style={{ overflowX: 'auto' }}>
@@ -776,7 +732,8 @@ export default function AdminNotificationsPage({ navigate }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredBroadcasts.map((b) => {
+                  {filteredBroadcasts.length > 0 ? (
+                    filteredBroadcasts.map((b) => {
                     const priorityBadge = 
                       b.priority === 'urgent' ? { bg: '#FEF2F2', color: '#DC2626', label: 'عاجل جداً' } :
                       b.priority === 'high' ? { bg: '#FFF7ED', color: '#EA580C', label: 'عالي' } :
@@ -823,7 +780,7 @@ export default function AdminNotificationsPage({ navigate }) {
                               type="button"
                               onClick={() => setPreviewModalOpen(b)}
                               title="معاينة شكل الإشعار"
-                              style={{ background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '6px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', color: '#0e7490', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                              style={{ background: '#F8FAFC', border: '1px solid #CBD5E1', padding: '6px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', color: '#0A3C64', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                             >
                               <IconEye size={14} />
                               <span>معاينة</span>
@@ -832,7 +789,7 @@ export default function AdminNotificationsPage({ navigate }) {
                               type="button"
                               onClick={() => handleResendBroadcast(b)}
                               title="إعادة البث الآن"
-                              style={{ background: '#F8FAFC', border: '1px solid #CBD5E1', padding: '6px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', color: '#059669', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                              style={{ background: '#F8FAFC', border: '1px solid #CBD5E1', padding: '6px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', color: '#0A3C64', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                             >
                               <IconRefresh size={14} />
                               <span>إعادة</span>
@@ -849,7 +806,14 @@ export default function AdminNotificationsPage({ navigate }) {
                         </td>
                       </tr>
                     );
-                  })}
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="7" style={{ padding: '36px', textAlign: 'center', color: '#64748B' }}>
+                      لا توجد إذاعات عامة مسجلة تطابق البحث أو الفلتر
+                    </td>
+                  </tr>
+                )}
                 </tbody>
               </table>
             </div>
@@ -858,94 +822,17 @@ export default function AdminNotificationsPage({ navigate }) {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          CREATE BROADCAST MODAL
+          CREATE BROADCAST MODAL WITH TARGETED FILTERS
           ══════════════════════════════════════════════════════════════════════════ */}
-      {modalOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 9999 }}>
-          <div style={{ width: '560px', maxWidth: '95vw', background: '#FFFFFF', borderRadius: '20px', overflow: 'hidden', padding: '28px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #F1F5F9', paddingBottom: '12px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#0e3b5e', margin: 0 }}>
-                إرسال إذاعة عامة جديدة
-              </h2>
-              <button onClick={() => setModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748B' }}>
-                ✕
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px', color: '#0F172A' }}>عنوان الإشعار:</label>
-                <input
-                  type="text"
-                  placeholder="مثال: تنبيه بخصوص موعد تقديم الإقرارات..."
-                  value={newBroadcast.title}
-                  onChange={e => setNewBroadcast({ ...newBroadcast, title: e.target.value })}
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '800', marginBottom: '6px', color: '#0F172A' }}>نص الإشعار:</label>
-                <textarea
-                  rows="4"
-                  placeholder="اكتب تفاصيل الإشعار بوضوح..."
-                  value={newBroadcast.message}
-                  onChange={e => setNewBroadcast({ ...newBroadcast, message: e.target.value })}
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', resize: 'vertical' }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '6px' }}>الشريحة المستهدفة:</label>
-                  <ModernSelect
-                    value={newBroadcast.audience}
-                    onChange={(val) => setNewBroadcast({ ...newBroadcast, audience: val })}
-                    options={[
-                      { value: 'all', label: 'كافة المستخدمين' },
-                      { value: 'consultants', label: 'المستشارون فقط' },
-                      { value: 'clients', label: 'العملاء والشركات' }
-                    ]}
-                    style={{ width: '100%' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '6px' }}>الأولوية:</label>
-                  <ModernSelect
-                    value={newBroadcast.priority}
-                    onChange={(val) => setNewBroadcast({ ...newBroadcast, priority: val })}
-                    options={[
-                      { value: 'normal', label: 'عادي' },
-                      { value: 'medium', label: 'متوسط' },
-                      { value: 'high', label: 'عالي' },
-                      { value: 'urgent', label: 'عاجل جداً' }
-                    ]}
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
-                <button
-                  type="button"
-                  onClick={handleSendBroadcast}
-                  style={{ flex: 1, background: '#0e3b5e', color: '#FFFFFF', border: 'none', padding: '12px', borderRadius: '10px', fontWeight: '800', fontSize: '13.5px', cursor: 'pointer' }}
-                >
-                  إرسال وبث الإشعار الآن
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  style={{ background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '12px 20px', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}
-                >
-                  إلغاء
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <BroadcastModal
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setTemplatePreset(null);
+        }}
+        onBroadcastSent={handleBroadcastSent}
+        initialData={templatePreset}
+      />
 
       {/* Preview Modal */}
       {previewModalOpen && (

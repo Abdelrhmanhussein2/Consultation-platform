@@ -61,7 +61,7 @@ export async function syncKnowledgeCore() {
 
 export async function saveLawSource(formData) {
   const tags = parseTags(formData.tags);
-  if (formData.file?.name?.endsWith('.docx')) {
+  if (formData.file?.name?.toLowerCase().endsWith('.docx')) {
     const cleanNum = String(formData.code || '').split('/')[0].replace(/\D/g, '') || '1';
     const lawId = formData.code || `law_${Date.now()}`;
     const yr = String(formData.year || new Date().getFullYear());
@@ -88,7 +88,7 @@ export async function saveLawSource(formData) {
 
 export async function saveRulingSource(rulingFormData) {
   const tags = parseTags(rulingFormData.tags);
-  if (rulingFormData.file?.name?.endsWith('.docx')) {
+  if (rulingFormData.file?.name?.toLowerCase().endsWith('.docx')) {
     const fd = new FormData();
     fd.append('file', rulingFormData.file);
     fd.append('case_number', rulingFormData.caseNumber || `jdg_${Date.now()}`);
@@ -106,6 +106,13 @@ export async function updateKnowledgeSource(sourceId, sourceType, updatedData) {
   return fetch(`/api/legal/sources/${encodePathId(sourceId)}?source_type=${encodeURIComponent(sourceType)}`, {
     method: 'PUT', headers: jsonHeaders(), credentials: 'include', body: JSON.stringify(updatedData)
   });
+}
+
+export async function toggleKnowledgeSourceActive(sourceId, sourceType) {
+  return fetch(
+    `/api/legal/sources/${encodePathId(sourceId)}/toggle-active?source_type=${encodeURIComponent(sourceType)}`,
+    { method: 'PATCH', headers: getAuthHeaders(), credentials: 'include' }
+  );
 }
 
 export async function deleteKnowledgeSource(sourceId, sourceType) {

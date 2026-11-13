@@ -97,5 +97,13 @@ def extract_file_preview(file_bytes: bytes, filename: str, source_type: str = "l
         data["code"] = f"{law_num}/{data['year']}"
         data["tags"] = meta.get("subject") or "تشريع، ضرائب، ضريبة الدخل"
 
+    from services.ai.legal_duplicate_helper import check_file_duplicate
+    dup = check_file_duplicate(file_bytes, filename, source_type)
+    data["is_duplicate"] = dup.get("is_duplicate", False)
+    data["file_hash"] = dup.get("file_hash", "")
+    if dup.get("is_duplicate"):
+        data["duplicate_message"] = dup.get("message", "")
+        data["existing_title"] = dup.get("existing_title", "")
+
     return {"status": "success", "data": data}
 
