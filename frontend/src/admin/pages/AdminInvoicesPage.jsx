@@ -2889,8 +2889,8 @@ export default function AdminInvoicesPage({ navigate }) {
                           <td style={{ padding: "13px 14px", fontWeight: 700, color: "#475569" }}>{CYCLES[r.cycle] || r.cycle}</td>
                           <td style={{ padding: "13px 14px", color: "#64748B" }}>{fmtDate(r.issued_date)}</td>
                           <td style={{ padding: "13px 14px", color: "#64748B" }}>{fmtDate(r.due_date)}</td>
-                          <td style={{ padding: "13px 14px", fontWeight: 700, color: "#16A34A" }}>د.أ {fmt(r.paid_amount || r.paid)}</td>
-                          <td style={{ padding: "13px 14px", fontWeight: 700, color: "#0D3C5C" }}>د.أ {fmt(r.amount)}</td>
+                          <td style={{ padding: "13px 14px", fontWeight: 700, color: "#16A34A" }}>{fmt(r.paid_amount || r.paid)} د.أ</td>
+                          <td style={{ padding: "13px 14px", fontWeight: 700, color: "#0D3C5C" }}>{fmt(r.amount)} د.أ</td>
                           <td style={{ padding: "13px 14px" }}><Chip status={r.status} /></td>
                           {renderRowActions(r, "recurring")}
                         </tr>
@@ -3020,8 +3020,8 @@ export default function AdminInvoicesPage({ navigate }) {
                           <td style={{ padding: "13px 14px", color: "#475569", maxWidth: 200 }}>
                             <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200 }} title={r.service_name || r.service}>{r.service_name || r.service || "-"}</div>
                           </td>
-                          <td style={{ padding: "13px 14px", fontWeight: 700, color: "#0D3C5C" }}>د.أ {fmt(r.original_amount)}</td>
-                          <td style={{ padding: "13px 14px", fontWeight: 700, color: r.refund_amount > 0 ? "#16A34A" : "#94A3B8" }}>د.أ {fmt(r.refund_amount)}</td>
+                          <td style={{ padding: "13px 14px", fontWeight: 700, color: "#0D3C5C" }}>{fmt(r.original_amount)} د.أ</td>
+                          <td style={{ padding: "13px 14px", fontWeight: 700, color: r.refund_amount > 0 ? "#16A34A" : "#94A3B8" }}>{fmt(r.refund_amount)} د.أ</td>
                           <td style={{ padding: "13px 14px", color: "#64748B" }}>{r.bearer || "المنصة"}</td>
                           <td style={{ padding: "13px 14px" }}><Chip status={r.status} /></td>
                           <td style={{ padding: "13px 14px", color: "#64748B" }}>{fmtDate(r.created_at)}</td>

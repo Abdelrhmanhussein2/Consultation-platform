@@ -43,7 +43,8 @@ export default function RuleBuilderModal({
         showToastMsg('تم إنشاء وحفظ القاعدة في قاعدة البيانات بنجاح');
       }
     } catch (err) {
-      showToastMsg('تم حفظ التعديلات');
+      console.error('Error saving automation rule to database:', err);
+      showToastMsg('فشل حفظ التعديلات في قاعدة البيانات');
     }
     setRuleBuilderOpen(false);
     if (fetchLiveDatabaseData) {

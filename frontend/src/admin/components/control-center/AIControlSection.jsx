@@ -70,7 +70,10 @@ export default function AIControlSection({
           onClick={() => showToastMsg(`التكلفة التقديرية الحقيقية: ${aiStats.cost}`)}
         >
           <span>التكلفة</span>
-          <b>{aiStats.cost}</b>
+          <b style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+            <span>{Number(parseFloat(String(aiStats.cost || '').replace(/[^\d.]/g, '')) || 0).toFixed(2)}</span>
+            <small style={{ fontSize: '11px', fontWeight: 700, color: '#64748B' }}>د.أ</small>
+          </b>
           <div className="progress">
             <i style={{ width: `${costWidth}%` }}></i>
           </div>
@@ -200,7 +203,7 @@ export default function AIControlSection({
                           {q.category} · {q.user_name} · {q.created_at}
                         </p>
                       </div>
-                      <span className="tag t-pink">
+                      <span className="tag t-danger">
                         {q.priority === 'high' ? 'عالية' : q.status || 'مراجعة'}
                       </span>
                     </div>
@@ -280,8 +283,8 @@ export default function AIControlSection({
                 <span style={{ fontWeight: 800, color: '#0D3C5C', fontSize: '13px' }}>
                   المواضيع الأكثر استخدامًا
                 </span>
-                <div className="chart-note" style={{ color: '#10b981', marginTop: '2px', fontWeight: 600 }}>
-                  ● ترتيب مباشر حسب عدد الأسئلة داخل الفترة المحددة
+                <div className="chart-note" style={{ color: '#0A3C64', marginTop: '2px', fontWeight: 600 }}>
+                  ترتيب مباشر حسب عدد الأسئلة داخل الفترة المحددة
                 </div>
               </div>
               <div className="chart-controls">

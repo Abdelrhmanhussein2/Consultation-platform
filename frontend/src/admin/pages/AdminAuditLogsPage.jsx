@@ -18,6 +18,27 @@ const IconClose = ({ size = 16, color = "currentColor" }) => (
   </svg>
 );
 
+function formatDateTimeStacked(dateStr) {
+  if (!dateStr || dateStr === '—') return { date: '—', time: '' };
+  const str = String(dateStr).trim();
+  const parts = str.split(/\s+/);
+  if (parts.length >= 2) {
+    const isFirstDate = parts[0].includes('/') || parts[0].includes('-');
+    const datePart = isFirstDate ? parts[0] : parts[1];
+    const timePart = isFirstDate ? parts[1] : parts[0];
+    return { date: datePart, time: timePart };
+  }
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const timePart = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return { date: `${year}-${month}-${day}`, time: timePart };
+  }
+  return { date: str, time: '' };
+}
+
 export default function AdminAuditLogsPage({ navigate }) {
   const { toast, showToast } = useToast();
 
@@ -91,24 +112,74 @@ export default function AdminAuditLogsPage({ navigate }) {
     fetchAuditLogs();
   }, [fetchAuditLogs]);
 
-  // CSV Export from Real Database Logs
-  const handleExportCSV = () => {
-    if (logs.length === 0) {
-      showToast('لا توجد سجلات لتصديرها حالياً', 'warning');
-      return;
+  // CSV Export from Real Database Logs (Fully Excel-Compatible with sep=, and UTF-8 BOM)
+  const handleExportCSV = async () => {
+    try {
+      let exportItems = logs;
+      try {
+        const fullRes = await getAuditLogs({ limit: 1000 });
+        if (fullRes && Array.isArray(fullRes.items) && fullRes.items.length > 0) {
+          exportItems = fullRes.items;
+        } else if (Array.isArray(fullRes) && fullRes.length > 0) {
+          exportItems = fullRes;
+        }
+      } catch (err) {
+        console.warn('Could not fetch all records, falling back to visible logs:', err);
+      }
+
+      if (!exportItems || exportItems.length === 0) {
+        showToast('لا توجد سجلات لتصديرها حالياً', 'warning');
+        return;
+      }
+
+      const headers = [
+        "التاريخ والوقت",
+        "المشرف المنفذ",
+        "الدور الوظيفي",
+        "نوع العملية",
+        "الكيان المتأثر",
+        "تفاصيل العملية",
+        "عنوان IP",
+        "الجهاز والمتصفح",
+        "الحالة"
+      ];
+
+      const cleanCell = (val) => {
+        if (val === null || val === undefined) return '""';
+        const str = String(val).replace(/"/g, '""').replace(/[\r\n]+/g, ' ').trim();
+        return `"${str}"`;
+      };
+
+      const rows = exportItems.map(l => [
+        cleanCell(l.formatted_time || l.created_at || '—'),
+        cleanCell(l.actor_name || l.admin_name || 'مدير النظام'),
+        cleanCell(l.actor_role || 'مسؤول إداري'),
+        cleanCell(l.action_type || l.action || '—'),
+        cleanCell(l.target_entity_type || l.resource || '—'),
+        cleanCell(l.details || 'تم تنفيذ الإجراء بنجاح'),
+        cleanCell(l.ip_address || '127.0.0.1'),
+        cleanCell(l.user_agent || 'Admin Console'),
+        cleanCell(l.status || 'success')
+      ].join(','));
+
+      // 1. "sep=,\r\n" forces Excel on all Windows/Arabic locales to immediately split into columns!
+      // 2. \uFEFF ensures UTF-8 Arabic text renders perfectly without mojibake.
+      const csvString = "sep=,\r\n" + headers.map(cleanCell).join(',') + "\r\n" + rows.join('\r\n');
+      const blob = new Blob(["\uFEFF", csvString], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `سجل_التدقيق_ديوان_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showToast(`تم تصدير (${exportItems.length}) سجل تدقيق بنجاح`, 'success');
+    } catch (e) {
+      console.error('CSV Export Error:', e);
+      showToast('تعذر تصدير ملف سجل التدقيق', 'error');
     }
-    const csvContent = "data:text/csv;charset=utf-8,\uFEFF"
-      + "التوقيت,المستخدم / المشرف,نوع العملية,الكيان المتأثر,التفاصيل,عنوان IP,الحالة\n"
-      + logs.map(l => `"${l.formatted_time || l.created_at}","${l.actor_name || l.admin_name || ''}","${l.action_type || l.action || ''}","${l.target_entity_type || l.resource || ''}","${(l.details || '').replace(/"/g, '""')}","${l.ip_address || ''}","${l.status || 'success'}"`).join('\n');
-    
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `سجل_التدقيق_ديوان_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('تم تصدير ملف سجل التدقيق بنجاح', 'success');
   };
 
   const handleResetFilters = () => {
@@ -128,7 +199,7 @@ export default function AdminAuditLogsPage({ navigate }) {
             سجل التدقيق والعمليات الحساسة
           </h1>
           <p style={{ fontSize: '12.5px', margin: 0, color: '#64748B' }}>
-            تتبع دقيق وتوثيق مشفر لكافة العمليات الإدارية وتعديلات الصلاحيات وحركات الأموال من قاعدة بيانات PostgreSQL مباشرة.
+            تتبع دقيق وتوثيق مشفر لكافة العمليات الإدارية وتعديلات الصلاحيات وحركات الأموال وسجلات النظام مباشرة.
           </p>
         </div>
 
@@ -155,7 +226,7 @@ export default function AdminAuditLogsPage({ navigate }) {
           <div style={{ fontSize: '22px', fontWeight: '800', color: '#0A3254', margin: '4px 0' }}>
             {metrics.total_audit_events || totalLogs}
           </div>
-          <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '600' }}>موثقة ومحفوظة بالـ PostgreSQL</div>
+          <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '600' }}>موثقة ومحفوظة بالنظام</div>
         </div>
 
         <div 
@@ -241,7 +312,7 @@ export default function AdminAuditLogsPage({ navigate }) {
         
         <div style={{ padding: '12px 16px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
           <div style={{ fontSize: '13px', fontWeight: '800', color: '#0A3254' }}>
-            سجلات التدقيق المباشرة من قاعدة البيانات ({totalLogs})
+            سجلات التدقيق الإداري المباشرة ({totalLogs})
           </div>
           <div style={{ fontSize: '11.5px', color: '#64748B' }}>
             مرتبة تنازلياً حسب التوقيت اللحظي | انقر على أي صف لمعاينة التغييرات
@@ -328,9 +399,21 @@ export default function AdminAuditLogsPage({ navigate }) {
 
                     {/* Timestamp */}
                     <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>
-                      <span style={{ fontSize: '12px', color: '#475569' }}>
-                        {log.formatted_time || (log.created_at ? new Date(log.created_at).toLocaleString('ar-JO') : '—')}
-                      </span>
+                      {(() => {
+                        const dt = formatDateTimeStacked(log.formatted_time || log.created_at);
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'right' }}>
+                            <span style={{ fontWeight: '700', color: '#0F172A', fontSize: '12px', fontFamily: 'monospace' }}>
+                              {dt.date}
+                            </span>
+                            {dt.time && (
+                              <span style={{ fontSize: '11px', color: '#64748B', fontWeight: '600', fontFamily: 'monospace' }}>
+                                {dt.time}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     {/* Action button */}
@@ -424,7 +507,12 @@ export default function AdminAuditLogsPage({ navigate }) {
 
                 <div>
                   <label style={{ display: 'block', fontWeight: '700', color: '#475569', marginBottom: '2px', fontSize: '11.5px' }}>التاريخ والوقت:</label>
-                  <div>{inspectModalLog.formatted_time || inspectModalLog.created_at}</div>
+                  <div style={{ fontFamily: 'monospace', fontWeight: '700', color: '#0F172A' }}>
+                    {(() => {
+                      const dt = formatDateTimeStacked(inspectModalLog.formatted_time || inspectModalLog.created_at);
+                      return `${dt.date} ${dt.time}`;
+                    })()}
+                  </div>
                 </div>
 
                 {inspectModalLog.old_values && (

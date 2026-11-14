@@ -55,6 +55,27 @@ const IconClose = ({ size = 16, color = "currentColor" }) => (
   </svg>
 );
 
+function formatDateTimeStacked(dateStr) {
+  if (!dateStr || dateStr === '—') return { date: '—', time: '' };
+  const str = String(dateStr).trim();
+  const parts = str.split(/\s+/);
+  if (parts.length >= 2) {
+    const isFirstDate = parts[0].includes('/') || parts[0].includes('-');
+    const datePart = isFirstDate ? parts[0] : parts[1];
+    const timePart = isFirstDate ? parts[1] : parts[0];
+    return { date: datePart, time: timePart };
+  }
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const timePart = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return { date: `${year}-${month}-${day}`, time: timePart };
+  }
+  return { date: str, time: '' };
+}
+
 export default function AdminSecurityPage({ navigate }) {
   const { toast, showToast } = useToast();
 
@@ -287,7 +308,12 @@ export default function AdminSecurityPage({ navigate }) {
         {/* Real-time system status indicator */}
         <div className="sec-live-badge">
           <span className="sec-pulse-dot"></span>
-          <span>منظومة الحماية والتحقيق: نشطة وموثقة (PostgreSQL)</span>
+          <span>منظومة الحماية والتحقيق: نشطة وموثقة</span>
+          {metrics.encryption_status?.last_audit_time && (
+            <span style={{ fontSize: '11.5px', color: '#64748B', fontWeight: '600', marginRight: '6px' }}>
+              (آخر تدقيق: {metrics.encryption_status.last_audit_time})
+            </span>
+          )}
         </div>
       </div>
 
@@ -344,9 +370,16 @@ export default function AdminSecurityPage({ navigate }) {
 
         {/* Card 4: Audit Trail Events */}
         <div
-          className={`sec-kpi-card ${activeTab === 'audit' ? 'active' : ''}`}
-          onClick={() => setActiveTab('audit')}
-          title="عرض سجل التدقيق والإجراءات"
+          className="sec-kpi-card"
+          onClick={() => {
+            if (navigate) {
+              navigate('/admin/audit-logs');
+            } else {
+              setActiveTab('audit');
+            }
+          }}
+          title="الانتقال إلى صفحة سجل التدقيق والعمليات الإدارية"
+          style={{ cursor: 'pointer' }}
         >
           <div className="sec-kpi-header">
             <span className="sec-kpi-title">سجل العمليات الإدارية</span>
@@ -355,32 +388,9 @@ export default function AdminSecurityPage({ navigate }) {
           <div className="sec-kpi-val">
             {metricsLoading ? '...' : metrics.total_audit_events}
           </div>
-          <div className="sec-kpi-meta">إجراءات وتعديلات المشرفين الموثقة</div>
+          <div className="sec-kpi-meta">إجراءات وتعديلات المشرفين الموثقة ↗</div>
         </div>
 
-      </div>
-
-      {/* ─── Security Verified Status Strip ─── */}
-      <div className="sec-status-strip">
-        <div className="sec-strip-item">
-          <span className="sec-strip-label">تشفير الرسائل والملاحظات:</span>
-          <span className="sec-strip-val">{metrics.encryption_status?.db_encryption}</span>
-        </div>
-        <div className="sec-strip-sep">|</div>
-        <div className="sec-strip-item">
-          <span className="sec-strip-label">حماية الحسابات البنكية (PCI-Masking):</span>
-          <span className="sec-strip-val">{metrics.encryption_status?.pci_masking}</span>
-        </div>
-        <div className="sec-strip-sep">|</div>
-        <div className="sec-strip-item">
-          <span className="sec-strip-label">بنية التوثيق Zero-Trust:</span>
-          <span className="sec-strip-val">{metrics.encryption_status?.zero_trust}</span>
-        </div>
-        <div className="sec-strip-sep">|</div>
-        <div className="sec-strip-item">
-          <span className="sec-strip-label">آخر تدقيق أمني:</span>
-          <span className="sec-strip-val">{metrics.encryption_status?.last_audit_time}</span>
-        </div>
       </div>
 
       {/* ─── Investigative Main Tabs Navigation (With SVGs and Zero Emojis) ─── */}
@@ -526,7 +536,15 @@ export default function AdminSecurityPage({ navigate }) {
                         </span>
                       </td>
                       <td>
-                        <span className="sec-time-cell">{log.formatted_time}</span>
+                        {(() => {
+                          const dt = formatDateTimeStacked(log.formatted_time || log.created_at);
+                          return (
+                            <div className="sec-time-cell">
+                              <span className="sec-time-date">{dt.date}</span>
+                              {dt.time && <span className="sec-time-hour">{dt.time}</span>}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td>
                         <div className="sec-device-cell">
@@ -643,10 +661,26 @@ export default function AdminSecurityPage({ navigate }) {
                         </div>
                       </td>
                       <td>
-                        <span className="sec-time-cell">{sess.started_at}</span>
+                        {(() => {
+                          const dt = formatDateTimeStacked(sess.started_at);
+                          return (
+                            <div className="sec-time-cell">
+                              <span className="sec-time-date">{dt.date}</span>
+                              {dt.time && <span className="sec-time-hour">{dt.time}</span>}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td>
-                        <span className="sec-time-cell">{sess.last_active_at}</span>
+                        {(() => {
+                          const dt = formatDateTimeStacked(sess.last_active_at);
+                          return (
+                            <div className="sec-time-cell">
+                              <span className="sec-time-date">{dt.date}</span>
+                              {dt.time && <span className="sec-time-hour">{dt.time}</span>}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td>
                         <span className="sec-action-tag">{sess.last_action}</span>
@@ -772,7 +806,15 @@ export default function AdminSecurityPage({ navigate }) {
                         </div>
                       </td>
                       <td>
-                        <span className="sec-time-cell">{log.formatted_time}</span>
+                        {(() => {
+                          const dt = formatDateTimeStacked(log.formatted_time || log.created_at);
+                          return (
+                            <div className="sec-time-cell">
+                              <span className="sec-time-date">{dt.date}</span>
+                              {dt.time && <span className="sec-time-hour">{dt.time}</span>}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td>
                         <button
@@ -829,7 +871,7 @@ export default function AdminSecurityPage({ navigate }) {
                 <span className="sec-engine-badge active">نشط وموثق</span>
               </div>
               <p className="sec-engine-desc">
-                تشفير غير متناظر لكافة المحادثات والملاحظات السرية وبيانات الاستشارات قبل حفظها في PostgreSQL بواسطة مفتاح Fernet AES-256.
+                تشفير غير متناظر لكافة المحادثات والملاحظات السرية وبيانات الاستشارات قبل حفظها بواسطة مفتاح Fernet AES-256.
               </p>
               <div className="sec-engine-meta-row">
                 <span>الخوارزمية: Fernet AES-256-CBC + HMAC-SHA256</span>
@@ -913,7 +955,12 @@ export default function AdminSecurityPage({ navigate }) {
                 </div>
                 <div>
                   <label>التاريخ والوقت:</label>
-                  <div>{inspectAuditPayload.formatted_time}</div>
+                  <div style={{ fontFamily: 'monospace', fontWeight: '700' }}>
+                    {(() => {
+                      const dt = formatDateTimeStacked(inspectAuditPayload.formatted_time || inspectAuditPayload.created_at);
+                      return `${dt.date} ${dt.time}`;
+                    })()}
+                  </div>
                 </div>
                 {inspectAuditPayload.old_values && (
                   <div style={{ gridColumn: '1 / -1' }}>

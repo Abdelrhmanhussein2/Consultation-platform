@@ -5,7 +5,7 @@ export const TARGET_GROUP_OPTIONS = [
 ];
 
 export const LEGAL_FORM_OPTIONS = [
-  { value: 'all', label: 'الكل (جميع الأشكال القانونية)' },
+  { value: 'all', label: 'الكل' },
   { value: 'individual', label: 'فرد' },
   { value: 'sole_proprietorship', label: 'مؤسسة فردية' },
   { value: 'llc', label: 'شركة ذات مسؤولية محدودة' },
@@ -20,7 +20,7 @@ export const LEGAL_FORM_OPTIONS = [
 ];
 
 export const SECTOR_OPTIONS = [
-  { value: 'all', label: 'الكل (جميع الأنشطة)' },
+  { value: 'all', label: 'الكل' },
   { value: 'services', label: 'قطاع خدمات' },
   { value: 'technology', label: 'قطاع تكنولوجيا' },
   { value: 'industrial', label: 'قطاع صناعي' },
@@ -29,7 +29,7 @@ export const SECTOR_OPTIONS = [
 ];
 
 export const CONSULTANT_ACTIVITY_OPTIONS = [
-  { value: 'all', label: 'الكل (جميع الأنشطة)' },
+  { value: 'all', label: 'الكل' },
   { value: 'auditor', label: 'مدقق حسابات' },
   { value: 'tax_consultant', label: 'مستشار ضريبي' },
   { value: 'tax_expert', label: 'خبير ضريبي' },
@@ -38,7 +38,7 @@ export const CONSULTANT_ACTIVITY_OPTIONS = [
 ];
 
 export const CONSULTANT_SPECIALIZATION_OPTIONS = [
-  { value: 'all', label: 'الكل (جميع التخصصات)' },
+  { value: 'all', label: 'الكل' },
   { value: 'tax', label: 'ضريبي' },
   { value: 'sales_tax', label: 'ضريبة المبيعات' },
   { value: 'income_tax', label: 'ضريبة الدخل' },

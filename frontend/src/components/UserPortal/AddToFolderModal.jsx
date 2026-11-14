@@ -31,7 +31,7 @@ export default function AddToFolderModal({ item, isOpen, onClose, onStatusChange
         setStatusData(data);
         if (onStatusChange) onStatusChange(data.is_saved);
       }
-    } catch {} finally {
+    } catch { } finally {
       setLoading(false);
     }
   }, [token, item, onStatusChange]);

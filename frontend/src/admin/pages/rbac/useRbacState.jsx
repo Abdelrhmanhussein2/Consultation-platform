@@ -264,8 +264,8 @@ export function useRbacState(initialView = 'roles') {
           oldValue: '—',
           newValue: l.status || 'نجاح',
           user: l.full_name || l.email || 'مستخدم',
-          date: l.login_time ? new Date(l.login_time).toLocaleDateString('ar-JO') : '2026-09-08',
-          time: l.login_time ? new Date(l.login_time).toLocaleTimeString('ar-JO') : '12:00 م',
+          date: l.login_time ? new Date(l.login_time).toISOString().split('T')[0] : '2026-09-08',
+          time: l.login_time ? new Date(l.login_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : '12:00 PM',
           ip: l.ip_address || '127.0.0.1',
           device: `${l.browser || 'Chrome'} / ${l.os || 'Windows'}`
         }));

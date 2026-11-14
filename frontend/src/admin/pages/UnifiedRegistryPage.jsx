@@ -27,6 +27,28 @@ import RegistryCardView from '../components/unified-registry/RegistryCardView';
 import RegistryDetailDrawer from '../components/unified-registry/RegistryDetailDrawer';
 import RegistryModals from '../components/unified-registry/RegistryModals';
 
+const formatEnglishDate = (rawDate) => {
+  if (!rawDate) return '—';
+  try {
+    const d = new Date(rawDate);
+    if (isNaN(d.getTime())) return '—';
+    return d.toISOString().split('T')[0];
+  } catch {
+    return '—';
+  }
+};
+
+const formatEnglishTime = (rawTime) => {
+  if (!rawTime) return '—';
+  try {
+    const d = new Date(rawTime);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  } catch {
+    return '—';
+  }
+};
+
 export default function UnifiedRegistryPage({ navigate }) {
   // 1. Data State
   const [loading, setLoading] = useState(true);
@@ -94,7 +116,7 @@ export default function UnifiedRegistryPage({ navigate }) {
         const isStaff = (u.role || '').toLowerCase().includes('admin');
         const entityType = isConsultant ? 'مستشار' : isStaff ? 'مدير منصة' : 'مستخدم';
         const rawDate = u.created_at || u.last_login_at || null;
-        const dateStr = rawDate ? new Date(rawDate).toLocaleDateString('ar-JO') : '—';
+        const dateStr = formatEnglishDate(rawDate);
         
         unified.push({
           id: `USR-${u.id || i}`,
@@ -109,7 +131,7 @@ export default function UnifiedRegistryPage({ navigate }) {
           ref: isConsultant ? `ADV-${String(u.id).slice(0, 4).toUpperCase()}` : `USR-${String(u.id).slice(0, 4).toUpperCase()}`,
           status: u.is_active ? 'نشط' : 'معلقة',
           priority: isConsultant ? 'متوسطة' : 'عادية',
-          last: u.last_login_at ? `تسجيل دخول ${new Date(u.last_login_at).toLocaleDateString('ar-JO')}` : 'حساب مسجل بالمنصة',
+          last: u.last_login_at ? `تسجيل دخول ${formatEnglishDate(u.last_login_at)}` : 'حساب مسجل بالمنصة',
           amount: u.total_spent ? `${u.total_spent} د.أ` : '—',
           consultations: u.sessions_count || u.consultations_count || 0,
           tickets: u.tickets_count || 0,
@@ -121,7 +143,7 @@ export default function UnifiedRegistryPage({ navigate }) {
       // B. Consultations & Sessions
       rawSessions.forEach((s, i) => {
         const rawDate = s.scheduled_time || s.created_at || null;
-        const dateStr = rawDate ? new Date(rawDate).toLocaleDateString('ar-JO') : '—';
+        const dateStr = formatEnglishDate(rawDate);
         const rawStatus = (s.status || '').toLowerCase();
         let st = 'مؤكدة';
         if (rawStatus.includes('comp') || rawStatus.includes('منته') || rawStatus === 'completed') st = 'مكتملة';
@@ -153,7 +175,7 @@ export default function UnifiedRegistryPage({ navigate }) {
       // C. Support Tickets
       rawTickets.forEach((t, i) => {
         const rawDate = t.created_at || null;
-        const dateStr = rawDate ? new Date(rawDate).toLocaleDateString('ar-JO') : '—';
+        const dateStr = formatEnglishDate(rawDate);
         const rawStatus = (t.status || '').toLowerCase();
         let st = 'مفتوحة';
         if (rawStatus.includes('solve') || rawStatus.includes('close') || rawStatus.includes('مكتمل')) st = 'مكتملة';
@@ -185,7 +207,7 @@ export default function UnifiedRegistryPage({ navigate }) {
       // D. Invoices & Billing
       rawInvoices.forEach((inv, i) => {
         const rawDate = inv.created_at || inv.date || null;
-        const dateStr = rawDate ? new Date(rawDate).toLocaleDateString('ar-JO') : '—';
+        const dateStr = formatEnglishDate(rawDate);
         const st = (inv.status === 'paid' || inv.status === 'مدفوعة') ? 'مكتملة' : 'معلقة';
         unified.push({
           id: `INV-${inv.id || i}`,
@@ -212,7 +234,7 @@ export default function UnifiedRegistryPage({ navigate }) {
       // E. Pending Credentials
       rawCreds.forEach((c, i) => {
         const rawDate = c.created_at || null;
-        const dateStr = rawDate ? new Date(rawDate).toLocaleDateString('ar-JO') : '—';
+        const dateStr = formatEnglishDate(rawDate);
         unified.push({
           id: `CRD-${c.id || i}`,
           rawId: c.id,
@@ -245,7 +267,7 @@ export default function UnifiedRegistryPage({ navigate }) {
           type: 'أتمتة',
           title: r.name || 'قاعدة تشغيل النظام',
           sub: r.condition_field ? `${r.condition_field} ${r.condition_op || '='} ${r.condition_value || ''}` : (r.description || 'أتمتة العمليات'),
-          date: rawDate ? new Date(rawDate).toLocaleDateString('ar-JO') : '—',
+          date: formatEnglishDate(rawDate),
           rawDate: rawDate,
           owner: 'مدير العمليات',
           ref: `AUT-${String(r.id).slice(0, 4).toUpperCase()}`,
@@ -414,7 +436,7 @@ export default function UnifiedRegistryPage({ navigate }) {
           const formatted = msgs.map(m => [
             m.sender_name || 'مستخدم',
             m.message_text || 'مرفق',
-            m.created_at ? new Date(m.created_at).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) : '—'
+            formatEnglishTime(m.created_at)
           ]);
           setConversationsState(prev => ({ ...prev, [rec.id]: formatted }));
         }
@@ -424,7 +446,7 @@ export default function UnifiedRegistryPage({ navigate }) {
           const formatted = tDetail.replies.map(r => [
             r.author_name || 'فريق الدعم',
             r.reply_text,
-            r.created_at ? new Date(r.created_at).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) : '—'
+            formatEnglishTime(r.created_at)
           ]);
           setConversationsState(prev => ({ ...prev, [rec.id]: formatted }));
         }
@@ -434,7 +456,7 @@ export default function UnifiedRegistryPage({ navigate }) {
           const formatted = notifs.map(n => [
             n.sender || n.sender_name || n.title || 'إدارة المنصة',
             n.text || n.message,
-            n.created_at ? new Date(n.created_at).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) : '—'
+            formatEnglishTime(n.created_at)
           ]);
           setConversationsState(prev => ({ ...prev, [rec.id]: formatted }));
         }
@@ -465,7 +487,7 @@ export default function UnifiedRegistryPage({ navigate }) {
   const handleSendMessage = async () => {
     if (!chatInput.trim() || !currentRecord) return;
     const text = chatInput.trim();
-    const nowTime = new Date().toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' });
+    const nowTime = formatEnglishTime(new Date());
     const currentMsgs = conversationsState[currentRecord.id] || [];
     
     // 1. Optimistic UI update
@@ -502,7 +524,7 @@ export default function UnifiedRegistryPage({ navigate }) {
   const handleSaveNote = async () => {
     if (!noteInput.trim() || !currentRecord) return;
     const noteText = noteInput.trim();
-    const dateStr = new Date().toLocaleDateString('ar-JO');
+    const dateStr = formatEnglishDate(new Date());
     const existing = notesState[currentRecord.id] || [];
     
     setNotesState({

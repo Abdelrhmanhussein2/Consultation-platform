@@ -138,7 +138,7 @@ export default function TicketDetailsModal({
           style={{
             height: '4px',
             width: '100%',
-            background: 'linear-gradient(90deg, #10b981 0%, #06b6d4 100%)'
+            background: 'linear-gradient(90deg, #0A3C64 0%, #005D9C 100%)'
           }}
         />
 
@@ -503,7 +503,7 @@ export default function TicketDetailsModal({
                 onClick={handleSendReply}
                 disabled={isSubmitting || !ticketReplyText.trim()}
                 style={{
-                  background: isSubmitting || !ticketReplyText.trim() ? '#94a3b8' : '#10b981',
+                  background: isSubmitting || !ticketReplyText.trim() ? '#94a3b8' : '#005D9C',
                   color: '#ffffff',
                   border: 'none',
                   padding: '0 20px',

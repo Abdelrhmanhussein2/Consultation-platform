@@ -369,12 +369,12 @@ class SuperAdminController:
             )
 
     @staticmethod
-    def get_dashboard_stats(db: Session):
+    def get_dashboard_stats(db: Session, period: str = "week"):
         """
         Retrieves live operational metrics and chart series for the Admin Command Center dashboard.
         """
         try:
-            return SuperAdminService.get_dashboard_stats(db)
+            return SuperAdminService.get_dashboard_stats(db, period)
         except Exception as e:
             raise HTTPException(
                 status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -533,15 +533,7 @@ class SuperAdminController:
         except Exception as e:
             raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to save account roles: {str(e)}")
 
-    @staticmethod
-    def get_dashboard_stats(db: Session, period: str = "week"):
-        """
-        Retrieves real-time dashboard aggregates and list feed from database.
-        """
-        try:
-            return SuperAdminService.get_dashboard_stats(db, period)
-        except Exception as e:
-            raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get dashboard stats: {str(e)}")
+
 
     @staticmethod
     def admin_get_sessions(db: Session):
@@ -595,12 +587,7 @@ class SuperAdminController:
         except Exception as e:
             raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f"Failed to join session: {str(e)}")
 
-    @staticmethod
-    def get_dashboard_stats(db: Session, period: str = "week"):
-        """
-        Retrieves live dynamic dashboard aggregates from PostgreSQL database.
-        """
-        return SuperAdminService.get_dashboard_stats(db, period)
+
 
 
 

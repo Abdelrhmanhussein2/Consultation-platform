@@ -291,7 +291,7 @@ export default function ControlCenter() {
             taxNo: u.tax_number || u.taxNo || '—',
             entityNo: u.entity_number || '—',
             nationalNo: u.national_id || '—',
-            registered: u.created_at ? new Date(u.created_at).toLocaleDateString('ar-JO') : '—'
+            registered: u.created_at ? new Date(u.created_at).toISOString().split('T')[0] : '—'
           };
         });
       }
@@ -723,7 +723,7 @@ export default function ControlCenter() {
       ctx.fillText('الاستهلاك الحالي المسجل في قاعدة البيانات: 0 توكن', w / 2, h / 2 - 10);
       ctx.fillStyle = '#64748b';
       ctx.font = '500 11.5px Cairo, sans-serif';
-      ctx.fillText('يتم تتبع ورسم الاستهلاك الحقيقي آلياً عند إرسال استشارات في جدول chat_messages', w / 2, h / 2 + 14);
+      ctx.fillText('يتم تتبع ورسم الاستهلاك الفعلي آلياً مع كل استشارة ذكية أو محادثة عبر المنصة', w / 2, h / 2 + 14);
     }
   };
 
@@ -787,7 +787,7 @@ export default function ControlCenter() {
   };
 
   return (
-    <div className="page" onClick={() => setContextMenu({ ...contextMenu, show: false })}>
+    <div className="page control-center-layout" onClick={() => setContextMenu({ ...contextMenu, show: false })}>
       {/* 1. Header & Summary Stats */}
       <CCHeader
         summaryCounts={summaryCounts}

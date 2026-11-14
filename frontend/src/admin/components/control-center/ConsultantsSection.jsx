@@ -63,7 +63,7 @@ export default function ConsultantsSection({
 
           <button
             type="button"
-            className="btn green"
+            className="btn primary"
             onClick={() => {
               if (onAddCredentialRequest) {
                 onAddCredentialRequest();

@@ -15,10 +15,11 @@ export const notificationService = {
     }, token);
   },
 
-  // Mark single notification as read
-  async markAsRead(id, token) {
+  // Mark single notification as read or toggle state
+  async markAsRead(id, token, isRead = null) {
     return await apiFetch(`/api/notifications/${id}/read`, {
-      method: 'PATCH'
+      method: 'PATCH',
+      body: isRead !== null ? JSON.stringify({ is_read: isRead }) : undefined
     }, token);
   },
 

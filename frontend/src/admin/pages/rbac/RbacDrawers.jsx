@@ -443,8 +443,8 @@ export default function RbacDrawers({
                 oldValue: 'صلاحيات الدور',
                 newValue: 'تخصيص فردي',
                 user: 'سعيد هارون',
-                date: new Date().toLocaleDateString('ar-JO'),
-                time: new Date().toLocaleTimeString('ar-JO'),
+                date: new Date().toISOString().split('T')[0],
+                time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
                 ip: '192.168.1.45',
                 device: 'Chrome / Windows'
               }, ...prev]);

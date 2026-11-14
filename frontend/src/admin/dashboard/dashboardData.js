@@ -121,9 +121,9 @@ export const row1Cards = [
     rows: []
   },
   {
-    t: 'طلبات انضمام المستخدمين',
+    t: 'أحدث المستخدمين المنضمين',
     kind: 'users',
-    path: '/admin/users?tab=pending',
+    path: '/admin/users',
     rows: []
   }
 ];

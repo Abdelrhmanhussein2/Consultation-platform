@@ -1,5 +1,5 @@
 from datetime import datetime, timezone, timedelta
-from sqlalchemy import func
+from sqlalchemy import func, cast, Date
 from helpers.enums import AIChatRole
 from helpers.encryption import decrypt_text
 from models.ai.ai_chat_message import AIChatMessage
@@ -10,45 +10,95 @@ class AdminAiDashboardHelper:
     @staticmethod
     def get_ai_metrics(db, period_start, period="week", format_time_ago_fn=None):
         """
-        Calculates real AI query volume, line-chart points, and recent AI alerts.
+        Calculates real AI query volume, dynamic line-chart points & labels, and recent AI alerts.
+        Supports: day, week, month, quarter, half, year.
         """
         total_ai = db.query(AIChatMessage).filter(AIChatMessage.role == AIChatRole.assistant).count()
-
-        # Build 7 data points for line chart
-        ai_points = [0, 0, 0, 0, 0, 0, 0]
         now = datetime.now(timezone.utc)
+        day_names_ar = ["الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"]
 
-        # Query messages in the requested period
-        msgs_in_period = db.query(
-            func.date_trunc('day', AIChatMessage.created_at).label("day"),
-            func.count(AIChatMessage.id).label("count")
-        ).filter(
-            AIChatMessage.role == AIChatRole.assistant,
-            AIChatMessage.created_at >= period_start
-        ).group_by(func.date_trunc('day', AIChatMessage.created_at)).all()
+        # 1. Dynamic points & labels based on period
+        if period == "day":
+            labels = ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"]
+            ai_points = [0] * 6
+            start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            day_msgs = db.query(AIChatMessage.created_at).filter(
+                AIChatMessage.role == AIChatRole.assistant,
+                AIChatMessage.created_at >= start_of_day
+            ).all()
+            for (created_at,) in day_msgs:
+                if created_at:
+                    slot = min(5, created_at.hour // 4)
+                    ai_points[slot] += 1
 
-        day_counts = {}
-        for row in msgs_in_period:
-            if row.day:
-                d_str = row.day.strftime("%Y-%m-%d")
-                day_counts[d_str] = int(row.count or 0)
+        elif period == "week":
+            # 7 continuous days ending today
+            labels = []
+            ai_points = []
+            day_counts = {}
+            day_col = cast(AIChatMessage.created_at, Date)
+            week_start = now - timedelta(days=6)
+            week_start_date = week_start.date()
 
-        for i in range(7):
-            day_dt = now - timedelta(days=(6 - i))
-            d_str = day_dt.strftime("%Y-%m-%d")
-            ai_points[i] = day_counts.get(d_str, 0)
+            msgs = db.query(
+                day_col.label("day"),
+                func.count(AIChatMessage.id).label("count")
+            ).filter(
+                AIChatMessage.role == AIChatRole.assistant,
+                AIChatMessage.created_at >= week_start
+            ).group_by(day_col).all()
 
-        # If period has queries but not in last 7 days, set at least total in current period
-        if total_ai > 0 and sum(ai_points) == 0:
-            ai_points[6] = total_ai
+            for r in msgs:
+                if r.day:
+                    day_counts[r.day.strftime("%Y-%m-%d")] = int(r.count or 0)
 
-        # Recent 5 AI queries / alerts
+            for i in range(7):
+                target_dt = week_start + timedelta(days=i)
+                labels.append(day_names_ar[target_dt.weekday()])
+                ai_points.append(day_counts.get(target_dt.strftime("%Y-%m-%d"), 0))
+
+        elif period == "month":
+            # 6 intervals of 5 days across the last 30 days
+            labels = []
+            ai_points = []
+            month_start = now - timedelta(days=30)
+            for i in range(6):
+                slot_start = month_start + timedelta(days=i * 5)
+                slot_end = slot_start + timedelta(days=5)
+                labels.append(slot_end.strftime("%d/%m"))
+                cnt = db.query(AIChatMessage).filter(
+                    AIChatMessage.role == AIChatRole.assistant,
+                    AIChatMessage.created_at >= slot_start,
+                    AIChatMessage.created_at < slot_end
+                ).count()
+                ai_points.append(cnt)
+
+        else:
+            # quarter, half, year: 6 monthly intervals
+            months_back = 12 if period == "year" else (6 if period == "half" else 3)
+            step_days = max(15, (months_back * 30) // 6)
+            labels = []
+            ai_points = []
+            long_start = now - timedelta(days=months_back * 30)
+            month_names_ar = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+            for i in range(6):
+                slot_start = long_start + timedelta(days=i * step_days)
+                slot_end = slot_start + timedelta(days=step_days)
+                labels.append(month_names_ar[slot_end.month - 1])
+                cnt = db.query(AIChatMessage).filter(
+                    AIChatMessage.role == AIChatRole.assistant,
+                    AIChatMessage.created_at >= slot_start,
+                    AIChatMessage.created_at < slot_end
+                ).count()
+                ai_points.append(cnt)
+
+        # Recent 4 AI queries / alerts
         recent_ai_msgs = db.query(AIChatMessage).filter(
             AIChatMessage.role == AIChatRole.user
-        ).order_by(AIChatMessage.created_at.desc()).limit(5).all()
+        ).order_by(AIChatMessage.created_at.desc()).limit(4).all()
 
         if not recent_ai_msgs:
-            recent_ai_msgs = db.query(AIChatMessage).order_by(AIChatMessage.created_at.desc()).limit(5).all()
+            recent_ai_msgs = db.query(AIChatMessage).order_by(AIChatMessage.created_at.desc()).limit(4).all()
 
         ai_alerts = []
         for m in recent_ai_msgs:
@@ -69,6 +119,7 @@ class AdminAiDashboardHelper:
         return {
             "total_ai": total_ai,
             "ai_points": ai_points,
+            "ai_labels": labels,
             "ai_alerts": ai_alerts
         }
 

@@ -1100,9 +1100,9 @@ export default function Profile360Modal({
                                 color: '#64748b'
                               }}
                             >
-                              <div style={{ fontSize: '32px', marginBottom: '8px' }}>
-                                💬
-                              </div>
+                              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 8px', display: 'block' }}>
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                              </svg>
                               <b style={{ fontSize: '14px', color: '#334155' }}>
                                 لا توجد رسائل محادثة سابقة مسجلة
                               </b>
@@ -1156,7 +1156,7 @@ export default function Profile360Modal({
                             }}
                           />
                           <button
-                            className="btn green"
+                            className="btn primary"
                             onClick={async () => {
                               if (chatInput.trim()) {
                                 const textToSend = chatInput.trim();
@@ -1251,7 +1251,7 @@ export default function Profile360Modal({
                                     className={`tag ${
                                       t.priority === 'مرتفعة' ||
                                       t.priority === 'عاجلة'
-                                        ? 't-pink'
+                                        ? 't-danger'
                                         : 't-slate'
                                     }`}
                                   >
@@ -1267,7 +1267,7 @@ export default function Profile360Modal({
                                         ? 's-green'
                                         : t.status === 'قيد المعالجة'
                                         ? 's-orange'
-                                        : 's-pink'
+                                        : 's-danger'
                                     }`}
                                   >
                                     {t.status}
@@ -1552,9 +1552,13 @@ export default function Profile360Modal({
                             </div>
                           ) : (
                             <div>
-                              <span style={{ fontSize: '24px', display: 'block', marginBottom: '6px' }}>
-                                🤖
-                              </span>
+                              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 6px', display: 'block' }}>
+                                <rect x="3" y="11" width="18" height="10" rx="2" />
+                                <circle cx="12" cy="5" r="2" />
+                                <path d="M12 7v4" />
+                                <line x1="8" y1="16" x2="8" y2="16.01" />
+                                <line x1="16" y1="16" x2="16" y2="16.01" />
+                              </svg>
                               <b>لا يوجد استهلاك توكن مسجل لهذا الحساب حالياً</b>
                               <p style={{ margin: '4px 0 0', fontSize: '11.5px', color: '#94a3b8' }}>
                                 سيبدأ تسجيل واحتساب التوكن فور بدء المستخدم في طرح الأسئلة الضريبية الذكية.
@@ -2188,7 +2192,7 @@ export default function Profile360Modal({
 
         <div className="modal-actions">
           <button
-            className="btn green"
+            className="btn primary"
             onClick={() => {
               showToastMsg('تم حفظ التغييرات');
               setModalOpen(false);

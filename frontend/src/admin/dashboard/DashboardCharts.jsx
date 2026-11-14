@@ -44,16 +44,20 @@ export default function DashboardCharts({
   const aiTotal = data?.aiTotal ?? '0';
   const aiGrowth = data?.aiGrowth || '';
   const svgW = 520;
-  const svgH = 165;
-  const padLeft = 26;
+  const svgH = 210;
+  const padLeft = 32;
   const padRight = 10;
   const padTop = 10;
-  const padBottom = 26;
-  const maxAiVal = Math.ceil(Math.max(...aiData, 10) / 10) * 10 || 10;
+  const padBottom = 22;
+  const actualAiMax = Math.max(...aiData, 0);
+  const maxAiVal = Math.max(400, Math.ceil(actualAiMax / 50) * 50);
+  const step = maxAiVal <= 400 ? 50 : 100;
+  const tickCount = Math.round(maxAiVal / step);
+  const aiTicks = Array.from({ length: tickCount + 1 }, (_, i) => maxAiVal - i * step);
 
   const pts = aiData.map((v, i) => [
     padLeft + (i * (svgW - padLeft - padRight)) / Math.max(1, aiData.length - 1),
-    padTop + ((maxAiVal - v) / maxAiVal) * (svgH - padTop - padBottom)
+    padTop + ((maxAiVal - Math.min(v, maxAiVal)) / maxAiVal) * (svgH - padTop - padBottom)
   ]);
   const curvePath = smoothPath(pts);
   const areaPath = pts.length > 0 
@@ -199,17 +203,45 @@ export default function DashboardCharts({
               </linearGradient>
             </defs>
 
-            <line x1="26" y1="139" x2="510" y2="139" stroke="#e6eef4" strokeWidth="1" />
-            <line x1="26" y1="10" x2="26" y2="139" stroke="#e6eef4" strokeWidth="1" />
+            <line x1={padLeft} y1={svgH - padBottom} x2={svgW - padRight} y2={svgH - padBottom} stroke="#e2e8f0" strokeWidth="1" />
+            <line x1={padLeft} y1={padTop} x2={padLeft} y2={svgH - padBottom} stroke="#e2e8f0" strokeWidth="1" />
 
-            {/* Y axis text */}
-            {[0, 1, 2, 3].map(i => {
-              const y = padTop + (i * (svgH - padTop - padBottom)) / 3;
-              const val = Math.round(maxAiVal - (maxAiVal * i) / 3);
+            {/* Y axis ticks, grid lines, and labels */}
+            {aiTicks.map((val, idx) => {
+              const y = padTop + (idx * (svgH - padTop - padBottom)) / tickCount;
               return (
-                <text key={i} x="0" y={y + 3} className="db-axis-text" fill="#7d93a4" fontSize="9" fontWeight="700">
-                  {val >= 1000 ? `${(val / 1000).toFixed(val % 1000 ? 1 : 0)}K` : val}
-                </text>
+                <g key={idx}>
+                  {idx > 0 && idx < tickCount && (
+                    <line 
+                      x1={padLeft} 
+                      y1={y} 
+                      x2={svgW - padRight} 
+                      y2={y} 
+                      stroke="#f1f5f9" 
+                      strokeWidth="0.8" 
+                      strokeDasharray="2 3"
+                    />
+                  )}
+                  <line 
+                    x1={padLeft - 3} 
+                    y1={y} 
+                    x2={padLeft} 
+                    y2={y} 
+                    stroke="#cbd5e1" 
+                    strokeWidth="1" 
+                  />
+                  <text 
+                    x={padLeft - 5} 
+                    y={y + 3.5} 
+                    className="db-axis-text" 
+                    textAnchor="end"
+                    fill="#334155" 
+                    fontSize="9.5" 
+                    fontWeight="700"
+                  >
+                    {val >= 1000 ? `${(val / 1000).toFixed(val % 1000 ? 1 : 0)}K` : val}
+                  </text>
+                </g>
               );
             })}
 
@@ -263,8 +295,8 @@ export default function DashboardCharts({
                 x={p[0]}
                 y={svgH - 6}
                 textAnchor="middle"
-                fill="#7d93a4"
-                fontSize="8.5"
+                fill="#64748B"
+                fontSize="9.5"
                 fontWeight="700"
               >
                 {aiLabels[i]}

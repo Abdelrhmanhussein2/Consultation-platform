@@ -111,7 +111,7 @@ export default function ConsultantRejectModal({
         </div>
 
         <div className="modal-actions">
-          <button type="button" className="btn pink" onClick={confirmRejection}>
+          <button type="button" className="btn danger" onClick={confirmRejection}>
             تأكيد وإرسال الرسالة
           </button>
           <button

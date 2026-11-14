@@ -5,6 +5,21 @@ import { getAdminSessions, updateAdminSessionStatus, adminJoinSession } from '..
 import ModernSelect from '../../components/ModernSelect';
 import FilterResetButton from '../../components/FilterResetButton';
 
+function formatEnglishDateTime(dateStr) {
+  if (!dateStr) return { date: '—', time: '—', full: '—' };
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return { date: dateStr, time: '', full: dateStr };
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const timePart = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  return {
+    date: `${year}-${month}-${day}`,
+    time: timePart,
+    full: `${year}-${month}-${day} ${timePart}`
+  };
+}
+
 export default function AdminSessionsPage({ navigate }) {
   // View mode: 'kanban' | 'table'
   const [viewMode, setViewMode] = useState('table');
@@ -85,9 +100,12 @@ export default function AdminSessionsPage({ navigate }) {
               topic: item.topic || 'استشارة ضريبية وقانونية متخصصة',
               description: item.description || 'مراجعة وتدقيق المستندات والقوانين ذات الصلة.',
               type: 'جلسة مرئية',
-              typeIcon: '🎥',
-              datetime: item.scheduled_at ? new Date(item.scheduled_at).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date(item.scheduled_at).toISOString().split('T')[0] : '14:00 - 2026-08-30',
-              amount: '75 د.أ',
+              date: item.scheduled_at ? formatEnglishDateTime(item.scheduled_at).date : '2026-08-30',
+              time: item.scheduled_at ? formatEnglishDateTime(item.scheduled_at).time : '02:00 PM',
+              datetime: item.scheduled_at ? formatEnglishDateTime(item.scheduled_at).full : '2026-08-30 02:00 PM',
+              amountNum: '75',
+              currency: 'د.أ',
+              amount: `${item.cost || item.price || item.amount || '75'} د.أ`,
               status: displayStatus,
               statusColor,
               statusBg,
@@ -250,9 +268,24 @@ export default function AdminSessionsPage({ navigate }) {
     setDateFilter('');
   };
 
-  const handleSaveEditBooking = () => {
-    alert(`تم حفظ التعديل بنجاح`);
+  const handleSaveEditBooking = async () => {
+    if (!editBookingModal) return;
+    const currentItem = editBookingModal;
+
+    if (editActionType === 'إلغاء الجلسة واسترداد الرسوم') {
+      updateSessionStatus(currentItem.id, 'ملغاة');
+    } else {
+      try {
+        if (currentItem.rawId) {
+          await updateAdminSessionStatus(currentItem.rawId, currentItem.status === 'مكتملة' ? 'completed' : 'confirmed');
+          window.dispatchEvent(new Event('admin_data_updated'));
+        }
+      } catch (err) {
+        console.warn('Failed to update session:', err.message);
+      }
+    }
     setEditBookingModal(null);
+    setEditNotes('');
   };
 
   return (
@@ -262,7 +295,6 @@ export default function AdminSessionsPage({ navigate }) {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <h1 className="admin-banner-title" style={{ fontSize: '24px', margin: 0 }}>الحجوزات والجلسات</h1>
-            <span style={{ fontSize: '20px', color: '#E58A13' }}>🗓️</span>
           </div>
           <p className="admin-banner-desc" style={{ fontSize: '13px', margin: '4px 0 0 0', color: '#64748B' }}>
             إدارة كافة الاستشارات والجلسات المباشرة بين المستشارين والعملاء مع ميزة السحب والإفلات وتطابق الأرقام لحظياً.
@@ -464,9 +496,9 @@ export default function AdminSessionsPage({ navigate }) {
           <ModernSelect
             options={[
               { value: 'all', label: 'نوع الجلسة' },
-              { value: 'مرئية', label: 'مرئية 🎥' },
-              { value: 'صوتية', label: 'صوتية 📞' },
-              { value: 'مكتوبة', label: 'مكتوبة 💬' }
+              { value: 'مرئية', label: 'مرئية' },
+              { value: 'صوتية', label: 'صوتية' },
+              { value: 'مكتوبة', label: 'مكتوبة' }
             ]}
             value={typeFilter}
             onChange={setTypeFilter}
@@ -566,10 +598,13 @@ export default function AdminSessionsPage({ navigate }) {
                           }}
                           onClick={() => setViewDetailsModal(session)}
                         >
-                          {/* Top Row: Date/Time on left, ID on right in RTL */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#94A3B8', marginBottom: '8px' }}>
-                            <span style={{ direction: 'ltr', color: '#64748B', fontFamily: 'monospace' }}>{session.datetime}</span>
-                            <span style={{ fontWeight: '800', color: '#0A3C64', fontFamily: 'monospace' }}>{session.id}</span>
+                          {/* Top Row: Date/Time on left (Stacked), ID on right in RTL */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', fontSize: '11px', color: '#94A3B8', marginBottom: '8px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+                              <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '11.5px', fontFamily: 'monospace' }}>{session.date}</span>
+                              <span style={{ fontSize: '10.5px', color: '#64748B', fontFamily: 'monospace' }}>{session.time}</span>
+                            </div>
+                            <span style={{ fontWeight: '800', color: '#0A3C64', fontFamily: 'monospace', fontSize: '12px' }}>{session.id}</span>
                           </div>
 
                           {/* Topic Title */}
@@ -579,8 +614,8 @@ export default function AdminSessionsPage({ navigate }) {
 
                           {/* Client & Consultant Info */}
                           <div style={{ fontSize: '12px', color: '#475569', marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                            <div>👤 العميل: <span style={{ color: '#0F172A', fontWeight: '700' }}>{session.clientName}</span></div>
-                            <div>⚖️ المستشار: <span style={{ color: '#0F172A', fontWeight: '700' }}>{session.consultantName}</span></div>
+                            <div>العميل: <span style={{ color: '#0F172A', fontWeight: '700' }}>{session.clientName}</span></div>
+                            <div>المستشار: <span style={{ color: '#0F172A', fontWeight: '700' }}>{session.consultantName}</span></div>
                           </div>
 
                           {/* Bottom Row: Actions on left, Amount & Type on right */}
@@ -589,30 +624,36 @@ export default function AdminSessionsPage({ navigate }) {
                             <div style={{ display: 'flex', gap: '6px' }}>
                               <button
                                 className="admin-icon-btn-minimal"
-                                style={{ width: '28px', height: '28px', fontSize: '12px', border: '1px solid #E2E8F0', borderRadius: '6px', background: '#FFFFFF', color: '#E58A13' }}
+                                style={{ width: '28px', height: '28px', border: '1px solid #E2E8F0', borderRadius: '6px', background: '#FFFFFF', color: '#475569', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                                 title="تعديل الحجز"
                                 onClick={(e) => { e.stopPropagation(); setEditBookingModal(session); }}
                               >
-                                ✏️
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                </svg>
                               </button>
                               <button
                                 className="admin-icon-btn-minimal"
-                                style={{ width: '28px', height: '28px', fontSize: '12px', border: '1px solid #E2E8F0', borderRadius: '6px', background: '#FFFFFF', color: '#64748B' }}
+                                style={{ width: '28px', height: '28px', border: '1px solid #E2E8F0', borderRadius: '6px', background: '#FFFFFF', color: '#475569', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                                 title="معاينة التفاصيل"
                                 onClick={(e) => { e.stopPropagation(); setViewDetailsModal(session); }}
                               >
-                                👁
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                  <circle cx="12" cy="12" r="3" />
+                                </svg>
                               </button>
                             </div>
 
                             {/* Amount & Session Type */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ fontSize: '12px', fontWeight: '900', color: '#059669' }}>
-                                {session.amount}
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '12px', fontWeight: '800', color: '#0A3C64', direction: 'rtl' }}>
+                                <span style={{ fontFamily: 'monospace' }}>{session.amountNum || '75'}</span>
+                                <span>د.أ</span>
                               </span>
-                              <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '6px', background: '#F8FAFC', color: '#334155', border: '1px solid #E2E8F0', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <span>{session.type}</span>
-                                <span>{session.typeIcon}</span>
+                              <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '6px', background: '#F8FAFC', color: '#334155', border: '1px solid #E2E8F0', fontWeight: '700' }}>
+                                {session.type}
                               </span>
                             </div>
                           </div>
@@ -676,17 +717,27 @@ export default function AdminSessionsPage({ navigate }) {
                     </td>
 
                     <td>
-                      <span style={{ fontSize: '12px', color: '#334155' }}>
-                        {session.typeIcon} {session.type}
+                      <span style={{ fontSize: '12px', color: '#334155', fontWeight: '600' }}>
+                        {session.type}
                       </span>
                     </td>
 
-                    <td style={{ direction: 'ltr', textAlign: 'right', fontFamily: 'monospace', fontSize: '12px', color: '#475569' }}>
-                      {session.datetime}
+                    <td style={{ padding: '12px 14px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'right' }}>
+                        <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '12.5px', fontFamily: 'monospace' }}>
+                          {session.date}
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#64748B', fontWeight: '600', fontFamily: 'monospace' }}>
+                          {session.time}
+                        </span>
+                      </div>
                     </td>
 
-                    <td style={{ fontWeight: '900', color: '#059669' }}>
-                      {session.amount}
+                    <td style={{ fontWeight: '800', color: '#0A3C64' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', direction: 'rtl' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '13px' }}>{session.amountNum || '75'}</span>
+                        <span>د.أ</span>
+                      </span>
                     </td>
 
                     <td>
@@ -737,7 +788,7 @@ export default function AdminSessionsPage({ navigate }) {
                         {/* Live Observer Video */}
                         <button
                           className="admin-icon-btn-minimal"
-                          style={{ border: '1px solid #BAE6FD', background: '#F0F9FF', borderRadius: '6px', width: '30px', height: '30px', color: '#0284C7', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          style={{ border: '1px solid #E2E8F0', background: '#FFFFFF', borderRadius: '6px', width: '30px', height: '30px', color: '#475569', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                           title="دخول غرفة المراقب اللحظي"
                           onClick={() => handleJoinObserver(session)}
                         >
@@ -750,7 +801,7 @@ export default function AdminSessionsPage({ navigate }) {
                         {/* Accept */}
                         <button
                           className="admin-icon-btn-minimal"
-                          style={{ border: '1px solid #A7F3D0', background: '#ECFDF5', borderRadius: '6px', width: '30px', height: '30px', color: '#059669', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          style={{ border: '1px solid #E2E8F0', background: '#FFFFFF', borderRadius: '6px', width: '30px', height: '30px', color: '#475569', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                           title="تأكيد الحجز"
                           onClick={() => updateSessionStatus(session.id, 'مؤكدة')}
                         >
@@ -762,7 +813,7 @@ export default function AdminSessionsPage({ navigate }) {
                         {/* Delete / Cancel */}
                         <button
                           className="admin-icon-btn-minimal"
-                          style={{ border: '1px solid #FECACA', background: '#FEF2F2', borderRadius: '6px', width: '30px', height: '30px', color: '#DC2626', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          style={{ border: '1px solid #E2E8F0', background: '#FFFFFF', borderRadius: '6px', width: '30px', height: '30px', color: '#475569', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                           title="حذف / إلغاء الجلسة"
                           onClick={() => updateSessionStatus(session.id, 'ملغاة')}
                         >
@@ -880,7 +931,7 @@ export default function AdminSessionsPage({ navigate }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', borderTop: '1px solid #F8FAFC', paddingTop: '10px' }}>
                 <div>
                   <div style={{ fontSize: '11px', color: '#94A3B8' }}>نوع الجلسة</div>
-                  <div style={{ fontSize: '13.5px', fontWeight: '800', color: '#0F172A', marginTop: '2px' }}>{viewDetailsModal.type} {viewDetailsModal.typeIcon}</div>
+                  <div style={{ fontSize: '13.5px', fontWeight: '800', color: '#0F172A', marginTop: '2px' }}>{viewDetailsModal.type}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: '11px', color: '#94A3B8' }}>المستشار</div>
@@ -891,7 +942,10 @@ export default function AdminSessionsPage({ navigate }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', borderTop: '1px solid #F8FAFC', paddingTop: '10px' }}>
                 <div>
                   <div style={{ fontSize: '11px', color: '#94A3B8' }}>الموعد</div>
-                  <div style={{ fontSize: '13px', fontWeight: '800', color: '#0F172A', marginTop: '2px', direction: 'ltr', textAlign: 'right' }}>{viewDetailsModal.datetime}</div>
+                  <div style={{ marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'right' }}>
+                    <span style={{ fontSize: '13px', fontWeight: '800', color: '#0F172A', fontFamily: 'monospace' }}>{viewDetailsModal.date}</span>
+                    <span style={{ fontSize: '11.5px', color: '#64748B', fontFamily: 'monospace' }}>{viewDetailsModal.time}</span>
+                  </div>
                 </div>
                 <div>
                   <div style={{ fontSize: '11px', color: '#94A3B8' }}>الحالة</div>
@@ -908,8 +962,9 @@ export default function AdminSessionsPage({ navigate }) {
 
               <div style={{ borderTop: '1px solid #F8FAFC', paddingTop: '10px' }}>
                 <div style={{ fontSize: '11px', color: '#94A3B8' }}>المبلغ</div>
-                <div style={{ fontSize: '15px', fontWeight: '900', color: '#059669', marginTop: '2px' }}>
-                  {viewDetailsModal.amount}
+                <div style={{ marginTop: '2px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '15px', fontWeight: '900', color: '#0A3C64', direction: 'rtl' }}>
+                  <span style={{ fontFamily: 'monospace' }}>{viewDetailsModal.amountNum || '75'}</span>
+                  <span>د.أ</span>
                 </div>
               </div>
             </div>

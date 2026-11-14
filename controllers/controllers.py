@@ -730,11 +730,11 @@ class NotificationController:
         return {"unread_count": count}
 
     @staticmethod
-    def mark_as_read(db: Session, current_user: User, notification_id: str):
-        """Marks a single notification as read."""
+    def mark_as_read(db: Session, current_user: User, notification_id: str, is_read: bool = None):
+        """Marks a single notification as read or toggles read state."""
         try:
             notif_uuid = uuid.UUID(notification_id)
-            return NotificationService.mark_as_read(db, current_user.id, notif_uuid)
+            return NotificationService.mark_as_read(db, current_user.id, notif_uuid, is_read=is_read)
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 

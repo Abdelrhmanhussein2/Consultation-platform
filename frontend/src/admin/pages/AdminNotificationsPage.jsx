@@ -11,6 +11,12 @@ import {
   resendBroadcastApi,
   deleteBroadcastApi
 } from '../components/notifications/broadcastApi';
+import {
+  LEGAL_FORM_OPTIONS,
+  SECTOR_OPTIONS,
+  CONSULTANT_ACTIVITY_OPTIONS,
+  CONSULTANT_SPECIALIZATION_OPTIONS
+} from '../components/notifications/broadcastConstants';
 
 // Clean SVG Icons
 const IconBroadcast = ({ size = 20, color = 'currentColor' }) => (
@@ -79,6 +85,61 @@ const IconTrash = ({ size = 15, color = 'currentColor' }) => (
   </svg>
 );
 
+function formatEnglishDateTime(dateStr) {
+  if (!dateStr) return { date: '—', time: '—', full: '—' };
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) {
+    const parts = String(dateStr).trim().split(/\s+/);
+    if (parts.length === 2) {
+      const isDateFirst = parts[0].includes('-');
+      return {
+        date: isDateFirst ? parts[0] : parts[1],
+        time: isDateFirst ? parts[1] : parts[0],
+        full: dateStr
+      };
+    }
+    return { date: dateStr, time: '', full: dateStr };
+  }
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const timePart = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  return {
+    date: `${year}-${month}-${day}`,
+    time: timePart,
+    full: `${year}-${month}-${day} ${timePart}`
+  };
+}
+
+function cleanNotificationTitle(title) {
+  if (!title) return '';
+  return title.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}🔔]/gu, '').trim();
+}
+
+function getNotificationTypeBadge(type, title = '', message = '') {
+  const t = (type || '').toLowerCase();
+  const full = `${title} ${message}`.toLowerCase();
+  if (t === 'appointment_booked' || full.includes('حجز') || full.includes('جلسة')) {
+    return { label: 'استشارات وجلسات', bg: '#EFF6FF', color: '#0284C7', border: '#BAE6FD' };
+  }
+  if (t === 'appointment_approved') {
+    return { label: 'تأكيد موعد', bg: '#F0FDF4', color: '#16A34A', border: '#BBF7D0' };
+  }
+  if (t === 'payment_required' || full.includes('دفع') || full.includes('فاتورة')) {
+    return { label: 'مدفوعات وفواتير', bg: '#FFFBEB', color: '#B45309', border: '#FDE68A' };
+  }
+  if (full.includes('اشتراك') || full.includes('باقة')) {
+    return { label: 'اشتراكات وباقات', bg: '#EBF3FA', color: '#0A3C64', border: '#D0E2F2' };
+  }
+  if (t === 'service_request_status_update' || full.includes('خدمة') || full.includes('طلب')) {
+    return { label: 'طلبات النظام', bg: '#F5F3FF', color: '#7C3AED', border: '#DDD6FE' };
+  }
+  if (t === 'credential_status_update' || full.includes('توثيق')) {
+    return { label: 'توثيق مهني', bg: '#F8FAFC', color: '#475569', border: '#CBD5E1' };
+  }
+  return { label: 'إشعار عام', bg: '#EBF3FA', color: '#0A3C64', border: '#D0E2F2' };
+}
+
 export default function AdminNotificationsPage({ navigate }) {
   const { token } = useAuth();
   const [activeTab, setActiveTab] = useState('incoming'); // 'incoming' | 'broadcasts'
@@ -94,13 +155,14 @@ export default function AdminNotificationsPage({ navigate }) {
 
   // Filter States for Incoming & Broadcasts
   const [incomingSearch, setIncomingSearch] = useState('');
-  const [incomingStatusFilter, setIncomingStatusFilter] = useState('all'); // 'all' | 'unread' | 'read'
   const [incomingTypeFilter, setIncomingTypeFilter] = useState('all');
 
   const [broadcastSearch, setBroadcastSearch] = useState('');
   const [filterAudience, setFilterAudience] = useState('all');
-  const [filterType, setFilterType] = useState('all');
-  const [filterPriority, setFilterPriority] = useState('all');
+  const [filterLegalForm, setFilterLegalForm] = useState('all');
+  const [filterSector, setFilterSector] = useState('all');
+  const [filterActivity, setFilterActivity] = useState('all');
+  const [filterSpecialization, setFilterSpecialization] = useState('all');
 
   const [templatePreset, setTemplatePreset] = useState(null);
 
@@ -149,14 +211,16 @@ export default function AdminNotificationsPage({ navigate }) {
     };
   }, [token]);
 
-  // Actions for incoming notifications
+  // Actions for incoming notifications (Strict: read notifications cannot be reversed to unread)
   const handleMarkAsRead = async (id) => {
+    const item = liveNotifications.find(n => n.id === id);
+    if (!item || item.is_read) return;
     try {
-      await notificationService.markAsRead(id, token);
+      await notificationService.markAsRead(id, token, true);
       setLiveNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-      showToast('تم تمييز الإشعار كمقروء.');
+      showToast('تم تحديد الإشعار كمقروء.');
     } catch (e) {
-      showToast('خطأ في تحديث الإشعار');
+      showToast('خطأ في تحديث حالة الإشعار');
     }
   };
 
@@ -164,7 +228,7 @@ export default function AdminNotificationsPage({ navigate }) {
     try {
       await notificationService.markAllAsRead(token);
       setLiveNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-      showToast('تم تمييز كافة الإشعارات كمقروءة بنجاح.');
+      showToast('تم تحديد كافة الإشعارات كمقروءة بنجاح.');
     } catch (e) {
       showToast('خطأ في العملية');
     }
@@ -272,12 +336,10 @@ export default function AdminNotificationsPage({ navigate }) {
       if (q && !n.title.toLowerCase().includes(q) && !n.message.toLowerCase().includes(q)) {
         return false;
       }
-      if (incomingStatusFilter === 'unread' && n.is_read) return false;
-      if (incomingStatusFilter === 'read' && !n.is_read) return false;
       if (incomingTypeFilter !== 'all' && (n.type || '').toLowerCase() !== incomingTypeFilter.toLowerCase()) return false;
       return true;
     });
-  }, [liveNotifications, incomingSearch, incomingStatusFilter, incomingTypeFilter]);
+  }, [liveNotifications, incomingSearch, incomingTypeFilter]);
 
   // Filtered Broadcasts
   const filteredBroadcasts = useMemo(() => {
@@ -295,11 +357,19 @@ export default function AdminNotificationsPage({ navigate }) {
         if (filterAudience === 'users' && aud !== 'users' && aud !== 'clients') return false;
         if (filterAudience === 'consultants' && aud !== 'consultants') return false;
       }
-      if (filterType !== 'all' && (b.type || '').toLowerCase() !== filterType.toLowerCase()) return false;
-      if (filterPriority !== 'all' && (b.priority || '').toLowerCase() !== filterPriority.toLowerCase()) return false;
+      if (filterAudience === 'users') {
+        const uf = b.user_filters || {};
+        if (filterLegalForm !== 'all' && uf.legal_form && uf.legal_form !== filterLegalForm) return false;
+        if (filterSector !== 'all' && uf.sector && uf.sector !== filterSector) return false;
+      }
+      if (filterAudience === 'consultants') {
+        const cf = b.consultant_filters || {};
+        if (filterActivity !== 'all' && cf.activity && cf.activity !== filterActivity) return false;
+        if (filterSpecialization !== 'all' && cf.specialization && cf.specialization !== filterSpecialization) return false;
+      }
       return true;
     });
-  }, [broadcasts, broadcastSearch, filterAudience, filterType, filterPriority]);
+  }, [broadcasts, broadcastSearch, filterAudience, filterLegalForm, filterSector, filterActivity, filterSpecialization]);
 
   return (
     <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '22px', paddingBottom: '40px', textAlign: 'right', direction: 'rtl', fontFamily: 'var(--font-main)' }}>
@@ -462,16 +532,6 @@ export default function AdminNotificationsPage({ navigate }) {
               </div>
 
               <ModernSelect
-                value={incomingStatusFilter}
-                onChange={(val) => setIncomingStatusFilter(val)}
-                options={[
-                  { value: 'all', label: 'كل حالات القراءة' },
-                  { value: 'unread', label: 'غير المقروءة فقط' },
-                  { value: 'read', label: 'المقروءة فقط' }
-                ]}
-              />
-
-              <ModernSelect
                 value={incomingTypeFilter}
                 onChange={(val) => setIncomingTypeFilter(val)}
                 options={[
@@ -485,21 +545,36 @@ export default function AdminNotificationsPage({ navigate }) {
               <FilterResetButton
                 onClick={() => {
                   setIncomingSearch('');
-                  setIncomingStatusFilter('all');
                   setIncomingTypeFilter('all');
                 }}
+                title="إعادة تعيين فلاتر الإشعارات الواردة"
                 size={38}
               />
 
-              {unreadIncoming > 0 && (
-                <button
-                  type="button"
-                  onClick={handleMarkAllAsRead}
-                  style={{ padding: '10px 16px', background: '#EBF3FA', border: '1px solid #CBD5E1', borderRadius: '10px', fontSize: '13px', fontWeight: '800', color: '#0A3C64', cursor: 'pointer' }}
-                >
-                  تحديد الكل كمقروء
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleMarkAllAsRead}
+                disabled={unreadIncoming === 0}
+                style={{
+                  padding: '10px 18px',
+                  background: unreadIncoming > 0 ? '#0A3C64' : '#F8FAFC',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: '800',
+                  color: unreadIncoming > 0 ? '#FFFFFF' : '#64748B',
+                  cursor: unreadIncoming > 0 ? 'pointer' : 'default',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s',
+                  flexShrink: 0
+                }}
+                title={unreadIncoming > 0 ? 'تحديد كافة الإشعارات كمقروءة' : 'تمت قراءة كافة الإشعارات'}
+              >
+                <IconCheck size={15} color={unreadIncoming > 0 ? '#FFFFFF' : '#64748B'} />
+                <span>{unreadIncoming > 0 ? 'تحديد الكل كمقروء' : 'كافة الإشعارات مقروءة'}</span>
+              </button>
             </div>
           </div>
 
@@ -526,7 +601,6 @@ export default function AdminNotificationsPage({ navigate }) {
                     <th style={{ padding: '14px 16px' }}>عنوان الإشعار</th>
                     <th style={{ padding: '14px 16px' }}>نص الرسالة</th>
                     <th style={{ padding: '14px 16px' }}>النوع</th>
-                    <th style={{ padding: '14px 16px' }}>الحالة</th>
                     <th style={{ padding: '14px 16px' }}>التاريخ والوقت</th>
                     <th style={{ padding: '14px 16px', textAlign: 'center' }}>الإجراءات</th>
                   </tr>
@@ -547,32 +621,45 @@ export default function AdminNotificationsPage({ navigate }) {
                             {!n.is_read && (
                               <span style={{ width: '8px', height: '8px', background: '#0A3C64', borderRadius: '50%', flexShrink: 0 }} />
                             )}
-                            <span>{n.title}</span>
+                            <span>{cleanNotificationTitle(n.title)}</span>
                           </div>
                         </td>
                         <td style={{ padding: '14px 16px', color: '#475569', maxWidth: '380px', lineHeight: '1.5' }}>
                           {n.message}
                         </td>
                         <td style={{ padding: '14px 16px' }}>
-                          <span style={{ background: '#EBF3FA', color: '#0A3C64', border: '1px solid #D0E2F2', padding: '4px 10px', borderRadius: '20px', fontSize: '11.5px', fontWeight: '700' }}>
-                            {n.type || 'عام'}
-                          </span>
+                          {(() => {
+                            const badge = getNotificationTypeBadge(n.type, n.title, n.message);
+                            return (
+                              <span style={{
+                                background: badge.bg,
+                                color: badge.color,
+                                border: `1px solid ${badge.border}`,
+                                padding: '4px 10px',
+                                borderRadius: '20px',
+                                fontSize: '11.5px',
+                                fontWeight: '700',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {badge.label}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td style={{ padding: '14px 16px' }}>
-                          <span style={{
-                            background: n.is_read ? '#F1F5F9' : '#EBF3FA',
-                            color: n.is_read ? '#64748B' : '#0A3C64',
-                            border: n.is_read ? '1px solid #E2E8F0' : '1px solid #D0E2F2',
-                            padding: '4px 10px',
-                            borderRadius: '20px',
-                            fontSize: '11px',
-                            fontWeight: '800'
-                          }}>
-                            {n.is_read ? 'تمت القراءة' : 'جديد'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '14px 16px', color: '#64748B', fontSize: '12px' }}>
-                          {n.created_at ? new Date(n.created_at).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
+                          {(() => {
+                            const dt = formatEnglishDateTime(n.created_at);
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'right' }}>
+                                <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '12.5px', fontFamily: 'monospace' }}>
+                                  {dt.date}
+                                </span>
+                                <span style={{ fontSize: '11px', color: '#64748B', fontWeight: '600', fontFamily: 'monospace' }}>
+                                  {dt.time}
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                           <div style={{ display: 'inline-flex', gap: '6px' }}>
@@ -585,17 +672,30 @@ export default function AdminNotificationsPage({ navigate }) {
                               <IconEye size={14} />
                               <span>عرض</span>
                             </button>
-                            {!n.is_read && (
-                              <button
-                                type="button"
-                                onClick={() => handleMarkAsRead(n.id)}
-                                title="تحديد كمقروء"
-                                style={{ background: '#EBF3FA', border: '1px solid #CBD5E1', padding: '6px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', color: '#0A3C64', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                              >
-                                <IconCheck size={14} />
-                                <span>مقروء</span>
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              disabled={n.is_read}
+                              onClick={() => !n.is_read && handleMarkAsRead(n.id)}
+                              title={n.is_read ? 'تمت قراءة هذا الإشعار' : 'تحديد كمقروء'}
+                              style={{
+                                background: n.is_read ? '#F1F5F9' : '#FFFFFF',
+                                border: n.is_read ? '1px solid #E2E8F0' : '1px solid #CBD5E1',
+                                padding: '6px 10px',
+                                borderRadius: '8px',
+                                fontSize: '12px',
+                                fontWeight: '700',
+                                color: n.is_read ? '#64748B' : '#0A3C64',
+                                cursor: n.is_read ? 'default' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                transition: 'all 0.15s',
+                                opacity: n.is_read ? 0.85 : 1
+                              }}
+                            >
+                              <IconCheck size={14} color={n.is_read ? '#16A34A' : '#0A3C64'} />
+                              <span>{n.is_read ? 'تمت القراءة' : 'تحديد كمقروء'}</span>
+                            </button>
                             <button
                               type="button"
                               onClick={() => handleDeleteNotification(n.id)}
@@ -668,32 +768,62 @@ export default function AdminNotificationsPage({ navigate }) {
 
               <ModernSelect
                 value={filterAudience}
-                onChange={(val) => setFilterAudience(val)}
+                onChange={(val) => {
+                  setFilterAudience(val);
+                  setFilterLegalForm('all');
+                  setFilterSector('all');
+                  setFilterActivity('all');
+                  setFilterSpecialization('all');
+                }}
                 options={[
                   { value: 'all', label: 'كل الشرائح' },
-                  { value: 'consultants', label: 'المستشارون فقط' },
-                  { value: 'users', label: 'المستخدمين والشركات' }
+                  { value: 'users', label: 'المستخدمين والشركات' },
+                  { value: 'consultants', label: 'المستشارين فقط' }
                 ]}
               />
 
-              <ModernSelect
-                value={filterType}
-                onChange={(val) => setFilterType(val)}
-                options={[
-                  { value: 'all', label: 'كل الأنواع' },
-                  { value: 'update', label: 'تحديث نظام' },
-                  { value: 'financial', label: 'إشعار مالي' },
-                  { value: 'maintenance', label: 'صيانة' },
-                  { value: 'promo', label: 'عرض ترويجي' }
-                ]}
-              />
+              {filterAudience === 'users' && (
+                <>
+                  <ModernSelect
+                    value={filterLegalForm}
+                    onChange={setFilterLegalForm}
+                    options={LEGAL_FORM_OPTIONS}
+                    placeholder="الشكل القانوني"
+                  />
+                  <ModernSelect
+                    value={filterSector}
+                    onChange={setFilterSector}
+                    options={SECTOR_OPTIONS}
+                    placeholder="نشاط المنشأة"
+                  />
+                </>
+              )}
+
+              {filterAudience === 'consultants' && (
+                <>
+                  <ModernSelect
+                    value={filterActivity}
+                    onChange={setFilterActivity}
+                    options={CONSULTANT_ACTIVITY_OPTIONS}
+                    placeholder="نوع النشاط المهني"
+                  />
+                  <ModernSelect
+                    value={filterSpecialization}
+                    onChange={setFilterSpecialization}
+                    options={CONSULTANT_SPECIALIZATION_OPTIONS}
+                    placeholder="التخصص الرئيسي"
+                  />
+                </>
+              )}
 
               <FilterResetButton
                 onClick={() => {
                   setBroadcastSearch('');
                   setFilterAudience('all');
-                  setFilterType('all');
-                  setFilterPriority('all');
+                  setFilterLegalForm('all');
+                  setFilterSector('all');
+                  setFilterActivity('all');
+                  setFilterSpecialization('all');
                 }}
                 title="إعادة تعيين فلاتر الإذاعات"
                 size={38}
@@ -771,8 +901,20 @@ export default function AdminNotificationsPage({ navigate }) {
                         <td style={{ padding: '14px 16px', fontWeight: '700', color: '#0F172A' }}>
                           {b.deliveredCount} مستخدم
                         </td>
-                        <td style={{ padding: '14px 16px', color: '#64748B', fontSize: '12px' }}>
-                          {b.sentAt}
+                        <td style={{ padding: '14px 16px' }}>
+                          {(() => {
+                            const dt = formatEnglishDateTime(b.sentAt || b.created_at);
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'right' }}>
+                                <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '12.5px', fontFamily: 'monospace' }}>
+                                  {dt.date}
+                                </span>
+                                <span style={{ fontSize: '11px', color: '#64748B', fontWeight: '600', fontFamily: 'monospace' }}>
+                                  {dt.time}
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                           <div style={{ display: 'inline-flex', gap: '6px' }}>
@@ -843,13 +985,15 @@ export default function AdminNotificationsPage({ navigate }) {
             </h3>
             <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
               <div style={{ fontWeight: '900', color: '#0e3b5e', fontSize: '14px', marginBottom: '6px' }}>
-                {previewModalOpen.title}
+                {cleanNotificationTitle(previewModalOpen.title)}
               </div>
               <div style={{ color: '#475569', fontSize: '12.5px', lineHeight: '1.6' }}>
                 {previewModalOpen.message}
               </div>
-              <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '10px' }}>
-                {previewModalOpen.created_at ? new Date(previewModalOpen.created_at).toLocaleString('ar-EG') : (previewModalOpen.sentAt || 'الآن')}
+              <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'monospace' }}>
+                <span>{formatEnglishDateTime(previewModalOpen.created_at || previewModalOpen.sentAt).date}</span>
+                <span>•</span>
+                <span>{formatEnglishDateTime(previewModalOpen.created_at || previewModalOpen.sentAt).time}</span>
               </div>
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>

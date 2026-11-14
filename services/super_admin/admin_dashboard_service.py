@@ -77,11 +77,12 @@ class AdminDashboardService:
             ConsultantProfile.verification_status == VerificationStatus.pending
         ).count()
         
-        pending_users = db.query(User).filter(
+        new_users = db.query(User).filter(
             User.role == UserRole.user,
-            User.verification_status == VerificationStatus.pending,
+            User.created_at >= period_start,
             ~User.email.like("deleted_%")
         ).count()
+        pending_users = new_users
         
         open_tickets = db.query(SupportTicket).filter(
             SupportTicket.status.in_([
@@ -103,18 +104,18 @@ class AdminDashboardService:
 
         # 1. Recent Legislation / Policies (آخر التشريعات المضافة من قاعدة المعرفة)
         from services.super_admin.admin_ai_dashboard_helper import AdminAiDashboardHelper
-        recent_policies = AdminAiDashboardHelper.get_recent_legislation(limit=5)
+        recent_policies = AdminAiDashboardHelper.get_recent_legislation(limit=4)
         if not recent_policies:
             recent_policies_q = db.query(SystemPolicy).filter(
                 SystemPolicy.is_active == True
-            ).order_by(SystemPolicy.created_at.desc()).limit(5).all()
+            ).order_by(SystemPolicy.created_at.desc()).limit(4).all()
             recent_policies = [
                 [p.title[:36], p.policy_type or "تشريع", format_time_ago(p.created_at)]
                 for p in recent_policies_q
             ]
 
         # 2. Recent Ratings Pending Review (آخر التقييمات بانتظار المراجعة)
-        recent_ratings_q = db.query(Rating).order_by(Rating.created_at.desc()).limit(5).all()
+        recent_ratings_q = db.query(Rating).order_by(Rating.created_at.desc()).limit(4).all()
         recent_ratings = [
             [
                 r.user.full_name if (r.user and r.user.full_name) else (r.user.email if r.user else "مستخدم"),
@@ -130,7 +131,7 @@ class AdminDashboardService:
                 TicketStatus.new, TicketStatus.open, TicketStatus.in_progress,
                 TicketStatus.reviewing, TicketStatus.waiting_user, TicketStatus.received
             ])
-        ).order_by(SupportTicket.created_at.desc()).limit(5).all()
+        ).order_by(SupportTicket.created_at.desc()).limit(4).all()
         recent_tickets = []
         for t in recent_tickets_q:
             prio_label = "عالية" if t.priority == TicketPriority.high else ("متوسطة" if t.priority == TicketPriority.medium else "منخفضة")
@@ -141,8 +142,12 @@ class AdminDashboardService:
                 format_time_ago(t.created_at)
             ])
 
-        # 4. Recent Consultant Applications (آخر طلبات الانضمام - مستشارين)
-        recent_consults_q = db.query(ConsultantProfile).join(User, ConsultantProfile.user_id == User.id).order_by(ConsultantProfile.created_at.desc()).limit(5).all()
+        # 4. Recent Consultant Applications Pending Approval (آخر طلبات الانضمام - مستشارين بانتظار الاعتماد)
+        recent_consults_q = db.query(ConsultantProfile).join(
+            User, ConsultantProfile.user_id == User.id
+        ).filter(
+            ConsultantProfile.verification_status == VerificationStatus.pending
+        ).order_by(ConsultantProfile.created_at.desc()).limit(4).all()
         recent_consultants = [
             [
                 cp.user.full_name if (cp.user and cp.user.full_name) else (cp.user.email if cp.user else "مستشار"),
@@ -155,14 +160,14 @@ class AdminDashboardService:
         recent_users_q = db.query(User).filter(
             User.role == UserRole.user,
             ~User.email.like("deleted_%")
-        ).order_by(User.created_at.desc()).limit(5).all()
+        ).order_by(User.created_at.desc()).limit(4).all()
         recent_users = [
             [u.full_name or u.email or "مستخدم", format_time_ago(u.created_at)]
             for u in recent_users_q
         ]
 
         # 6. System Audit Logs (آخر سجلات تدقيق النظام)
-        recent_sys_logs_q = db.query(AdminActionLog).order_by(AdminActionLog.created_at.desc()).limit(5).all()
+        recent_sys_logs_q = db.query(AdminActionLog).order_by(AdminActionLog.created_at.desc()).limit(4).all()
         action_names_ar = {
             "delete_user": "حذف حساب مستخدم",
             "update_user": "تعديل بيانات مستخدم",
@@ -190,7 +195,7 @@ class AdminDashboardService:
         # 7. Security Logs (آخر السجلات الأمنية الحية من الجلسات وتوثيق الدخول)
         tokens_q = db.query(RefreshToken).join(User, RefreshToken.user_id == User.id).filter(
             ~User.email.like("deleted_%")
-        ).order_by(RefreshToken.created_at.desc()).limit(5).all()
+        ).order_by(RefreshToken.created_at.desc()).limit(4).all()
         security_logs = []
         for token in tokens_q:
             status_dot = "red" if token.is_revoked else "green"
@@ -203,7 +208,7 @@ class AdminDashboardService:
             ])
 
         # 8. Operations Audit Logs (آخر سجلات تدقيق العمليات - الفواتير والعمليات المالية)
-        recent_invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).limit(5).all()
+        recent_invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).limit(4).all()
         ops_audit_logs = []
         for inv in recent_invoices:
             type_name = "استشارة فردية" if inv.type == InvoiceType.client_invoice else ("سحب مستحقات" if inv.type == InvoiceType.consultant_payout else "اشتراك منصة")
@@ -223,7 +228,7 @@ class AdminDashboardService:
         ai_alerts = ai_metrics["ai_alerts"]
 
         # 10. System Alerts & Warnings (آخر التنبيهات وإشعارات النظام الحية)
-        recent_notifs = db.query(Notification).order_by(Notification.created_at.desc()).limit(5).all()
+        recent_notifs = db.query(Notification).order_by(Notification.created_at.desc()).limit(4).all()
         system_alerts = []
         for n in recent_notifs:
             system_alerts.append([
@@ -292,6 +297,8 @@ class AdminDashboardService:
             "total_revenue": total_revenue,
             "total_ai": total_ai,
             "ai_points": ai_points,
+            "ai_labels": ai_metrics.get("ai_labels") or ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"],
+            "new_users": new_users,
             "cities": cities_data,
             "income": income_data,
             "recent_policies": recent_policies,

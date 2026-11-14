@@ -170,7 +170,7 @@ export default function RbacRolesView({
                         onClick={() => handleToggleRoleStatus(r.id)}
                       >
                         {r.active ? (
-                          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="#E32119" stroke="#E32119"/><path d="M7.5 12h9" stroke="#fff" strokeWidth="2.2"/></svg>
+                          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="1.8"/><path d="M7.5 12h9" stroke="currentColor" strokeWidth="2"/></svg>
                         ) : (
                           <svg viewBox="0 0 24 24"><path d="m5 12 4 4 10-10"/></svg>
                         )}

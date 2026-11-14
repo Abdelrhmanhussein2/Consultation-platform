@@ -174,6 +174,20 @@ export default function AutomationSection({
                       <path d="M6.2 5.7a8 8 0 1 0 11.6 0" />
                     </svg>
                   </button>
+                  <button
+                    title="حذف القاعدة"
+                    style={{ color: '#dc2626' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm(`هل أنت متأكد من حذف قاعدة "${r.name}" نهائياً من قاعدة البيانات؟`)) {
+                        handleDeleteRule(r);
+                      }
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24">
+                      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                  </button>
                 </div>
               </div>
             </div>
@@ -240,7 +254,7 @@ export default function AutomationSection({
                       </button>
                       <button
                         className="record-action"
-                        style={{ color: '#ff3164' }}
+                        style={{ color: '#dc2626' }}
                         onClick={() => handleDeleteRule(r)}
                       >
                         حذف

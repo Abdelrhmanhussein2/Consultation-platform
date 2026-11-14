@@ -61,7 +61,7 @@ router = APIRouter(prefix="/super-admin", tags=["Super Administration"])
 def get_dashboard_stats(
     period: str = Query("week", description="Dashboard aggregation period (day, week, month, quarter, half, year)"),
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_perm_manage_users),
+    current_admin: User = Depends(require_perm_view_analytics),
 ):
     """Retrieves real-time dashboard KPIs, city distribution, AI consumption, and income trends from DB."""
     return SuperAdminController.get_dashboard_stats(db, period)
@@ -436,18 +436,7 @@ def get_reports_analytics(
     )
 
 
-@router.get(
-    "/dashboard/stats",
-    summary="Get live aggregated KPI stats, queue, and charts for Admin Command Center",
-)
-def get_dashboard_stats(
-    db: Session = Depends(get_db),
-    current_admin: User = Depends(require_perm_view_analytics)
-):
-    """
-    Returns live aggregated stats from the database for the Admin Command Center dashboard.
-    """
-    return SuperAdminController.get_dashboard_stats(db)
+
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -1600,24 +1589,7 @@ def delete_payment(
     return SuperAdminController.delete_payment_record(db, payment_id)
 
 
-# ─────────────────────────────────────────────────────────────────────
-# DASHBOARD REAL-TIME STATS (require_admin)
-# ─────────────────────────────────────────────────────────────────────
 
-@router.get(
-    "/dashboard/stats",
-    summary="Get real-time live aggregates and metrics for the Admin Central Dashboard",
-)
-def get_dashboard_stats(
-    period: str = Query("week", description="day, week, month, quarter, half, year"),
-    db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
-):
-    """
-    Returns real live counts, chart series, recent applications, tickets, ratings, and policies
-    directly queried from PostgreSQL for the Admin Central Command dashboard.
-    """
-    return SuperAdminController.get_dashboard_stats(db, period)
 
 
 # ─────────────────────────────────────────────────────────────────────

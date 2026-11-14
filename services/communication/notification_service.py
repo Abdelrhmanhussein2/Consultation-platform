@@ -121,9 +121,9 @@ class NotificationService:
         ).count()
 
     @staticmethod
-    def mark_as_read(db: Session, user_id: uuid.UUID, notification_id: uuid.UUID) -> Notification:
+    def mark_as_read(db: Session, user_id: uuid.UUID, notification_id: uuid.UUID, is_read: bool = None) -> Notification:
         """
-        Marks a specific notification as read.
+        Marks a specific notification as read, or toggles/sets read state.
         """
         notif = db.query(Notification).filter(
             Notification.id == notification_id,
@@ -131,7 +131,10 @@ class NotificationService:
         ).first()
         if not notif:
             raise ValueError("Notification not found or does not belong to you")
-        notif.is_read = True
+        if is_read is None:
+            notif.is_read = not notif.is_read
+        else:
+            notif.is_read = is_read
         db.commit()
         db.refresh(notif)
         return notif

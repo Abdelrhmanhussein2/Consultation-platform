@@ -809,7 +809,7 @@ class SubscriptionController:
             adm_notif = Notification(
                 user_id=adm.id,
                 type=NotificationType.general,
-                title="طلب اشتراك جديد بانتظار الموافقة 🔔",
+                title="طلب اشتراك جديد بانتظار الموافقة",
                 message=f"قام [{user_name}] بتقديم طلب اشتراك في باقة [{plan.name}] ({cycle}). يرجى مراجعة الطلب واعتماده."
             )
             db.add(adm_notif)

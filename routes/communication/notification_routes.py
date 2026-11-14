@@ -30,8 +30,12 @@ def get_unread_notifications_count(db: Session = Depends(get_db), current_user: 
 
 
 @router.patch("/{notification_id}/read", response_model=NotificationOut)
-def mark_notification_as_read(notification_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
-    return NotificationController.mark_as_read(db, current_user, notification_id)
+def mark_notification_as_read(
+    notification_id: str, payload: Optional[dict] = Body(None),
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)
+):
+    is_read = payload.get("is_read") if payload else None
+    return NotificationController.mark_as_read(db, current_user, notification_id, is_read=is_read)
 
 
 @router.post("/read-all", response_model=NotificationBulkReadOut)

@@ -38,7 +38,7 @@ export default function FilterResetButton({
         borderRadius: '8px',
         border: '1px solid #E2E8F0',
         backgroundColor: '#FFFFFF',
-        color: '#E0921B',
+        color: '#0A3C64',
         cursor: 'pointer',
         transition: 'all 0.18s ease',
         flexShrink: 0,
@@ -47,8 +47,8 @@ export default function FilterResetButton({
         ...style
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = '#FFFBEB';
-        e.currentTarget.style.borderColor = '#FCD34D';
+        e.currentTarget.style.backgroundColor = '#F8FAFC';
+        e.currentTarget.style.borderColor = '#CBD5E1';
         e.currentTarget.style.transform = 'scale(1.05)';
       }}
       onMouseLeave={(e) => {

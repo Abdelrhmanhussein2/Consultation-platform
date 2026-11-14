@@ -68,13 +68,13 @@ export default function AdminDashboardPage({ navigate }) {
             ['الدخل الإجمالي', Number(stats.total_revenue || 0).toLocaleString(), 'د.أ', '', '', 'income'],
             ['التذاكر المفتوحة', Number(stats.open_tickets || 0).toLocaleString(), '', '', '', 'ticket'],
             ['طلبات الانضمام (المستشارين)', Number(stats.pending_consultants || 0).toLocaleString(), '', '', '', 'cplus'],
-            ['طلبات الانضمام (مستخدمين)', Number(stats.pending_users || 0).toLocaleString(), '', '', '', 'uplus'],
+            ['المستخدمين الجدد', Number(stats.new_users !== undefined ? stats.new_users : stats.pending_users || 0).toLocaleString(), '', '', '', 'uplus'],
             ['إجمالي المستشارين', Number(stats.total_consultants || 0).toLocaleString(), '', '', '', 'consult'],
             ['إجمالي المستخدمين', Number(stats.total_users || 0).toLocaleString(), '', '', '', 'users']
           ],
           cities: stats.cities || [],
           ai: stats.ai_points || [0, 0, 0, 0, 0, 0, 0],
-          labels: ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'],
+          labels: stats.ai_labels || ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'],
           aiTotal: Number(stats.total_ai || 0).toLocaleString(),
           aiGrowth: stats.total_ai > 0 ? '+100%' : '',
           income: stats.income || [],
@@ -141,9 +141,35 @@ export default function AdminDashboardPage({ navigate }) {
     showToast(`تم تحديث بيانات ${periodLabels[period]}`);
   };
 
-  const handleChartPeriodChange = (chartName, period) => {
+  const handleChartPeriodChange = async (chartName, period) => {
     setChartPeriods(prev => ({ ...prev, [chartName]: period }));
     showToast(`تم تحديث الرسم إلى ${periodLabels[period]}`);
+    try {
+      const stats = await getDashboardStats(period);
+      if (stats) {
+        if (chartName === 'ai') {
+          setDashboardData(prev => ({
+            ...prev,
+            ai: stats.ai_points || [0, 0, 0, 0, 0, 0, 0],
+            labels: stats.ai_labels || prev.labels,
+            aiTotal: Number(stats.total_ai || 0).toLocaleString()
+          }));
+        } else if (chartName === 'cities') {
+          setDashboardData(prev => ({
+            ...prev,
+            cities: stats.cities || []
+          }));
+        } else if (chartName === 'income') {
+          setDashboardData(prev => ({
+            ...prev,
+            income: stats.income || [],
+            incomeTotal: Number(stats.total_revenue || 0).toLocaleString()
+          }));
+        }
+      }
+    } catch (e) {
+      console.warn('Error fetching chart stats:', e);
+    }
   };
 
   // ══════════════════════════════════════════════════════════════════════════

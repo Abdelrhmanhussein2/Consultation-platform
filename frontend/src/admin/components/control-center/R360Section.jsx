@@ -122,19 +122,19 @@ export default function R360Section({
 
       {/* List View */}
       {r360View === 'list' && (
-        <div className="table-wrap">
-          <table>
+        <div className="table-wrap" style={{ overflowX: 'auto', width: '100%' }}>
+          <table style={{ width: '100%', minWidth: '980px', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th>السجل</th>
-                <th>النوع</th>
-                <th>الحالة</th>
-                <th>الوصف</th>
-                <th>الاستشارات</th>
-                <th>التذاكر</th>
-                <th>الاستخدام الذكي</th>
-                <th>التقييم</th>
-                <th>الإجراء</th>
+                <th style={{ minWidth: '220px' }}>السجل</th>
+                <th style={{ minWidth: '100px' }}>النوع</th>
+                <th style={{ minWidth: '95px' }}>الحالة</th>
+                <th style={{ minWidth: '140px' }}>الوصف</th>
+                <th style={{ minWidth: '95px', textAlign: 'center' }}>الاستشارات</th>
+                <th style={{ minWidth: '85px', textAlign: 'center' }}>التذاكر</th>
+                <th style={{ minWidth: '115px', textAlign: 'center' }}>الاستخدام الذكي</th>
+                <th style={{ minWidth: '85px', textAlign: 'center' }}>التقييم</th>
+                <th style={{ minWidth: '80px', width: '80px', textAlign: 'center' }}>الإجراء</th>
               </tr>
             </thead>
             <tbody>
@@ -151,12 +151,12 @@ export default function R360Section({
                     <span className={`status ${cls(r.status)}`}>{r.status}</span>
                   </td>
                   <td>{r.desc}</td>
-                  <td>{r.consultations}</td>
-                  <td>{r.tickets}</td>
-                  <td>{r.ai}</td>
-                  <td>{r.rating}</td>
-                  <td>
-                    <button className="icon-btn slate" onClick={() => open360(r.type, r.id)}>
+                  <td style={{ textAlign: 'center', fontWeight: '700' }}>{r.consultations}</td>
+                  <td style={{ textAlign: 'center', fontWeight: '700' }}>{r.tickets}</td>
+                  <td style={{ textAlign: 'center', fontWeight: '700' }}>{r.ai}</td>
+                  <td style={{ textAlign: 'center', fontWeight: '700' }}>{r.rating}</td>
+                  <td style={{ textAlign: 'center' }}>
+                    <button className="icon-btn slate" style={{ margin: '0 auto' }} onClick={() => open360(r.type, r.id)}>
                       <svg viewBox="0 0 24 24">
                         <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
                         <circle cx="12" cy="12" r="3" />
