@@ -11,7 +11,8 @@ export default function ModernSelect({
   dropdownWidth = 'auto',
   align = 'right',
   direction = 'down',
-  style = {}
+  style = {},
+  multiple = false
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
@@ -35,12 +36,33 @@ export default function ModernSelect({
     return { value: opt, label: opt };
   });
 
-  const selectedOption = normalizedOptions.find(opt => opt.value === value);
-  const isSelected = value !== '' && value !== null && value !== undefined;
+  const selectedValues = multiple ? (Array.isArray(value) ? value : (value ? [value] : [])) : [];
+  const selectedOption = !multiple ? normalizedOptions.find(opt => opt.value === value) : null;
+  const isSelected = multiple
+    ? selectedValues.length > 0
+    : (value !== '' && value !== null && value !== undefined);
+
+  let labelText = placeholder;
+  if (multiple) {
+    if (selectedValues.length === 1) {
+      const match = normalizedOptions.find(opt => opt.value === selectedValues[0]);
+      labelText = match ? match.label : selectedValues[0];
+    } else if (selectedValues.length > 1) {
+      labelText = `تم تحديد (${selectedValues.length}) قوانين`;
+    }
+  } else {
+    labelText = selectedOption ? selectedOption.label : placeholder;
+  }
 
   const handleSelect = (optValue) => {
-    onChange(optValue);
-    setIsOpen(false);
+    if (multiple) {
+      const exists = selectedValues.includes(optValue);
+      const next = exists ? selectedValues.filter(v => v !== optValue) : [...selectedValues, optValue];
+      onChange(next);
+    } else {
+      onChange(optValue);
+      setIsOpen(false);
+    }
   };
 
   return (
@@ -53,7 +75,7 @@ export default function ModernSelect({
       >
         {prefixIcon && <span className="modern-select-prefix-icon">{prefixIcon}</span>}
         <span className="modern-select-label">
-          {selectedOption ? selectedOption.label : placeholder}
+          {labelText}
         </span>
 
         {isSelected && <span className="modern-select-active-dot" />}
@@ -77,7 +99,7 @@ export default function ModernSelect({
         <div className={`modern-select-dropdown align-${align}`} style={{ minWidth: dropdownWidth }}>
           <div className="modern-select-options">
             {normalizedOptions.map((opt, idx) => {
-              const active = opt.value === value;
+              const active = multiple ? selectedValues.includes(opt.value) : opt.value === value;
               return (
                 <div
                   key={idx}

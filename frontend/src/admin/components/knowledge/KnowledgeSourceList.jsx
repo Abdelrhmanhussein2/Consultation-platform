@@ -18,7 +18,8 @@ export default function KnowledgeSourceList({
   onEdit,
   onToggleActive,
   onBroadcast,
-  onDelete
+  onRepeal,
+  onRestore
 }) {
   return (
     <section className="knowledge-bento-panel knowledge-sources-section">
@@ -66,15 +67,24 @@ export default function KnowledgeSourceList({
                       {KIND_OPTIONS[item.kind] || item.kind}
                     </span>
 
-                    <button
-                      type="button"
-                      onClick={() => onToggleActive && onToggleActive(item)}
-                      className={`source-badge ${item.is_active ? 'badge-active' : 'badge-inactive'}`}
-                      style={{ cursor: 'pointer', border: 'none' }}
-                      title={item.is_active ? 'انقر لتعطيل المصدر وإخفائه عن المستخدمين' : 'انقر لتفعيل المصدر وإتاحته في المنصة'}
-                    >
-                      {item.is_active ? 'نشط' : 'موقوف'}
-                    </button>
+                    {item.status === 'ملغي' ? (
+                      <span
+                        className="source-badge"
+                        style={{ backgroundColor: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1', fontWeight: 600 }}
+                      >
+                        ملغي
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => onToggleActive && onToggleActive(item)}
+                        className={`source-badge ${item.is_active ? 'badge-active' : 'badge-inactive'}`}
+                        style={{ cursor: 'pointer', border: 'none' }}
+                        title={item.is_active ? 'انقر لتعطيل المصدر وإخفائه عن المستخدمين' : 'انقر لتفعيل المصدر وإتاحته في المنصة'}
+                      >
+                        {item.is_active ? 'نشط' : 'موقوف'}
+                      </button>
+                    )}
 
                     {item.file_name && (
                       <span className="source-badge">
@@ -124,14 +134,27 @@ export default function KnowledgeSourceList({
                   <span>تنبيه المتأثرين</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => onDelete(item.id, item.source_type || (item.kind === 'precedent' ? 'judgment' : 'law'))}
-                  className="btn-card-delete"
-                  title="حذف المصدر وفهارسه"
-                >
-                  <IconTrash className="size-4" />
-                </button>
+                {item.status === 'ملغي' ? (
+                  <button
+                    type="button"
+                    onClick={() => onRestore && onRestore(item)}
+                    className="btn-card-action"
+                    style={{ color: '#005D9C', borderColor: '#BAE6FD', backgroundColor: '#F0F7FD' }}
+                    title="إعادة تفعيل المصدر ليكون سارياً"
+                  >
+                    <span>إعادة تفعيل</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onRepeal && onRepeal(item)}
+                    className="btn-card-action"
+                    style={{ color: '#B45309', borderColor: '#FDE68A', backgroundColor: '#FFFBEB' }}
+                    title={item.source_type === 'judgment' || item.kind === 'precedent' ? 'إلغاء الحكم' : 'إلغاء القانون'}
+                  >
+                    <span>{item.source_type === 'judgment' || item.kind === 'precedent' ? 'إلغاء الحكم' : 'إلغاء القانون'}</span>
+                  </button>
+                )}
               </div>
             </div>
           ))}

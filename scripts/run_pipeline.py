@@ -250,7 +250,10 @@ class Neo4jPipeline:
 
     def clear_database(self):
         with self.driver.session() as session:
-            session.run("MATCH (n) DETACH DELETE n")
+            if os.getenv("ALLOW_DESTRUCTIVE_DB_CLEAR") == "1":
+                session.run("MATCH (n) DETACH DELETE n")
+            else:
+                raise RuntimeError("Security Alert: clear_database is disabled by default to prevent accidental data loss. Set ALLOW_DESTRUCTIVE_DB_CLEAR=1 explicitly.")
 
     def init_schema(self):
         queries = [

@@ -5,6 +5,7 @@ import {
   fetchKnowledgeStats,
   fetchKnowledgeSources,
   fetchKnowledgeSourceDetail,
+  fetchParentLaws,
   syncKnowledgeCore,
   saveLawSource,
   saveRulingSource,
@@ -19,10 +20,12 @@ import KnowledgeRulingForm from '../components/knowledge/KnowledgeRulingForm';
 import KnowledgeSourceList from '../components/knowledge/KnowledgeSourceList';
 import KnowledgeEditModal from '../components/knowledge/KnowledgeEditModal';
 import KnowledgeBroadcastModal from '../components/knowledge/KnowledgeBroadcastModal';
-import ConfirmModal from '../../components/ConfirmModal';
+import RepealLawModal from '../components/knowledge/RepealLawModal';
+import RestoreLawModal from '../components/knowledge/RestoreLawModal';
 
 export default function AdminKnowledgePage() {
   const [sources, setSources] = useState([]);
+  const [parentLaws, setParentLaws] = useState([]);
   const [stats, setStats] = useState({ sources_count: 0, active_count: 0, chunks_count: 0, relations_count: 0 });
   const [search, setSearch] = useState('');
   const [kindFilter, setKindFilter] = useState('all');
@@ -37,7 +40,8 @@ export default function AdminKnowledgePage() {
   const [isExtractingRuling, setIsExtractingRuling] = useState(false);
   const [isSavingLaw, setIsSavingLaw] = useState(false);
   const [isSavingRuling, setIsSavingRuling] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [repealTarget, setRepealTarget] = useState(null);
+  const [restoreTarget, setRestoreTarget] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
 
   const showToast = useCallback((msg) => {
@@ -52,6 +56,13 @@ export default function AdminKnowledgePage() {
     } catch {}
   }, []);
 
+  const loadParentLaws = useCallback(async () => {
+    try {
+      const items = await fetchParentLaws({ limit: 50 });
+      if (Array.isArray(items)) setParentLaws(items);
+    } catch {}
+  }, []);
+
   const loadSources = useCallback(async () => {
     try {
       const items = await fetchKnowledgeSources({ kindFilter, statusFilter, yearFilter, search });
@@ -59,7 +70,7 @@ export default function AdminKnowledgePage() {
     } catch {}
   }, [kindFilter, statusFilter, yearFilter, search]);
 
-  useEffect(() => { loadSources(); loadStats(); }, [loadSources, loadStats]);
+  useEffect(() => { loadSources(); loadStats(); loadParentLaws(); }, [loadSources, loadStats, loadParentLaws]);
 
   const handleSyncCore = async () => {
     setIsSyncing(true);
@@ -111,24 +122,18 @@ export default function AdminKnowledgePage() {
     finally { setIsSavingRuling(false); }
   };
 
-  const executeDeleteSource = async () => {
-    if (!deleteTarget) return;
-    try {
-      const res = await deleteKnowledgeSource(deleteTarget.id, deleteTarget.source_type);
-      if (res.ok) {
-        const d = await res.json();
-        showToast(d.message || 'تم حذف المصدر وفهارسه بنجاح');
-        loadSources();
-        loadStats();
-      } else {
-        const err = await res.json().catch(() => ({}));
-        console.error('[DELETE SOURCE]', res.status, err);
-        showToast(err.detail || `فشل الحذف (${res.status})`);
-      }
-    } catch (e) {
-      console.error('[DELETE SOURCE]', e);
-      showToast('خطأ في الاتصال أثناء الحذف');
-    } finally { setDeleteTarget(null); }
+  const handleRepealSuccess = () => {
+    showToast('تم إلغاء المصدر وتحديث حالة التوابع بنجاح');
+    loadSources();
+    loadStats();
+    loadParentLaws();
+  };
+
+  const handleRestoreSuccess = () => {
+    showToast('تمت إعادة تفعيل المصدر بنجاح');
+    loadSources();
+    loadStats();
+    loadParentLaws();
   };
 
   const handleEdit = async (s) => {
@@ -147,10 +152,12 @@ export default function AdminKnowledgePage() {
     try {
       const res = await updateKnowledgeSource(sourceId, sourceType, updatedData);
       if (res.ok) {
-        showToast('تم تحديث بيانات المصدر وحالته بنجاح');
+        const d = await res.json().catch(() => ({}));
+        showToast(d.warning ? d.warning : 'تم تحديث بيانات المصدر وارتباطاته بنجاح');
         setEditingSource(null);
         loadSources();
         loadStats();
+        loadParentLaws();
       } else {
         const err = await res.json().catch(() => ({}));
         showToast(err.detail || 'تعذر حفظ التعديلات');
@@ -184,13 +191,14 @@ export default function AdminKnowledgePage() {
       <div className="knowledge-container">
         <KnowledgeHeaderAndStats sourcesCount={stats.sources_count} chunksCount={stats.chunks_count} relationsCount={stats.relations_count} activeCount={stats.active_count} isSyncing={isSyncing} onSyncCore={handleSyncCore} />
         <KnowledgeFilterBar search={search} onSearchChange={setSearch} kind={kindFilter} onKindChange={setKindFilter} status={statusFilter} onStatusChange={setStatusFilter} year={yearFilter} onYearChange={setYearFilter} onReset={handleResetFilters} />
-        <KnowledgeSourceForm formData={formData} setFormData={setFormData} onSave={handleSaveLaw} onReset={() => setFormData(EMPTY_FORM)} isExtracting={isExtractingLaw} setIsExtracting={setIsExtractingLaw} isSaving={isSavingLaw} onNotify={showToast} />
-        <KnowledgeRulingForm formData={rulingFormData} setFormData={setRulingFormData} onSave={handleSaveRuling} onReset={() => setRulingFormData(EMPTY_RULING_FORM)} isExtracting={isExtractingRuling} setIsExtracting={setIsExtractingRuling} isSaving={isSavingRuling} onNotify={showToast} />
-        <KnowledgeSourceList sources={sources} kindFilter={kindFilter} onKindFilterChange={setKindFilter} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} yearFilter={yearFilter} onYearFilterChange={setYearFilter} searchQuery={search} onSearchChange={setSearch} onReset={handleResetFilters} onEdit={handleEdit} onToggleActive={handleToggleActive} onBroadcast={(item) => setBroadcastTarget(item)} onDelete={(id, typ) => setDeleteTarget({ id, source_type: typ })} />
+        <KnowledgeSourceForm formData={formData} setFormData={setFormData} onSave={handleSaveLaw} onReset={() => setFormData(EMPTY_FORM)} isExtracting={isExtractingLaw} setIsExtracting={setIsExtractingLaw} isSaving={isSavingLaw} onNotify={showToast} parentLaws={parentLaws} />
+        <KnowledgeRulingForm formData={rulingFormData} setFormData={setRulingFormData} onSave={handleSaveRuling} onReset={() => setRulingFormData(EMPTY_RULING_FORM)} isExtracting={isExtractingRuling} setIsExtracting={setIsExtractingRuling} isSaving={isSavingRuling} onNotify={showToast} parentLaws={parentLaws} />
+        <KnowledgeSourceList sources={sources} kindFilter={kindFilter} onKindFilterChange={setKindFilter} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} yearFilter={yearFilter} onYearFilterChange={setYearFilter} searchQuery={search} onSearchChange={setSearch} onReset={handleResetFilters} onEdit={handleEdit} onToggleActive={handleToggleActive} onBroadcast={(item) => setBroadcastTarget(item)} onRepeal={(item) => setRepealTarget(item)} onRestore={(item) => setRestoreTarget(item)} />
       </div>
       <KnowledgeEditModal isOpen={Boolean(editingSource)} source={editingSource} onSave={handleSaveSourceEdit} onClose={() => setEditingSource(null)} />
       <KnowledgeBroadcastModal isOpen={Boolean(broadcastTarget)} source={broadcastTarget} onClose={() => setBroadcastTarget(null)} onNotify={showToast} />
-      <ConfirmModal isOpen={Boolean(deleteTarget)} title="تأكيد حذف المصدر القانوني" message="هل أنت متأكد من حذف هذا المصدر وفهارسه ومتجهاته بالكامل من النظام؟ لا يمكن التراجع عن هذا الإجراء." confirmText="حذف المصدر" onConfirm={executeDeleteSource} onClose={() => setDeleteTarget(null)} />
+      <RepealLawModal isOpen={Boolean(repealTarget)} source={repealTarget} onClose={() => setRepealTarget(null)} onSuccess={handleRepealSuccess} parentLaws={parentLaws} />
+      <RestoreLawModal isOpen={Boolean(restoreTarget)} source={restoreTarget} onClose={() => setRestoreTarget(null)} onSuccess={handleRestoreSuccess} />
       {toastMessage && <div className="knowledge-toast">{toastMessage}</div>}
     </div>
   );

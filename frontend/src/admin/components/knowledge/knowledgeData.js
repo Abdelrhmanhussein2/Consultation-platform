@@ -29,6 +29,38 @@ export const STATUS_OPTIONS = [
   { value: 'inactive', label: 'غير مفعل' }
 ];
 
+export const RELATION_TYPE_OPTIONS = [
+  { value: 'none', label: 'تشريع مستقل (بدون ارتباط مباشر)' },
+  { value: 'issued_under', label: 'صدر بموجبه (تشريع تنفيذي لاحق)' },
+  { value: 'repealed_by', label: 'ملغي بموجب (تشريع سابق ملغى)' }
+];
+
+export const SUB_CATEGORY_LEGAL_OPTIONS = [
+  { value: 'الأنظمة', label: 'الأنظمة' },
+  { value: 'القرارات', label: 'القرارات' },
+  { value: 'التعليمات', label: 'التعليمات' },
+  { value: 'القوانين', label: 'القوانين' },
+  { value: 'أحكام ملزمة', label: 'أحكام ملزمة' },
+  { value: 'جداول', label: 'جداول' },
+  { value: 'ملاحق', label: 'ملاحق' }
+];
+
+export const COURT_JUDICIAL_OPTIONS = [
+  { value: 'تمييز حقوق', label: 'تمييز حقوق' },
+  { value: 'تمييز جزاء', label: 'تمييز جزاء' },
+  { value: 'قضاء دستوري', label: 'قضاء دستوري' },
+  { value: 'قضاء إداري', label: 'قضاء إداري' },
+  { value: 'الدرجة الأولى', label: 'الدرجة الأولى' },
+  { value: 'بداية حقوق ضريبية', label: 'بداية حقوق ضريبية' }
+];
+
+export const DOCUMENT_STATUS_OPTIONS = [
+  { value: 'ساري', label: 'ساري النفاذ' },
+  { value: 'معدل وتعديلاته', label: 'معدل وتعديلاته' },
+  { value: 'ملغي', label: 'ملغي' },
+  { value: 'مؤقت', label: 'قانون مؤقت' }
+];
+
 export const EMPTY_FORM = {
   id: null,
   title: '',
@@ -40,7 +72,12 @@ export const EMPTY_FORM = {
   sourceUrl: '',
   isActive: true,
   fileName: null,
-  fileSize: null
+  fileSize: null,
+  related_laws: [],
+  relation_type: 'none',
+  sub_category: 'الأنظمة',
+  document_status: 'ساري',
+  notes: ''
 };
 
 export const COURT_OPTIONS = [
@@ -69,13 +106,17 @@ export const EMPTY_RULING_FORM = {
   id: null,
   title: '',
   court: 'cassation_rights',
+  court_category: 'تمييز حقوق',
   caseNumber: '',
   legalArticle: '',
   year: new Date().getFullYear(),
   tags: '',
   principle: '',
   sourceUrl: '',
-  fileName: null
+  fileName: null,
+  related_laws: [],
+  document_status: 'ساري',
+  notes: ''
 };
 
 export function parseTags(str) {

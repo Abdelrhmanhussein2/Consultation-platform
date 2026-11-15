@@ -9,7 +9,10 @@ from helpers.enums import (
 from models.auth import RefreshToken
 
 # AI models
-from models.ai import AIChatSession, AIChatMessage, LegalTerm, LegalImportJob
+from models.ai import (
+    AIChatSession, AIChatMessage, LegalTerm, LegalImportJob, LegalRelation,
+    LegalRelationAudit, LegalDocumentMetadata, LegalRepealAudit
+)
 
 # Finance models
 from models.finance import (

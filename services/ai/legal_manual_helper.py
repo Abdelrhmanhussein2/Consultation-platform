@@ -38,6 +38,39 @@ def create_manual_law(payload: Dict[str, Any]) -> Dict[str, Any]:
         )
     except Exception:
         pass
+
+    # Synchronize optional multi-selected parent law relations in PostgreSQL and Neo4j
+    related_laws = payload.get("related_laws") or payload.get("related_law_ids") or []
+    if isinstance(related_laws, str):
+        related_laws = [x.strip() for x in related_laws.split(",") if x.strip()]
+
+    relation_type = payload.get("relation_type") or "issued_under"
+    sub_category = payload.get("sub_category") or payload.get("category") or "الأنظمة"
+    doc_status = payload.get("document_status") or payload.get("status") or "ساري"
+
+    if related_laws:
+        from helpers.database import SessionLocal
+        from services.ai.legal_relation_service import LegalRelationService
+        db = SessionLocal()
+        try:
+            for pid in related_laws:
+                LegalRelationService.sync_relation(
+                    db=db,
+                    parent_law_id=pid,
+                    target_document_id=law_id,
+                    target_title=title,
+                    relation_domain="legislative",
+                    relation_type=relation_type,
+                    sub_category=sub_category,
+                    document_type=payload.get("document_type") or sub_category,
+                    article_ref=payload.get("article_ref"),
+                    effective_date=payload.get("effective_date"),
+                    document_status=doc_status,
+                    notes=payload.get("notes")
+                )
+        finally:
+            db.close()
+
     return {"status": "success", "id": law_id, "title": title}
 
 
@@ -66,5 +99,37 @@ def create_manual_judgment(payload: Dict[str, Any]) -> Dict[str, Any]:
         })
     except Exception:
         pass
+
+    # Synchronize optional multi-selected parent law citations in PostgreSQL and Neo4j
+    related_laws = payload.get("related_laws") or payload.get("related_law_ids") or []
+    if isinstance(related_laws, str):
+        related_laws = [x.strip() for x in related_laws.split(",") if x.strip()]
+
+    court_cat = payload.get("court_category") or court or "تمييز حقوق"
+    doc_status = payload.get("document_status") or payload.get("status") or "ساري"
+
+    if related_laws:
+        from helpers.database import SessionLocal
+        from services.ai.legal_relation_service import LegalRelationService
+        db = SessionLocal()
+        try:
+            for pid in related_laws:
+                LegalRelationService.sync_relation(
+                    db=db,
+                    parent_law_id=pid,
+                    target_document_id=ruling_id,
+                    target_title=title,
+                    relation_domain="judicial",
+                    relation_type="cites_law",
+                    sub_category=court_cat,
+                    document_type="حكم قضائي",
+                    article_ref=payload.get("article_ref") or payload.get("dispute_item"),
+                    effective_date=payload.get("effective_date") or payload.get("date"),
+                    document_status=doc_status,
+                    notes=payload.get("notes")
+                )
+        finally:
+            db.close()
+
     return {"status": "success", "id": ruling_id, "title": title}
 

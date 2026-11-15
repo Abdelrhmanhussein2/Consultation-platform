@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { IconUpload, IconSave, IconSync } from './KnowledgeIcons';
 import { getAuthHeaders } from './knowledgeData';
 import KnowledgeDuplicateAlert from './KnowledgeDuplicateAlert';
+import KnowledgeRelationSection from './KnowledgeRelationSection';
 
 export default function KnowledgeSourceForm({
   formData,
@@ -11,7 +12,8 @@ export default function KnowledgeSourceForm({
   isExtracting,
   setIsExtracting,
   isSaving = false,
-  onNotify
+  onNotify,
+  parentLaws = []
 }) {
   const fileInputRef = useRef(null);
   const [duplicateMsg, setDuplicateMsg] = useState('');
@@ -145,6 +147,13 @@ export default function KnowledgeSourceForm({
             className="knowledge-input"
           />
         </div>
+
+        <KnowledgeRelationSection
+          mode="legislative"
+          formData={formData}
+          setFormData={setFormData}
+          parentLaws={parentLaws}
+        />
 
         <div>
           <textarea

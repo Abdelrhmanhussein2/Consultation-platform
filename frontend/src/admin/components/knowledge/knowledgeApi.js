@@ -39,6 +39,7 @@ export async function fetchKnowledgeSources({ kindFilter, statusFilter, yearFilt
     year: s.year,
     court: s.court,
     is_active: s.is_active,
+    status: s.status || (s.is_active ? 'ساري' : 'ملغي'),
     body: s.body || '',
     articles_count: s.articles_count,
     citations_count: s.citations_count,
@@ -55,8 +56,52 @@ export async function fetchKnowledgeSourceDetail(sourceId, sourceType) {
   return res.json();
 }
 
+export async function fetchDocumentRelations(sourceId) {
+  try {
+    const res = await fetch(`/api/legal/document-relations/${encodePathId(sourceId)}`, {
+      headers: getAuthHeaders(),
+      credentials: 'include'
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchLawTaxonomyTree(lawId) {
+  try {
+    const res = await fetch(`/api/legal/relations/${encodePathId(lawId)}`, {
+      headers: getAuthHeaders(),
+      credentials: 'include'
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json?.data || json;
+  } catch {
+    return null;
+  }
+}
+
 export async function syncKnowledgeCore() {
   return fetch('/api/legal/sync-core', { method: 'POST', headers: jsonHeaders(), credentials: 'include' });
+}
+
+export async function fetchParentLaws({ q = '', limit = 20, skip = 0 } = {}) {
+  try {
+    const params = new URLSearchParams();
+    if (q && q.trim()) params.set('q', q.trim());
+    if (limit) params.set('limit', String(limit));
+    if (skip) params.set('skip', String(skip));
+    const url = `/api/legal/parent-laws${params.toString() ? `?${params.toString()}` : ''}`;
+    const res = await fetch(url, { headers: getAuthHeaders(), credentials: 'include' });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : []);
+  } catch {
+    return [];
+  }
 }
 
 export async function saveLawSource(formData) {
@@ -79,6 +124,25 @@ export async function saveLawSource(formData) {
         title: formData.title, year: Number(yr), number: cleanNum, body: formData.body, is_active: true
       }).catch(() => {});
     }
+    if (res.ok && formData.related_laws?.length > 0) {
+      for (const pid of formData.related_laws) {
+        await fetch('/api/legal/relations', {
+          method: 'POST',
+          headers: jsonHeaders(),
+          credentials: 'include',
+          body: JSON.stringify({
+            parent_law_id: pid,
+            target_document_id: lawId,
+            target_title: formData.title,
+            relation_domain: 'legislative',
+            relation_type: formData.relation_type || 'issued_under',
+            sub_category: formData.sub_category || 'الأنظمة',
+            document_status: formData.document_status || 'ساري',
+            notes: formData.notes || ''
+          })
+        }).catch(() => {});
+      }
+    }
     return res;
   }
   return fetch('/api/legal/sources/manual-law', {
@@ -88,14 +152,35 @@ export async function saveLawSource(formData) {
 
 export async function saveRulingSource(rulingFormData) {
   const tags = parseTags(rulingFormData.tags);
+  const rulingId = rulingFormData.caseNumber || `jdg_${Date.now()}`;
   if (rulingFormData.file?.name?.toLowerCase().endsWith('.docx')) {
     const fd = new FormData();
     fd.append('file', rulingFormData.file);
-    fd.append('case_number', rulingFormData.caseNumber || `jdg_${Date.now()}`);
+    fd.append('case_number', rulingId);
     fd.append('title', rulingFormData.title);
     fd.append('court', rulingFormData.court || 'تمييز حقوق');
     fd.append('ruling_year', String(rulingFormData.year || new Date().getFullYear()));
-    return fetch('/api/legal/upload-judgment', { method: 'POST', headers: getAuthHeaders(), credentials: 'include', body: fd });
+    const res = await fetch('/api/legal/upload-judgment', { method: 'POST', headers: getAuthHeaders(), credentials: 'include', body: fd });
+    if (res.ok && rulingFormData.related_laws?.length > 0) {
+      for (const pid of rulingFormData.related_laws) {
+        await fetch('/api/legal/relations', {
+          method: 'POST',
+          headers: jsonHeaders(),
+          credentials: 'include',
+          body: JSON.stringify({
+            parent_law_id: pid,
+            target_document_id: rulingId,
+            target_title: rulingFormData.title,
+            relation_domain: 'judicial',
+            relation_type: 'cites_law',
+            sub_category: rulingFormData.court_category || 'تمييز حقوق',
+            document_status: rulingFormData.document_status || 'ساري',
+            notes: rulingFormData.notes || ''
+          })
+        }).catch(() => {});
+      }
+    }
+    return res;
   }
   return fetch('/api/legal/sources/manual-judgment', {
     method: 'POST', headers: jsonHeaders(), credentials: 'include', body: JSON.stringify({ ...rulingFormData, tags })
@@ -113,6 +198,45 @@ export async function toggleKnowledgeSourceActive(sourceId, sourceType) {
     `/api/legal/sources/${encodePathId(sourceId)}/toggle-active?source_type=${encodeURIComponent(sourceType)}`,
     { method: 'PATCH', headers: getAuthHeaders(), credentials: 'include' }
   );
+}
+
+export async function fetchRepealPreview(sourceId) {
+  const res = await fetch(`/api/legal/${encodePathId(sourceId)}/repeal-preview`, {
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'تعذر تحميل معاينة الإلغاء');
+  }
+  return res.json();
+}
+
+export async function submitRepeal(sourceId, payload) {
+  const res = await fetch(`/api/legal/${encodePathId(sourceId)}/repeal`, {
+    method: 'POST',
+    headers: jsonHeaders(),
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'تعذر تنفيذ عملية الإلغاء');
+  }
+  return res.json();
+}
+
+export async function submitRestore(sourceId) {
+  const res = await fetch(`/api/legal/${encodePathId(sourceId)}/restore`, {
+    method: 'POST',
+    headers: jsonHeaders(),
+    credentials: 'include'
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'تعذر إعادة تفعيل المصدر');
+  }
+  return res.json();
 }
 
 export async function deleteKnowledgeSource(sourceId, sourceType) {

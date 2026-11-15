@@ -44,7 +44,9 @@ def init_neo4j_db():
         "CREATE CONSTRAINT article_version_id_unique IF NOT EXISTS FOR (av:ArticleVersion) REQUIRE av.version_id IS UNIQUE",
         "CREATE CONSTRAINT paragraph_id_unique IF NOT EXISTS FOR (p:Paragraph) REQUIRE p.paragraph_id IS UNIQUE",
         "CREATE CONSTRAINT item_id_unique IF NOT EXISTS FOR (i:Item) REQUIRE i.item_id IS UNIQUE",
-        "CREATE CONSTRAINT judgment_id_unique IF NOT EXISTS FOR (j:Judgment) REQUIRE j.ruling_id IS UNIQUE"
+        "CREATE CONSTRAINT judgment_id_unique IF NOT EXISTS FOR (j:Judgment) REQUIRE j.ruling_id IS UNIQUE",
+        "CREATE INDEX law_status_idx IF NOT EXISTS FOR (l:Law) ON (l.status)",
+        "CREATE INDEX judgment_status_idx IF NOT EXISTS FOR (j:Judgment) ON (j.status)"
     ]
     
     session = neo4j_db.get_session()
