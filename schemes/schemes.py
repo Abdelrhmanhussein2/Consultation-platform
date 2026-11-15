@@ -74,6 +74,11 @@ class ConsultantRegister(BaseModel):
     certificates_licenses: Optional[str] = None
     price_per_hour: Optional[Decimal] = None
     country: Optional[str] = Field("الأردن", max_length=50)
+    id_proof_url: Optional[str] = Field(None, max_length=500)
+    academic_certificates_url: Optional[str] = Field(None, max_length=500)
+    professional_licenses_url: Optional[str] = Field(None, max_length=500)
+    jcpa_cert_url: Optional[str] = Field(None, max_length=500)
+    experts_society_cert_url: Optional[str] = Field(None, max_length=500)
     accepted_privacy_policy: bool = Field(..., description="Must accept privacy policy")
 
     @field_validator('email')
@@ -426,6 +431,11 @@ class ConsultantProfileOut(BaseModel):
     years_of_experience: Optional[int] = None
     certificates_licenses: Optional[str] = None
     price_per_hour: Optional[Decimal] = None
+    id_proof_url: Optional[str] = None
+    academic_certificates_url: Optional[str] = None
+    professional_licenses_url: Optional[str] = None
+    jcpa_cert_url: Optional[str] = None
+    experts_society_cert_url: Optional[str] = None
     cover_image_url: Optional[str] = None
     profile_image_url: Optional[str] = None
     created_at: Optional[datetime] = None

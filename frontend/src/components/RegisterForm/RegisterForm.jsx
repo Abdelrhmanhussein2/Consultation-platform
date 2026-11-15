@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import './RegisterForm.css';
 import ModernSelect from '../ModernSelect';
 import OtpVerificationStep from './OtpVerificationStep';
+import ConsultantFilesStep from './ConsultantFilesStep';
+import ConsultantPoliciesStep from './ConsultantPoliciesStep';
 
 export default function RegisterForm({ openPolicy, navigate }) {
   // Account Type ('user' or 'consultant')
@@ -36,15 +38,37 @@ export default function RegisterForm({ openPolicy, navigate }) {
   const [uploadingCr, setUploadingCr] = useState(false);
 
   // Step 2: Professional Details (Consultant)
-  const [title, setTitle] = useState('');
   const [mainSpecializationId, setMainSpecializationId] = useState('1');
-  const [activityType, setActivityType] = useState('');
+  const [activityType, setActivityType] = useState('مستشار ضريبي');
   const [yearsOfExperience, setYearsOfExperience] = useState('');
   const [certificatesLicenses, setCertificatesLicenses] = useState('');
-  const [certificatesFileUrl, setCertificatesFileUrl] = useState('');
-  const [certificatesFileName, setCertificatesFileName] = useState('');
-  const [uploadingCertificates, setUploadingCertificates] = useState(false);
   const [bio, setBio] = useState('');
+
+  // Step 3: Consultant 5 Certificate Files
+  const [idProofUrl, setIdProofUrl] = useState('');
+  const [idProofName, setIdProofName] = useState('');
+  const [academicCertUrl, setAcademicCertUrl] = useState('');
+  const [academicCertName, setAcademicCertName] = useState('');
+  const [professionalLicenseUrl, setProfessionalLicenseUrl] = useState('');
+  const [professionalLicenseName, setProfessionalLicenseName] = useState('');
+  const [jcpaCertUrl, setJcpaCertUrl] = useState('');
+  const [jcpaCertName, setJcpaCertName] = useState('');
+  const [expertsSocietyCertUrl, setExpertsSocietyCertUrl] = useState('');
+  const [expertsSocietyCertName, setExpertsSocietyCertName] = useState('');
+
+  // Step 4: Consultant 10 Policies
+  const [consultantPolicies, setConsultantPolicies] = useState({
+    consultant_agreement: false,
+    ai_disclosure: false,
+    data_owners: false,
+    records_retention: false,
+    privacy_policy: false,
+    service_level: false,
+    terms_of_use: false,
+    code_of_conduct: false,
+    service_quality: false,
+    service_fees: false,
+  });
 
   // Agreement
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -112,33 +136,28 @@ export default function RegisterForm({ openPolicy, navigate }) {
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
-          setSpecializations(data);
+          const filtered = data.filter((s) => s.id <= 8);
+          const finalSpecs = filtered.length > 0 ? filtered : data;
+          setSpecializations(finalSpecs);
           if (!mainSpecializationId) {
-            setMainSpecializationId(data[0].id.toString());
+            setMainSpecializationId(finalSpecs[0].id.toString());
           }
         } else {
           throw new Error('No data');
         }
       })
       .catch(() => {
-        const official15 = [
-          { id: 1, name: 'ضريبة الدخل والمبيعات' },
-          { id: 2, name: 'المناطق الحرة والتنموية' },
-          { id: 3, name: 'منطقة العقبة الاقتصادية الخاصة' },
-          { id: 4, name: 'قوانين الإستثمار' },
-          { id: 5, name: 'قوانين الجمارك' },
-          { id: 6, name: 'الضرائب الدولية' },
-          { id: 7, name: 'الإزدواج الضريبي' },
-          { id: 8, name: 'الأسعار التحويلية' },
-          { id: 9, name: 'الضريبة الخاصة' },
-          { id: 10, name: 'المنازعات الضريبية' },
-          { id: 11, name: 'إدارة المخاطر' },
-          { id: 12, name: 'تدقيق الحسابات' },
-          { id: 13, name: 'التدقيق الداخلي' },
-          { id: 14, name: 'الإعسار' },
-          { id: 15, name: 'التصفية' }
+        const official8 = [
+          { id: 1, name: 'ضريبي' },
+          { id: 2, name: 'ضريبة المبيعات' },
+          { id: 3, name: 'ضريبة الدخل' },
+          { id: 4, name: 'جمارك' },
+          { id: 5, name: 'مناطق حرة' },
+          { id: 6, name: 'تسعير تحويلي' },
+          { id: 7, name: 'قانوني' },
+          { id: 8, name: 'تدقيق ومراجعة' },
         ];
-        setSpecializations(official15);
+        setSpecializations(official8);
         if (!mainSpecializationId) {
           setMainSpecializationId('1');
         }
@@ -197,7 +216,7 @@ export default function RegisterForm({ openPolicy, navigate }) {
 
     if (stepNumber === 2) {
       if (accountType === 'user') {
-        const isIndividual = legalForm === 'individual';
+        const isIndividual = legalForm === 'individual' || legalForm === 'researcher';
         if (!isIndividual && !companyName.trim()) {
           setError('يرجى إدخال اسم المنشأة');
           return false;
@@ -207,12 +226,8 @@ export default function RegisterForm({ openPolicy, navigate }) {
           return false;
         }
       } else {
-        if (!title.trim()) {
-          setError('يرجى إدخال المسمى الوظيفي');
-          return false;
-        }
-        if (!acceptedTerms) {
-          setError('يرجى الموافقة على الشروط والأحكام وسياسة الخصوصية للمتابعة');
+        if (!mainSpecializationId) {
+          setError('يرجى اختيار التخصص الرئيسي');
           return false;
         }
       }
@@ -271,44 +286,44 @@ export default function RegisterForm({ openPolicy, navigate }) {
     }
   };
 
-  // Upload Certificates file handler
-  const handleCertificatesUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      setError('حجم الملف يجب ألا يتجاوز 5 ميجابايت');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    setUploadingCertificates(true);
-    setError('');
-
-    try {
-      const res = await fetch('/api/auth/upload-commercial-register', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
-      if (res.ok && data.url) {
-        setCertificatesFileUrl(data.url);
-        setCertificatesLicenses(data.url);
-        setCertificatesFileName(file.name);
-      } else {
-        setError(data.detail || 'فشل رفع الملف. يرجى إعادة المحاولة.');
-      }
-    } catch (err) {
-      setError('فشل الاتصال أثناء رفع الملف.');
-    } finally {
-      setUploadingCertificates(false);
+  // Consultant files upload handler
+  const handleConsultantFileUploaded = (key, url, name) => {
+    if (key === 'idProof') {
+      setIdProofUrl(url);
+      setIdProofName(name);
+    } else if (key === 'academicCert') {
+      setAcademicCertUrl(url);
+      setAcademicCertName(name);
+    } else if (key === 'professionalLicense') {
+      setProfessionalLicenseUrl(url);
+      setProfessionalLicenseName(name);
+    } else if (key === 'jcpaCert') {
+      setJcpaCertUrl(url);
+      setJcpaCertName(name);
+    } else if (key === 'expertsSocietyCert') {
+      setExpertsSocietyCertUrl(url);
+      setExpertsSocietyCertName(name);
     }
   };
 
+  const handleConsultantStep2Next = () => {
+    if (validateStep(2)) {
+      setError('');
+      setCurrentStep(3);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleConsultantStep3Next = () => {
+    setError('');
+    setCurrentStep(4);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleProceedToOtp = async () => {
-    if (!validateStep(2)) return;
+    if (accountType === 'user') {
+      if (!validateStep(2)) return;
+    }
 
     setLoading(true);
     setError('');
@@ -332,7 +347,7 @@ export default function RegisterForm({ openPolicy, navigate }) {
 
       const data = await res.json();
       if (res.ok) {
-        setCurrentStep(3);
+        setCurrentStep(accountType === 'consultant' ? 5 : 3);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         let errorMsg = 'فشل إرسال رمز التحقق. يرجى التحقق من صحة البيانات.';
@@ -371,7 +386,7 @@ export default function RegisterForm({ openPolicy, navigate }) {
 
         payload = {
           full_name: fullName.trim(),
-          email: email.trim(),
+          email: email.trim().toLowerCase(),
           password: password,
           phone: fullPhone,
           address: address.trim() || null,
@@ -389,19 +404,24 @@ export default function RegisterForm({ openPolicy, navigate }) {
         endpoint = '/api/auth/register/consultant';
         payload = {
           full_name: fullName.trim(),
-          email: email.trim(),
+          email: email.trim().toLowerCase(),
           password: password,
           phone: fullPhone,
           country: 'الأردن',
-          title: title.trim(),
+          title: null,
           address: address.trim() || null,
           company_name: companyName.trim() || null,
           bio: bio.trim() || null,
           main_specialization_id: mainSpecializationId ? parseInt(mainSpecializationId) : null,
           activity_type: activityType.trim() || null,
           years_of_experience: yearsOfExperience ? parseInt(yearsOfExperience) : null,
-          certificates_licenses: certificatesLicenses.trim() || null,
-          accepted_privacy_policy: acceptedTerms,
+          certificates_licenses: professionalLicenseUrl || idProofUrl || null,
+          id_proof_url: idProofUrl || null,
+          academic_certificates_url: academicCertUrl || null,
+          professional_licenses_url: professionalLicenseUrl || null,
+          jcpa_cert_url: jcpaCertUrl || null,
+          experts_society_cert_url: expertsSocietyCertUrl || null,
+          accepted_privacy_policy: true,
         };
       }
 
@@ -463,18 +483,67 @@ export default function RegisterForm({ openPolicy, navigate }) {
                   <path d="m9 12 2 2 4-4"></path>
                 </svg>
               </div>
-              <div className="auth-success-greeting">مرحباً بك في ديوان</div>
-              <h2 className="auth-success-title">تم إنشاء حسابك بنجاح</h2>
-              <p className="auth-success-description">
-                {accountType === 'user'
-                  ? 'يمكنك الآن تسجيل الدخول والبدء باستخدام خدمات المنصة.'
-                  : 'تم تقديم طلب اعتماد حساب المستشار بنجاح. سيتم مراجعة طلبك وإشعارك قريباً.'}
-              </p>
-
-              <div className="auth-package-pill">
-                <span className="package-check">✓</span>
-                <span>باقة الاشتراك: الباقة المجانية</span>
-              </div>
+              {accountType === 'user' ? (
+                <>
+                  <div className="auth-success-greeting">مرحباً بك في ديوان</div>
+                  <h2 className="auth-success-title">تم إنشاء حسابك بنجاح</h2>
+                  <p className="auth-success-description">
+                    يمكنك الآن تسجيل الدخول والبدء باستخدام خدمات المنصة.
+                  </p>
+                  <div className="auth-package-pill">
+                    <span className="package-check">✓</span>
+                    <span>باقة الاشتراك: الباقة المجانية</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 className="auth-success-title" style={{ marginTop: '14px', fontSize: '20px', color: '#0D3C5C' }}>
+                    تم استلام طلبك بنجاح
+                  </h2>
+                  <p className="auth-success-description" style={{ color: '#475569', fontSize: '13px', lineHeight: '1.6', maxWidth: '440px', margin: '0 auto 16px' }}>
+                    شكراً لتقديم طلب الانضمام كمستشار خبير. سيقوم فريق اعتماد الخبراء في ديوان بمراجعة وثائقك خلال 4 أيام عمل، وسنتواصل معك عبر البريد المسجل.
+                  </p>
+                  <div
+                    style={{
+                      background: '#F0F7FC',
+                      border: '1px solid #BAE6FD',
+                      borderRadius: '10px',
+                      padding: '14px 18px',
+                      marginBottom: '18px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div style={{ fontSize: '11px', color: '#64748B', marginBottom: '6px' }}>الحالة الحالية</div>
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: '#FEF3C7',
+                        color: '#B45309',
+                        border: '1px solid #FCD34D',
+                        borderRadius: '20px',
+                        padding: '4px 14px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        marginBottom: '8px',
+                      }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                      </svg>
+                      <span>قيد المراجعة (Pending Review)</span>
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#475569', direction: 'ltr', marginBottom: '8px' }}>
+                      رقم الطلب: CONS-2026-8291
+                    </div>
+                    <p style={{ margin: 0, fontSize: '11.5px', color: '#64748B', lineHeight: '1.5' }}>
+                      يمكنك الدخول إلى المنصة كمستخدم عادي، ولن تفعل صلاحيات تقديم الاستشارات إلا بعد اعتماد الملف.
+                    </p>
+                  </div>
+                </>
+              )}
 
               <button
                 type="button"
@@ -990,79 +1059,79 @@ export default function RegisterForm({ openPolicy, navigate }) {
                   ) : (
                     /* CONSULTANT STEP 2 FIELDS */
                     <>
-                      {/* Title */}
-                      <div className="auth-field-group">
-                        <label className="auth-label" htmlFor="consultant-title">
-                          المسمى الوظيفي / اللقب المهني <span className="required-star">*</span>
-                        </label>
-                        <div className="auth-input-wrapper">
-                          <span className="auth-input-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M12 12h.01"></path>
-                              <path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"></path>
-                              <path d="M22 13a18.15 18.15 0 0 1-20 0"></path>
-                              <rect width="20" height="14" x="2" y="6" rx="2"></rect>
-                            </svg>
-                          </span>
-                          <input
-                            id="consultant-title"
-                            type="text"
-                            className="auth-input"
-                            placeholder="مثال: مستشار ضريبي معتمد"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
+                      {/* Company / Office Name + Main Specialization */}
+                      <div className="auth-row-2col">
+                        <div className="auth-field-group">
+                          <label className="auth-label" htmlFor="consultant-company">
+                            اسم الشركة / المكتب
+                          </label>
+                          <div className="auth-input-wrapper">
+                            <span className="auth-input-icon">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path>
+                                <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path>
+                                <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path>
+                              </svg>
+                            </span>
+                            <input
+                              id="consultant-company"
+                              type="text"
+                              className="auth-input"
+                              placeholder="اسم الشركة أو مكتب الاستشارات"
+                              value={companyName}
+                              onChange={(e) => setCompanyName(e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="auth-field-group">
+                          <label className="auth-label">
+                            التخصص الرئيسي <span className="required-star">*</span>
+                          </label>
+                          <ModernSelect
+                            options={specializations.map((s) => ({ value: String(s.id), label: s.name }))}
+                            value={String(mainSpecializationId)}
+                            onChange={(val) => setMainSpecializationId(val)}
+                            placeholder="اختر التخصص..."
+                            prefixIcon={
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path>
+                                <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path>
+                                <path d="M7 21h10"></path>
+                                <path d="M12 3v18"></path>
+                                <path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"></path>
+                              </svg>
+                            }
+                            style={{ width: '100%' }}
                           />
                         </div>
-                      </div>
-
-                      {/* Main Specialization */}
-                      <div className="auth-field-group">
-                        <label className="auth-label">
-                          التخصص الرئيسي <span className="required-star">*</span>
-                        </label>
-                        <ModernSelect
-                          options={specializations.map((s) => ({ value: String(s.id), label: s.name }))}
-                          value={String(mainSpecializationId)}
-                          onChange={(val) => setMainSpecializationId(val)}
-                          placeholder="اختر التخصص..."
-                          prefixIcon={
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path>
-                              <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path>
-                              <path d="M7 21h10"></path>
-                              <path d="M12 3v18"></path>
-                              <path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"></path>
-                            </svg>
-                          }
-                          style={{ width: '100%' }}
-                        />
                       </div>
 
                       {/* Activity Type + Years of Experience */}
                       <div className="auth-row-2col">
                         <div className="auth-field-group">
-                          <label className="auth-label" htmlFor="consultant-activity">
-                            نوع النشاط المهني
+                          <label className="auth-label">
+                            نوع النشاط
                           </label>
-                          <div className="auth-input-wrapper">
-                            <span className="auth-input-icon">
+                          <ModernSelect
+                            options={[
+                              { value: 'مستشار ضريبي', label: 'مستشار ضريبي' },
+                              { value: 'مدقق حسابات', label: 'مدقق حسابات' },
+                              { value: 'خبير ضريبي', label: 'خبير ضريبي' },
+                              { value: 'مستشار قانوني', label: 'مستشار قانوني' },
+                              { value: 'محاسب قانوني', label: 'محاسب قانوني' },
+                            ]}
+                            value={activityType}
+                            onChange={(val) => setActivityType(val)}
+                            placeholder="اختر النشاط..."
+                            prefixIcon={
                               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                 <polyline points="14 2 14 8 20 8"></polyline>
-                                <line x1="16" y1="13" x2="8" y2="13"></line>
-                                <line x1="16" y1="17" x2="8" y2="17"></line>
-                                <polyline points="10 9 9 9 8 9"></polyline>
                               </svg>
-                            </span>
-                            <input
-                              id="consultant-activity"
-                              type="text"
-                              className="auth-input"
-                              placeholder="استشارات قانونية وضرائب المبيعات"
-                              value={activityType}
-                              onChange={(e) => setActivityType(e.target.value)}
-                            />
-                          </div>
+                            }
+                            style={{ width: '100%' }}
+                          />
                         </div>
 
                         <div className="auth-field-group">
@@ -1090,48 +1159,16 @@ export default function RegisterForm({ openPolicy, navigate }) {
                         </div>
                       </div>
 
-                      {/* Certificates File Upload Card */}
-                      <div className="auth-file-card">
-                        <div className="auth-file-info">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="auth-file-icon">
-                            <path d="M12 15a7 7 0 1 0 0-14 7 7 0 0 0 0 14Z"></path>
-                            <path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"></path>
-                          </svg>
-                          <div className="auth-file-texts">
-                            <span className="auth-file-title">الشهادات والاعتمادات</span>
-                            <span className="auth-file-subtitle">
-                              {certificatesFileName ? `✓ ${certificatesFileName}` : 'PDF أو صورة الاعتماد المهني'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <label className={`auth-file-btn ${uploadingCertificates ? 'disabled' : ''}`}>
-                          <input
-                            type="file"
-                            accept=".pdf,.png,.jpg,.jpeg,.webp"
-                            onChange={handleCertificatesUpload}
-                            disabled={uploadingCertificates}
-                            hidden
-                          />
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="17 8 12 3 7 8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                          </svg>
-                          <span>{uploadingCertificates ? 'جاري الرفع...' : certificatesFileUrl ? 'تم الرفع ✓' : 'رفع الملف'}</span>
-                        </label>
-                      </div>
-
                       {/* Bio */}
                       <div className="auth-field-group">
                         <label className="auth-label" htmlFor="consultant-bio">
-                          نبذة مختصرة عن المستشار
+                          نبذة مهنية
                         </label>
                         <textarea
                           id="consultant-bio"
                           rows="3"
                           className="auth-textarea"
-                          placeholder="اكتب ملخصاً قصيراً عن مؤهلاتك وخبرتك المهنية..."
+                          placeholder="يرجى كتابة نبذة قصيرة عن خبرتك والمجالات التي تجيدها..."
                           value={bio}
                           onChange={(e) => setBio(e.target.value)}
                         ></textarea>
@@ -1139,32 +1176,34 @@ export default function RegisterForm({ openPolicy, navigate }) {
                     </>
                   )}
 
-                  {/* Terms Checkbox */}
-                  <div className="auth-terms-container">
-                    <label className="auth-terms-label">
-                      <input
-                        type="checkbox"
-                        checked={acceptedTerms}
-                        onChange={(e) => setAcceptedTerms(e.target.checked)}
-                        className="auth-checkbox"
-                      />
-                      <span className="auth-terms-text">
-                        أوافق على الشروط والأحكام وسياسة الخصوصية.{' '}
-                        <a
-                          href="#terms"
-                          className="auth-terms-link"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            if (openPolicy) openPolicy('privacy_policy');
-                          }}
-                        >
-                          اضغط هنا للاطلاع عليها.
-                        </a>
-                      </span>
-                    </label>
-                  </div>
+                  {/* Terms Checkbox (User only - Consultant has dedicated Step 4) */}
+                  {accountType === 'user' && (
+                    <div className="auth-terms-container">
+                      <label className="auth-terms-label">
+                        <input
+                          type="checkbox"
+                          checked={acceptedTerms}
+                          onChange={(e) => setAcceptedTerms(e.target.checked)}
+                          className="auth-checkbox"
+                        />
+                        <span className="auth-terms-text">
+                          أوافق على الشروط والأحكام وسياسة الخصوصية.{' '}
+                          <a
+                            href="#terms"
+                            className="auth-terms-link"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (openPolicy) openPolicy('privacy_policy');
+                            }}
+                          >
+                            اضغط هنا للاطلاع عليها.
+                          </a>
+                        </span>
+                      </label>
+                    </div>
+                  )}
 
-                  {/* Action Buttons: [ الرجوع ] [ المتابعة ] */}
+                  {/* Action Buttons: [ السابق / الرجوع ] [ التالي / المتابعة ] */}
                   <div className="auth-btn-row">
                     <button
                       type="button"
@@ -1172,20 +1211,30 @@ export default function RegisterForm({ openPolicy, navigate }) {
                       onClick={handlePrevStep}
                       disabled={loading}
                     >
-                      الرجوع
+                      {accountType === 'consultant' ? 'السابق' : 'الرجوع'}
                     </button>
-                    <button
-                      type="button"
-                      className="auth-btn-gold"
-                      onClick={handleProceedToOtp}
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <span className="auth-spinner"></span>
-                      ) : (
-                        'المتابعة'
-                      )}
-                    </button>
+                    {accountType === 'user' ? (
+                      <button
+                        type="button"
+                        className="auth-btn-gold"
+                        onClick={handleProceedToOtp}
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <span className="auth-spinner"></span>
+                        ) : (
+                          'المتابعة'
+                        )}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="auth-btn-gold"
+                        onClick={handleConsultantStep2Next}
+                      >
+                        التالي
+                      </button>
+                    )}
                   </div>
 
                   {/* Footer link to Login */}
@@ -1206,14 +1255,58 @@ export default function RegisterForm({ openPolicy, navigate }) {
                 </div>
               )}
 
-              {/* STEP 3: OTP Account Verification */}
-              {currentStep === 3 && (
+              {/* STEP 3: Consultant Documents / Files Step */}
+              {accountType === 'consultant' && currentStep === 3 && (
+                <ConsultantFilesStep
+                  files={{
+                    idProofUrl,
+                    idProofName,
+                    academicCertUrl,
+                    academicCertName,
+                    professionalLicenseUrl,
+                    professionalLicenseName,
+                    jcpaCertUrl,
+                    jcpaCertName,
+                    expertsSocietyCertUrl,
+                    expertsSocietyCertName,
+                  }}
+                  onFileUploaded={handleConsultantFileUploaded}
+                  onNext={handleConsultantStep3Next}
+                  onBack={() => {
+                    setError('');
+                    setCurrentStep(2);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                />
+              )}
+
+              {/* STEP 4: Consultant Policies Step */}
+              {accountType === 'consultant' && currentStep === 4 && (
+                <ConsultantPoliciesStep
+                  acceptedPolicies={consultantPolicies}
+                  onPoliciesChange={setConsultantPolicies}
+                  onNext={handleProceedToOtp}
+                  onBack={() => {
+                    setError('');
+                    setCurrentStep(3);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  openPolicy={openPolicy}
+                />
+              )}
+
+              {/* STEP 3 (User) or STEP 5 (Consultant): OTP Account Verification */}
+              {((accountType === 'user' && currentStep === 3) || (accountType === 'consultant' && currentStep === 5)) && (
                 <OtpVerificationStep
                   recipient={email}
                   email={email}
                   fullName={fullName}
                   onVerified={handleFinalSubmit}
-                  onBack={() => setCurrentStep(2)}
+                  onBack={() => {
+                    setError('');
+                    setCurrentStep(accountType === 'consultant' ? 4 : 2);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
                   navigate={navigate}
                 />
               )}

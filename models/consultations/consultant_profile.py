@@ -22,6 +22,11 @@ class ConsultantProfile(Base):
     activity_type = Column(String(100), nullable=True)
     years_of_experience = Column(Integer, nullable=True)
     certificates_licenses = Column(Text, nullable=True)
+    id_proof_url = Column(String(500), nullable=True)
+    academic_certificates_url = Column(String(500), nullable=True)
+    professional_licenses_url = Column(String(500), nullable=True)
+    jcpa_cert_url = Column(String(500), nullable=True)
+    experts_society_cert_url = Column(String(500), nullable=True)
     price_per_hour = Column(Numeric(10, 2), nullable=True)
     cover_image_url = Column(String(500), nullable=True)
 

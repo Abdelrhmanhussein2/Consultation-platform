@@ -56,8 +56,7 @@ class UserService:
             verification_status=VerificationStatus.approved if role == UserRole.user else VerificationStatus.pending
         )
         db.add(db_user)
-        db.commit()
-        db.refresh(db_user)
+        db.flush()
 
         # Create agreement logs for all active policies
         for policy in active_policies:
@@ -66,22 +65,28 @@ class UserService:
                 policy_id=policy.id
             )
             db.add(agreement)
-        db.commit()
-        db.refresh(db_user)
 
         # If registering as a consultant, automatically create their profile
         if db_user.role == UserRole.consultant:
             profile = ConsultantProfile(
                 user_id=db_user.id,
                 bio=getattr(user_in, "bio", None),
-                main_specialization_id=getattr(user_in, "main_specialization_id", None),
+                main_specialization_id=getattr(user_in, "main_specialization_id", None) or 1,
                 activity_type=getattr(user_in, "activity_type", None),
                 years_of_experience=getattr(user_in, "years_of_experience", None),
                 certificates_licenses=getattr(user_in, "certificates_licenses", None),
                 price_per_hour=getattr(user_in, "price_per_hour", None),
+                id_proof_url=getattr(user_in, "id_proof_url", None),
+                academic_certificates_url=getattr(user_in, "academic_certificates_url", None),
+                professional_licenses_url=getattr(user_in, "professional_licenses_url", None),
+                jcpa_cert_url=getattr(user_in, "jcpa_cert_url", None),
+                experts_society_cert_url=getattr(user_in, "experts_society_cert_url", None),
             )
             db.add(profile)
-            db.commit()
+
+        # Single atomic commit for everything
+        db.commit()
+        db.refresh(db_user)
 
         return db_user
 

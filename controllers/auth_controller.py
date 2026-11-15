@@ -89,10 +89,15 @@ class AuthController:
         # Check if email is already registered
         existing_user = UserService.get_user_by_email(db, email)
         if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="البريد الإلكتروني مسجل بالفعل بحساب آخر"
-            )
+            # If user has no profile (incomplete/failed registration), clean it up so user can retry
+            if existing_user.role == UserRole.consultant and not existing_user.profile:
+                db.delete(existing_user)
+                db.commit()
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="البريد الإلكتروني مسجل بالفعل بحساب آخر"
+                )
 
         # Rate limiting: 60 seconds cooldown lock
         if redis_client:
