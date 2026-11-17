@@ -89,6 +89,36 @@ def _parse_xlsx_stdlib(content: bytes) -> List[List[str]]:
                 rows.append(r_vals)
     return rows
 
+def merge_names(existing_name: str, new_name: str) -> str:
+    """
+    دمج اسمين لمكلفين يشتركان في نفس الرقم الضريبي بدون تكرار الأجزاء المتطابقة.
+    مثال: "مشروع حماية" و "DAI GLOBAL LLC - مشروع حماية USAID"
+    أو "شركة الأمل" و "فرع العقبة" -> "شركة الأمل / فرع العقبة"
+    """
+    if not existing_name:
+        return (new_name or "").strip()
+    if not new_name:
+        return (existing_name or "").strip()
+
+    e_clean = existing_name.strip()
+    n_clean = new_name.strip()
+
+    norm1 = normalize_arabic(e_clean)
+    norm2 = normalize_arabic(n_clean)
+
+    if norm1 == norm2:
+        return e_clean
+    if norm2 in norm1:
+        return e_clean
+    if norm1 in norm2:
+        return n_clean
+
+    # Divide by "/" and ensure no duplicate segments
+    parts = [p.strip() for p in e_clean.split("/") if p.strip()]
+    if not any(normalize_arabic(p) == norm2 for p in parts):
+        parts.append(n_clean)
+    return " / ".join(parts)
+
 def parse_tax_file(content: bytes, filename: str) -> Tuple[List[Dict[str, str]], List[str]]:
     records = []
     errors = []
@@ -138,66 +168,184 @@ def parse_tax_file(content: bytes, filename: str) -> Tuple[List[Dict[str, str]],
                 break
             except Exception:
                 continue
-    deduped = {}
+
+    # Deduplicate exact duplicates within the file itself, but preserve different names for same tax number
+    unique_rows = []
+    seen_exact = set()
     for r in records:
-        deduped[r["tax_number"]] = r
-    return list(deduped.values()), errors
+        key = (normalize_arabic(r["name"]), r["tax_number"])
+        if key not in seen_exact:
+            seen_exact.add(key)
+            unique_rows.append(r)
+    return unique_rows, errors
 
 def run_dry_run(db: Session, records: List[Dict[str, str]]) -> Dict[str, Any]:
-    existing = {e.tax_number: e for e in db.query(TaxEntity).filter(TaxEntity.is_active == True).all()}
-    inserted, updated, conflicts = 0, 0, 0
+    existing_entities = db.query(TaxEntity).filter(TaxEntity.is_active == True).all()
+    existing_by_tax = {e.tax_number: e for e in existing_entities}
+    existing_by_name = {e.name_normalized: e for e in existing_entities}
+
+    # Tracking within current batch to handle multi-row duplicate occurrences in the file itself
+    batch_seen_tax: Dict[str, Dict[str, str]] = {}
+    batch_seen_name: Dict[str, Dict[str, str]] = {}
+
+    inserted_count = 0
+    merged_count = 0          # Tax number matches / similarities
+    duplicate_name_count = 0  # Name matches / similarities
+    exact_duplicates_count = 0
     samples = []
+
     for r in records:
-        cur = existing.get(r["tax_number"])
-        if not cur:
-            inserted += 1
-            if len(samples) < 20:
-                samples.append({**r, "action": "insert", "diff": None})
+        tax = r["tax_number"]
+        name = r["name"].strip()
+        norm_name = normalize_arabic(name)
+
+        cur_tax = existing_by_tax.get(tax)
+        cur_name = existing_by_name.get(norm_name)
+        in_batch_tax = batch_seen_tax.get(tax)
+        in_batch_name = batch_seen_name.get(norm_name)
+
+        has_tax_match = bool(cur_tax or in_batch_tax)
+        has_name_match = bool(cur_name or in_batch_name or (cur_tax and normalize_arabic(cur_tax.name) == norm_name))
+
+        if has_tax_match:
+            merged_count += 1
+
+        if has_name_match:
+            duplicate_name_count += 1
+
+        # 1. Exact Duplicate (same name AND same tax) -> Skip
+        if (cur_tax and normalize_arabic(cur_tax.name) == norm_name) or (in_batch_tax and normalize_arabic(in_batch_tax["name"]) == norm_name):
+            exact_duplicates_count += 1
+            if len(samples) < 40:
+                samples.append({
+                    **r,
+                    "action": "skip",
+                    "reason": "مكرر بالكامل (الاسم والرقم الضريبي مسجلان مسبقاً)",
+                    "existing_name": cur_tax.name if cur_tax else in_batch_tax["name"],
+                    "existing_tax": tax
+                })
+        # 2. Same Tax Number, different name -> Candidate to merge / put together
+        elif has_tax_match:
+            target_name = cur_tax.name if cur_tax else in_batch_tax["name"]
+            suggested = merge_names(target_name, name)
+            if len(samples) < 40:
+                samples.append({
+                    **r,
+                    "action": "merge",
+                    "reason": "تشابه في الرقم الضريبي (سيتم وضع الاسمين معاً ودمج السجلين)",
+                    "existing_name": target_name,
+                    "existing_tax": tax,
+                    "suggested_merged_name": suggested
+                })
+            # update batch merged tracking
+            if in_batch_tax:
+                batch_seen_tax[tax]["name"] = suggested
+        # 3. Same Name, different tax number -> duplicate by name warning
+        elif has_name_match:
+            target_tax = cur_name.tax_number if cur_name else in_batch_name["tax_number"]
+            if len(samples) < 40:
+                samples.append({
+                    **r,
+                    "action": "duplicate_name",
+                    "reason": "مكلف مسجل مسبقاً بنفس الاسم برقم ضريبي مختلف",
+                    "existing_name": name,
+                    "existing_tax": target_tax
+                })
+            batch_seen_tax[tax] = r
+            batch_seen_name[norm_name] = r
+        # 4. Completely New
         else:
-            diff = {}
-            if cur.name != r["name"]:
-                diff["name"] = {"old": cur.name, "new": r["name"]}
-            if cur.entity_type != r["entity_type"]:
-                diff["entity_type"] = {"old": cur.entity_type, "new": r["entity_type"]}
-            if diff:
-                updated += 1
-                if len(samples) < 20:
-                    samples.append({**r, "action": "update", "diff": diff})
-            else:
-                if len(samples) < 20:
-                    samples.append({**r, "action": "skip", "diff": None})
+            inserted_count += 1
+            batch_seen_tax[tax] = r
+            batch_seen_name[norm_name] = r
+            if len(samples) < 40:
+                samples.append({
+                    **r,
+                    "action": "insert",
+                    "reason": "جهة جديدة تماماً",
+                    "diff": None
+                })
+
     return {
-        "total_parsed": len(records), "valid_count": len(records),
-        "inserted_count": inserted, "updated_count": updated, "conflicts_count": conflicts,
-        "samples": samples, "errors": []
+        "total_parsed": len(records),
+        "valid_count": len(records),
+        "inserted_count": inserted_count,
+        "merged_count": merged_count,
+        "duplicate_name_count": duplicate_name_count,
+        "exact_duplicates_count": exact_duplicates_count,
+        "conflicts_count": merged_count + duplicate_name_count,
+        "samples": samples,
+        "errors": []
     }
 
-def commit_import(db: Session, records: List[Dict[str, str]], user_id: Any) -> Dict[str, Any]:
-    existing = {e.tax_number: e for e in db.query(TaxEntity).filter(TaxEntity.is_active == True).all()}
-    ins_cnt, upd_cnt = 0, 0
+def commit_import(
+    db: Session,
+    records: List[Dict[str, str]],
+    user_id: Any,
+    merge_same_tax: bool = True,
+    skip_duplicates: bool = True
+) -> Dict[str, Any]:
+    existing_entities = db.query(TaxEntity).filter(TaxEntity.is_active == True).all()
+    existing_by_tax = {e.tax_number: e for e in existing_entities}
+    existing_by_name = {e.name_normalized: e for e in existing_entities}
+
+    ins_cnt = 0
+    merge_cnt = 0
+    skip_cnt = 0
+
     for r in records:
-        cur = existing.get(r["tax_number"])
-        if cur:
-            changed = False
-            if cur.name != r["name"]:
-                cur.name = r["name"]
-                cur.name_normalized = normalize_arabic(r["name"])
-                changed = True
-            if cur.entity_type != r["entity_type"]:
-                cur.entity_type = r["entity_type"]
-                changed = True
-            if changed:
-                cur.updated_by = user_id
-                upd_cnt += 1
-        else:
-            db.add(TaxEntity(
-                name=r["name"],
-                name_normalized=normalize_arabic(r["name"]),
-                tax_number=r["tax_number"],
-                entity_type=r["entity_type"],
-                created_by=user_id,
-                updated_by=user_id
-            ))
-            ins_cnt += 1
+        tax = r["tax_number"]
+        name = r["name"].strip()
+        norm_name = normalize_arabic(name)
+
+        cur_tax = existing_by_tax.get(tax)
+        cur_name = existing_by_name.get(norm_name)
+
+        # 1. Exact Duplicate
+        if cur_tax and normalize_arabic(cur_tax.name) == norm_name:
+            skip_cnt += 1
+            continue
+
+        # 2. Same Tax Number -> Merge together
+        if cur_tax:
+            if merge_same_tax:
+                new_name = merge_names(cur_tax.name, name)
+                if new_name != cur_tax.name:
+                    cur_tax.name = new_name
+                    cur_tax.name_normalized = normalize_arabic(new_name)
+                    cur_tax.updated_by = user_id
+                    merge_cnt += 1
+                else:
+                    skip_cnt += 1
+            else:
+                skip_cnt += 1
+            continue
+
+        # 3. Same Name exists with different tax number
+        if cur_name and skip_duplicates:
+            skip_cnt += 1
+            continue
+
+        # 4. Insert new entity
+        new_entity = TaxEntity(
+            name=name,
+            name_normalized=norm_name,
+            tax_number=tax,
+            entity_type=r.get("entity_type", "جهات أخرى"),
+            created_by=user_id,
+            updated_by=user_id
+        )
+        db.add(new_entity)
+        existing_by_tax[tax] = new_entity
+        existing_by_name[norm_name] = new_entity
+        ins_cnt += 1
+
     db.commit()
-    return {"success": True, "inserted": ins_cnt, "updated": upd_cnt, "total_processed": len(records)}
+    return {
+        "success": True,
+        "inserted": ins_cnt,
+        "merged": merge_cnt,
+        "skipped": skip_cnt,
+        "updated": merge_cnt,
+        "total_processed": len(records)
+    }

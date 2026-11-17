@@ -11,7 +11,23 @@ class TaxEntityBase(BaseModel):
 
 
 class TaxEntityCreate(TaxEntityBase):
-    pass
+    resolution: Optional[str] = None  # None | 'merge' | 'update_existing'
+    existing_id: Optional[uuid.UUID] = None
+
+
+class CheckDuplicateRequest(BaseModel):
+    name: str = Field(..., max_length=255)
+    tax_number: str = Field(..., max_length=50)
+    exclude_id: Optional[uuid.UUID] = None
+
+
+class CheckDuplicateResponse(BaseModel):
+    is_duplicate_exact: bool
+    is_duplicate_name: bool
+    is_duplicate_tax: bool
+    matched_by_name: Optional[Dict[str, Any]] = None
+    matched_by_tax: Optional[Dict[str, Any]] = None
+    suggested_merged_name: Optional[str] = None
 
 
 class TaxEntityUpdate(BaseModel):
@@ -52,16 +68,20 @@ class ImportDryRunResult(BaseModel):
     total_parsed: int
     valid_count: int
     inserted_count: int
-    updated_count: int
-    conflicts_count: int
-    samples: List[ImportPreviewItem]
-    errors: List[str]
+    merged_count: int = 0
+    duplicate_name_count: int = 0
+    exact_duplicates_count: int = 0
+    conflicts_count: int = 0
+    samples: List[Dict[str, Any]] = []
+    errors: List[str] = []
 
 
 class ImportCommitResult(BaseModel):
     success: bool
     inserted: int
-    updated: int
+    merged: int = 0
+    skipped: int = 0
+    updated: int = 0
     total_processed: int
     message: str
 

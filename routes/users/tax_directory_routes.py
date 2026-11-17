@@ -12,10 +12,10 @@ from models.admin.admin_action_log import AdminActionLog
 from routes.deps import get_current_user
 from schemes.tax_directory_schemes import (
     TaxEntityCreate, TaxEntityUpdate, TaxEntityOut, TaxDirectoryStats,
-    ImportDryRunResult, ImportCommitResult
+    ImportDryRunResult, ImportCommitResult, CheckDuplicateRequest, CheckDuplicateResponse
 )
 from services.tax_directory_service import (
-    normalize_arabic, clean_tax_number, canonicalize_type,
+    normalize_arabic, clean_tax_number, canonicalize_type, merge_names,
     parse_tax_file, run_dry_run, commit_import
 )
 
@@ -80,6 +80,54 @@ def get_tax_directory_stats(db: Session = Depends(get_db)):
         categories=cat_list
     )
 
+@router.post("/check-duplicate", response_model=CheckDuplicateResponse)
+def check_duplicate_tax_entity(
+    payload: CheckDuplicateRequest,
+    db: Session = Depends(get_db)
+):
+    cleaned_tax = clean_tax_number(payload.tax_number)
+    norm_name = normalize_arabic(payload.name)
+
+    query = db.query(TaxEntity).filter(TaxEntity.is_active == True)
+    if payload.exclude_id:
+        query = query.filter(TaxEntity.id != payload.exclude_id)
+
+    all_actives = query.all()
+
+    matched_by_tax = None
+    matched_by_name = None
+
+    for e in all_actives:
+        if cleaned_tax and e.tax_number == cleaned_tax:
+            matched_by_tax = {
+                "id": str(e.id),
+                "name": e.name,
+                "tax_number": e.tax_number,
+                "entity_type": e.entity_type
+            }
+        if norm_name and e.name_normalized == norm_name:
+            matched_by_name = {
+                "id": str(e.id),
+                "name": e.name,
+                "tax_number": e.tax_number,
+                "entity_type": e.entity_type
+            }
+
+    is_exact = bool(matched_by_tax and matched_by_name and matched_by_tax["id"] == matched_by_name["id"])
+
+    suggested_merged = None
+    if matched_by_tax and not is_exact:
+        suggested_merged = merge_names(matched_by_tax["name"], payload.name.strip())
+
+    return CheckDuplicateResponse(
+        is_duplicate_exact=is_exact,
+        is_duplicate_name=bool(matched_by_name and not is_exact),
+        is_duplicate_tax=bool(matched_by_tax and not is_exact),
+        matched_by_name=matched_by_name,
+        matched_by_tax=matched_by_tax,
+        suggested_merged_name=suggested_merged
+    )
+
 @router.post("/", response_model=TaxEntityOut, status_code=status.HTTP_201_CREATED)
 def create_tax_entity(
     payload: TaxEntityCreate,
@@ -90,13 +138,79 @@ def create_tax_entity(
     cleaned_tax = clean_tax_number(payload.tax_number)
     if not cleaned_tax:
         raise HTTPException(status_code=400, detail="الرقم الضريبي غير صالح")
-    exist = db.query(TaxEntity).filter(TaxEntity.tax_number == cleaned_tax, TaxEntity.is_active == True).first()
-    if exist:
-        raise HTTPException(status_code=409, detail="الرقم الضريبي مسجل ومفعل بالفعل لجهة أخرى")
+
     canon_type = canonicalize_type(payload.entity_type)
+    norm_name = normalize_arabic(payload.name)
+
+    exist_tax = db.query(TaxEntity).filter(TaxEntity.tax_number == cleaned_tax, TaxEntity.is_active == True).first()
+    exist_name = db.query(TaxEntity).filter(TaxEntity.name_normalized == norm_name, TaxEntity.is_active == True).first()
+
+    # 1. Handle user resolution when conflict was flagged
+    if payload.resolution == "merge" and exist_tax:
+        merged_name = merge_names(exist_tax.name, payload.name.strip())
+        exist_tax.name = merged_name
+        exist_tax.name_normalized = normalize_arabic(merged_name)
+        exist_tax.entity_type = canon_type
+        exist_tax.updated_by = current_user.id
+        db.commit()
+        db.refresh(exist_tax)
+        _log_admin(db, current_user.id, "merge_tax_entity", exist_tax.id, f"Merged with {payload.name}")
+        return TaxEntityOut.model_validate(exist_tax)
+
+    if payload.resolution == "update_existing" and exist_tax:
+        exist_tax.name = payload.name.strip()
+        exist_tax.name_normalized = norm_name
+        exist_tax.entity_type = canon_type
+        exist_tax.updated_by = current_user.id
+        db.commit()
+        db.refresh(exist_tax)
+        _log_admin(db, current_user.id, "update_tax_entity", exist_tax.id, f"Updated existing to {payload.name}")
+        return TaxEntityOut.model_validate(exist_tax)
+
+    # 2. Duplicate exact (same tax AND same name)
+    if exist_tax and exist_tax.name_normalized == norm_name:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": "هذا المكلف مسجل بالفعل في الكشف بنفس الاسم والرقم الضريبي",
+                "conflict_type": "exact_duplicate",
+                "existing_id": str(exist_tax.id),
+                "existing_name": exist_tax.name,
+                "existing_tax": exist_tax.tax_number
+            }
+        )
+
+    # 3. Duplicate tax number (same tax number, different name)
+    if exist_tax:
+        suggested = merge_names(exist_tax.name, payload.name.strip())
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": f"الرقم الضريبي ({cleaned_tax}) مسجل ومفعل بالفعل لجهة أخرى: {exist_tax.name}",
+                "conflict_type": "same_tax",
+                "existing_id": str(exist_tax.id),
+                "existing_name": exist_tax.name,
+                "existing_tax": exist_tax.tax_number,
+                "suggested_merged_name": suggested
+            }
+        )
+
+    # 4. Duplicate name (same name, different tax number)
+    if exist_name and exist_name.tax_number != cleaned_tax and payload.resolution != "force_name":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": f"يوجد مكلف مسجل مسبقاً بنفس الاسم ({exist_name.name}) برقم ضريبي مختلف ({exist_name.tax_number})",
+                "conflict_type": "same_name",
+                "existing_id": str(exist_name.id),
+                "existing_name": exist_name.name,
+                "existing_tax": exist_name.tax_number
+            }
+        )
+
     entity = TaxEntity(
         name=payload.name.strip(),
-        name_normalized=normalize_arabic(payload.name),
+        name_normalized=norm_name,
         tax_number=cleaned_tax,
         entity_type=canon_type,
         created_by=current_user.id,
@@ -164,6 +278,8 @@ def delete_tax_entity(
 async def import_tax_entities(
     file: UploadFile = File(...),
     dry_run: bool = Form(False),
+    merge_same_tax: bool = Form(True),
+    skip_duplicates: bool = Form(True),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -175,15 +291,23 @@ async def import_tax_entities(
     if dry_run:
         result = run_dry_run(db, records)
         return ImportDryRunResult(**result)
-    result = commit_import(db, records, current_user.id)
+    result = commit_import(
+        db, records, current_user.id,
+        merge_same_tax=merge_same_tax,
+        skip_duplicates=skip_duplicates
+    )
     _log_admin(
         db, current_user.id, "import_tax_entities", None,
-        f"Imported from {file.filename}: {result['inserted']} inserted, {result['updated']} updated"
+        f"Imported from {file.filename}: {result['inserted']} inserted, {result.get('merged', 0)} merged, {result.get('skipped', 0)} skipped"
     )
     return ImportCommitResult(
-        success=True, inserted=result["inserted"], updated=result["updated"],
+        success=True,
+        inserted=result["inserted"],
+        merged=result.get("merged", 0),
+        skipped=result.get("skipped", 0),
+        updated=result.get("updated", 0),
         total_processed=result["total_processed"],
-        message=f"تم استيراد {result['inserted']} جهة جديدة وتحديث {result['updated']} بنجاح"
+        message=f"تم استيراد {result['inserted']} جهة جديدة، ودمج {result.get('merged', 0)} جهة متطابقة الرقم الضريبي، وتخطي {result.get('skipped', 0)} سجل مكرر بنجاح"
     )
 
 @router.get("/export")

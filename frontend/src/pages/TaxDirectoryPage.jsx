@@ -7,6 +7,7 @@ import TaxDirectoryTable from '../components/TaxDirectory/TaxDirectoryTable';
 import TaxDirectoryPagination from '../components/TaxDirectory/TaxDirectoryPagination';
 import TaxDirectoryModal from '../components/TaxDirectory/TaxDirectoryModal';
 import TaxDirectoryRecordModal from '../components/TaxDirectory/TaxDirectoryRecordModal';
+import TaxDirectoryImportModal from '../components/TaxDirectory/TaxDirectoryImportModal';
 import ConfirmModal from '../components/ConfirmModal';
 
 const PAGE_SIZE = 15;
@@ -33,6 +34,10 @@ export default function TaxDirectoryPage({ isAdmin = false }) {
   const [editingRecord, setEditingRecord] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importDryRunData, setImportDryRunData] = useState(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
 
@@ -89,20 +94,30 @@ export default function TaxDirectoryPage({ isAdmin = false }) {
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          throw new Error(err.detail || 'فشل تحديث السجل');
+          const errMsg = typeof err.detail === 'object' ? err.detail.message : (err.detail || 'فشل تحديث السجل');
+          throw new Error(errMsg);
         }
         showNotification('تم تحديث بيانات المكلف بنجاح');
       } else {
+        const payload = {
+          name: recordData.name,
+          tax_number: recordData.tax,
+          entity_type: recordData.type
+        };
+        if (recordData.resolution) {
+          payload.resolution = recordData.resolution;
+        }
         const res = await fetch('/api/tax-directory/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-          body: JSON.stringify({ name: recordData.name, tax_number: recordData.tax, entity_type: recordData.type })
+          body: JSON.stringify(payload)
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          throw new Error(err.detail || 'فشل إضافة السجل');
+          const errMsg = typeof err.detail === 'object' ? err.detail.message : (err.detail || 'فشل إضافة السجل');
+          throw new Error(errMsg);
         }
-        showNotification('تمت إضافة المكلف بنجاح');
+        showNotification(recordData.resolution === 'merge' ? 'تم دمج السجلين ووضع الاسمين معاً بنجاح' : 'تمت إضافة المكلف بنجاح');
       }
       loadRecords();
       loadStats();
@@ -124,21 +139,55 @@ export default function TaxDirectoryPage({ isAdmin = false }) {
   };
 
   const handleImportFile = async (file) => {
+    if (!file) return;
+    setImportFile(file);
     const fd = new FormData();
     fd.append('file', file);
+    fd.append('dry_run', 'true');
     try {
-      showNotification('جاري استيراد ومعالجة الملف...');
+      showNotification('جاري فحص وتحليل الملف للتأكد من عدم وجود تكرار...');
       const res = await fetch('/api/tax-directory/import', { method: 'POST', headers: getAuthHeaders(), body: fd });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'فشل فحص الملف');
+      }
+      const data = await res.json();
+      setImportDryRunData(data);
+      setIsImportModalOpen(true);
+    } catch (err) {
+      showNotification(err.message || 'خطأ أثناء فحص الملف');
+    }
+  };
+
+  const handleConfirmImport = async (mergeSameTax, skipDuplicates) => {
+    if (!importFile) return;
+    setIsImporting(true);
+    const fd = new FormData();
+    fd.append('file', importFile);
+    fd.append('dry_run', 'false');
+    fd.append('merge_same_tax', mergeSameTax ? 'true' : 'false');
+    fd.append('skip_duplicates', skipDuplicates ? 'true' : 'false');
+    try {
+      const res = await fetch('/api/tax-directory/import', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: fd
+      });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || 'فشل استيراد الملف');
       }
       const data = await res.json();
       showNotification(data.message || 'تم الاستيراد بنجاح');
+      setIsImportModalOpen(false);
+      setImportFile(null);
+      setImportDryRunData(null);
       loadRecords();
       loadStats();
     } catch (err) {
       showNotification(err.message || 'خطأ أثناء استيراد الملف');
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -227,13 +276,23 @@ export default function TaxDirectoryPage({ isAdmin = false }) {
         <TaxDirectoryModal record={activeRecord} onClose={() => setActiveRecord(null)} onCopyTax={handleCopyTax} />
       )}
       {isEffectiveAdmin && (
-        <TaxDirectoryRecordModal
-          isOpen={isRecordModalOpen}
-          initialRecord={editingRecord}
-          availableTypes={availableTypes}
-          onClose={() => { setIsRecordModalOpen(false); setEditingRecord(null); }}
-          onSave={handleSaveRecord}
-        />
+        <>
+          <TaxDirectoryRecordModal
+            isOpen={isRecordModalOpen}
+            initialRecord={editingRecord}
+            availableTypes={availableTypes}
+            onClose={() => { setIsRecordModalOpen(false); setEditingRecord(null); }}
+            onSave={handleSaveRecord}
+          />
+          <TaxDirectoryImportModal
+            isOpen={isImportModalOpen}
+            onClose={() => { setIsImportModalOpen(false); setImportFile(null); setImportDryRunData(null); }}
+            fileName={importFile?.name || ''}
+            dryRunData={importDryRunData}
+            onConfirm={handleConfirmImport}
+            isSubmitting={isImporting}
+          />
+        </>
       )}
       <ConfirmModal
         isOpen={Boolean(deleteTarget)}
