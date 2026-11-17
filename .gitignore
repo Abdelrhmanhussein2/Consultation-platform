@@ -116,6 +116,14 @@ Thumbs.db
 # Logs
 *.log
 
-# Uploaded template files
+# Uploaded files and documents
 static/templates/
+static/documents/cr_*
+static/documents/*.pdf
+static/documents/*.jpg
+static/documents/*.jpeg
+static/documents/*.png
+static/documents/*.webp
+static/avatars/
+static/uploads/
 

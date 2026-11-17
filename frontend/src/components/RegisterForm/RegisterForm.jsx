@@ -183,8 +183,14 @@ export default function RegisterForm({ openPolicy, navigate }) {
         setError('يرجى إدخال بريد إلكتروني صحيح باللغة الإنجليزية (تأكد من عدم وجود أحرف عربية)');
         return false;
       }
-      if (!phoneNum.trim() || phoneNum.trim().length < 6) {
+      const cleanPhone = phoneNum.trim().replace(/\D/g, '').replace(/^0+/, '');
+      const fullPhone = `${countryCode}${cleanPhone}`;
+      if (!phoneNum.trim() || cleanPhone.length < 6) {
         setError('يرجى إدخال رقم هاتف صحيح');
+        return false;
+      }
+      if (fullPhone.length > 20) {
+        setError('رقم الهاتف طويل جداً (الحد الأقصى 15 رقماً)');
         return false;
       }
       if (!address.trim()) {
@@ -329,8 +335,8 @@ export default function RegisterForm({ openPolicy, navigate }) {
     setLoading(true);
     setError('');
 
-    const cleanPhone = phoneNum.trim().replace(/^0+/, '');
-    const fullPhone = `${countryCode}${cleanPhone}`;
+    const cleanPhone = phoneNum.trim().replace(/\D/g, '').replace(/^0+/, '');
+    const fullPhone = `${countryCode}${cleanPhone}`.slice(0, 20);
 
     try {
       const res = await fetch('/api/auth/register-otp/request', {
@@ -374,8 +380,8 @@ export default function RegisterForm({ openPolicy, navigate }) {
     setLoading(true);
     setError('');
 
-    const cleanPhone = phoneNum.trim().replace(/^0+/, '');
-    const fullPhone = `${countryCode}${cleanPhone}`;
+    const cleanPhone = phoneNum.trim().replace(/\D/g, '').replace(/^0+/, '');
+    const fullPhone = `${countryCode}${cleanPhone}`.slice(0, 20);
 
     try {
       let endpoint = '/api/auth/register';
@@ -446,7 +452,14 @@ export default function RegisterForm({ openPolicy, navigate }) {
           if (typeof data.detail === 'string') {
             errorMessage = data.detail;
           } else if (Array.isArray(data.detail)) {
-            errorMessage = data.detail.map((err) => err.msg || err.detail).join(' | ');
+            errorMessage = data.detail.map((err) => {
+              const msg = err.msg || err.detail || '';
+              const loc = Array.isArray(err.loc) ? err.loc.join('.') : '';
+              if (loc.includes('phone') || msg.includes('20 characters')) {
+                return 'رقم الهاتف طويل جداً، يرجى التأكد من كتابة رقم هاتف صالح لا يتجاوز 15 رقماً';
+              }
+              return msg.replace(/^Value error,\s*/i, '');
+            }).filter(Boolean).join(' | ');
           }
         }
         setError(errorMessage);
@@ -704,7 +717,8 @@ export default function RegisterForm({ openPolicy, navigate }) {
                         className="auth-phone-input"
                         placeholder="7X XXX XXXX"
                         value={phoneNum}
-                        onChange={(e) => setPhoneNum(e.target.value)}
+                        maxLength={15}
+                        onChange={(e) => setPhoneNum(e.target.value.replace(/\D/g, '').slice(0, 15))}
                       />
                       <div className="auth-phone-prefix">
                         <span className="phone-flag" aria-hidden="true">🇯🇴</span>

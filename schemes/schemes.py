@@ -29,6 +29,16 @@ class UserCreate(BaseModel):
     commercial_register_url: Optional[str] = Field(None, max_length=500)
     accepted_privacy_policy: bool = Field(..., description="Must accept privacy policy")
 
+    @field_validator('phone')
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        if v:
+            clean = str(v).strip().replace(" ", "")
+            if len(clean) > 20:
+                raise ValueError("رقم الهاتف طويل جداً ويجب ألا يتجاوز 20 حرفاً مع رمز الدولة")
+            return clean
+        return v
+
     @field_validator('email')
     @classmethod
     def validate_email_ascii(cls, v: EmailStr) -> EmailStr:
@@ -80,6 +90,16 @@ class ConsultantRegister(BaseModel):
     jcpa_cert_url: Optional[str] = Field(None, max_length=500)
     experts_society_cert_url: Optional[str] = Field(None, max_length=500)
     accepted_privacy_policy: bool = Field(..., description="Must accept privacy policy")
+
+    @field_validator('phone')
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        if v:
+            clean = str(v).strip().replace(" ", "")
+            if len(clean) > 20:
+                raise ValueError("رقم الهاتف طويل جداً ويجب ألا يتجاوز 20 حرفاً مع رمز الدولة")
+            return clean
+        return v
 
     @field_validator('email')
     @classmethod
@@ -188,6 +208,16 @@ class RequestRegisterOtpRequest(BaseModel):
     email: str = Field(..., max_length=150)
     phone: Optional[str] = None
     full_name: Optional[str] = None
+
+    @field_validator('phone')
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        if v:
+            clean = str(v).strip().replace(" ", "")
+            if len(clean) > 20:
+                raise ValueError("رقم الهاتف طويل جداً ويجب ألا يتجاوز 20 حرفاً مع رمز الدولة")
+            return clean
+        return v
 
     @field_validator('email')
     @classmethod
