@@ -246,9 +246,38 @@ export async function deleteKnowledgeSource(sourceId, sourceType) {
   );
 }
 
-export async function sendKnowledgeBroadcast({ title, message, audience }) {
+export async function previewKnowledgeBroadcast({ targetGroup = 'all', userFilters = {}, consultantFilters = {} }) {
+  const res = await fetch('/api/notifications/broadcasts/preview', {
+    method: 'POST',
+    headers: jsonHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({
+      target_group: targetGroup,
+      user_filters: userFilters,
+      consultant_filters: consultantFilters
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `فشلت معاينة الجمهور (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function sendKnowledgeBroadcast({ title, message, targetGroup = 'all', userFilters = {}, consultantFilters = {}, sourceId, sourceTitle }) {
   return fetch('/api/notifications/admin-broadcast', {
-    method: 'POST', headers: jsonHeaders(), credentials: 'include', body: JSON.stringify({ title, message, audience })
+    method: 'POST',
+    headers: jsonHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({
+      title,
+      message,
+      target_group: targetGroup,
+      user_filters: userFilters,
+      consultant_filters: consultantFilters,
+      source_id: sourceId || undefined,
+      source_title: sourceTitle || undefined
+    })
   });
 }
 

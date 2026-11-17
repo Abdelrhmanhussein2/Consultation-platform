@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { getPendingConsultants, handleConsultantAction, getPendingExpansions, reviewExpansionRequest } from '../services/adminApi';
+import { getPendingConsultants, handleConsultantAction, getPendingExpansions, reviewExpansionRequest, getAdminToken } from '../services/adminApi';
 import FilterResetButton from '../../components/FilterResetButton';
+import { formatApplicationDate, formatConsultationPrice, formatExperienceYears } from '../utils/consultantApplicationFormatters';
+
+const CONSULTANT_DOC_FIELDS = [
+  { key: 'id_proof_url', label: 'صورة إثبات الشخصية' },
+  { key: 'academic_certificates_url', label: 'الشهادات الأكاديمية' },
+  { key: 'professional_licenses_url', label: 'التراخيص المهنية' },
+  { key: 'jcpa_cert_url', label: 'شهادة JCPA' },
+  { key: 'experts_society_cert_url', label: 'عضوية جمعية الخبراء' },
+];
 
 export default function AdminConsultantApplicationsPage({ navigate }) {
   const [activeTab, setActiveTab] = useState('applications'); // 'applications' | 'specializations'
@@ -339,9 +348,10 @@ export default function AdminConsultantApplicationsPage({ navigate }) {
               const displayName = user.full_name || app.full_name || user.email || 'مستشار جديد';
               const initial = displayName.charAt(0).toUpperCase();
               const specName = app.specialization?.name || app.activity_type || user.title || 'استشارات ضريبية ومالية';
-              const expYears = app.years_of_experience ?? 5;
-              const hourlyRate = app.price_per_hour ?? 45;
-              const regDate = app.created_at || user.created_at;
+              const expYearsText = formatExperienceYears(app.years_of_experience);
+              const priceText = formatConsultationPrice(app.price_per_hour);
+              const formattedDate = formatApplicationDate(app.created_at || user.created_at);
+              const adminToken = getAdminToken();
 
               return (
                 <div
@@ -418,7 +428,7 @@ export default function AdminConsultantApplicationsPage({ navigate }) {
                       </div>
                       <div>
                         <span style={{ color: '#64748B', display: 'block', fontSize: '11.5px' }}>سنوات الخبرة:</span>
-                        <b style={{ color: '#0A3C64' }}>{expYears} سنوات</b>
+                        <b style={{ color: app.years_of_experience != null ? '#0A3C64' : '#64748B' }}>{expYearsText}</b>
                       </div>
                       <div>
                         <span style={{ color: '#64748B', display: 'block', fontSize: '11.5px' }}>رقم الهاتف:</span>
@@ -426,28 +436,90 @@ export default function AdminConsultantApplicationsPage({ navigate }) {
                       </div>
                       <div>
                         <span style={{ color: '#64748B', display: 'block', fontSize: '11.5px' }}>سعر الاستشارة:</span>
-                        <b style={{ color: '#0A3C64' }}>{hourlyRate} د.أ / ساعة</b>
+                        <b style={{ color: app.price_per_hour != null ? '#0A3C64' : '#64748B' }}>{priceText}</b>
                       </div>
                     </div>
 
                     {/* Bio Preview */}
-                    {app.bio && (
-                      <div style={{ fontSize: '12.5px', color: '#475569', lineHeight: '1.5', marginBottom: '14px', background: '#FFFFFF', border: '1px solid #F1F5F9', borderRadius: '8px', padding: '10px 12px' }}>
-                        <span style={{ fontWeight: '800', color: '#0A3C64', display: 'block', marginBottom: '2px', fontSize: '11.5px' }}>النبذة والمؤهلات:</span>
-                        {app.bio.length > 130 ? `${app.bio.slice(0, 130)}...` : app.bio}
-                      </div>
-                    )}
+                    <div style={{ fontSize: '12.5px', color: '#475569', lineHeight: '1.5', marginBottom: '14px', background: '#FFFFFF', border: '1px solid #F1F5F9', borderRadius: '8px', padding: '10px 12px' }}>
+                      <span style={{ fontWeight: '800', color: '#0A3C64', display: 'block', marginBottom: '2px', fontSize: '11.5px' }}>النبذة والمؤهلات:</span>
+                      {app.bio ? (app.bio.length > 130 ? `${app.bio.slice(0, 130)}...` : app.bio) : <span style={{ color: '#94A3B8' }}>غير مذكور</span>}
+                    </div>
 
-                    {/* Certificates / Licenses Preview */}
-                    {app.certificates_licenses && (
-                      <div style={{ fontSize: '12px', color: '#64748B', marginBottom: '12px' }}>
-                        <strong style={{ color: '#0A3C64' }}>الشهادات والتراخيص:</strong> {app.certificates_licenses}
+                    {/* Consultant Uploaded Documents */}
+                    <div style={{
+                      marginTop: '10px',
+                      marginBottom: '14px',
+                      background: '#F8FAFC',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '10px',
+                      padding: '10px 12px'
+                    }}>
+                      <div style={{ fontSize: '12px', fontWeight: '800', color: '#0A3C64', marginBottom: '8px' }}>
+                        المستندات والوثائق المرفوعة:
                       </div>
-                    )}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {CONSULTANT_DOC_FIELDS.map((doc) => {
+                          const url = app[doc.key] || (doc.key === 'professional_licenses_url' ? app.certificates_licenses : null);
+                          const filename = url ? url.split('/').pop() : null;
+                          const docHref = filename ? `/api/super-admin/consultants/documents/${filename}${adminToken ? `?token=${encodeURIComponent(adminToken)}` : ''}` : null;
+
+                          return (
+                            <div
+                              key={doc.key}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                fontSize: '11.5px',
+                                padding: '4px 0',
+                                borderBottom: '1px dashed #E2E8F0'
+                              }}
+                            >
+                              <span style={{ color: '#475569', fontWeight: '600' }}>{doc.label}:</span>
+                              {docHref ? (
+                                <a
+                                  href={docHref}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{
+                                    color: '#0A3C64',
+                                    background: '#EBF3FA',
+                                    padding: '3px 8px',
+                                    borderRadius: '5px',
+                                    textDecoration: 'none',
+                                    fontWeight: '700',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    border: '1px solid #CBD5E1'
+                                  }}
+                                >
+                                  عرض / تنزيل
+                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                    <polyline points="15 3 21 3 21 9" />
+                                    <line x1="10" y1="14" x2="21" y2="3" />
+                                  </svg>
+                                </a>
+                              ) : (
+                                <span style={{ color: '#94A3B8', fontWeight: '500' }}>لم يُرفع</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
 
                     {/* Registration Date */}
                     <div style={{ fontSize: '12px', color: '#94A3B8', marginBottom: '14px' }}>
-                      تاريخ التقديم: <b style={{ color: '#64748B' }}>{regDate ? new Date(regDate).toLocaleDateString('ar-JO', { year: 'numeric', month: 'long', day: 'numeric' }) : 'مؤخراً'}</b>
+                      <span>تاريخ التقديم:</span>
+                      <b style={{ color: '#0A3C64', display: 'inline-block', marginRight: '6px' }}>{formattedDate.date}</b>
+                      {formattedDate.time && (
+                        <span style={{ display: 'block', fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
+                          {formattedDate.time}
+                        </span>
+                      )}
                     </div>
                   </div>
 

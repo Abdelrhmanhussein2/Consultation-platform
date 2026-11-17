@@ -36,7 +36,7 @@ def get_current_token_payload(
         headers={"WWW-Authenticate": "Bearer"},
     )
     if not token and request:
-        token = request.cookies.get("token") or request.cookies.get("access_token")
+        token = request.cookies.get("token") or request.cookies.get("access_token") or request.query_params.get("token")
     if not token:
         raise credentials_exception
 

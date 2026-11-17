@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { consultantService } from '../services/consultantService';
+import { notificationService } from '../services/notificationService';
+import { getNotificationTarget } from '../utils/notificationRouter';
 import { apiFetch } from '../services/api';
 import Toast, { useToast } from '../components/Toast/Toast';
 import './UserDashboard.css';
@@ -43,6 +45,7 @@ export default function ConsultantDashboard({ navigate }) {
   const [loading, setLoading] = useState(true);
   const [wallet, setWallet] = useState(null);
   const [appointments, setAppointments] = useState([]);
+  const [systemNotifs, setSystemNotifs] = useState([]);
   const [profile, setProfile] = useState(null);
   const [services, setServices] = useState([]);
   const [laws, setLaws] = useState([]);
@@ -107,6 +110,28 @@ export default function ConsultantDashboard({ navigate }) {
     }
   };
 
+  const handleAlertItemClick = async (item) => {
+    if (!item) return;
+    if (item.type === 'notification' && !item.isRead && token) {
+      try {
+        await notificationService.markAsRead(item.rawId, token, true);
+        setSystemNotifs(prev => prev.map(n => n.id === item.rawId ? { ...n, is_read: true } : n));
+      } catch (err) {
+        console.warn("Could not mark notification as read:", err);
+      }
+    }
+
+    setConsultantModal(null);
+
+    if (item.path) {
+      if (item.path === 'laws') {
+        setShowAllUpdates(true);
+      } else {
+        handleNavigate(item.path);
+      }
+    }
+  };
+
   const fetchDashboardData = async () => {
     if (!token) {
       setLoading(false);
@@ -118,12 +143,13 @@ export default function ConsultantDashboard({ navigate }) {
     }, 6000);
 
     try {
-      const [walletData, apptsData, profileData, servicesData, lawsRes] = await Promise.all([
+      const [walletData, apptsData, profileData, servicesData, lawsRes, notifsRes] = await Promise.all([
         consultantService.getWallet(token).catch(() => null),
         consultantService.getIncomingAppointments(token).catch(() => []),
         consultantService.getMyProfile(token).catch(() => null),
         consultantService.getMyServices(token).catch(() => []),
-        apiFetch('/api/legal/laws', {}, token).catch(() => [])
+        apiFetch('/api/legal/laws', {}, token).catch(() => []),
+        notificationService.getMyNotifications(token).catch(() => [])
       ]);
 
       setWallet(walletData);
@@ -131,6 +157,7 @@ export default function ConsultantDashboard({ navigate }) {
       setProfile(profileData);
       setServices(servicesData || []);
       setLaws(Array.isArray(lawsRes) && lawsRes.length > 0 ? lawsRes : []);
+      setSystemNotifs(Array.isArray(notifsRes) ? notifsRes : (Array.isArray(notifsRes?.items) ? notifsRes.items : []));
     } catch (err) {
       console.error("Error fetching consultant dashboard data:", err);
     } finally {
@@ -269,7 +296,7 @@ export default function ConsultantDashboard({ navigate }) {
 
   const activeTimelineList = timelineAppointments.length > 0 ? timelineAppointments : demoTimelineItems;
 
-  // Dynamic Alerts derived directly from real backend appointments
+  // Dynamic Alerts derived directly from real backend appointments & notifications
   const alertItemsData = useMemo(() => {
     const list = [];
 
@@ -282,6 +309,8 @@ export default function ConsultantDashboard({ navigate }) {
         : 'اليوم';
       list.push({
         id: `pending-${appt.id || idx}`,
+        type: 'appointment',
+        rawId: appt.id,
         title: 'طلب استشارة عاجل بانتظار الموافقة',
         desc: `${clientName} · ${dateStr}`,
         category: 'urgent',
@@ -297,6 +326,8 @@ export default function ConsultantDashboard({ navigate }) {
       const clientName = appt.user?.full_name || appt.user_name || appt.client_name || 'عميل';
       list.push({
         id: `payment-${appt.id || idx}`,
+        type: 'appointment',
+        rawId: appt.id,
         title: 'موعد مقبول بانتظار سداد العميل',
         desc: `${clientName} · أتعاب الموعد: ${appt.price || 50} د.أ`,
         category: 'pending',
@@ -315,6 +346,8 @@ export default function ConsultantDashboard({ navigate }) {
         : '';
       list.push({
         id: `confirmed-${appt.id || idx}`,
+        type: 'appointment',
+        rawId: appt.id,
         title: 'جلسة مؤكدة ومجدولة اليوم',
         desc: `${clientName} · الساعة ${timeStr}`,
         category: 'today',
@@ -324,32 +357,47 @@ export default function ConsultantDashboard({ navigate }) {
       });
     });
 
-    // Fallback real-looking baseline notifications if no active appointments
-    if (list.length === 0) {
-      return [
-        {
-          id: 'def-1',
-          title: 'تذكير: تحديث جدول التوفر للأسبوع القادم',
-          desc: 'يرجى تحديد الساعات المتاحة لاستقبال الحجوزات · اليوم',
-          category: 'pending',
-          dot: 'amber',
-          actionText: 'تحديث التوفر ←',
-          path: '/consultant/sessions'
-        },
-        {
-          id: 'def-2',
-          title: 'تعديل جديد على تعليمات الاقتطاع الضريبي',
-          desc: 'صادرة عن دائرة ضريبة الدخل والمبيعات · أمس',
-          category: 'today',
-          dot: 'green',
-          actionText: 'قراءة النص ←',
-          path: 'laws'
-        }
-      ];
-    }
+    // 4. System Notifications & Admin Broadcasts (Real Backend Data)
+    const todayYMD = new Date().toISOString().split('T')[0];
+    systemNotifs.forEach((notif) => {
+      const target = getNotificationTarget(notif, 'consultant');
+      const isUrgent = notif.priority === 'urgent' || notif.priority === 'high';
+      const notifDateStr = notif.created_at ? notif.created_at.split('T')[0] : '';
+      const isToday = notifDateStr === todayYMD;
+
+      let category = 'pending';
+      let dot = 'amber';
+      if (isUrgent) {
+        category = 'urgent';
+        dot = 'red';
+      } else if (isToday) {
+        category = 'today';
+        dot = 'green';
+      } else if (notif.is_read) {
+        dot = 'blue';
+      }
+
+      const timeFormatted = notif.created_at
+        ? new Date(notif.created_at).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' })
+        : '';
+
+      list.push({
+        id: `notif-${notif.id}`,
+        type: 'notification',
+        rawId: notif.id,
+        title: notif.title || 'إشعار من الإدارة',
+        desc: `${notif.message ? notif.message.slice(0, 75) : ''}${timeFormatted ? ` · ${timeFormatted}` : ''}`,
+        category,
+        dot,
+        isRead: !!notif.is_read,
+        actionText: target?.url ? 'عرض التفاصيل ←' : (notif.is_read ? 'مقروء' : 'تحديد كمقروء ←'),
+        path: target?.url || null,
+        target
+      });
+    });
 
     return list;
-  }, [appointments]);
+  }, [appointments, systemNotifs]);
 
   const filteredAlertItems = useMemo(() => {
     return alertItemsData.filter(item => {
@@ -418,6 +466,14 @@ export default function ConsultantDashboard({ navigate }) {
   const todayCount = useMemo(() => {
     return appointments.filter(a => a.scheduled_at && a.scheduled_at.startsWith(todayStr)).length;
   }, [appointments, todayStr]);
+
+  const unreadNotifsCount = useMemo(() => {
+    return systemNotifs.filter(n => !n.is_read).length;
+  }, [systemNotifs]);
+
+  const urgentAlertsCount = useMemo(() => {
+    return alertItemsData.filter(i => i.category === 'urgent').length;
+  }, [alertItemsData]);
 
   const monthCount = useMemo(() => {
     return appointments.length;
@@ -863,31 +919,33 @@ export default function ConsultantDashboard({ navigate }) {
           </div>
 
           <div className="refAlertList">
-            {alertItemsData.slice(0, 4).map(item => (
-              <button
-                key={item.id}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (item.path === 'laws') {
-                    setShowAllUpdates(true);
-                  } else {
-                    handleNavigate(item.path);
-                  }
-                }}
-              >
-                <i className={item.dot}></i>
-                <div>
-                  <b>{item.title}</b>
-                  <small>{item.desc}</small>
-                </div>
-                <span>{item.actionText}</span>
-              </button>
-            ))}
+            {alertItemsData.length === 0 ? (
+              <div style={{ padding: '24px 16px', textAlign: 'center', color: '#81939d', fontSize: '13px' }}>
+                لا توجد تنبيهات جديدة تتطلب إجراءً حالياً.
+              </div>
+            ) : (
+              alertItemsData.slice(0, 4).map(item => (
+                <button
+                  key={item.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAlertItemClick(item);
+                  }}
+                >
+                  <i className={item.dot}></i>
+                  <div>
+                    <b>{item.title}</b>
+                    <small>{item.desc}</small>
+                  </div>
+                  <span>{item.actionText}</span>
+                </button>
+              ))
+            )}
           </div>
 
           <div className="refAlertFooter" onClick={() => setConsultantModal('alerts')}>
-            <span><b>{pendingCount}</b> تحتاج إجراء</span>
-            <span><b>{todayCount}</b> مواعيد اليوم</span>
+            <span><b>{urgentAlertsCount > 0 ? urgentAlertsCount : pendingCount}</b> تحتاج إجراء</span>
+            <span><b>{unreadNotifsCount}</b> إشعارات جديدة</span>
           </div>
         </div>
       </div>
@@ -1092,10 +1150,26 @@ export default function ConsultantDashboard({ navigate }) {
               </div>
 
               <div className="modalSummaryGrid">
-                <div className="modalSummaryCard"><span>تحتاج إجراء اليوم</span><b>2</b><small className="warn">أولوية مرتفعة</small></div>
-                <div className="modalSummaryCard"><span>بانتظار التأكيد</span><b>1</b><small>موعد غدًا</small></div>
-                <div className="modalSummaryCard"><span>تقييمات جديدة</span><b>1</b><small className="good">5/5</small></div>
-                <div className="modalSummaryCard"><span>متأخرة</span><b>0</b><small className="good">لا يوجد</small></div>
+                <div className="modalSummaryCard">
+                  <span>تحتاج إجراء عاجل</span>
+                  <b>{urgentAlertsCount}</b>
+                  <small className={urgentAlertsCount > 0 ? "warn" : "good"}>{urgentAlertsCount > 0 ? "أولوية مرتفعة" : "لا يوجد"}</small>
+                </div>
+                <div className="modalSummaryCard">
+                  <span>بانتظار التأكيد</span>
+                  <b>{pendingCount}</b>
+                  <small className={pendingCount > 0 ? "warn" : "good"}>{pendingCount > 0 ? "بانتظار ردك" : "لا يوجد"}</small>
+                </div>
+                <div className="modalSummaryCard">
+                  <span>إشعارات غير مقروءة</span>
+                  <b>{unreadNotifsCount}</b>
+                  <small className={unreadNotifsCount > 0 ? "warn" : "good"}>{unreadNotifsCount > 0 ? "إشعارات واردة" : "مقروءة بالكامل"}</small>
+                </div>
+                <div className="modalSummaryCard">
+                  <span>مواعيد اليوم</span>
+                  <b>{todayCount}</b>
+                  <small className="good">{todayCount > 0 ? "مجدولة لليوم" : "لا يوجد"}</small>
+                </div>
               </div>
 
               <div className="modalList">
@@ -1108,14 +1182,8 @@ export default function ConsultantDashboard({ navigate }) {
                     <div
                       key={item.id}
                       className="modalListRow"
-                      onClick={() => {
-                        setConsultantModal(null);
-                        if (item.path === 'laws') {
-                          setShowAllUpdates(true);
-                        } else {
-                          handleNavigate(item.path);
-                        }
-                      }}
+                      onClick={() => handleAlertItemClick(item)}
+                      style={{ cursor: 'pointer' }}
                     >
                       <i className={item.dot}></i>
                       <div><b>{item.title}</b><small>{item.desc}</small></div>

@@ -17,7 +17,6 @@ from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
 for _mod in [
     "qdrant_client", "qdrant_client.http", "qdrant_client.http.models",
@@ -27,8 +26,6 @@ for _mod in [
         sys.modules[_mod] = MagicMock()
 
 from helpers.config import settings
-settings.DATABASE_URL = "sqlite:///:memory:"
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -51,6 +48,11 @@ class TestAutomationEngine(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        cls.orig_engine = db_mod.engine
+        cls.orig_SessionLocal = db_mod.SessionLocal
+        cls.orig_db_url = getattr(settings, "DATABASE_URL", None)
+        settings.DATABASE_URL = "sqlite:///:memory:"
+
         cls.engine = create_engine(
             "sqlite:///:memory:",
             connect_args={"check_same_thread": False},
@@ -64,6 +66,11 @@ class TestAutomationEngine(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         Base.metadata.drop_all(bind=cls.engine)
+        cls.engine.dispose()
+        db_mod.engine = cls.orig_engine
+        db_mod.SessionLocal = cls.orig_SessionLocal
+        if cls.orig_db_url:
+            settings.DATABASE_URL = cls.orig_db_url
 
     def setUp(self):
         self.db = self.Session()

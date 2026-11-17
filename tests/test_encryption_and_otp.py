@@ -17,18 +17,16 @@ import unittest
 from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
 # Mock out heavy external services if not present
 for _mod in [
     "qdrant_client", "qdrant_client.http", "qdrant_client.http.models",
-    "neo4j", "cohere", "groq", "psycopg2", "docx", "redis", "daily",
+    "neo4j", "cohere", "groq", "docx", "redis", "daily",
 ]:
     if _mod not in sys.modules:
         sys.modules[_mod] = MagicMock()
 
 from helpers.config import settings
-settings.DATABASE_URL = "sqlite:///:memory:"
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker

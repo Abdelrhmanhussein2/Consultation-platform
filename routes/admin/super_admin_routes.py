@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, status, Query, Body, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional, Any, Dict
 
@@ -132,6 +133,32 @@ def handle_consultant_action(
     return SuperAdminController.handle_consultant_action(
         db, user_id, action_in, current_admin.id
     )
+
+
+@router.get(
+    "/consultants/documents/{filename}",
+    summary="Download or view consultant document securely (Admin only)",
+)
+def get_consultant_document(
+    filename: str,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_perm_manage_consultants),
+):
+    """
+    Securely serves consultant uploaded documents to administrators with manage_consultants permission.
+    Returns 403 for non-admins, and 404 if file does not exist.
+    """
+    import os
+    if ".." in filename or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="اسم ملف غير صالح")
+    safe_filename = os.path.basename(filename)
+    filepath = os.path.join("static", "documents", safe_filename)
+    if not os.path.isfile(filepath):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="المستند المطلوب غير موجود"
+        )
+    return FileResponse(filepath)
 
 
 # ─────────────────────────────────────────────────────────────────────

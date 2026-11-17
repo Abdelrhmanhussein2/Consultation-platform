@@ -3,7 +3,7 @@ import ModernSelect from '../../../components/ModernSelect';
 import UserTargetFilters from './UserTargetFilters';
 import ConsultantTargetFilters from './ConsultantTargetFilters';
 import { PRIORITY_OPTIONS } from './broadcastConstants';
-import { sendBroadcastNotificationApi } from './broadcastApi';
+import { previewBroadcastAudienceApi, sendBroadcastNotificationApi } from './broadcastApi';
 
 const DEFAULT_USER_FILTERS = { legal_form: 'all', sector: 'all' };
 const DEFAULT_CONSULTANT_FILTERS = { activity: 'all', specialization: 'all' };
@@ -17,6 +17,8 @@ export default function BroadcastModal({ isOpen, onClose, onBroadcastSent, initi
   const [consultantFilters, setConsultantFilters] = useState(DEFAULT_CONSULTANT_FILTERS);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [previewCount, setPreviewCount] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -29,6 +31,33 @@ export default function BroadcastModal({ isOpen, onClose, onBroadcastSent, initi
       setErrorMsg('');
     }
   }, [isOpen, initialData]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let isCancelled = false;
+    setPreviewLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await previewBroadcastAudienceApi({
+          targetGroup, userFilters, consultantFilters
+        });
+        if (!isCancelled) {
+          setPreviewCount(res.matching_count ?? 0);
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          setPreviewCount(null);
+        }
+      } finally {
+        if (!isCancelled) setPreviewLoading(false);
+      }
+    }, 200);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [isOpen, targetGroup, userFilters, consultantFilters]);
 
   if (!isOpen) return null;
 
@@ -125,6 +154,41 @@ export default function BroadcastModal({ isOpen, onClose, onBroadcastSent, initi
             </div>
           )}
 
+          {/* Audience Preview Badge */}
+          <div style={{
+            background: previewCount === 0 ? '#FEF2F2' : '#F8FAFC',
+            border: `1px solid ${previewCount === 0 ? '#FECACA' : '#CBD5E1'}`,
+            color: previewCount === 0 ? '#DC2626' : '#1E293B',
+            padding: '9px 14px',
+            borderRadius: '10px',
+            fontSize: '12px',
+            fontWeight: '700',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <span>
+              {previewLoading
+                ? 'جاري احتساب عدد المستلمين...'
+                : previewCount !== null
+                  ? previewCount > 0
+                    ? `الجمهور المطابق للفلاتر: ${previewCount} مستلم نشط`
+                    : 'تنبيه: لا يوجد أي مستلم يطابق الفلاتر المحددة (0 مستلم)'
+                  : 'معاينة المستلمين قيد التحديث...'}
+            </span>
+            {previewCount !== null && !previewLoading && (
+              <span style={{
+                background: previewCount === 0 ? '#FEE2E2' : '#E2E8F0',
+                padding: '2px 8px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: '800'
+              }}>
+                {previewCount}
+              </span>
+            )}
+          </div>
+
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '6px', color: '#0F172A' }}>عنوان الإشعار:</label>
             <input
@@ -162,10 +226,25 @@ export default function BroadcastModal({ isOpen, onClose, onBroadcastSent, initi
           <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
             <button
               type="submit"
-              disabled={loading}
-              style={{ flex: 1, background: '#0e3b5e', color: '#FFFFFF', border: 'none', padding: '12px', borderRadius: '10px', fontWeight: '800', fontSize: '13.5px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}
+              disabled={loading || previewLoading || previewCount === 0}
+              style={{
+                flex: 1,
+                background: previewCount === 0 ? '#94A3B8' : '#0e3b5e',
+                color: '#FFFFFF',
+                border: 'none',
+                padding: '12px',
+                borderRadius: '10px',
+                fontWeight: '800',
+                fontSize: '13.5px',
+                cursor: (loading || previewLoading || previewCount === 0) ? 'not-allowed' : 'pointer',
+                opacity: (loading || previewLoading || previewCount === 0) ? 0.7 : 1
+              }}
             >
-              {loading ? 'جاري الإرسال والبث...' : 'إرسال وبث الإشعار الآن'}
+              {loading
+                ? 'جاري الإرسال والبث...'
+                : previewCount === 0
+                  ? 'لا يمكن الإرسال (0 مستلم)'
+                  : 'إرسال وبث الإشعار الآن'}
             </button>
             <button
               type="button"

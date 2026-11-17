@@ -4,6 +4,7 @@ import ModernSelect from '../ModernSelect';
 import OtpVerificationStep from './OtpVerificationStep';
 import ConsultantFilesStep from './ConsultantFilesStep';
 import ConsultantPoliciesStep from './ConsultantPoliciesStep';
+import { CONSULTANT_REGISTRATION_ACTIVITIES } from '../../admin/components/notifications/broadcastConstants';
 
 export default function RegisterForm({ openPolicy, navigate }) {
   // Account Type ('user' or 'consultant')
@@ -1114,13 +1115,7 @@ export default function RegisterForm({ openPolicy, navigate }) {
                             نوع النشاط
                           </label>
                           <ModernSelect
-                            options={[
-                              { value: 'مستشار ضريبي', label: 'مستشار ضريبي' },
-                              { value: 'مدقق حسابات', label: 'مدقق حسابات' },
-                              { value: 'خبير ضريبي', label: 'خبير ضريبي' },
-                              { value: 'مستشار قانوني', label: 'مستشار قانوني' },
-                              { value: 'محاسب قانوني', label: 'محاسب قانوني' },
-                            ]}
+                            options={CONSULTANT_REGISTRATION_ACTIVITIES}
                             value={activityType}
                             onChange={(val) => setActivityType(val)}
                             placeholder="اختر النشاط..."

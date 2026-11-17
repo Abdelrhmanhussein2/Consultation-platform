@@ -35,7 +35,7 @@ export default function ConsultantSettingsPage({ navigate }) {
     fullName: user?.full_name || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    title: user?.title || 'مستشار ضريبي معتمد JCPA',
+    title: user?.title || '',
     bio: 'مستشار متخصص في النزاعات والامتثال الضريبي وضريبة الدخل والمبيعات في الأردن لأكثر من 10 سنوات.',
     yearsExperience: 10,
     slug: user?.url_slug || 'abdelrhman-tax'
@@ -232,9 +232,6 @@ export default function ConsultantSettingsPage({ navigate }) {
             }
             if (consultantProf.years_of_experience) {
               setProfile((prev) => ({ ...prev, yearsExperience: consultantProf.years_of_experience }));
-            }
-            if (consultantProf.activity_type) {
-              setProfile((prev) => ({ ...prev, title: consultantProf.activity_type }));
             }
             if (consultantProf.main_specialization_id) {
               setCurrentSpecializationId(consultantProf.main_specialization_id);
@@ -509,8 +506,7 @@ export default function ConsultantSettingsPage({ navigate }) {
           method: 'PATCH',
           body: {
             bio: profile.bio?.trim(),
-            years_of_experience: parseInt(profile.yearsExperience) || 0,
-            activity_type: profile.title?.trim()
+            years_of_experience: parseInt(profile.yearsExperience) || 0
           }
         },
         token

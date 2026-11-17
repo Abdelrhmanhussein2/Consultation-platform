@@ -30,11 +30,19 @@ export const SECTOR_OPTIONS = [
 
 export const CONSULTANT_ACTIVITY_OPTIONS = [
   { value: 'all', label: 'الكل' },
-  { value: 'auditor', label: 'مدقق حسابات' },
-  { value: 'tax_consultant', label: 'مستشار ضريبي' },
-  { value: 'tax_expert', label: 'خبير ضريبي' },
-  { value: 'legal_consultant', label: 'مستشار قانوني' },
-  { value: 'chartered_accountant', label: 'محاسب قانوني' }
+  { value: 'مستشار ضريبي', label: 'مستشار ضريبي' },
+  { value: 'مدقق حسابات', label: 'مدقق حسابات' },
+  { value: 'خبير ضريبي', label: 'خبير ضريبي' },
+  { value: 'مستشار قانوني', label: 'مستشار قانوني' },
+  { value: 'محاسب قانوني', label: 'محاسب قانوني' }
+];
+
+export const CONSULTANT_REGISTRATION_ACTIVITIES = [
+  { value: 'مستشار ضريبي', label: 'مستشار ضريبي' },
+  { value: 'مدقق حسابات', label: 'مدقق حسابات' },
+  { value: 'خبير ضريبي', label: 'خبير ضريبي' },
+  { value: 'مستشار قانوني', label: 'مستشار قانوني' },
+  { value: 'محاسب قانوني', label: 'محاسب قانوني' }
 ];
 
 export const CONSULTANT_SPECIALIZATION_OPTIONS = [
@@ -55,4 +63,3 @@ export const PRIORITY_OPTIONS = [
   { value: 'high', label: 'عالي' },
   { value: 'urgent', label: 'عاجل جداً' }
 ];
-

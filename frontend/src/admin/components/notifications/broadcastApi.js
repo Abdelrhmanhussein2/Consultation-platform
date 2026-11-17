@@ -24,6 +24,26 @@ export async function fetchBroadcastsApi() {
   return res.json();
 }
 
+export async function previewBroadcastAudienceApi({
+  targetGroup = 'all', userFilters = {}, consultantFilters = {}
+}) {
+  const res = await fetch('/api/notifications/broadcasts/preview', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    credentials: 'include',
+    body: JSON.stringify({
+      target_group: targetGroup,
+      user_filters: userFilters,
+      consultant_filters: consultantFilters
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `خطأ في معاينة الجمهور (${res.status})`);
+  }
+  return res.json();
+}
+
 export async function sendBroadcastNotificationApi({
   title, message, targetGroup = 'all', userFilters = {}, consultantFilters = {}, priority = 'normal'
 }) {

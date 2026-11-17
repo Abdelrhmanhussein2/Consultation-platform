@@ -20,17 +20,15 @@ from datetime import datetime, timezone
 from unittest.mock import MagicMock, AsyncMock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
 for _mod in [
     "qdrant_client", "qdrant_client.http", "qdrant_client.http.models",
-    "neo4j", "cohere", "groq", "psycopg2", "docx", "redis", "daily",
+    "neo4j", "cohere", "groq", "docx", "redis", "daily",
 ]:
     if _mod not in sys.modules:
         sys.modules[_mod] = MagicMock()
 
 from helpers.config import settings
-settings.DATABASE_URL = "sqlite:///:memory:"
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -54,6 +52,9 @@ class TestLiveNotificationWebSocketHub(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        cls.orig_engine = db_mod.engine
+        cls.orig_SessionLocal = db_mod.SessionLocal
+
         cls.engine = create_engine(
             "sqlite:///:memory:",
             connect_args={"check_same_thread": False},
@@ -65,14 +66,17 @@ class TestLiveNotificationWebSocketHub(unittest.TestCase):
         db_mod.SessionLocal = cls.Session
 
         # Also patch routes
-        import routes.notification_routes as notif_routes
-        notif_routes.SessionLocal = cls.Session
+        import routes.communication.notification_ws as notif_ws
+        notif_ws.SessionLocal = cls.Session
 
         cls.client = TestClient(app)
 
     @classmethod
     def tearDownClass(cls):
         Base.metadata.drop_all(bind=cls.engine)
+        cls.engine.dispose()
+        db_mod.engine = cls.orig_engine
+        db_mod.SessionLocal = cls.orig_SessionLocal
 
     def setUp(self):
         self.db = self.Session()
@@ -216,7 +220,7 @@ class TestLiveNotificationWebSocketHub(unittest.TestCase):
         token = create_access_token(data={"sub": str(user.id)})
 
         from unittest.mock import patch
-        with patch("routes.notification_routes.SessionLocal", side_effect=self.Session):
+        with patch("routes.communication.notification_ws.SessionLocal", side_effect=self.Session):
             # Connect with valid JWT
             with self.client.websocket_connect(f"/api/notifications/ws?token={token}") as ws:
                 # First message should be the handshake event

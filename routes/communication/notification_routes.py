@@ -10,7 +10,7 @@ from models import User, AdminBroadcast
 from routes.communication.notification_ws import websocket_notifications_endpoint
 from routes.deps import get_current_active_user
 from schemes import NotificationBulkReadOut, NotificationOut, UnreadCountOut
-from services.communication.admin_broadcast_service import send_admin_broadcast
+from services.communication.admin_broadcast_service import count_broadcast_recipients, send_admin_broadcast
 from services.communication.notification_service import NotificationService
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
@@ -71,6 +71,28 @@ def get_broadcasts_history(db: Session = Depends(get_db), current_user: User = D
     return [item.to_dict() for item in db.query(AdminBroadcast).order_by(AdminBroadcast.sent_at.desc()).all()]
 
 
+@router.post("/broadcasts/preview", summary="Preview target recipients count for broadcast filters")
+def preview_broadcast_audience(
+    payload: dict = Body(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user),
+):
+    role_str = current_user.role.value if hasattr(current_user.role, "value") else str(current_user.role)
+    if role_str not in ("admin", "super_admin"):
+        raise HTTPException(status_code=403, detail="غير مصرح")
+    target_group = payload.get("target_group") or payload.get("targetGroup") or "all"
+    user_filters = payload.get("user_filters") or payload.get("userFilters") or {}
+    consultant_filters = payload.get("consultant_filters") or payload.get("consultantFilters") or {}
+    audience = payload.get("audience")
+
+    try:
+        matching_count = count_broadcast_recipients(
+            db, target_group=target_group, user_filters=user_filters,
+            consultant_filters=consultant_filters, audience=audience,
+        )
+        return {"success": True, "target_group": target_group, "matching_count": matching_count}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.post("/admin-broadcast", summary="Admin broadcast notification to selected audience")
 def admin_broadcast_notification(
     payload: dict = Body(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user),
@@ -89,10 +111,33 @@ def admin_broadcast_notification(
     if not message or not title:
         raise HTTPException(status_code=400, detail="العنوان ونص الرسالة مطلوبان")
 
+    try:
+        matching_count = count_broadcast_recipients(
+            db, target_group=target_group, user_filters=user_filters,
+            consultant_filters=consultant_filters, audience=audience,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    if matching_count == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="لا يوجد أي مستخدم أو مستشار يطابق الفلاتر المحددة، تم إلغاء الإرسال"
+        )
+
+    source_id = payload.get("source_id") or payload.get("sourceId")
+    source_title = payload.get("source_title") or payload.get("sourceTitle")
+
+    stored_user_filters = dict(user_filters or {})
+    if source_id:
+        stored_user_filters["source_id"] = str(source_id)
+    if source_title:
+        stored_user_filters["source_title"] = str(source_title)
+
     sent_count = send_admin_broadcast(
         db, title=title, message=message, target_group=target_group,
         user_filters=user_filters, consultant_filters=consultant_filters,
-        priority=priority, audience=audience,
+        priority=priority, audience=audience, source_id=source_id,
     )
 
     labels = {"all": "كافة المسجلين", "users": "المستخدمين والشركات", "consultants": "المستشارون فقط"}
@@ -100,7 +145,7 @@ def admin_broadcast_notification(
         title=title, message=message, target_group=target_group,
         audience_label=labels.get(target_group, "الكل"),
         type=payload.get("type") or "update", priority=priority,
-        user_filters=user_filters, consultant_filters=consultant_filters,
+        user_filters=stored_user_filters, consultant_filters=consultant_filters,
         delivered_count=sent_count, created_by=current_user.id,
     )
     db.add(bc)

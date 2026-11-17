@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 
 const FILE_CONFIGS = [
-  { key: 'idProof', urlKey: 'idProofUrl', nameKey: 'idProofName', title: 'صورة إثبات الشخصية', required: true, subtitle: 'بطاقة الأحوال أو جواز السفر (PDF / صورة)' },
+  { key: 'idProof', urlKey: 'idProofUrl', nameKey: 'idProofName', title: 'صورة إثبات الشخصية', required: true, subtitle: 'بطاقة الأحوال أو جواز السفر (PDF أو صورة)' },
   { key: 'academicCert', urlKey: 'academicCertUrl', nameKey: 'academicCertName', title: 'الشهادات الأكاديمية', required: true, subtitle: 'شهادة البكالوريوس أو الدراسات العليا' },
   { key: 'professionalLicense', urlKey: 'professionalLicenseUrl', nameKey: 'professionalLicenseName', title: 'التراخيص المهنية والاعتمادات', required: true, subtitle: 'مزاولة المهنة أو الاعتماد المهني الرسمي' },
   { key: 'jcpaCert', urlKey: 'jcpaCertUrl', nameKey: 'jcpaCertName', title: 'شهادة JCPA', required: false, subtitle: 'المحاسب القانوني الأردني (اختياري)' },
   { key: 'expertsSocietyCert', urlKey: 'expertsSocietyCertUrl', nameKey: 'expertsSocietyCertName', title: 'شهادة العضوية في جمعية الخبراء', required: false, subtitle: 'شهادة العضوية السارية (اختياري)' },
 ];
+
+const ALLOWED_EXTS = ['.pdf', '.jpg', '.jpeg', '.png'];
 
 export default function ConsultantFilesStep({ files, onFileUploaded, onNext, onBack }) {
   const [uploadingKey, setUploadingKey] = useState(null);
@@ -14,6 +16,11 @@ export default function ConsultantFilesStep({ files, onFileUploaded, onNext, onB
 
   const handleUpload = async (key, file) => {
     if (!file) return;
+    const ext = '.' + (file.name.split('.').pop() || '').toLowerCase();
+    if (!ALLOWED_EXTS.includes(ext)) {
+      setError('صيغة الملف غير مدعومة. الصيغ المسموحة هي: PDF, JPG, PNG');
+      return;
+    }
     if (file.size > 5 * 1024 * 1024) {
       setError('حجم الملف يجب ألا يتجاوز 5 ميجابايت');
       return;
@@ -40,6 +47,11 @@ export default function ConsultantFilesStep({ files, onFileUploaded, onNext, onB
     }
   };
 
+  const handleRemove = (key) => {
+    setError('');
+    onFileUploaded(key, null, null);
+  };
+
   const handleProceed = () => {
     setError('');
     if (!files.idProofUrl) {
@@ -58,9 +70,9 @@ export default function ConsultantFilesStep({ files, onFileUploaded, onNext, onB
   };
 
   return (
-    <div className="consultant-files-step">
+    <div className="consultant-files-step" style={{ minWidth: 0 }}>
       <p style={{ textAlign: 'center', fontSize: '13px', color: '#64748B', marginBottom: '16px', lineHeight: 1.5 }}>
-        ارفع ملفات المستندات والتراخيص المطلوبة. الحد الأقصى 5MB لكل ملف
+        ارفع ملفات المستندات والتراخيص المطلوبة. الحد الأقصى 5MB لكل ملف بصيغة PDF أو JPG أو PNG
       </p>
 
       {error && (
@@ -69,26 +81,39 @@ export default function ConsultantFilesStep({ files, onFileUploaded, onNext, onB
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px', minWidth: 0 }}>
         {FILE_CONFIGS.map((cfg) => {
           const fileUrl = files[cfg.urlKey];
           const fileName = files[cfg.nameKey];
           const isUploading = uploadingKey === cfg.key;
 
           return (
-            <div key={cfg.key} className="auth-file-card" style={{ transition: 'all 0.2s ease' }}>
-              <div className="auth-file-info">
+            <div
+              key={cfg.key}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 14px',
+                background: fileUrl ? '#F8FAFC' : '#FFFFFF',
+                border: fileUrl ? '1px solid #16A34A' : '1px solid #E2E8F0',
+                borderRadius: '10px',
+                gap: '12px',
+                minWidth: 0,
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1, overflow: 'hidden' }}>
                 <svg
-                  xmlns="http://www.w3.org/2000/svg"
                   width="22"
                   height="22"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke={fileUrl ? '#16A34A' : 'var(--brand-blue, #005D9C)'}
+                  stroke={fileUrl ? '#16A34A' : '#0D3C5C'}
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="auth-file-icon"
+                  style={{ flexShrink: 0 }}
                 >
                   {fileUrl ? (
                     <>
@@ -103,41 +128,58 @@ export default function ConsultantFilesStep({ files, onFileUploaded, onNext, onB
                   )}
                 </svg>
 
-                <div className="auth-file-texts">
-                  <span className="auth-file-title">
-                    {cfg.title} {cfg.required && <span className="required-star">*</span>}
-                  </span>
-                  <span className="auth-file-subtitle" style={{ color: fileUrl ? '#16A34A' : '#64748B' }}>
-                    {fileName ? `✓ ${fileName}` : cfg.subtitle}
-                  </span>
+                <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#0D3C5C', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {cfg.title} {cfg.required && <span style={{ color: '#DC2626' }}>*</span>}
+                  </div>
+                  <div
+                    title={fileName || cfg.subtitle}
+                    style={{
+                      fontSize: '12px',
+                      color: fileUrl ? '#16A34A' : '#64748B',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      marginTop: '2px',
+                    }}
+                  >
+                    {fileName ? fileName : cfg.subtitle}
+                  </div>
                 </div>
               </div>
 
-              <label className={`auth-file-btn ${isUploading ? 'disabled' : ''}`}>
-                <input
-                  type="file"
-                  accept=".pdf,.png,.jpg,.jpeg,.webp"
-                  onChange={(e) => handleUpload(cfg.key, e.target.files?.[0])}
-                  disabled={isUploading}
-                  hidden
-                />
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="15"
-                  height="15"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-                <span>{isUploading ? 'جاري الرفع...' : fileUrl ? 'تم الرفع ✓' : 'رفع الملف'}</span>
-              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                {isUploading ? (
+                  <span style={{ fontSize: '12px', color: '#0D3C5C', fontWeight: '600' }}>جاري الرفع...</span>
+                ) : fileUrl ? (
+                  <>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11.5px', fontWeight: '700', color: '#16A34A', background: '#DCFCE7', padding: '4px 8px', borderRadius: '6px' }}>
+                      تم الرفع
+                    </span>
+                    <label style={{ cursor: 'pointer', fontSize: '11.5px', fontWeight: '600', color: '#0D3C5C', background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '4px 8px', borderRadius: '6px', margin: 0 }}>
+                      <input type="file" accept=".pdf,.png,.jpg,.jpeg" onChange={(e) => handleUpload(cfg.key, e.target.files?.[0])} hidden />
+                      استبدال
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(cfg.key)}
+                      style={{ cursor: 'pointer', fontSize: '11.5px', fontWeight: '600', color: '#DC2626', background: '#FEE2E2', border: '1px solid #FECACA', padding: '4px 8px', borderRadius: '6px' }}
+                    >
+                      حذف
+                    </button>
+                  </>
+                ) : (
+                  <label style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '700', color: '#FFFFFF', background: '#0D3C5C', padding: '6px 12px', borderRadius: '6px', margin: 0 }}>
+                    <input type="file" accept=".pdf,.png,.jpg,.jpeg" onChange={(e) => handleUpload(cfg.key, e.target.files?.[0])} hidden />
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <span>رفع الملف</span>
+                  </label>
+                )}
+              </div>
             </div>
           );
         })}
