@@ -3,7 +3,7 @@ import random
 import re
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 
 from models import (
     User, ConsultantProfile, UserRole, VerificationStatus, RefreshToken
@@ -18,7 +18,10 @@ from services.communication.email_service import EmailService
 class UserService:
     @staticmethod
     def get_user_by_email(db: Session, email: str) -> User:
-        return db.query(User).filter(User.email == email).first()
+        if not email:
+            return None
+        clean_email = str(email).strip().lower()
+        return db.query(User).filter(func.lower(User.email) == clean_email).first()
 
     @staticmethod
     def get_user_by_id(db: Session, user_id: uuid.UUID) -> User:

@@ -12,13 +12,13 @@ const FALLBACK_PLANS = [
     desc: 'للبدء واستكشاف الخدمات الأساسية في المنصة.',
     team: 1,
     support: 'خلال 48 ساعة',
-    ai: false,
+    ai: true,
     active: true,
     default: true,
     recommended: false,
     cycles: {
-      monthly: { price: 0, cases: 5, points: 0, downloads: 5, consultations: 0 },
-      yearly: { price: 0, cases: 60, points: 0, downloads: 60, consultations: 0 }
+      monthly: { price: 0, cases: 5, points: 20, downloads: 3, prints: 5, consultations: 0 },
+      yearly: { price: 0, cases: 60, points: 240, downloads: 36, prints: 60, consultations: 0 }
     }
   },
   {
@@ -32,8 +32,8 @@ const FALLBACK_PLANS = [
     default: false,
     recommended: false,
     cycles: {
-      monthly: { price: 29.99, cases: 25, points: 800, downloads: 25, consultations: 1 },
-      yearly: { price: 284.30, cases: 350, points: 12000, downloads: 350, consultations: 15 }
+      monthly: { price: 29.99, cases: 25, points: 800, downloads: 25, prints: 25, consultations: 1 },
+      yearly: { price: 284.30, cases: 350, points: 12000, downloads: 350, prints: 350, consultations: 15 }
     }
   },
   {
@@ -47,8 +47,8 @@ const FALLBACK_PLANS = [
     default: false,
     recommended: true,
     cycles: {
-      monthly: { price: 79.99, cases: 100, points: 3000, downloads: 100, consultations: 3 },
-      yearly: { price: 758.30, cases: 1400, points: 42000, downloads: 1400, consultations: 40 }
+      monthly: { price: 79.99, cases: 100, points: 3000, downloads: 100, prints: 100, consultations: 3 },
+      yearly: { price: 758.30, cases: 1400, points: 42000, downloads: 1400, prints: 1400, consultations: 40 }
     }
   }
 ];
@@ -105,26 +105,44 @@ export default function UserSubscriptionsPage({ navigate }) {
     };
   }, [token]);
 
-  // Normalize plans from database
+  // Normalize plans from database, ensuring all 3 official plans are always visible
   const plans = useMemo(() => {
-    if (!rawPlans || rawPlans.length === 0) return FALLBACK_PLANS;
     const planOrder = { 'مجانية': 1, 'أساسية': 2, 'احترافية': 3 };
-    const visiblePlans = rawPlans.filter(p => p.active !== false || (activeSub && activeSub.plan_name === p.name));
+    const mergedMap = new Map();
+
+    // 1. Seed fallback default plans (مجانية, أساسية, احترافية)
+    FALLBACK_PLANS.forEach(fp => mergedMap.set(fp.name, fp));
+
+    // 2. Override/enrich with live database plans
+    if (Array.isArray(rawPlans) && rawPlans.length > 0) {
+      rawPlans.forEach(rp => {
+        if (rp && rp.name) {
+          const fallback = mergedMap.get(rp.name) || {};
+          mergedMap.set(rp.name, { ...fallback, ...rp });
+        }
+      });
+    }
+
+    const visiblePlans = Array.from(mergedMap.values()).filter(
+      p => p.active !== false || (activeSub && activeSub.plan_name === p.name)
+    );
+
     visiblePlans.sort((a, b) => {
       const orderA = planOrder[a.name] || 99;
       const orderB = planOrder[b.name] || 99;
       return orderA - orderB;
     });
+
     return visiblePlans.map(p => {
-      const monthlyCycle = p.cycles?.monthly || { price: 0, cases: 5, points: 0, downloads: 5, consultations: 0 };
-      const yearlyCycle = p.cycles?.yearly || { price: 0, cases: 60, points: 0, downloads: 60, consultations: 0 };
+      const monthlyCycle = p.cycles?.monthly || { price: 0, cases: 5, points: 20, downloads: 3, prints: 5, consultations: 0 };
+      const yearlyCycle = p.cycles?.yearly || { price: 0, cases: 60, points: 240, downloads: 36, prints: 60, consultations: 0 };
       return {
         id: p.id,
         name: p.name,
-        desc: p.desc || (p.name === 'مجانية' ? 'للبدء واستكشاف الخدمات الأساسية في المنصة.' : p.name === 'أساسية' ? 'مناسبة للأفراد والمنشآت الصغيرة التي تحتاج أدوات ضريبية أوسع.' : 'للفرق والمنشآت التي تحتاج استخدامًا مكثفًا وأولوية أعلى.'),
+        desc: p.desc || (p.name === 'مجانية' ? 'للبدء واستكشاف الخدمات الأساسية في المنصة.' : p.name === 'أساسية' ? 'مناسبة للأفراد والمنشآت الصغيرة التي تحتاج أدوات ضريبية أوسع واستشارات سريعة.' : 'للفرق والمنشآت التي تحتاج استخدامًا مكثفًا وأولوية قصوى واستشارات متعددة.'),
         team: p.team || p.team_members || (p.name === 'احترافية' ? 10 : p.name === 'أساسية' ? 5 : 1),
         support: p.support || p.support_level || (p.name === 'احترافية' ? 'أولوية قصوى — 24/7' : p.name === 'أساسية' ? 'خلال 24 ساعة' : 'خلال 48 ساعة'),
-        ai: p.ai !== undefined ? p.ai : (p.name !== 'مجانية'),
+        ai: p.ai !== undefined ? p.ai : true,
         active: p.active !== undefined ? p.active : true,
         default: p.default || (p.name === 'مجانية'),
         recommended: p.recommended || (p.name === 'احترافية'),
@@ -134,7 +152,7 @@ export default function UserSubscriptionsPage({ navigate }) {
         }
       };
     });
-  }, [rawPlans]);
+  }, [rawPlans, activeSub]);
 
   // ══════════════════════════════════════════════════════════════════
   // 2. REQUEST UPGRADE / SUBSCRIBE ACTION
@@ -268,10 +286,10 @@ export default function UserSubscriptionsPage({ navigate }) {
               <div className="quotas-title">حصص الاستهلاك والرصيد المتاح:</div>
               <div className="quotas-grid">
                 
-                {/* 1. Consultations */}
+                {/* 1. Quick Consultations */}
                 <div className="quota-card">
                   <div className="quota-head">
-                    <span>الاستشارات المجانية المباشرة</span>
+                    <span>استشارة سريعة</span>
                     <strong>{activeSub.consultations_used} / {activeSub.consultations_total}</strong>
                   </div>
                   <div className="quota-bar-bg">
@@ -282,7 +300,11 @@ export default function UserSubscriptionsPage({ navigate }) {
                       }}
                     />
                   </div>
-                  <span className="quota-hint">متبقي {Math.max(0, activeSub.consultations_total - activeSub.consultations_used)} جلسة</span>
+                  <span className="quota-hint">
+                    {activeSub.consultations_total > 0
+                      ? `متبقي ${Math.max(0, activeSub.consultations_total - activeSub.consultations_used)} استشارة مشمولة`
+                      : 'متاحة حصرياً للمشتركين في الباقات'}
+                  </span>
                 </div>
 
                 {/* 2. AI Points */}
@@ -299,24 +321,47 @@ export default function UserSubscriptionsPage({ navigate }) {
                       }}
                     />
                   </div>
-                  <span className="quota-hint">رصيد كافي للبحث والتدقيق التشريعي</span>
+                  <span className="quota-hint">
+                    متبقي {Math.max(0, activeSub.ai_points_total - activeSub.ai_points_used)} نقطة للبحث والتدقيق
+                  </span>
                 </div>
 
-                {/* 3. Tax Forms / Cases */}
+                {/* 3. Downloads / Tax Forms */}
                 <div className="quota-card">
                   <div className="quota-head">
-                    <span>التحميلات والحالات الضريبية</span>
-                    <strong>{activeSub.tax_forms_used} / {activeSub.tax_forms_total}</strong>
+                    <span>تحميل القوانين والقرارات (PDF)</span>
+                    <strong>{activeSub.downloads_used ?? activeSub.tax_forms_used ?? 0} / {activeSub.downloads_total ?? activeSub.tax_forms_total ?? 3}</strong>
                   </div>
                   <div className="quota-bar-bg">
                     <div
                       className="quota-bar-fill green"
                       style={{
-                        width: `${Math.min(100, (activeSub.tax_forms_used / (activeSub.tax_forms_total || 1)) * 100)}%`
+                        width: `${Math.min(100, ((activeSub.downloads_used ?? activeSub.tax_forms_used ?? 0) / (activeSub.downloads_total ?? activeSub.tax_forms_total ?? 1)) * 100)}%`
                       }}
                     />
                   </div>
-                  <span className="quota-hint">متبقي {Math.max(0, activeSub.tax_forms_total - activeSub.tax_forms_used)} ملف متاح</span>
+                  <span className="quota-hint">
+                    متبقي {Math.max(0, (activeSub.downloads_total ?? activeSub.tax_forms_total ?? 3) - (activeSub.downloads_used ?? activeSub.tax_forms_used ?? 0))} ملف متاح
+                  </span>
+                </div>
+
+                {/* 4. Prints */}
+                <div className="quota-card">
+                  <div className="quota-head">
+                    <span>طباعة القوانين والتشريعات</span>
+                    <strong>{activeSub.prints_used ?? 0} / {activeSub.prints_total ?? 5}</strong>
+                  </div>
+                  <div className="quota-bar-bg">
+                    <div
+                      className="quota-bar-fill gold"
+                      style={{
+                        width: `${Math.min(100, ((activeSub.prints_used ?? 0) / (activeSub.prints_total ?? 1)) * 100)}%`
+                      }}
+                    />
+                  </div>
+                  <span className="quota-hint">
+                    متبقي {Math.max(0, (activeSub.prints_total ?? 5) - (activeSub.prints_used ?? 0))} عملية طباعة
+                  </span>
                 </div>
 
               </div>
@@ -432,8 +477,8 @@ export default function UserSubscriptionsPage({ navigate }) {
                     </div>
 
                     <div className="feature-row-item">
-                      <span className="feature-label">عدد النقاط</span>
-                      <span className="feature-value">{cycleData.points ? cycleData.points.toLocaleString() : '·'}</span>
+                      <span className="feature-label">نقاط المساعد الذكي AI</span>
+                      <span className="feature-value">{cycleData.points ? `${cycleData.points.toLocaleString()} نقطة` : (plan.name === 'مجانية' ? (isYearly ? '240 نقطة' : '20 نقطة') : '·')}</span>
                     </div>
 
                     <div className="feature-row-item">
@@ -444,13 +489,18 @@ export default function UserSubscriptionsPage({ navigate }) {
                     </div>
 
                     <div className="feature-row-item">
-                      <span className="feature-label">التحميلات</span>
-                      <span className="feature-value">{cycleData.downloads || (plan.name === 'احترافية' ? (isYearly ? 1400 : 100) : plan.name === 'أساسية' ? (isYearly ? 350 : 25) : (isYearly ? 60 : 5))}</span>
+                      <span className="feature-label">تحميل القوانين PDF</span>
+                      <span className="feature-value">{cycleData.downloads || (plan.name === 'احترافية' ? (isYearly ? 1400 : 100) : plan.name === 'أساسية' ? (isYearly ? 350 : 25) : (isYearly ? 36 : 3))} ملف</span>
                     </div>
 
                     <div className="feature-row-item">
-                      <span className="feature-label">الاستشارات المجانية</span>
-                      <span className="feature-value">{cycleData.consultations ? cycleData.consultations : '·'}</span>
+                      <span className="feature-label">طباعة القوانين والتشريعات</span>
+                      <span className="feature-value">{cycleData.prints || (plan.name === 'احترافية' ? (isYearly ? 1400 : 100) : plan.name === 'أساسية' ? (isYearly ? 350 : 25) : (isYearly ? 60 : 5))} مرة</span>
+                    </div>
+
+                    <div className="feature-row-item">
+                      <span className="feature-label">استشارات سريعة</span>
+                      <span className="feature-value">{cycleData.consultations ? `${cycleData.consultations} جلسة` : (plan.name === 'مجانية' ? 'غير مشمول (للمشتركين فقط)' : '·')}</span>
                     </div>
 
                     <div className="feature-row-item">

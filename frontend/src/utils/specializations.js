@@ -1,33 +1,37 @@
 /**
- * Official 15 Specializations for the Diwan Platform
- * Used across Consultants catalog, Quick Consultation, Profile, Filters, and Admin panels.
+ * Official 8 Specializations for the Diwan Platform
+ * Matches official platform catalog:
+ * 1: ضريبي
+ * 2: ضريبة المبيعات
+ * 3: ضريبة الدخل
+ * 4: جمارك
+ * 5: مناطق حرة
+ * 6: تسعير تحويلي
+ * 7: قانوني
+ * 8: تدقيق ومراجعة
  */
-export const OFFICIAL_15_SPECIALIZATIONS = [
-  { id: 1, name: 'ضريبة الدخل والمبيعات', description: 'استشارات وتدقيق ضريبة الدخل وضريبة المبيعات العامة' },
-  { id: 2, name: 'المناطق الحرة والتنموية', description: 'الحوافز الضريبية والأنظمة الخاصة بالمناطق التنموية والحرة' },
-  { id: 3, name: 'منطقة العقبة الاقتصادية الخاصة', description: 'التشريعات والامتيازات الضريبية والجمركية في منطقة العقبة' },
-  { id: 4, name: 'قوانين الإستثمار', description: 'قوانين البيئة الاستثمارية والاعفاءات والحوافز للمستثمرين' },
-  { id: 5, name: 'قوانين الجمارك', description: 'التعريفات الجمركية، التخليص، وقوانين الجمارك الأردنية والدولية' },
-  { id: 6, name: 'الضرائب الدولية', description: 'المعايير الدولية للضرائب وتخطيط الضرائب عبر الحدود' },
-  { id: 7, name: 'الإزدواج الضريبي', description: 'اتفاقيات تجنب الازدواج الضريبي وحماية الحقوق المالية الدولية' },
-  { id: 8, name: 'الأسعار التحويلية', description: 'سياسات التسعير التحويلي والملفات المحلية والمركزية للشركات' },
-  { id: 9, name: 'الضريبة الخاصة', description: 'السلع والخدمات الخاضعة للضريبة الخاصة وآليات احتسابها' },
-  { id: 10, name: 'المنازعات الضريبية', description: 'الاعتراضات، لجان التسوية، وقضايا المحاكم الضريبية' },
-  { id: 11, name: 'إدارة المخاطر', description: 'إدارة المخاطر المالية والضريبية والامتثال الرقابي' },
-  { id: 12, name: 'تدقيق الحسابات', description: 'التدقيق المالي الخارجي والقوائم المالية المعتمدة' },
-  { id: 13, name: 'التدقيق الداخلي', description: 'مراجعة الأنظمة الرقابية الداخلية وضبط العمليات المالية' },
-  { id: 14, name: 'الإعسار', description: 'قوانين وإجراءات الإعسار وحماية الدائنين والمدينين' },
-  { id: 15, name: 'التصفية', description: 'تصفية الشركات والكيانات التجارية وإنهاء الالتزامات الضريبية' }
+export const OFFICIAL_8_SPECIALIZATIONS = [
+  { id: 1, name: 'ضريبي', description: 'استشارات وتخطيط ضريبي عام' },
+  { id: 2, name: 'ضريبة المبيعات', description: 'استشارات ضريبة المبيعات العامة والخاصة والامتثال' },
+  { id: 3, name: 'ضريبة الدخل', description: 'إقرارات واستشارات وتدقيق ضريبة الدخل للأفراد والشركات' },
+  { id: 4, name: 'جمارك', description: 'التعريفات الجمركية، التخليص، وقوانين الجمارك' },
+  { id: 5, name: 'مناطق حرة', description: 'الحوافز الضريبية والأنظمة الخاصة بالمناطق الحرة والتنموية' },
+  { id: 6, name: 'تسعير تحويلي', description: 'سياسات التسعير التحويلي والملفات المحلية والمركزية' },
+  { id: 7, name: 'قانوني', description: 'الاستشارات القانونية والاعتراضات والنزاعات الضريبية' },
+  { id: 8, name: 'تدقيق ومراجعة', description: 'تدقيق الحسابات والتدقيق الداخلي والمراجعة المالية' }
 ];
 
-export const SPECIALIZATION_NAMES = OFFICIAL_15_SPECIALIZATIONS.map(s => s.name);
+// Backward-compatibility alias
+export const OFFICIAL_15_SPECIALIZATIONS = OFFICIAL_8_SPECIALIZATIONS;
+
+export const SPECIALIZATION_NAMES = OFFICIAL_8_SPECIALIZATIONS.map(s => s.name);
 
 export function getSpecializationById(id) {
   const numId = Number(id);
-  return OFFICIAL_15_SPECIALIZATIONS.find(s => s.id === numId) || null;
+  return OFFICIAL_8_SPECIALIZATIONS.find(s => s.id === numId) || null;
 }
 
-export function getSpecializationName(id, fallback = 'ضريبة الدخل والمبيعات') {
+export function getSpecializationName(id, fallback = 'ضريبي') {
   const spec = getSpecializationById(id);
   return spec ? spec.name : fallback;
 }

@@ -62,6 +62,21 @@ function InlineSearchBar({
 const DocumentCenterContent = React.memo(function DocumentCenterContent({ lawTree }) {
   return (
     <div className="lft-center-container">
+      {/* ── Print-only Header (منصة ديوان + لوجو في أعلى كل مستند مطبوع) ── */}
+      <div className="lft-print-header">
+        <div className="lft-print-header-brand">
+          <img src="/logo.png" alt="منصة ديوان" className="lft-print-logo" onError={(e) => { e.target.style.display = 'none'; }} />
+          <div>
+            <h2 className="lft-print-brand-title">منصة ديوان للاستشارات الضريبية</h2>
+            <span className="lft-print-brand-sub">المرجع المعتمد للتشريعات والقوانين الضريبية الأردنية</span>
+          </div>
+        </div>
+        <div className="lft-print-header-meta">
+          <span className="lft-print-badge">نسخة رسمية مطبوعة</span>
+          <small>{new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</small>
+        </div>
+      </div>
+
       {/* Document Title */}
       <h1 className="lft-doc-title">{lawTree?.title}</h1>
 
@@ -174,6 +189,16 @@ const DocumentCenterContent = React.memo(function DocumentCenterContent({ lawTre
           })}
         </div>
       ))}
+
+      {/* ── Print-only Footer ── */}
+      <div className="lft-print-footer">
+        <div>
+          <strong>منصة ديوان للاستشارات الضريبية</strong> — المرجع المعتمد للتشريعات والأنظمة © {new Date().getFullYear()}
+        </div>
+        <div>
+          <span>www.diwantax.com</span>
+        </div>
+      </div>
     </div>
   );
 });

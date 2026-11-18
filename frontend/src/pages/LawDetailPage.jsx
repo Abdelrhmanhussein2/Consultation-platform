@@ -14,8 +14,13 @@ import LegalReadingProgressBar from '../components/Regulations/LegalReader/Legal
 import { useReadingProgress }  from '../components/Regulations/LegalReader/useReadingProgress';
 import { useDocumentSearch }   from '../components/Regulations/LegalReader/useDocumentSearch';
 import { getLawTree }          from '../services/legalService';
+import { useAuth }             from '../context/AuthContext';
+import { apiFetch }            from '../services/api';
+import { printLawDocument }    from '../utils/printLawHelper';
 
 export default function LawDetailPage({ lawId, navigate, currentPath }) {
+  const { token } = useAuth();
+
   // ── Data ──────────────────────────────────────────────────────────────────
   const [lawTree, setLawTree] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -35,9 +40,26 @@ export default function LawDetailPage({ lawId, navigate, currentPath }) {
     doSearch, goToNext, goToPrev, clearSearch,
   } = useDocumentSearch(scrollRef);
 
-  // ── Usage counters ────────────────────────────────────────────────────────
+  // ── Usage counters (Live from user subscription) ───────────────────────────
   const [printCount, setPrintCount]       = useState(0);
   const [downloadCount, setDownloadCount] = useState(0);
+  const [maxPrint, setMaxPrint]           = useState(5);
+  const [maxDownload, setMaxDownload]     = useState(3);
+
+  // Load real subscription quotas
+  useEffect(() => {
+    if (!token) return;
+    apiFetch('/api/subscriptions/my-subscription', {}, token)
+      .then(sub => {
+        if (sub) {
+          setDownloadCount(Number(sub.downloads_used ?? sub.tax_forms_used ?? 0));
+          setMaxDownload(Number(sub.downloads_total ?? sub.tax_forms_total ?? 3));
+          setPrintCount(Number(sub.prints_used ?? 0));
+          setMaxPrint(Number(sub.prints_total ?? 5));
+        }
+      })
+      .catch(() => {});
+  }, [token]);
 
   // ── Reading Progress ──────────────────────────────────────────────────────
   const { progressPercent, currentArticleNum, totalArticles } = useReadingProgress(scrollRef, lawTree);
@@ -275,8 +297,65 @@ export default function LawDetailPage({ lawId, navigate, currentPath }) {
     else window.history.back();
   };
 
-  const handlePrint    = () => { setPrintCount(p => p + 1);    window.print(); };
-  const handleDownload = () => { setDownloadCount(p => p + 1); window.print(); };
+  const handlePrint = async () => {
+    if (printCount >= maxPrint) {
+      alert(`لقد استنفدت حصتك من طباعة القوانين (${printCount}/${maxPrint}). يرجى ترقية باقتك للمتابعة.`);
+      return;
+    }
+    try {
+      if (token) {
+        const res = await apiFetch('/api/subscriptions/consume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: {
+            resource_type: 'print',
+            amount: 1,
+            title: 'طباعة نص قانون',
+            description: lawTree?.title || 'طباعة تشريع'
+          }
+        }, token);
+        if (res && res.used !== undefined) {
+          setPrintCount(Number(res.used));
+          if (res.total) setMaxPrint(Number(res.total));
+        } else {
+          setPrintCount(p => p + 1);
+        }
+      }
+      printLawDocument(lawTree);
+    } catch (err) {
+      alert(err.message || 'تعذر استهلاك رصيد الطباعة، يرجى ترقية باقتك');
+    }
+  };
+
+  const handleDownload = async () => {
+    if (downloadCount >= maxDownload) {
+      alert(`لقد استنفدت حصتك من تحميل القوانين (${downloadCount}/${maxDownload}). يرجى ترقية باقتك للتحميل المفتوح.`);
+      return;
+    }
+    try {
+      if (token) {
+        const res = await apiFetch('/api/subscriptions/consume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: {
+            resource_type: 'download',
+            amount: 1,
+            title: 'تحميل ملف قانون PDF',
+            description: lawTree?.title || 'تحميل تشريع'
+          }
+        }, token);
+        if (res && res.used !== undefined) {
+          setDownloadCount(Number(res.used));
+          if (res.total) setMaxDownload(Number(res.total));
+        } else {
+          setDownloadCount(p => p + 1);
+        }
+      }
+      printLawDocument(lawTree);
+    } catch (err) {
+      alert(err.message || 'تعذر استهلاك رصيد التحميل، يرجى ترقية باقتك');
+    }
+  };
 
   const handleCopy = () => {
     if (!lawTree) return;
@@ -358,6 +437,8 @@ export default function LawDetailPage({ lawId, navigate, currentPath }) {
           onClose={handleClose}
           printCount={printCount}
           downloadCount={downloadCount}
+          maxPrint={maxPrint}
+          maxDownload={maxDownload}
           onPrint={handlePrint}
           onDownload={handleDownload}
           onCopy={handleCopy}

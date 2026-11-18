@@ -42,6 +42,11 @@ class AuthController:
         # User is created with UserRole.user explicitly
         try:
             db_user = UserService.create_user(db, user_in, role=UserRole.user)
+            try:
+                from controllers.subscription_controller import SubscriptionController
+                SubscriptionController.get_or_create_free_subscription(db, db_user.id)
+            except Exception:
+                pass
         except ValueError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -274,7 +279,8 @@ class AuthController:
         Verifies login credentials and generates access/refresh tokens.
         Checks if consultant is approved.
         """
-        db_user = UserService.get_user_by_email(db, login_in.email)
+        email_clean = str(login_in.email).strip().lower()
+        db_user = UserService.get_user_by_email(db, email_clean)
         if not db_user or not verify_password(login_in.password, db_user.password_hash):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

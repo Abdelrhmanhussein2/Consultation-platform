@@ -13,6 +13,7 @@ import LegalReadingProgressBar from './LegalReadingProgressBar';
 import { useReadingProgress }  from './useReadingProgress';
 import { useDocumentSearch }   from './useDocumentSearch';
 import { getLawTree }      from '../../../services/legalService';
+import { printLawDocument } from '../../../utils/printLawHelper';
 
 export default function LegalFullTextPage({ lawId, onClose }) {
   // ── Data ──────────────────────────────────────────────────────────────────
@@ -100,12 +101,12 @@ export default function LegalFullTextPage({ lawId, onClose }) {
   // ── Actions ───────────────────────────────────────────────────────────────
   const handlePrint = () => {
     setPrintCount(prev => prev + 1);
-    window.print();
+    printLawDocument(lawTree);
   };
 
   const handleDownload = () => {
     setDownloadCount(prev => prev + 1);
-    window.print();
+    printLawDocument(lawTree);
   };
 
   const handleCopy = () => {

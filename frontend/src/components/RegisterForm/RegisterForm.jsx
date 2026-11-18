@@ -5,6 +5,7 @@ import OtpVerificationStep from './OtpVerificationStep';
 import ConsultantFilesStep from './ConsultantFilesStep';
 import ConsultantPoliciesStep from './ConsultantPoliciesStep';
 import { CONSULTANT_REGISTRATION_ACTIVITIES } from '../../admin/components/notifications/broadcastConstants';
+import { OFFICIAL_8_SPECIALIZATIONS } from '../../utils/specializations';
 
 export default function RegisterForm({ openPolicy, navigate }) {
   // Account Type ('user' or 'consultant')
@@ -13,8 +14,8 @@ export default function RegisterForm({ openPolicy, navigate }) {
   // Current Step (1 or 2)
   const [currentStep, setCurrentStep] = useState(1);
 
-  // Specializations list for consultant
-  const [specializations, setSpecializations] = useState([]);
+  // Specializations list for consultant (initialized with the official 8)
+  const [specializations, setSpecializations] = useState(OFFICIAL_8_SPECIALIZATIONS);
 
   // Step 1: Basic Information
   const [fullName, setFullName] = useState('');
@@ -137,32 +138,14 @@ export default function RegisterForm({ openPolicy, navigate }) {
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
-          const filtered = data.filter((s) => s.id <= 8);
-          const finalSpecs = filtered.length > 0 ? filtered : data;
-          setSpecializations(finalSpecs);
-          if (!mainSpecializationId) {
-            setMainSpecializationId(finalSpecs[0].id.toString());
+          const validNames = new Set(OFFICIAL_8_SPECIALIZATIONS.map((s) => s.name));
+          const matching = data.filter((s) => validNames.has(s.name));
+          if (matching.length === 8) {
+            setSpecializations(matching);
           }
-        } else {
-          throw new Error('No data');
         }
       })
-      .catch(() => {
-        const official8 = [
-          { id: 1, name: 'ضريبي' },
-          { id: 2, name: 'ضريبة المبيعات' },
-          { id: 3, name: 'ضريبة الدخل' },
-          { id: 4, name: 'جمارك' },
-          { id: 5, name: 'مناطق حرة' },
-          { id: 6, name: 'تسعير تحويلي' },
-          { id: 7, name: 'قانوني' },
-          { id: 8, name: 'تدقيق ومراجعة' },
-        ];
-        setSpecializations(official8);
-        if (!mainSpecializationId) {
-          setMainSpecializationId('1');
-        }
-      });
+      .catch(() => {});
   }, []);
 
   const validateEmail = (str) => {

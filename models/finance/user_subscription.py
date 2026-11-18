@@ -22,6 +22,8 @@ class UserSubscription(Base):
     points_used = Column(Integer, nullable=False, default=0)
     downloads_total = Column(Integer, nullable=False, default=0)
     downloads_used = Column(Integer, nullable=False, default=0)
+    prints_total = Column(Integer, nullable=False, default=5)
+    prints_used = Column(Integer, nullable=False, default=0)
     consultations_total = Column(Integer, nullable=False, default=0)
     consultations_used = Column(Integer, nullable=False, default=0)
     team_total = Column(Integer, nullable=False, default=1)
