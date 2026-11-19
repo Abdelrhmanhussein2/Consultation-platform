@@ -748,8 +748,9 @@ class NotificationOut(BaseModel):
     type: NotificationType
     title: str
     message: str
-    related_entity_type: Optional[str]
-    related_entity_id: Optional[uuid.UUID]
+    related_entity_type: Optional[str] = None
+    related_entity_id: Optional[uuid.UUID] = None
+    extra_metadata: Optional[Dict[str, Any]] = None
     is_read: bool
     created_at: datetime
 

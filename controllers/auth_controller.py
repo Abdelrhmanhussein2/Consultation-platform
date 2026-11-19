@@ -47,6 +47,30 @@ class AuthController:
                 SubscriptionController.get_or_create_free_subscription(db, db_user.id)
             except Exception:
                 pass
+
+            # Notify Admins of new user registration
+            try:
+                from services.communication.notification_service import NotificationService
+                from models.users.user import User
+                admins = db.query(User).filter(User.role.in_([UserRole.admin, UserRole.super_admin])).all()
+                for adm in admins:
+                    NotificationService.send(
+                        db=db,
+                        user_id=adm.id,
+                        notification_type=NotificationType.general,
+                        title="تسجيل مستخدم جديد",
+                        message=f"قام المستخدم ({db_user.full_name}) بإنشاء حساب جديد في المنصة بنجاح.",
+                        related_entity_type="user",
+                        related_entity_id=db_user.id,
+                        extra_metadata={
+                            "target_type": "new_user_registration",
+                            "user_id": str(db_user.id),
+                            "user_name": db_user.full_name,
+                            "email": db_user.email
+                        }
+                    )
+            except Exception as ex:
+                print("Error notifying admins on user registration:", ex)
         except ValueError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -247,17 +271,45 @@ class AuthController:
         # ── Notify Admins in Database ─────────────────────────────────
         try:
             from services.communication.notification_service import NotificationService
+            from models.users.user import User
+            from models.communication.notification import Notification
+
             admins = db.query(User).filter(User.role.in_([UserRole.admin, UserRole.super_admin])).all()
             for adm in admins:
-                NotificationService.send(
-                    db=db,
-                    user_id=adm.id,
-                    notification_type=NotificationType.general,
-                    title="طلب تسجيل مستشار جديد",
-                    message=f"سجّل المستشار ({db_user.full_name}) طلباً جديداً بالمنصة وهو بانتظار المراجعة والاعتماد.",
-                    related_entity_type="consultant_profile",
-                    related_entity_id=profile.id if profile else None
-                )
+                # Prevent duplicate notification for the same consultant registration
+                already_notified = None
+                if profile and profile.id:
+                    already_notified = db.query(Notification).filter(
+                        Notification.user_id == adm.id,
+                        Notification.related_entity_type == "consultant_profile",
+                        Notification.related_entity_id == profile.id
+                    ).first()
+
+                if not already_notified:
+                    already_notified = db.query(Notification).filter(
+                        Notification.user_id == adm.id,
+                        Notification.title.ilike("%مستشار جديد%"),
+                        Notification.message.ilike(f"%{db_user.full_name}%")
+                    ).first()
+
+                if not already_notified:
+                    NotificationService.send(
+                        db=db,
+                        user_id=adm.id,
+                        notification_type=NotificationType.general,
+                        title="طلب تسجيل مستشار جديد",
+                        message=f"سجّل المستشار ({db_user.full_name}) طلباً جديداً بالمنصة وهو بانتظار المراجعة والاعتماد.",
+                        related_entity_type="consultant_profile",
+                        related_entity_id=profile.id if profile else None,
+                        extra_metadata={
+                            "target_type": "consultant_application",
+                            "target_id": str(db_user.id),
+                            "applicant_id": str(db_user.id),
+                            "user_name": db_user.full_name,
+                            "email": db_user.email,
+                            "target_url": f"/admin/consultant-applications?applicantId={db_user.id}&search={db_user.full_name}"
+                        }
+                    )
         except Exception as ex:
             print("Error notifying admins on consultant registration:", ex)
             

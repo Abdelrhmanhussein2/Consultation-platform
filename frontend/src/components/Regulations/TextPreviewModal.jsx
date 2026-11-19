@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { getLawTree } from '../../services/legalService';
 import PreviewArticleCard from './PreviewArticleCard';
+import { formatLawAmendedDate, formatOriginalLawTitle } from '../../utils/legalFormatters';
 
 export default function TextPreviewModal({ isOpen, onClose, law, onOpenFullReader }) {
   const [isFavorite, setIsFavorite] = useState(false);
@@ -52,8 +53,8 @@ export default function TextPreviewModal({ isOpen, onClose, law, onOpenFullReade
     number: lawMeta?.number || law.number || `${law.year_short || '2014'}`,
     issue_date: lawMeta?.issue_date || law.issue_date || '—',
     effective_date: lawMeta?.effective_date || law.effective_date || '—',
-    amended_date: lawMeta?.amended_date || law.amended_date || '—',
-    title: lawMeta?.title || law.title || 'القانون',
+    amended_date: formatLawAmendedDate(lawMeta?.amended_date || law.amended_date, lawMeta || law),
+    title: formatOriginalLawTitle(lawMeta?.title || law.title || 'القانون'),
   };
 
   const handleSave = () => setIsSaved(prev => !prev);

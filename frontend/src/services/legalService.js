@@ -39,13 +39,13 @@ const MOCK_LAWS = [
   },
   {
     law_id: "قانون_34_2014_الأصلية",
-    title: "قانون ضريبة الدخل رقم 34 لسنة 2014 (النسخة الأصلية — كما صدر)",
+    title: "قانون ضريبة الدخل رقم 34 لسنة 2014 (النسخة الأصلية)",
     type: "نسخة أصلية",
     status: "معدل لاحقاً",
     year_short: "2014",
     issue_date: "30-12-2014",
     effective_date: "01-01-2015",
-    amended_date: "لا ينطبق (نص أصلي)",
+    amended_date: "—",
     total_articles: 82,
     summary: "النسخة الأصلية لقانون ضريبة الدخل رقم 34 لسنة 2014 كما صدرت ونُشرت في الجريدة الرسمية عدد 5320 قبل التعديلات اللاحقة.",
     score: "95%",
@@ -107,19 +107,34 @@ export async function searchLegal(query, limit = 20, token = null, filters = nul
     params.set('limit', limit);
 
     if (filters?.dateFrom) {
-      const nums = filters.dateFrom.replace(/[^0-9]/g, ' ').trim().split(/\s+/);
-      const possibleYear = parseInt(nums.find(n => n.length === 4) || nums[nums.length - 1], 10);
-      if (possibleYear >= 1900 && possibleYear <= 2100) {
-        params.set('year_from', possibleYear);
+      const cleanFrom = String(filters.dateFrom).trim();
+      if (cleanFrom) {
+        params.set('date_from', cleanFrom);
+        const nums = cleanFrom.replace(/[^0-9]/g, ' ').trim().split(/\s+/);
+        const possibleYear = parseInt(nums.find(n => n.length === 4) || nums[nums.length - 1], 10);
+        if (possibleYear >= 1900 && possibleYear <= 2100) {
+          params.set('year_from', possibleYear);
+        }
       }
     }
 
     if (filters?.dateTo) {
-      const nums = filters.dateTo.replace(/[^0-9]/g, ' ').trim().split(/\s+/);
-      const possibleYear = parseInt(nums.find(n => n.length === 4) || nums[nums.length - 1], 10);
-      if (possibleYear >= 1900 && possibleYear <= 2100) {
-        params.set('year_to', possibleYear);
+      const cleanTo = String(filters.dateTo).trim();
+      if (cleanTo) {
+        params.set('date_to', cleanTo);
+        const nums = cleanTo.replace(/[^0-9]/g, ' ').trim().split(/\s+/);
+        const possibleYear = parseInt(nums.find(n => n.length === 4) || nums[nums.length - 1], 10);
+        if (possibleYear >= 1900 && possibleYear <= 2100) {
+          params.set('year_to', possibleYear);
+        }
       }
+    }
+
+    if (filters?.status && filters.status !== 'الكل' && filters.status !== 'كافة الحالات') {
+      params.set('status', filters.status.trim());
+    }
+    if (filters?.type && filters.type !== 'الكل' && filters.type !== 'كافة الأنواع') {
+      params.set('type', filters.type.trim());
     }
 
     const endpoint = query && query.trim()
@@ -178,6 +193,19 @@ export async function searchLegal(query, limit = 20, token = null, filters = nul
 
     return loose.length > 0 ? loose : MOCK_LAWS;
   }
+}
+
+export async function getLawDocTypes() {
+  try {
+    const res = await fetch(`${API_BASE}/laws/doc-types`);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) return data;
+    }
+  } catch (err) {
+    console.warn("Could not fetch law doc types, using admin defaults:", err);
+  }
+  return ["قانون", "نظام", "تعليمات", "قرارات", "أحكام ملزمة", "جداول", "ملاحق"];
 }
 
 export async function getLawTree(lawId, token = null) {

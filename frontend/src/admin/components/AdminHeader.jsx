@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { notificationService } from '../../services/notificationService';
 import NotificationDropdown from '../../components/UserPortal/NotificationDropdown';
+import NotificationDetailsModal from '../../components/Notifications/NotificationDetailsModal';
 import { getNotificationTarget } from '../../utils/notificationRouter';
 import {
   IconSearch,
@@ -16,8 +17,10 @@ export default function AdminHeader({ navigate, onOpenAiModal, isSidebarCollapse
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [selectedNotifForModal, setSelectedNotifForModal] = useState(null);
 
   const notifRef = useRef(null);
+  const hasCheckedOnLoginPopup = useRef(false);
 
   useEffect(() => {
     if (!token) return;
@@ -32,8 +35,28 @@ export default function AdminHeader({ navigate, onOpenAiModal, isSidebarCollapse
         if (cntData && typeof cntData.unread_count === 'number') {
           setUnreadCount(cntData.unread_count);
         }
-        if (Array.isArray(notifData)) {
-          setNotifications(notifData);
+        const notifList = Array.isArray(notifData) ? notifData : (notifData?.items || notifData?.data || []);
+        setNotifications(notifList);
+
+        // Check for unread law announcement to show as popup on login
+        if (!hasCheckedOnLoginPopup.current && notifList.length > 0) {
+          hasCheckedOnLoginPopup.current = true;
+          const unreadLawNotif = notifList.find(n => {
+            if (n.is_read) return false;
+            const meta = n.extra_metadata || n.metadata || {};
+            const isLaw = meta.target_type === 'law' ||
+                          meta.is_law_announcement ||
+                          n.related_entity_type === 'legal_source' ||
+                          (n.title && (n.title.includes('قانون') || n.title.includes('تشريع') || n.title.includes('تعديل في')));
+            if (!isLaw) return false;
+            const shownKey = `shown_law_popup_${n.id}`;
+            return !localStorage.getItem(shownKey);
+          });
+
+          if (unreadLawNotif) {
+            setSelectedNotifForModal(unreadLawNotif);
+            localStorage.setItem(`shown_law_popup_${unreadLawNotif.id}`, 'true');
+          }
         }
       } catch (e) {}
     };
@@ -70,24 +93,10 @@ export default function AdminHeader({ navigate, onOpenAiModal, isSidebarCollapse
     } catch (err) {}
   };
 
-  const handleNotificationClick = async (notif) => {
+  const handleNotificationClick = (notif) => {
     if (!notif) return;
-    if (!notif.is_read) {
-      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
-      setUnreadCount(prev => Math.max(0, prev - 1));
-      if (token) {
-        try {
-          await notificationService.markAsRead(notif.id, token);
-        } catch (err) {}
-      }
-    }
     setShowNotifications(false);
-
-    // Resolve target page & tab dynamically
-    const target = getNotificationTarget(notif, 'admin');
-    if (target && target.url && navigate) {
-      navigate(target.url);
-    }
+    setSelectedNotifForModal(notif);
   };
 
   const firstLetter = user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'م';
@@ -177,6 +186,42 @@ export default function AdminHeader({ navigate, onOpenAiModal, isSidebarCollapse
           <span>اسأل ديوان AI</span>
         </button>
       </div>
+      {/* Shared Admin NotificationDetailsModal */}
+      <NotificationDetailsModal
+        isOpen={Boolean(selectedNotifForModal)}
+        notification={selectedNotifForModal}
+        onClose={async () => {
+          if (selectedNotifForModal?.id) {
+            const notifId = selectedNotifForModal.id;
+            localStorage.setItem(`shown_law_popup_${notifId}`, 'true');
+            setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, is_read: true } : n));
+            setUnreadCount(prev => Math.max(0, prev - 1));
+            if (token) {
+              try {
+                await notificationService.markAsRead(notifId, token);
+              } catch (err) {}
+            }
+          }
+          setSelectedNotifForModal(null);
+        }}
+        onNavigate={(url) => {
+          if (selectedNotifForModal?.id) {
+            localStorage.setItem(`shown_law_popup_${selectedNotifForModal.id}`, 'true');
+          }
+          navigate(url);
+        }}
+        onMarkAsRead={async (id) => {
+          localStorage.setItem(`shown_law_popup_${id}`, 'true');
+          setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+          setUnreadCount(prev => Math.max(0, prev - 1));
+          if (token) {
+            try {
+              await notificationService.markAsRead(id, token);
+            } catch (err) {}
+          }
+        }}
+        role="admin"
+      />
     </header>
   );
 }

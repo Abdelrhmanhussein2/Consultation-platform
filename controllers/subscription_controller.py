@@ -1102,7 +1102,17 @@ class SubscriptionController:
                 user_id=adm.id,
                 type=NotificationType.general,
                 title="طلب اشتراك جديد بانتظار الموافقة",
-                message=f"قام [{user_name}] بتقديم طلب اشتراك في باقة [{plan.name}] ({cycle}). يرجى مراجعة الطلب واعتماده."
+                message=f"قام [{user_name}] بتقديم طلب اشتراك في باقة [{plan.name}] ({cycle}). يرجى مراجعة الطلب واعتماده.",
+                related_entity_type="subscription_request",
+                related_entity_id=req.id,
+                extra_metadata={
+                    "target_type": "subscription_request",
+                    "target_id": str(req.id),
+                    "user_id": str(user_id),
+                    "user_name": user_name,
+                    "request_no": req.request_no,
+                    "target_url": f"/admin/subscriptions?tab=requests&search={user_name}&reqId={req.id}"
+                }
             )
             db.add(adm_notif)
 

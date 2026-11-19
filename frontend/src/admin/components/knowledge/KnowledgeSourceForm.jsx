@@ -49,7 +49,7 @@ export default function KnowledgeSourceForm({
           tags: d.tags || prev.tags,
           body: d.body || prev.body
         }));
-        onNotify(d.is_duplicate ? (d.duplicate_message || 'هذا القانون موجود بالفعل في المنصة.') : 'تم استخراج بيانات القانون والمواد كاملة تلقائياً بنجاح');
+        onNotify(d.is_duplicate ? (d.duplicate_message || 'هذا التشريع موجود بالفعل في المنصة.') : 'تم استخراج بيانات التشريع والمواد كاملة تلقائياً بنجاح');
       } else {
         const cleanName = file.name.replace(/\.[^.]+$/, '').replace(/_/g, ' ');
         setFormData((prev) => ({ ...prev, file, fileName: file.name, fileSize: file.size, title: prev.title || cleanName }));
@@ -67,15 +67,15 @@ export default function KnowledgeSourceForm({
   return (
     <section className="knowledge-bento-panel knowledge-form-card">
       <h2 className="knowledge-form-title">
-        <span>{formData.id ? 'تعديل مصدر قانوني' : 'إضافة قانون / مادة جديدة'}</span>
+        <span>{formData.id ? 'تعديل تشريع' : 'إضافة تشريع'}</span>
       </h2>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
         <label className={`knowledge-dropzone ${isExtracting ? 'extracting' : ''}`}>
           {isExtracting ? (
-            <><IconSync className="size-4 spin-animate" /><span>جارٍ قراءة ملف القانون واستخراج النصوص...</span></>
+            <><IconSync className="size-4 spin-animate" /><span>جارٍ قراءة ملف التشريع واستخراج النصوص...</span></>
           ) : (
-            <><IconUpload className="size-4" /><span>{formData.fileName ? `الملف: ${formData.fileName}` : 'تحميل ملف قانون word'}</span></>
+            <><IconUpload className="size-4" /><span>{formData.fileName ? `الملف: ${formData.fileName}` : 'تحميل ملف تشريع word'}</span></>
           )}
           <input
             ref={fileInputRef} type="file" accept=".docx,.doc,.pdf,.txt" style={{ display: 'none' }}
@@ -88,7 +88,7 @@ export default function KnowledgeSourceForm({
             type="text"
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            placeholder="عنوان القانون أو التعليمات"
+            placeholder="عنوان التشريع أو التعليمات"
             className="knowledge-input"
           />
         </div>
@@ -97,7 +97,7 @@ export default function KnowledgeSourceForm({
           <div>
             <input
               type="text"
-              value="قانون"
+              value="تشريع"
               disabled
               readOnly
               className="knowledge-input"
@@ -176,10 +176,10 @@ export default function KnowledgeSourceForm({
           {isSaving ? (
             <>
               <IconSync className="size-4 spin-animate" />
-              <span>جارٍ رفع القانون وفهرسته...</span>
+              <span>جارٍ رفع التشريع وفهرسته...</span>
             </>
           ) : duplicateMsg ? (
-            <span>هذا القانون موجود بالفعل</span>
+            <span>هذا التشريع موجود بالفعل</span>
           ) : (
             <>
               <IconSave className="size-4" />

@@ -152,17 +152,26 @@ def send_admin_broadcast(
         return 0
 
     valid_uuid = None
+    meta = {}
     if source_id:
         try:
             valid_uuid = uuid.UUID(str(source_id))
         except (ValueError, TypeError, AttributeError):
             valid_uuid = None
+        meta = {
+            "target_type": "law",
+            "target_id": str(source_id),
+            "target_url": f"/regulations?lawId={source_id}&strict=true",
+            "is_law_announcement": True,
+            "show_on_login": True
+        }
 
     rows = [
         Notification(
             user_id=u.id, type=NotificationType.general, title=title, message=message,
             related_entity_type="legal_source" if source_id else "broadcast",
             related_entity_id=valid_uuid,
+            extra_metadata=meta
         )
         for u in users
     ]
@@ -172,7 +181,8 @@ def send_admin_broadcast(
     try:
         extra = {"related_entity_type": "legal_source" if source_id else "broadcast", "priority": priority}
         if source_id:
-            extra["related_entity_id"] = source_id
+            extra["related_entity_id"] = str(source_id)
+            extra["extra_metadata"] = meta
         for u in users:
             LiveNotificationService.push_notification(
                 user_id=u.id, title=title, message=message, notif_type="general", extra=extra,

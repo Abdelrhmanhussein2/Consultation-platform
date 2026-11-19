@@ -12,7 +12,8 @@ class NotificationService:
         title: str,
         message: str,
         related_entity_type: str = None,
-        related_entity_id: uuid.UUID = None
+        related_entity_id: uuid.UUID = None,
+        extra_metadata: dict = None
     ) -> Notification:
         """
         Creates and persists a notification in the database.
@@ -23,7 +24,8 @@ class NotificationService:
             title=title,
             message=message,
             related_entity_type=related_entity_type,
-            related_entity_id=related_entity_id
+            related_entity_id=related_entity_id,
+            extra_metadata=extra_metadata or {}
         )
         db.add(notification)
         db.commit()
@@ -40,7 +42,8 @@ class NotificationService:
                 notif_id=notification.id,
                 extra={
                     "related_entity_type": related_entity_type,
-                    "related_entity_id": str(related_entity_id) if related_entity_id else None
+                    "related_entity_id": str(related_entity_id) if related_entity_id else None,
+                    "extra_metadata": extra_metadata or {}
                 }
             )
         except Exception:

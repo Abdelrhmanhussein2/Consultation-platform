@@ -267,9 +267,24 @@ def get_laws(
     status: Optional[str] = None,
     year_from: Optional[int] = None,
     year_to: Optional[int] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
     include_inactive: bool = Query(False)
 ):
-    return LegalController.get_laws(q=q, year_from=year_from, year_to=year_to, include_inactive=include_inactive)
+    return LegalController.get_laws(
+        q=q,
+        type=type,
+        status=status,
+        year_from=year_from,
+        year_to=year_to,
+        date_from=date_from,
+        date_to=date_to,
+        include_inactive=include_inactive
+    )
+
+@router.get("/laws/doc-types")
+def get_law_doc_types():
+    return LegalController.get_law_doc_types()
 
 @router.get("/laws/{law_id:path}/related")
 def get_related_files(
@@ -311,11 +326,20 @@ def search(
     query: str,
     limit: int = 5,
     year_from: Optional[int] = None,
-    year_to: Optional[int] = None
+    year_to: Optional[int] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None
 ):
     if not query.strip():
         raise HTTPException(
             status_code=400,
             detail="Query parameter cannot be empty"
         )
-    return LegalController.search(query, limit, year_from=year_from, year_to=year_to)
+    return LegalController.search(
+        query=query,
+        limit=limit,
+        year_from=year_from,
+        year_to=year_to,
+        date_from=date_from,
+        date_to=date_to
+    )

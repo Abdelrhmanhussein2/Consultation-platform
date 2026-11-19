@@ -89,39 +89,44 @@ function getLawDateRange(l) {
 }
 
 function matchLawType(l, filterType) {
-  if (!filterType || filterType === 'الكل') return true;
+  if (!filterType || filterType === 'الكل' || filterType === 'كافة الأنواع') return true;
   const t = filterType.trim();
+  const docType = (l.doc_type || '').trim();
   const lType = (l.type || '').trim();
   const lTitle = (l.title || '').trim();
 
-  if (t === 'قانون') {
-    return lType.includes('قانون') || lType.includes('نسخة') || lTitle.startsWith('قانون');
-  }
-  if (t === 'تعليمات') {
-    return lType.includes('تعليمات') || lTitle.startsWith('تعليمات');
-  }
-  if (t === 'نظام') {
-    return lType.includes('نظام') || lTitle.startsWith('نظام');
-  }
-  if (t.includes('أحكام') || t.includes('قضائ')) {
-    return lType.includes('حكم') || lType.includes('قضائ') || lTitle.startsWith('الحكم') || lTitle.startsWith('قرار محكمة');
-  }
-  if (t.includes('قرار')) {
-    return lType.includes('قرار') || lTitle.startsWith('قرار');
-  }
-  if (t.includes('نموذج') || t.includes('نماذج')) {
-    return lType.includes('نموذج') || lType.includes('نماذج') || lTitle.includes('نموذج');
-  }
-  return lType.includes(t) || lTitle.includes(t);
+  if (docType && (docType.includes(t) || t.includes(docType))) return true;
+  if (lType && (lType.includes(t) || t.includes(lType))) return true;
+  if (lTitle.includes(t)) return true;
+  return false;
 }
 
 function matchLawStatus(l, filterStatus) {
-  if (!filterStatus || filterStatus === 'الكل') return true;
+  if (!filterStatus || filterStatus === 'الكل' || filterStatus === 'كافة الحالات') return true;
   const st = filterStatus.trim();
   const lSt = (l.status || '').trim();
-  if (st === 'ساري') return lSt === 'ساري' || lSt === 'active';
-  if (st === 'معدل') return lSt.includes('معدل') || lSt === 'amended';
-  if (st === 'ملغى') return lSt.includes('ملغ') || lSt === 'cancelled';
+  const vSt = (l.version_status || '').trim();
+  const isSuperseded = Boolean(l.is_superseded);
+
+  if (st === 'ساري') {
+    return lSt === 'ساري' || lSt === 'active';
+  }
+  if (st === 'ملغي' || st === 'ملغى') {
+    return lSt === 'ملغي' || lSt === 'ملغى' || lSt === 'cancelled';
+  }
+  if (st === 'معدل') {
+    return vSt === 'معدل' || 
+      (l.title && (l.title.includes('وتعديلاته') || l.title.includes('المعدل'))) || 
+      (l.type && l.type.includes('معدل'));
+  }
+  if (st === 'نسخة سابقة') {
+    return isSuperseded || 
+      l.status === 'نسخة سابقة' || 
+      (l.title && l.title.includes('النسخة الأصلية') && !l.title.includes('وتعديلاته'));
+  }
+  if (st === 'نسخة أصلية') {
+    return vSt === 'نسخة أصلية' || (l.type && l.type.includes('أصلية'));
+  }
   return lSt === st;
 }
 
@@ -150,6 +155,7 @@ export default function RegulationsPage({ navigate, currentPath }) {
     const lawIdParam = params.get('lawId') || params.get('id') || '';
     const lawTitleParam = params.get('lawTitle') || params.get('title') || '';
     const lawTypeParam = params.get('lawType') || params.get('type') || '';
+    const isStrictParam = params.get('strict') === 'true';
 
     // 2. Read stored law object from sessionStorage if matching or fallback
     let storedLaw = null;
@@ -173,9 +179,9 @@ export default function RegulationsPage({ navigate, currentPath }) {
 
     if (qParam) {
       setSearchQuery(qParam);
-      handleSearch(qParam, filters, effectiveTargetId, effectiveTargetTitle, effectiveTargetType, storedLaw);
+      handleSearch(qParam, filters, effectiveTargetId, effectiveTargetTitle, effectiveTargetType, storedLaw, isStrictParam);
     } else {
-      handleSearch('', filters, effectiveTargetId, effectiveTargetTitle, effectiveTargetType, storedLaw);
+      handleSearch('', filters, effectiveTargetId, effectiveTargetTitle, effectiveTargetType, storedLaw, isStrictParam);
     }
   }, [token, currentPath]);
 
@@ -198,7 +204,8 @@ export default function RegulationsPage({ navigate, currentPath }) {
     targetId = highlightedLawId,
     targetTitle = null,
     targetType = null,
-    storedLawObj = null
+    storedLawObj = null,
+    strictMode = false
   ) => {
     setLoading(true);
     const effectiveQuery = queryText !== undefined ? queryText : searchQuery;
@@ -263,25 +270,77 @@ export default function RegulationsPage({ navigate, currentPath }) {
         matchIndex = filtered.findIndex(l => l.title && l.title.trim() === effectiveTitle.trim());
       }
 
-      if (matchIndex > 0) {
-        // Move the targeted law to index 0 (top of the list)
-        const [matchedLaw] = filtered.splice(matchIndex, 1);
-        filtered.unshift(matchedLaw);
-      } else if (matchIndex === -1 && storedLawObj) {
-        // If not in fetched results, prepend the stored law
-        const normalizedItem = {
-          law_id: storedLawObj.law_id || storedLawObj.id || effectiveId || 'selected_law',
-          title: storedLawObj.title || effectiveTitle || 'التشريع المختار',
-          type: storedLawObj.type || effectiveType || 'تشريع',
-          status: storedLawObj.status === 'active' ? 'ساري' : (storedLawObj.status || 'ساري'),
-          year_short: String(storedLawObj.year || '2026'),
-          issue_date: storedLawObj.pub || storedLawObj.issue_date || '2026/02/10',
-          effective_date: storedLawObj.eff || storedLawObj.effective_date || '2026/03/01',
-          amended_date: storedLawObj.amended_date || '—',
-          total_articles: storedLawObj.total_articles || 82,
-          summary: storedLawObj.desc || storedLawObj.summary || 'تعديل تشريعي وتنظيمي موثق ومحتوى معتمد رسمياً.'
-        };
-        filtered.unshift(normalizedItem);
+      if (strictMode && effectiveId) {
+        // STRICT MODE: Restrict the results exclusively to the single targeted law
+        let strictMatchedLaw = null;
+        if (matchIndex >= 0) {
+          strictMatchedLaw = filtered[matchIndex];
+        } else if (storedLawObj) {
+          strictMatchedLaw = {
+            law_id: storedLawObj.law_id || storedLawObj.id || effectiveId,
+            title: storedLawObj.title || effectiveTitle || 'التشريع المختار',
+            type: storedLawObj.type || effectiveType || 'تشريع',
+            status: storedLawObj.status === 'active' ? 'ساري' : (storedLawObj.status || 'ساري'),
+            year_short: String(storedLawObj.year || '2026'),
+            issue_date: storedLawObj.pub || storedLawObj.issue_date || '2026/02/10',
+            effective_date: storedLawObj.eff || storedLawObj.effective_date || '2026/03/01',
+            amended_date: storedLawObj.amended_date || '—',
+            total_articles: storedLawObj.total_articles || 82,
+            summary: storedLawObj.desc || storedLawObj.summary || 'تعديل تشريعي وتنظيمي موثق ومحتوى معتمد رسمياً.'
+          };
+        } else {
+          // Fetch from backend single law endpoint if available
+          try {
+            const res = await fetch(`/api/legal/laws/${encodeURIComponent(effectiveId)}`, {
+              headers: token ? { Authorization: `Bearer ${token}` } : {}
+            });
+            if (res.ok) {
+              const fetched = await res.json();
+              if (fetched) {
+                strictMatchedLaw = {
+                  law_id: fetched.law_id || fetched.id || effectiveId,
+                  title: fetched.title || effectiveTitle || 'التشريع المختار',
+                  type: fetched.type || effectiveType || 'تشريع',
+                  status: fetched.status || 'ساري',
+                  year_short: String(fetched.year || '2026'),
+                  issue_date: fetched.issue_date || '2026/02/10',
+                  effective_date: fetched.effective_date || '2026/03/01',
+                  amended_date: fetched.amended_date || '—',
+                  total_articles: fetched.total_articles || 80,
+                  summary: fetched.summary || fetched.description || 'تعديل تشريعي وتنظيمي موثق ومحتوى معتمد رسمياً.'
+                };
+              }
+            }
+          } catch (e) {
+            console.warn("Could not fetch strict law:", e);
+          }
+        }
+
+        if (strictMatchedLaw) {
+          filtered = [strictMatchedLaw];
+        } else {
+          filtered = filtered.filter(l => l.law_id === effectiveId || l.id === effectiveId);
+        }
+      } else {
+        // NORMAL MODE: Prioritize targeted law at index 0 without restricting other results
+        if (matchIndex > 0) {
+          const [matchedLaw] = filtered.splice(matchIndex, 1);
+          filtered.unshift(matchedLaw);
+        } else if (matchIndex === -1 && storedLawObj) {
+          const normalizedItem = {
+            law_id: storedLawObj.law_id || storedLawObj.id || effectiveId || 'selected_law',
+            title: storedLawObj.title || effectiveTitle || 'التشريع المختار',
+            type: storedLawObj.type || effectiveType || 'تشريع',
+            status: storedLawObj.status === 'active' ? 'ساري' : (storedLawObj.status || 'ساري'),
+            year_short: String(storedLawObj.year || '2026'),
+            issue_date: storedLawObj.pub || storedLawObj.issue_date || '2026/02/10',
+            effective_date: storedLawObj.eff || storedLawObj.effective_date || '2026/03/01',
+            amended_date: storedLawObj.amended_date || '—',
+            total_articles: storedLawObj.total_articles || 82,
+            summary: storedLawObj.desc || storedLawObj.summary || 'تعديل تشريعي وتنظيمي موثق ومحتوى معتمد رسمياً.'
+          };
+          filtered.unshift(normalizedItem);
+        }
       }
     }
 
@@ -295,7 +354,7 @@ export default function RegulationsPage({ navigate, currentPath }) {
 
   const handleApplyFilters = () => {
     setIsFilterModalOpen(false);
-    handleSearch(searchQuery, filters);
+    handleSearch(searchQuery, filters, null, null, null, null, false);
   };
 
   const handleRemoveFilter = (filterKey) => {
@@ -304,7 +363,7 @@ export default function RegulationsPage({ navigate, currentPath }) {
       [filterKey]: (filterKey === 'status' || filterKey === 'type') ? 'الكل' : ''
     };
     setFilters(updated);
-    handleSearch(searchQuery, updated);
+    handleSearch(searchQuery, updated, null, null, null, null, false);
   };
 
   // فتح صفحة القانون المستقلة بتغيير الـ URL
@@ -326,7 +385,7 @@ export default function RegulationsPage({ navigate, currentPath }) {
           navigate={navigate}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
-          onSearch={(q) => handleSearch(q, filters)}
+          onSearch={(q) => handleSearch(q, filters, null, null, null, null, false)}
           onOpenFilters={() => setIsFilterModalOpen(true)}
           filters={filters}
           onRemoveFilter={handleRemoveFilter}
@@ -336,7 +395,7 @@ export default function RegulationsPage({ navigate, currentPath }) {
         <TrendingSearches
           onSelectTopic={(topicQuery) => {
             setSearchQuery(topicQuery);
-            handleSearch(topicQuery, filters);
+            handleSearch(topicQuery, filters, null, null, null, null, false);
           }}
         />
 

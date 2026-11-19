@@ -11,9 +11,17 @@
 export function getNotificationTarget(notif, role) {
   if (!notif) return null;
 
-  // 1. Explicit target_url provided by backend
-  if (notif.target_url) {
-    return { url: notif.target_url, label: 'الانتقال إلى الصفحة المعنية' };
+  const meta = notif.extra_metadata || notif.metadata || {};
+
+  // 1. Explicit target_url provided by backend metadata or object
+  // (Except for law targets where destination page depends on consultant vs user role)
+  if (meta.target_type !== 'law' && notif.related_entity_type !== 'legal_source') {
+    if (meta.target_url) {
+      return { url: meta.target_url, label: 'الانتقال إلى الصفحة المعنية' };
+    }
+    if (notif.target_url) {
+      return { url: notif.target_url, label: 'الانتقال إلى الصفحة المعنية' };
+    }
   }
 
   const rawTitle = notif.title || '';
@@ -27,13 +35,14 @@ export function getNotificationTarget(notif, role) {
 
   // Check if it's explicitly general / broadcast / maintenance without action
   const isBroadcastOrMaintenance = 
-    type === 'maintenance' || 
+    (type === 'maintenance' || 
     type === 'system_alert' || 
     type === 'broadcast' || 
     type === 'announcement' ||
     (title.includes('صيانة') && !title.includes('طلب')) ||
     (title.includes('إعلان عام') && !title.includes('حجز')) ||
-    (title.includes('ترحيب') && !title.includes('طلب'));
+    (title.includes('ترحيب') && !title.includes('طلب'))) &&
+    !meta.target_type;
 
   // ══════════════════════════════════════════════════════════════════
   // ADMIN PORTAL ROUTING
@@ -41,6 +50,7 @@ export function getNotificationTarget(notif, role) {
   if (isAdmin) {
     // 1. Subscriptions / Requests / Plans
     if (
+      meta.target_type === 'subscription_request' ||
       type.includes('subscri') || 
       type.includes('plan') || 
       type.includes('receipt') ||
@@ -53,6 +63,7 @@ export function getNotificationTarget(notif, role) {
       msg.includes('إيصال الدفع')
     ) {
       if (
+        meta.target_type === 'subscription_request' ||
         title.includes('طلب') || 
         title.includes('إيصال') || 
         title.includes('تحويل') || 
@@ -61,7 +72,18 @@ export function getNotificationTarget(notif, role) {
         type.includes('request') ||
         type.includes('receipt')
       ) {
-        return { url: '/admin/subscriptions?tab=requests', label: 'الانتقال لطلبات الاشتراك والإيصالات' };
+        let searchParam = meta.user_name || '';
+        let reqIdParam = meta.target_id || meta.request_no || '';
+        if (!searchParam && rawMsg) {
+          const match = rawMsg.match(/\[(.*?)\]/);
+          if (match) searchParam = match[1];
+        }
+        const qParams = new URLSearchParams();
+        qParams.set('tab', 'requests');
+        if (searchParam) qParams.set('search', searchParam);
+        if (reqIdParam) qParams.set('reqId', reqIdParam);
+
+        return { url: `/admin/subscriptions?${qParams.toString()}`, label: 'الانتقال لطلب الاشتراك' };
       }
       if (title.includes('باقة') || title.includes('باقات') || type.includes('plan')) {
         return { url: '/admin/subscriptions?tab=plans', label: 'الانتقال إلى إدارة الباقات' };
@@ -71,15 +93,31 @@ export function getNotificationTarget(notif, role) {
 
     // 2. Consultant Applications / Verification
     if (
+      meta.target_type === 'consultant_application' ||
       type.includes('consultant_app') ||
       type.includes('consultant_review') ||
       title.includes('انضمام مستشار') ||
+      title.includes('طلب تسجيل مستشار') ||
       title.includes('طلب مستشار') ||
       title.includes('مستشار جديد') ||
       msg.includes('طلب انضمام مستشار') ||
       msg.includes('مراجعة حساب المستشار')
     ) {
-      return { url: '/admin/consultant-applications', label: 'الانتقال لمراجعة طلبات المستشارين' };
+      let searchParam = meta.user_name || '';
+      let applicantIdParam = meta.target_id || meta.applicant_id || entityId || '';
+      if (!searchParam && rawMsg) {
+        const match = rawMsg.match(/المستشار \((.*?)\)/);
+        if (match) searchParam = match[1];
+      }
+      const qParams = new URLSearchParams();
+      if (searchParam) qParams.set('search', searchParam);
+      if (applicantIdParam) qParams.set('applicantId', applicantIdParam);
+      const qStr = qParams.toString();
+
+      return {
+        url: qStr ? `/admin/consultant-applications?${qStr}` : '/admin/consultant-applications',
+        label: 'الانتقال لمراجعة طلب المستشار'
+      };
     }
 
     // 3. Support Tickets
@@ -107,31 +145,60 @@ export function getNotificationTarget(notif, role) {
       return { url: '/admin/calendar', label: 'الانتقال لجدول المواعيد والاستشارات' };
     }
 
-    // 5. Invoices / Payments / Refunds
+    // 5. Invoices / Payments / Refunds / Payouts
     if (
+      meta.target_type === 'payment' ||
+      meta.target_type === 'payout_request' ||
       type.includes('invoice') ||
       type.includes('payment') ||
+      type.includes('payout') ||
       type.includes('refund') ||
       title.includes('فاتورة') ||
       title.includes('دفع') ||
+      title.includes('سحب') ||
       title.includes('استرداد') ||
-      msg.includes('فاتورة')
+      msg.includes('فاتورة') ||
+      msg.includes('سحب أرباح') ||
+      msg.includes('سداد')
     ) {
       if (title.includes('استرداد') || type.includes('refund')) {
         return { url: '/admin/invoices/refunds', label: 'الانتقال لطلبات الاسترداد' };
       }
-      return { url: '/admin/invoices', label: 'الانتقال للفواتير والمدفوعات' };
+      
+      let searchParam = meta.user_name || '';
+      let invoiceIdParam = meta.target_type === 'payment' ? (meta.target_id || '') : '';
+      let payoutIdParam = meta.target_type === 'payout_request' ? (meta.target_id || '') : '';
+      
+      if (!searchParam && rawMsg) {
+        const clientMatch = rawMsg.match(/قام العميل\s+(.*?)\s+بسداد/);
+        const consultantMatch = rawMsg.match(/قام المستشار\s+(.*?)\s+بتقديم/);
+        if (clientMatch) searchParam = clientMatch[1].trim();
+        else if (consultantMatch) searchParam = consultantMatch[1].trim();
+      }
+
+      const qParams = new URLSearchParams();
+      if (searchParam) qParams.set('search', searchParam);
+      if (invoiceIdParam) qParams.set('invoiceId', invoiceIdParam);
+      if (payoutIdParam) qParams.set('payoutId', payoutIdParam);
+      const qStr = qParams.toString();
+
+      return { 
+        url: qStr ? `/admin/payments?${qStr}` : '/admin/payments', 
+        label: 'الانتقال لعمليات الدفع والتحويل' 
+      };
     }
 
-    // 6. User Accounts & Registrations
+    // 6. User Accounts & Registrations (Informational only: no navigation required)
     if (
+      meta.target_type === 'new_user_registration' ||
       type.includes('user_reg') ||
       type.includes('new_user') ||
       title.includes('مستخدم جديد') ||
+      title.includes('تسجيل مستخدم جديد') ||
       title.includes('تسجيل جديد') ||
-      msg.includes('قام بإنشاء حساب')
+      msg.includes('قام بإنشاء حساب جديد')
     ) {
-      return { url: '/admin/users', label: 'الانتقال لإدارة المستخدمين' };
+      return null;
     }
 
     // 7. AI Monitoring / Prompts
@@ -155,6 +222,34 @@ export function getNotificationTarget(notif, role) {
   // ══════════════════════════════════════════════════════════════════
   // USER & CONSULTANT PORTAL ROUTING
   // ══════════════════════════════════════════════════════════════════
+
+  // 0. Laws & Legal Sources (New or Amended Law Notifications)
+  const isLawNotification = 
+    meta.target_type === 'law' || 
+    type === 'legal_source' || 
+    type.includes('law') ||
+    title.includes('قانون') || 
+    title.includes('تشريع') || 
+    title.includes('تعديل في') || 
+    msg.includes('قانون ضريبة') ||
+    msg.includes('تعديل تشريعي');
+
+  if (isLawNotification) {
+    const lawId = meta.target_id || entityId || '';
+    const queryPart = lawId ? `?lawId=${encodeURIComponent(lawId)}&strict=true` : '';
+    if (isConsultant) {
+      return {
+        url: `/consultant/semantic-search${queryPart}`,
+        label: 'عرض نص القانون'
+      };
+    } else {
+      return {
+        url: `/regulations${queryPart}`,
+        label: 'عرض نص القانون'
+      };
+    }
+  }
+
   // 1. Appointments & Sessions
   if (
     type.includes('session') ||

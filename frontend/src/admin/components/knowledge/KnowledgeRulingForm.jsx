@@ -68,15 +68,15 @@ export default function KnowledgeRulingForm({
   return (
     <section className="knowledge-bento-panel knowledge-form-card">
       <h2 className="knowledge-form-title">
-        <span>{formData.id ? 'تعديل حكم' : 'إضافة حكم جديد'}</span>
+        <span>{formData.id ? 'تعديل حكم قضائي' : 'إضافة حكم قضائي'}</span>
       </h2>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
         <label className={`knowledge-dropzone ${isExtracting ? 'extracting' : ''}`}>
           {isExtracting ? (
-            <><IconSync className="size-4 spin-animate" /><span>جارٍ قراءة ملف الحكم واستخراج المنطوق...</span></>
+            <><IconSync className="size-4 spin-animate" /><span>جارٍ قراءة ملف الحكم القضائي واستخراج المنطوق...</span></>
           ) : (
-            <><IconUpload className="size-4" /><span>{formData.fileName ? `الملف: ${formData.fileName}` : 'رفع ملف حكم word'}</span></>
+            <><IconUpload className="size-4" /><span>{formData.fileName ? `الملف: ${formData.fileName}` : 'رفع ملف حكم قضائي word'}</span></>
           )}
           <input
             ref={fileInputRef} type="file" accept=".docx,.doc,.pdf,.txt" style={{ display: 'none' }}
@@ -177,7 +177,7 @@ export default function KnowledgeRulingForm({
           {isSaving ? (
             <>
               <IconSync className="size-4 spin-animate" />
-              <span>جارٍ رفع الحكم وفهرسته...</span>
+              <span>جارٍ رفع الحكم القضائي وفهرسته...</span>
             </>
           ) : duplicateMsg ? (
             <span>هذا الحكم القضائي موجود بالفعل</span>

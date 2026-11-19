@@ -46,8 +46,8 @@ export default function ModernDatePicker({
 
   const containerRef = useRef(null);
 
-  // Check if ISO format
-  const isIsoFormat = propFormat === 'YYYY-MM-DD' || (value && value.includes('-')) || (!propFormat && placeholder.includes('YYYY-MM-DD'));
+  // Check if ISO format (default to ISO format YYYY-MM-DD)
+  const isIsoFormat = propFormat !== 'DD/MM/YYYY';
 
   // Normalize Arabic numerals
   const normalizeDigits = (str) => {
@@ -111,7 +111,7 @@ export default function ModernDatePicker({
     }
   }, [value]);
 
-  // Handle outside click
+  // Handle outside click & Esc key
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
@@ -119,8 +119,18 @@ export default function ModernDatePicker({
         setActiveDropdown(null);
       }
     };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+        setActiveDropdown(null);
+      }
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   // Format outputs
@@ -279,6 +289,22 @@ export default function ModernDatePicker({
       {isOpen && (
         <div className={`modern-date-popup placement-${placement} align-${align} fade-in`}>
           <div className="cascade-popup-inner">
+            {/* زر إغلاق صغير في الزاوية */}
+            <button
+              type="button"
+              className="cascade-corner-close-btn"
+              onClick={() => {
+                setIsOpen(false);
+                setActiveDropdown(null);
+              }}
+              aria-label="إغلاق"
+              title="إغلاق"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
 
             {/* BOX 1: مربع السنين */}
             <div className="cascade-step-block">
@@ -340,10 +366,10 @@ export default function ModernDatePicker({
               )}
             </div>
 
-            {/* BOX 2: مربع الشهور (يفتح تحته بمجرد اختيار السنة) */}
+            {/* BOX 2: مربع الشهور (اختياري) */}
             {selectedYear && (
               <div className="cascade-step-block fade-in">
-                <label className="cascade-step-label">2. الشهر (لسنة {selectedYear}):</label>
+                <label className="cascade-step-label">2. الشهر (اختياري):</label>
                 <div
                   className={`cascade-selector-box ${activeDropdown === 'month' ? 'active' : ''} ${selectedMonth !== null ? 'has-value' : ''}`}
                   onClick={() => setActiveDropdown(prev => prev === 'month' ? null : 'month')}
@@ -384,16 +410,22 @@ export default function ModernDatePicker({
               </div>
             )}
 
-            {/* BOX 3: مربع الأيام (يفتح تحته بمجرد اختيار الشهر) */}
-            {selectedYear && selectedMonth !== null && (
+            {/* BOX 3: مربع الأيام (اختياري، معطل حتى يتم اختيار الشهر) */}
+            {selectedYear && (
               <div className="cascade-step-block fade-in">
-                <label className="cascade-step-label">3. اليوم ({selectedMonthObj?.name} {selectedYear}):</label>
+                <label className="cascade-step-label">3. اليوم (اختياري):</label>
                 <div
-                  className={`cascade-selector-box ${activeDropdown === 'day' ? 'active' : ''} ${selectedDay ? 'has-value' : ''}`}
-                  onClick={() => setActiveDropdown(prev => prev === 'day' ? null : 'day')}
+                  className={`cascade-selector-box ${selectedMonth === null ? 'disabled-selector' : ''} ${activeDropdown === 'day' ? 'active' : ''} ${selectedDay ? 'has-value' : ''}`}
+                  onClick={() => {
+                    if (selectedMonth === null) return;
+                    setActiveDropdown(prev => prev === 'day' ? null : 'day');
+                  }}
+                  title={selectedMonth === null ? 'اختر الشهر أولاً لتحديد اليوم' : ''}
                 >
                   <span className="cascade-box-title">
-                    {selectedDay ? `يوم ${selectedDay}` : 'اضغط لاختيار اليوم'}
+                    {selectedMonth === null
+                      ? 'اختر الشهر أولاً لتفعيل اليوم'
+                      : (selectedDay ? `يوم ${selectedDay}` : 'اضغط لاختيار اليوم')}
                   </span>
                   <svg className={`cascade-chevron-icon ${activeDropdown === 'day' ? 'open' : ''}`} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="6 9 12 15 18 9"></polyline>
@@ -401,7 +433,7 @@ export default function ModernDatePicker({
                 </div>
 
                 {/* القائمة المنسدلة للأيام */}
-                {activeDropdown === 'day' && (
+                {selectedMonth !== null && activeDropdown === 'day' && (
                   <div className="cascade-dropdown-panel fade-in">
                     <div className="cascade-days-scroll">
                       <div className="cascade-days-grid">
@@ -456,13 +488,6 @@ export default function ModernDatePicker({
                 onClick={handleClear}
               >
                 مسح
-              </button>
-              <button
-                type="button"
-                className="cascade-action-btn close"
-                onClick={() => setIsOpen(false)}
-              >
-                إغلاق ✕
               </button>
             </div>
 

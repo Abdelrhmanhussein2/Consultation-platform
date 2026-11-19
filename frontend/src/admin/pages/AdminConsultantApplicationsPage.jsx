@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getPendingConsultants, handleConsultantAction, getPendingExpansions, reviewExpansionRequest, getAdminToken } from '../services/adminApi';
 import FilterResetButton from '../../components/FilterResetButton';
 import { formatApplicationDate, formatConsultationPrice, formatExperienceYears } from '../utils/consultantApplicationFormatters';
@@ -16,8 +16,18 @@ export default function AdminConsultantApplicationsPage({ navigate }) {
   const [applications, setApplications] = useState([]);
   const [specializationRequests, setSpecializationRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const initialUrlSearch = typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('search') || '') : '';
+  const [searchTerm, setSearchTerm] = useState(initialUrlSearch);
   const [actionLoadingId, setActionLoadingId] = useState(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const s = params.get('search');
+    if (s && s !== searchTerm) {
+      setSearchTerm(s);
+    }
+  }, [typeof window !== 'undefined' ? window.location.search : '']);
   
   // Modals state
   const [selectedApp, setSelectedApp] = useState(null);
@@ -118,20 +128,40 @@ export default function AdminConsultantApplicationsPage({ navigate }) {
   };
 
   // Search filter
-  const filteredApplications = applications.filter((app) => {
-    const name = app.user?.full_name || app.full_name || '';
-    const email = app.user?.email || app.email || '';
-    const phone = app.user?.phone || app.phone || '';
-    const spec = app.specialization?.name || app.activity_type || '';
+  const filteredApplications = useMemo(() => {
     const term = searchTerm.toLowerCase();
+    const list = applications.filter((app) => {
+      const name = app.user?.full_name || app.full_name || '';
+      const email = app.user?.email || app.email || '';
+      const phone = app.user?.phone || app.phone || '';
+      const spec = app.specialization?.name || app.activity_type || '';
 
-    return (
-      name.toLowerCase().includes(term) ||
-      email.toLowerCase().includes(term) ||
-      phone.toLowerCase().includes(term) ||
-      spec.toLowerCase().includes(term)
-    );
-  });
+      return (
+        !term ||
+        name.toLowerCase().includes(term) ||
+        email.toLowerCase().includes(term) ||
+        phone.toLowerCase().includes(term) ||
+        spec.toLowerCase().includes(term)
+      );
+    });
+
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const targetId = urlParams ? (urlParams.get('applicantId') || urlParams.get('id') || urlParams.get('search')) : null;
+    if (targetId && list.length > 1) {
+      const targetStr = String(targetId).toLowerCase();
+      const matchIdx = list.findIndex(app => {
+        const uId = String(app.user_id || app.user?.id || app.id || '').toLowerCase();
+        const pId = String(app.profile_id || app.profile?.id || '').toLowerCase();
+        const aName = String(app.user?.full_name || app.full_name || '').toLowerCase();
+        return uId === targetStr || pId === targetStr || aName.includes(targetStr);
+      });
+      if (matchIdx > 0) {
+        const item = list.splice(matchIdx, 1)[0];
+        list.unshift(item);
+      }
+    }
+    return list;
+  }, [applications, searchTerm]);
 
   const filteredSpecializationRequests = specializationRequests.filter((req) => {
     const name = req.consultant_name || '';

@@ -70,9 +70,20 @@ export default function AdminPaymentsPage({ navigate }) {
   const [activeMethod, setActiveMethod] = useState('الكل');
   const [statusFilter, setStatusFilter] = useState('الكل');
   const [typeFilter, setTypeFilter] = useState('الكل');
-  const [searchTerm, setSearchTerm] = useState('');
+
+  const initialUrlSearch = typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('search') || '') : '';
+  const [searchTerm, setSearchTerm] = useState(initialUrlSearch);
   const [perPage, setPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const s = params.get('search');
+    if (s && s !== searchTerm) {
+      setSearchTerm(s);
+    }
+  }, [typeof window !== 'undefined' ? window.location.search : '']);
 
   // Active Modals & Processing Inputs
   const [processItem, setProcessItem] = useState(null);
@@ -111,13 +122,30 @@ export default function AdminPaymentsPage({ navigate }) {
   // Filtered rows
   const filteredData = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
-    return data.filter((r) => {
+    const list = data.filter((r) => {
       const matchMethod = checkMethodMatch(r.method, activeMethod);
       const matchStatus = checkStatusMatch(r.status, statusFilter);
       const matchType = checkTypeMatch(r.type, typeFilter);
       const matchSearch = !q || Object.values(r).join(' ').toLowerCase().includes(q);
       return matchMethod && matchStatus && matchType && matchSearch;
     });
+
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const targetId = urlParams ? (urlParams.get('invoiceId') || urlParams.get('payoutId') || urlParams.get('id') || urlParams.get('search')) : null;
+    if (targetId && list.length > 1) {
+      const targetStr = String(targetId).toLowerCase();
+      const matchIdx = list.findIndex(r =>
+        (r.id && String(r.id).toLowerCase() === targetStr) ||
+        (r.invoiceNo && String(r.invoiceNo).toLowerCase().includes(targetStr)) ||
+        (r.user_name && String(r.user_name).toLowerCase().includes(targetStr)) ||
+        (r.name && String(r.name).toLowerCase().includes(targetStr))
+      );
+      if (matchIdx > 0) {
+        const item = list.splice(matchIdx, 1)[0];
+        list.unshift(item);
+      }
+    }
+    return list;
   }, [data, activeMethod, statusFilter, typeFilter, searchTerm]);
 
   // Pagination

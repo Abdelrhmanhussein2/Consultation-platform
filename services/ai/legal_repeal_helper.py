@@ -78,16 +78,31 @@ class LegalRepealHelper:
             return False
 
     @classmethod
-    def sync_restore_to_neo4j(cls, doc_id: str) -> bool:
+    def sync_restore_to_neo4j(cls, doc_id: str):
+        """
+        Restores document in Neo4j:
+        Recalculates status based on graph relationships:
+        If a newer amended version exists (linked via [:تعديل_على]), status must be 'نسخة سابقة'.
+        Otherwise, status becomes 'ساري'.
+        """
         try:
             with neo4j_db.get_session() as session:
-                session.run(
+                rec = session.run(
                     """
                     MATCH (d) WHERE (d.law_id = $did OR d.ruling_id = $did OR d.`معرف` = $did OR d.id = $did)
-                    SET d.status = 'ساري', d.repealed_at = null, d.repeal_reason = null, d.repealed_by_document_id = null
+                    OPTIONAL MATCH (newer)-[:`تعديل_على`]->(d)
+                    WITH d, count(newer) > 0 AS has_newer_version
+                    SET d.status = CASE WHEN has_newer_version THEN 'نسخة سابقة' ELSE 'ساري' END,
+                        d.repealed_at = null,
+                        d.repeal_reason = null,
+                        d.repealed_by_document_id = null
+                    RETURN CASE WHEN has_newer_version THEN 'نسخة سابقة' ELSE 'ساري' END AS new_status
+                    LIMIT 1
                     """, did=doc_id
-                )
-            return True
+                ).single()
+                if rec and rec.get("new_status"):
+                    return rec["new_status"]
+            return "ساري"
         except Exception as e:
             print(f"[RepealHelper] Neo4j restore sync error: {e}")
             return False

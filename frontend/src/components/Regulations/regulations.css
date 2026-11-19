@@ -1170,9 +1170,24 @@
   font-family: 'Cairo', sans-serif;
 }
 
-.regulations-page-wrap .badge.good {
+.regulations-page-wrap .badge.good,
+.badge.good {
   background: #E8F8F1;
   color: #149B6D;
+}
+
+.regulations-page-wrap .badge.status-repealed,
+.badge.status-repealed {
+  background: #FEF2F2;
+  color: #DC2626;
+  border-color: rgba(220, 38, 38, 0.2);
+}
+
+.regulations-page-wrap .badge.status-previous,
+.badge.status-previous {
+  background: #F0F7FD;
+  color: #005D9C;
+  border-color: rgba(0, 93, 156, 0.2);
 }
 
 /* Result Law Meta - 4-column grid matching HTML .result-law-meta */

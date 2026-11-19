@@ -13,12 +13,13 @@ import FilterResetButton from '../../FilterResetButton';
 import { useAuth } from '../../../context/AuthContext';
 import { getLawTree, getMockLawDetail, getRelatedFiles, getLawStages, extractArticleSubject, getDistinctArticleSubject } from '../../../services/legalService';
 import { useDocumentSearch } from './useDocumentSearch';
+import { formatLawAmendedDate, formatOriginalLawTitle } from '../../../utils/legalFormatters';
 
 const DEFAULT_STAGES = [
   {
     id: '2014_original',
     law_id: 'قانون_34_2014_الأصلية',
-    title: 'قانون ضريبة الدخل رقم 34 لسنة 2014 — كما صدر',
+    title: 'قانون ضريبة الدخل رقم 34 لسنة 2014 (النسخة الأصلية)',
     subtitle: 'النسخة الأصلية السارية منذ 01-01-2015',
     date: '01-01-2015',
     buttonText: 'عرض النسخة الأصلية'
@@ -1038,7 +1039,7 @@ export default function LegalReader({ lawId, onClose }) {
                             <div>حل محل</div><div>{lawTree.replaced_law || 'لا يوجد تشريع ملغى مسجل'}</div>
                             <div>تاريخ الصدور</div><div>{lawTree.issue_date || '—'}</div>
                             <div>تاريخ السريان</div><div>{lawTree.effective_date || '—'}</div>
-                            <div>تاريخ آخر تعديل</div><div>{lawTree.amended_date || lawTree.effective_date || '—'}</div>
+                            <div>تاريخ آخر تعديل</div><div>{formatLawAmendedDate(lawTree.amended_date, lawTree)}</div>
                             <div>عدد التعديلات</div><div>{lawTree.amendments_count != null ? lawTree.amendments_count : 0}</div>
                             <div>عدد المواد</div><div>{lawTree.sections?.reduce((acc, s) => acc + (s.articles?.length || 0), 0) || lawTree.articles?.length || lawTree.total_articles || '—'}</div>
                           </>
@@ -1129,7 +1130,7 @@ export default function LegalReader({ lawId, onClose }) {
                       [
                         lawTree.gazette ? `الجريدة الرسمية: ${lawTree.gazette}` : null,
                         lawTree.effective_date ? `تاريخ السريان: ${lawTree.effective_date}` : null,
-                        lawTree.amended_date ? `آخر تعديل نافذ: ${lawTree.amended_date}` : null,
+                        formatLawAmendedDate(lawTree.amended_date, lawTree) !== '—' ? `آخر تعديل نافذ: ${formatLawAmendedDate(lawTree.amended_date, lawTree)}` : null,
                         lawTree.issue_date ? `تاريخ الصدور: ${lawTree.issue_date}` : null
                       ].filter(Boolean).join('، ') || 'نُشر هذا التشريع وسرى وفقاً للبيانات المعتمدة في الجريدة الرسمية.'
                     )}
@@ -1602,7 +1603,7 @@ export default function LegalReader({ lawId, onClose }) {
                         <div>حل محل</div><div>{lawTree.replaced_law || 'لا يوجد تشريع ملغى مسجل'}</div>
                         <div>تاريخ الصدور</div><div>{lawTree.issue_date || '—'}</div>
                         <div>تاريخ السريان</div><div>{lawTree.effective_date || '—'}</div>
-                        <div>تاريخ آخر تعديل</div><div>{lawTree.amended_date || lawTree.effective_date || '—'}</div>
+                        <div>تاريخ آخر تعديل</div><div>{formatLawAmendedDate(lawTree.amended_date, lawTree)}</div>
                         <div>عدد التعديلات</div><div>{lawTree.amendments_count != null ? lawTree.amendments_count : 0}</div>
                         <div>عدد المواد</div><div>{lawTree.sections?.reduce((acc, s) => acc + (s.articles?.length || 0), 0) || lawTree.articles?.length || lawTree.total_articles || '—'}</div>
                       </>

@@ -5,6 +5,7 @@ import { notificationService } from '../services/notificationService';
 import { apiFetch } from '../services/api';
 import { getNotificationTarget } from '../utils/notificationRouter';
 import ModernSelect from '../components/ModernSelect';
+import NotificationDetailsModal from '../components/Notifications/NotificationDetailsModal';
 import './UserDashboard.css';
 
 export default function UserDashboard({ navigate }) {
@@ -34,6 +35,7 @@ export default function UserDashboard({ navigate }) {
   const [showAllUpdates, setShowAllUpdates] = useState(false);
   const [showAllActivity, setShowAllActivity] = useState(false);
   const [showUsageModal, setShowUsageModal] = useState(false);
+  const [selectedNotifForModal, setSelectedNotifForModal] = useState(null);
 
   // Fetch Dashboard Data
   useEffect(() => {
@@ -200,6 +202,18 @@ export default function UserDashboard({ navigate }) {
                           act.type === 'message' ||
                           act.category === 'chat';
 
+    if (act.type === 'notif') {
+      setShowAllActivity(false);
+      setSelectedNotifForModal(act.rawNotif || {
+        id: act.rawId,
+        title: act.title,
+        message: act.sub || act.title,
+        created_at: act.date,
+        extra_metadata: act.extra_metadata || act.metadata || {}
+      });
+      return;
+    }
+
     if (isChatMessage) {
       if (act.appointment_id) {
         navigate(`/chat?apptId=${act.appointment_id}`);
@@ -249,6 +263,7 @@ export default function UserDashboard({ navigate }) {
       return {
         id: `notif-${n.id}`,
         rawId: n.id,
+        rawNotif: n,
         type: 'notif',
         title: n.title || n.message || 'تنبيه جديد',
         date: n.created_at ? new Date(n.created_at).toLocaleDateString('ar-EG') : 'اليوم',
@@ -990,6 +1005,24 @@ export default function UserDashboard({ navigate }) {
         </div>
       )}
 
+      {/* Shared Sleek NotificationDetailsModal */}
+      <NotificationDetailsModal
+        isOpen={Boolean(selectedNotifForModal)}
+        notification={selectedNotifForModal}
+        onClose={() => setSelectedNotifForModal(null)}
+        onNavigate={navigate}
+        onMarkAsRead={async (id) => {
+          setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+          if (token) {
+            try {
+              await notificationService.markAsRead(id, token);
+            } catch (err) {
+              console.warn('Failed to mark notification as read:', err);
+            }
+          }
+        }}
+        role="user"
+      />
     </div>
   );
 }

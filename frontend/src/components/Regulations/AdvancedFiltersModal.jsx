@@ -1,14 +1,28 @@
 // frontend/src/components/Regulations/AdvancedFiltersModal.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import ModernDatePicker from '../ModernDatePicker/ModernDatePicker';
 import ModernSelect from '../ModernSelect';
 import FilterResetButton from '../FilterResetButton';
+import { getLawDocTypes } from '../../services/legalService';
 
-const STATUSES = ["الكل", "ساري", "معدل", "ملغى"];
-const TYPES = ["الكل", "قانون", "نظام", "تعليمات", "قرارات", "أحكام قضائية", "أحكام تفسيرية", "نماذج"];
+const STATUSES = ["الكل", "ساري", "ملغي", "معدل", "نسخة سابقة"];
+const DEFAULT_TYPES = ["الكل", "قانون", "نظام", "تعليمات", "قرارات", "أحكام ملزمة", "جداول", "ملاحق"];
 
 export default function AdvancedFiltersModal({ isOpen, onClose, filters, setFilters, onApply }) {
+  const [types, setTypes] = useState(DEFAULT_TYPES);
+
+  useEffect(() => {
+    let isMounted = true;
+    getLawDocTypes().then((res) => {
+      if (isMounted && Array.isArray(res) && res.length > 0) {
+        const unique = ["الكل", ...res.filter(t => t !== "الكل")];
+        setTypes(unique);
+      }
+    }).catch(() => {});
+    return () => { isMounted = false; };
+  }, []);
+
   if (!isOpen) return null;
 
   const handleStatusChange = (val) => {
@@ -92,7 +106,7 @@ export default function AdvancedFiltersModal({ isOpen, onClose, filters, setFilt
               <label className="filter-group-label" style={{ margin: 0 }}>نوع التشريع</label>
               <div style={{ width: '180px' }}>
                 <ModernSelect
-                  options={TYPES.map(t => ({ value: t, label: t === 'الكل' ? 'كافة الأنواع' : t }))}
+                  options={types.map(t => ({ value: t, label: t === 'الكل' ? 'كافة الأنواع' : t }))}
                   value={filters.type || 'الكل'}
                   onChange={handleTypeChange}
                   placeholder="نوع التشريع"
@@ -101,7 +115,7 @@ export default function AdvancedFiltersModal({ isOpen, onClose, filters, setFilt
               </div>
             </div>
             <div className="filter-pills">
-              {TYPES.map((t) => (
+              {types.map((t) => (
                 <button
                   key={t}
                   type="button"

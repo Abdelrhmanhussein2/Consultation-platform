@@ -54,6 +54,9 @@ def extract_file_preview(file_bytes: bytes, filename: str, source_type: str = "l
             full_text = ""
 
     clean_name = re.sub(r'\.[^.]+$', '', filename).replace('_', ' ').strip()
+    clean_name = re.sub(r'\s*—\s*كما صدر', '', clean_name)
+    clean_name = re.sub(r'\s*-\s*كما صدر', '', clean_name)
+    clean_name = re.sub(r'\s+كما صدر', '', clean_name).strip()
     data: Dict[str, Any] = {"title": clean_name, "year": 2024, "tags": "", "full_text": full_text}
     yr_m = (
         re.search(r'(?:لسنة|عام|سنة)[_\s]*(\d{4})', filename)

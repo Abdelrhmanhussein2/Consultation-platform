@@ -6,6 +6,7 @@ import { notificationService } from '../../services/notificationService';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import { getNotificationTarget } from '../../utils/notificationRouter';
 import BroadcastModal from '../components/notifications/BroadcastModal';
+import NotificationDetailsModal from '../../components/Notifications/NotificationDetailsModal';
 import {
   fetchBroadcastsApi,
   resendBroadcastApi,
@@ -976,54 +977,15 @@ export default function AdminNotificationsPage({ navigate }) {
         initialData={templatePreset}
       />
 
-      {/* Preview Modal */}
-      {previewModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 9999 }}>
-          <div style={{ width: '460px', maxWidth: '95vw', background: '#FFFFFF', borderRadius: '16px', overflow: 'hidden', padding: '24px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0e3b5e', margin: '0 0 14px 0' }}>
-              تفاصيل الإشعار
-            </h3>
-            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
-              <div style={{ fontWeight: '900', color: '#0e3b5e', fontSize: '14px', marginBottom: '6px' }}>
-                {cleanNotificationTitle(previewModalOpen.title)}
-              </div>
-              <div style={{ color: '#475569', fontSize: '12.5px', lineHeight: '1.6' }}>
-                {previewModalOpen.message}
-              </div>
-              <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'monospace' }}>
-                <span>{formatEnglishDateTime(previewModalOpen.created_at || previewModalOpen.sentAt).date}</span>
-                <span>•</span>
-                <span>{formatEnglishDateTime(previewModalOpen.created_at || previewModalOpen.sentAt).time}</span>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              {(() => {
-                const target = getNotificationTarget(previewModalOpen, 'admin');
-                if (!target || !target.url) return null;
-                return (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPreviewModalOpen(null);
-                      navigate(target.url);
-                    }}
-                    style={{ flex: 1.5, background: '#005D9C', color: '#FFFFFF', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                  >
-                    <span>{target.label} ↵</span>
-                  </button>
-                );
-              })()}
-              <button
-                type="button"
-                onClick={() => setPreviewModalOpen(null)}
-                style={{ flex: 1, background: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1', padding: '10px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer' }}
-              >
-                إغلاق
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Sleek NotificationDetailsModal */}
+      <NotificationDetailsModal
+        isOpen={Boolean(previewModalOpen)}
+        notification={previewModalOpen}
+        onClose={() => setPreviewModalOpen(null)}
+        onNavigate={(url) => navigate(url)}
+        onMarkAsRead={(id) => handleMarkAsRead(id)}
+        role="admin"
+      />
 
       {/* Sleek ConfirmModal */}
       <ConfirmModal

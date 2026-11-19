@@ -92,15 +92,15 @@ export default function AdminKnowledgePage() {
     try {
       const res = await saveLawSource(formData);
       if (res.ok) {
-        showToast('تمت إضافة القانون وفهرسته بنجاح');
+        showToast('تمت إضافة التشريع وفهرسته بنجاح');
         setFormData(EMPTY_FORM);
         loadSources();
         loadStats();
       } else {
         const err = await res.json().catch(() => ({}));
-        showToast(err.detail || 'تعذر حفظ القانون في الخادم');
+        showToast(err.detail || 'تعذر حفظ التشريع في الخادم');
       }
-    } catch { showToast('خطأ في الاتصال أثناء حفظ القانون'); }
+    } catch { showToast('خطأ في الاتصال أثناء حفظ التشريع'); }
     finally { setIsSavingLaw(false); }
   };
 
@@ -110,7 +110,7 @@ export default function AdminKnowledgePage() {
     try {
       const res = await saveRulingSource(rulingFormData);
       if (res.ok) {
-        showToast('تمت إضافة الحكم وفهرسته بنجاح');
+        showToast('تمت إضافة الحكم القضائي وفهرسته بنجاح');
         setRulingFormData(EMPTY_RULING_FORM);
         loadSources();
         loadStats();
@@ -118,7 +118,7 @@ export default function AdminKnowledgePage() {
         const err = await res.json().catch(() => ({}));
         showToast(err.detail || 'تعذر حفظ الحكم القضائي');
       }
-    } catch { showToast('خطأ في الاتصال أثناء حفظ الحكم'); }
+    } catch { showToast('خطأ في الاتصال أثناء حفظ الحكم القضائي'); }
     finally { setIsSavingRuling(false); }
   };
 

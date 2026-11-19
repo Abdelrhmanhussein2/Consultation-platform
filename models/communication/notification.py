@@ -1,6 +1,6 @@
 import uuid
-from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey, Text, func
-from sqlalchemy.dialects.postgresql import UUID, ENUM as PG_ENUM
+from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey, Text, func, JSON
+from sqlalchemy.dialects.postgresql import UUID, ENUM as PG_ENUM, JSONB
 from sqlalchemy.orm import relationship
 
 from helpers.database import Base
@@ -16,6 +16,7 @@ class Notification(Base):
     message = Column(Text, nullable=False)
     related_entity_type = Column(String(50), nullable=True)
     related_entity_id = Column(UUID(as_uuid=True), nullable=True)
+    extra_metadata = Column("metadata", JSONB().with_variant(JSON, "sqlite"), nullable=True, default=dict)
     is_read = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 

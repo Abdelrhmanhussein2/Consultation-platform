@@ -5,6 +5,7 @@ import { notificationService } from '../services/notificationService';
 import { getNotificationTarget } from '../utils/notificationRouter';
 import { apiFetch } from '../services/api';
 import Toast, { useToast } from '../components/Toast/Toast';
+import NotificationDetailsModal from '../components/Notifications/NotificationDetailsModal';
 import './UserDashboard.css';
 import './ConsultantDashboard.css';
 
@@ -67,6 +68,7 @@ export default function ConsultantDashboard({ navigate }) {
   // Interactive Popup Modal state (null | 'alerts' | 'performance' | 'services' | 'finance' | 'session')
   const [consultantModal, setConsultantModal] = useState(null);
   const [selectedSessionData, setSelectedSessionData] = useState(null);
+  const [selectedNotifForModal, setSelectedNotifForModal] = useState(null);
 
   // Custom Styled Rejection Reason Modal
   const [rejectionModalApptId, setRejectionModalApptId] = useState(null);
@@ -112,13 +114,16 @@ export default function ConsultantDashboard({ navigate }) {
 
   const handleAlertItemClick = async (item) => {
     if (!item) return;
-    if (item.type === 'notification' && !item.isRead && token) {
-      try {
-        await notificationService.markAsRead(item.rawId, token, true);
-        setSystemNotifs(prev => prev.map(n => n.id === item.rawId ? { ...n, is_read: true } : n));
-      } catch (err) {
-        console.warn("Could not mark notification as read:", err);
-      }
+
+    if (item.type === 'notification') {
+      setConsultantModal(null);
+      setSelectedNotifForModal(item.rawNotif || {
+        id: item.rawId,
+        title: item.title,
+        message: item.desc || item.title,
+        ...item
+      });
+      return;
     }
 
     setConsultantModal(null);
@@ -254,47 +259,28 @@ export default function ConsultantDashboard({ navigate }) {
     });
   }, [appointments, timelineView, todayStr]);
 
-  // Fallback demo timeline items if backend has no appointments
-  const demoTimelineItems = [
-    {
-      id: 'demo-1',
-      time: '10:00',
-      period: 'صباحاً',
-      client: 'شركة المنسوجات الحديثة — عبد الله العمر',
-      service: 'مراجعة شريحة الاقتطاع الضريبي',
-      type: 'فيديو',
-      statusStr: 'مؤكدة',
-      active: true,
-      notes: 'إعادة تدقيق إقرارات ضريبة المبيعات وتعديل الخصم المدين',
-      actionType: 'join'
-    },
-    {
-      id: 'demo-2',
-      time: '12:30',
-      period: 'ظهرًا',
-      client: 'مكتب الرائد للاستيراد — م. خليل الأحمد',
-      service: 'معالجة الديون المعدومة والخصوم',
-      type: 'صوتية',
-      statusStr: 'بانتظار التأكيد',
-      active: false,
-      notes: 'طلب توضيح الشروط القانونية لشطب الديون غير القابلة للتحصيل',
-      actionType: 'approve'
-    },
-    {
-      id: 'demo-3',
-      time: '03:15',
-      period: 'عصراً',
-      client: 'مؤسسة الأفق التقني — رانيا محمود',
-      service: 'استشارة الفوترة الإلكترونية',
-      type: 'محادثة',
-      statusStr: 'مكتملة',
-      active: false,
-      notes: 'مراجعة الربط مع المنظومة الوطنية للفوترة وتدقيق الملفات',
-      actionType: 'view'
-    }
-  ];
+  const activeTimelineList = timelineAppointments;
 
-  const activeTimelineList = timelineAppointments.length > 0 ? timelineAppointments : demoTimelineItems;
+  const currentMonthName = useMemo(() => {
+    try {
+      return new Date().toLocaleDateString('ar-EG', { month: 'long' });
+    } catch {
+      return 'الشهر الحالي';
+    }
+  }, []);
+
+  const nearestTodaySessionTime = useMemo(() => {
+    const todaySessions = appointments
+      .filter(a => a.scheduled_at && a.scheduled_at.startsWith(todayStr))
+      .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
+    if (todaySessions.length === 0) return null;
+    const first = todaySessions[0];
+    try {
+      return new Date(first.scheduled_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return null;
+    }
+  }, [appointments, todayStr]);
 
   // Dynamic Alerts derived directly from real backend appointments & notifications
   const alertItemsData = useMemo(() => {
@@ -385,6 +371,7 @@ export default function ConsultantDashboard({ navigate }) {
         id: `notif-${notif.id}`,
         type: 'notification',
         rawId: notif.id,
+        rawNotif: notif,
         title: notif.title || 'إشعار من الإدارة',
         desc: `${notif.message ? notif.message.slice(0, 75) : ''}${timeFormatted ? ` · ${timeFormatted}` : ''}`,
         category,
@@ -774,22 +761,38 @@ export default function ConsultantDashboard({ navigate }) {
 
       {/* 4. 5 KPI CARDS ROW (.refKpiRow) - DYNAMIC REAL DATA */}
       <div className="refKpiRow">
-        <div className="refKpi interactivePanel" onClick={() => setConsultantModal('session')}>
+        <div className="refKpi interactivePanel" onClick={() => {
+          if (todayCount > 0) {
+            const firstToday = appointments.find(a => a.scheduled_at && a.scheduled_at.startsWith(todayStr));
+            setSelectedSessionData(firstToday || null);
+          } else {
+            setSelectedSessionData(null);
+          }
+          setConsultantModal('session');
+        }}>
           <span>جلسات اليوم</span>
-          <b>{todayCount > 0 ? todayCount : '4'}</b> <small>جلسات</small>
-          <em className="goldDot">أقرب جلسة 09:30 ص</em>
+          <b>{todayCount}</b> <small>جلسات</small>
+          {nearestTodaySessionTime ? (
+            <em className="goldDot">أقرب جلسة {nearestTodaySessionTime}</em>
+          ) : (
+            <em>لا توجد جلسات اليوم</em>
+          )}
         </div>
 
         <div className="refKpi interactivePanel" onClick={() => setConsultantModal('alerts')}>
           <span>طلبات جديدة</span>
-          <b>{pendingCount > 0 ? pendingCount : '6'}</b> <small>طلبات</small>
-          <em className="redDot">{pendingCount > 0 ? `${pendingCount} تحتاج إلى رد` : '2 تحتاج إلى رد'}</em>
+          <b>{pendingCount}</b> <small>طلبات</small>
+          {pendingCount > 0 ? (
+            <em className="redDot">{pendingCount} تحتاج إلى رد</em>
+          ) : (
+            <em>لا توجد طلبات معلقة</em>
+          )}
         </div>
 
         <div className="refKpi interactivePanel" onClick={() => setConsultantModal('performance')}>
-          <span>استشارات سبتمبر</span>
-          <b>{monthCount}</b> <small>مكتملة</small>
-          <em className="greenText">↑ 14% عن أغسطس</em>
+          <span>استشارات {currentMonthName}</span>
+          <b>{completedCount}</b> <small>مكتملة</small>
+          <em>{monthCount > 0 ? `${monthCount} إجمالي المواعيد` : 'لا توجد مواعيد هذا الشهر'}</em>
         </div>
 
         <div className="refKpi interactivePanel" onClick={() => setConsultantModal('performance')}>
@@ -799,9 +802,9 @@ export default function ConsultantDashboard({ navigate }) {
         </div>
 
         <div className="refKpi interactivePanel" onClick={() => setConsultantModal('finance')}>
-          <span>أتعاب سبتمبر</span>
+          <span>أتعاب {currentMonthName}</span>
           <b>{totalEarnedStr}</b> <small>د.أ</small>
-          <em className="greenText">↑ 12.6% عن الشهر السابق</em>
+          <em>{availableBalNum > 0 ? `الرصيد المتاح: ${availableBalNum.toLocaleString()} د.أ` : 'لا توجد أتعاب مسجلة'}</em>
         </div>
       </div>
 
@@ -833,29 +836,38 @@ export default function ConsultantDashboard({ navigate }) {
           </div>
 
           <div className="refDayTimeline">
-            {activeTimelineList.map((item, idx) => {
-              const isLast = idx === activeTimelineList.length - 1;
-              const isApptObj = !!item.scheduled_at;
+            {activeTimelineList.length === 0 ? (
+              <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748B' }}>
+                <p style={{ margin: '0 0 6px', fontSize: '13px', fontWeight: 700, color: '#0D3C5C' }}>
+                  لا توجد مواعيد أو جلسات مجدولة {timelineView === 'day' ? 'اليوم' : 'لهذا الأسبوع'}
+                </p>
+                <span style={{ fontSize: '11px', color: '#94A3B8' }}>
+                  عند حجز موعد جديد معك سيظهر في جدول المتابعة هنا تلقائياً
+                </span>
+              </div>
+            ) : (
+              activeTimelineList.map((item, idx) => {
+                const isLast = idx === activeTimelineList.length - 1;
+                const isApptObj = !!item.scheduled_at;
 
-              const timeDisplay = isApptObj
-                ? new Date(item.scheduled_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
-                : item.time;
+                const timeDisplay = isApptObj
+                  ? new Date(item.scheduled_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+                  : (item.time || '—');
 
-              const fullDateStr = isApptObj
-                ? new Date(item.scheduled_at).toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-                : (timelineView === 'week' ? 'الأحد 6 سبتمبر 2026' : '(اليوم)');
+                const fullDateStr = isApptObj
+                  ? new Date(item.scheduled_at).toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                  : (timelineView === 'week' ? 'الأسبوع الحالي' : '(اليوم)');
 
-              const dateLabel = timelineView === 'day' ? '(اليوم)' : fullDateStr;
+                const dateLabel = timelineView === 'day' ? '(اليوم)' : fullDateStr;
 
-              // FIX CLIENT NAME DISPLAY: Ensure rich Arabic client names are always shown clearly
-              const clientName = isApptObj
-                ? (item.user?.full_name || item.user?.name || item.user_name || item.client_name || item.client?.full_name || (idx === 0 ? 'شركة المنسوجات الحديثة — عبد الله العمر' : idx === 1 ? 'مكتب الرائد للاستيراد — م. خليل الأحمد' : 'مؤسسة الأفق التقني — رانيا محمود'))
-                : item.client;
+                const clientName = isApptObj
+                  ? (item.user?.full_name || item.user?.name || item.user_name || item.client_name || item.client?.full_name || 'عميل')
+                  : (item.client || 'عميل');
 
-              const serviceName = isApptObj ? (item.service?.name || 'استشارة ضريبة دخل ومبيعات') : item.service;
-              const typeLabel = isApptObj ? 'فيديو' : item.type;
-              const statusLabel = isApptObj ? (item.status === 'confirmed' ? 'مؤكدة' : 'بانتظار الموافقة') : item.statusStr;
-              const notesText = isApptObj ? `تفاصيل الموعد: ${item.price ? item.price + ' د.أ' : '37.50 د.أ'}` : item.notes;
+                const serviceName = isApptObj ? (item.service?.name || item.service_name || 'استشارة ضريبية') : (item.service || 'استشارة ضريبية');
+                const typeLabel = isApptObj ? (item.channel || 'فيديو') : (item.type || 'فيديو');
+                const statusLabel = isApptObj ? (item.status === 'confirmed' ? 'مؤكدة' : item.status === 'completed' ? 'مكتملة' : 'بانتظار الموافقة') : (item.statusStr || 'مؤكدة');
+                const notesText = isApptObj ? (item.notes || (item.price ? `أتعاب الموعد: ${item.price} د.أ` : '')) : (item.notes || '');
 
               return (
                 <div
@@ -904,8 +916,9 @@ export default function ConsultantDashboard({ navigate }) {
                   </div>
                 </div>
               );
-            })}
-          </div>
+            })
+          )}
+        </div>
         </div>
 
         {/* LEFT COLUMN: ALERTS PANEL (REAL DYNAMIC DATA) */}
@@ -957,7 +970,7 @@ export default function ConsultantDashboard({ navigate }) {
           <div className="refPanelHead">
             <div>
               <h2>المؤشرات</h2>
-              <p>مؤشرات الأداء الرئيسية لشهر سبتمبر</p>
+              <p>مؤشرات الأداء الرئيسية لشهر {currentMonthName}</p>
             </div>
             <button onClick={(e) => { e.stopPropagation(); setConsultantModal('performance'); }}>تقرير الأداء ←</button>
           </div>
@@ -988,13 +1001,13 @@ export default function ConsultantDashboard({ navigate }) {
           <div className="refPanelHead">
             <div>
               <h2>الخدمات والحجوزات</h2>
-              <p>حالة الخدمات والطلب عليها خلال سبتمبر</p>
+              <p>حالة الخدمات والطلب عليها خلال {currentMonthName}</p>
             </div>
             <button onClick={() => setConsultantModal('services')}>إدارة الخدمات ←</button>
           </div>
 
           <div className="refServiceStats" onClick={() => setConsultantModal('services')} style={{ cursor: 'pointer' }}>
-            <div><span>حجوزات سبتمبر</span><b>{monthCount}</b></div>
+            <div><span>حجوزات {currentMonthName}</span><b>{monthCount}</b></div>
             <div><span>جلسات قادمة</span><b>{upcomingCount}</b></div>
             <div><span>بانتظار القبول</span><b className="amberText">{pendingCount}</b></div>
             <div><span>الإشغال العام</span><b>{occupancyRate}%</b></div>
@@ -1023,7 +1036,7 @@ export default function ConsultantDashboard({ navigate }) {
           <div className="refPanelHead">
             <div>
               <h2>الملخص المالي</h2>
-              <p>سبتمبر 2026</p>
+              <p>{currentMonthName} {new Date().getFullYear()}</p>
             </div>
             <button onClick={(e) => { e.stopPropagation(); setConsultantModal('finance'); }}>↗</button>
           </div>
@@ -1031,18 +1044,20 @@ export default function ConsultantDashboard({ navigate }) {
           <div className="refFinanceHero">
             <span>إجمالي الأتعاب</span>
             <b>{totalEarnedStr} <small>د.أ</small></b>
-            <em className="greenText">↑ 12.6% عن أغسطس</em>
+            <em className={totalEarnedNum > 0 ? "greenText" : ""}>
+              {totalEarnedNum > 0 ? `الرصيد المتاح: ${availableBalNum.toLocaleString()} د.أ` : 'لا توجد أتعاب مسجلة'}
+            </em>
           </div>
 
           <div className="refFinanceRows">
-            <div><span>تم تحويله</span><b>{wallet?.total_withdrawn ? Number(wallet.total_withdrawn).toLocaleString() : '1,520'} د.أ</b></div>
-            <div><span>قيد التسوية</span><b>{wallet?.pending_balance ? Number(wallet.pending_balance).toLocaleString() : '320'} د.أ</b></div>
-            <div><span>متوسط الاستشارة</span><b>48.4 د.أ</b></div>
+            <div><span>تم تحويله</span><b>{wallet?.total_withdrawn !== undefined && wallet?.total_withdrawn !== null ? Number(wallet.total_withdrawn).toLocaleString() : '0'} د.أ</b></div>
+            <div><span>قيد التسوية</span><b>{wallet?.pending_balance !== undefined && wallet?.pending_balance !== null ? Number(wallet.pending_balance).toLocaleString() : '0'} د.أ</b></div>
+            <div><span>متوسط الاستشارة</span><b>{completedCount > 0 ? (totalEarnedNum / completedCount).toFixed(1) : '0.0'} د.أ</b></div>
           </div>
 
           <div className="refNextPayment">
-            <span>الدفعة القادمة</span>
-            <b>7 سبتمبر 2026</b>
+            <span>الرصيد القابل للسحب</span>
+            <b>{availableBalNum.toLocaleString()} د.أ</b>
           </div>
         </div>
       </div>
@@ -1205,7 +1220,7 @@ export default function ConsultantDashboard({ navigate }) {
               <div>
                 <span className="consultantModalEyebrow">الأداء</span>
                 <h2>تفاصيل مؤشرات الأداء</h2>
-                <p>قراءة أعمق لأداء الممارسة خلال سبتمبر 2026.</p>
+                <p>قراءة أعمق لأداء الممارسة خلال {currentMonthName} {new Date().getFullYear()}.</p>
               </div>
               <button className="consultantModalClose" onClick={() => setConsultantModal(null)}>×</button>
             </div>
@@ -1277,7 +1292,7 @@ export default function ConsultantDashboard({ navigate }) {
               </div>
 
               <div className="modalSummaryGrid">
-                <div className="modalSummaryCard"><span>حجوزات سبتمبر</span><b>{monthCount}</b><small className="good">استشارات مجدولة</small></div>
+                <div className="modalSummaryCard"><span>حجوزات {currentMonthName}</span><b>{monthCount}</b><small className="good">استشارات مجدولة</small></div>
                 <div className="modalSummaryCard"><span>جلسات قادمة</span><b>{upcomingCount}</b><small className="good">الأسبوع الحالي</small></div>
                 <div className="modalSummaryCard"><span>بانتظار القبول</span><b>{pendingCount}</b><small className={pendingCount > 0 ? "warn" : "good"}>{pendingCount > 0 ? "طلب عاجل" : "لا يوجد"}</small></div>
                 <div className="modalSummaryCard"><span>الإشغال العام</span><b>{occupancyRate}%</b><small>ساعات العمل</small></div>
@@ -1305,44 +1320,44 @@ export default function ConsultantDashboard({ navigate }) {
               <div>
                 <span className="consultantModalEyebrow">المالية</span>
                 <h2>تفاصيل الملخص المالي</h2>
-                <p>ملخص الأتعاب والتحويلات والتسويات لشهر سبتمبر 2026.</p>
+                <p>ملخص الأتعاب والتحويلات والتسويات لشهر {currentMonthName} {new Date().getFullYear()}.</p>
               </div>
               <button className="consultantModalClose" onClick={() => setConsultantModal(null)}>×</button>
             </div>
             <div className="consultantModalBody">
               <div className="financeBreakdown">
                 <div className="financeBig">
-                  <span>إجمالي أتعاب سبتمبر</span>
+                  <span>إجمالي أتعاب {currentMonthName}</span>
                   <strong>{totalEarnedStr} <small>د.أ</small></strong>
-                  <em>↑ 12.6% عن أغسطس</em>
+                  <em className={totalEarnedNum > 0 ? "greenText" : ""}>
+                    {availableBalNum > 0 ? `الرصيد المتاح: ${availableBalNum.toLocaleString()} د.أ` : 'لا توجد أتعاب مسجلة'}
+                  </em>
                 </div>
                 <div className="financeTable">
-                  <div><span>تم تحويله</span><b>{wallet?.total_withdrawn ? Number(wallet.total_withdrawn).toLocaleString() : '1,520'} د.أ</b></div>
-                  <div><span>قيد التسوية</span><b>{wallet?.pending_balance ? Number(wallet.pending_balance).toLocaleString() : '320'} د.أ</b></div>
-                  <div><span>متوسط الاستشارة</span><b>48.4 د.أ</b></div>
-                  <div><span>الدفعة القادمة</span><b>7 سبتمبر 2026</b></div>
+                  <div><span>تم تحويله</span><b>{wallet?.total_withdrawn !== undefined && wallet?.total_withdrawn !== null ? Number(wallet.total_withdrawn).toLocaleString() : '0'} د.أ</b></div>
+                  <div><span>قيد التسوية</span><b>{wallet?.pending_balance !== undefined && wallet?.pending_balance !== null ? Number(wallet.pending_balance).toLocaleString() : '0'} د.أ</b></div>
+                  <div><span>متوسط الاستشارة</span><b>{completedCount > 0 ? (totalEarnedNum / completedCount).toFixed(1) : '0.0'} د.أ</b></div>
+                  <div><span>الرصيد المتاح</span><b>{availableBalNum.toLocaleString()} د.أ</b></div>
                 </div>
               </div>
               <div className="modalSectionTitle">
                 <h3>آخر الحركات المالية</h3>
-                <span>سبتمبر 2026</span>
+                <span>{currentMonthName} {new Date().getFullYear()}</span>
               </div>
               <div className="modalList">
-                <div className="modalListRow" onClick={() => { setConsultantModal(null); handleNavigate('/consultant/earnings'); }}>
-                  <i className="green"></i>
-                  <div><b>تحويل أتعاب استشارات</b><small>3 سبتمبر 2026 · 8 استشارات</small></div>
-                  <em>640 د.أ</em>
-                </div>
-                <div className="modalListRow" onClick={() => { setConsultantModal(null); handleNavigate('/consultant/earnings'); }}>
-                  <i className="green"></i>
-                  <div><b>تحويل أتعاب استشارات</b><small>27 أغسطس 2026 · 11 استشارة</small></div>
-                  <em>880 د.أ</em>
-                </div>
-                <div className="modalListRow" onClick={() => { setConsultantModal(null); handleNavigate('/consultant/earnings'); }}>
-                  <i className="amber"></i>
-                  <div><b>دفعة قيد التسوية</b><small>7 استشارات · التسوية القادمة</small></div>
-                  <em>320 د.أ</em>
-                </div>
+                {completedCount === 0 && totalEarnedNum === 0 ? (
+                  <div style={{ padding: '30px 20px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
+                    لا توجد حركات مالية أو أتعاب محولة حتى الآن.
+                  </div>
+                ) : (
+                  appointments.filter(a => a.status === 'completed' || a.price).slice(0, 5).map((a, idx) => (
+                    <div key={a.id || idx} className="modalListRow" onClick={() => { setConsultantModal(null); handleNavigate('/consultant/earnings'); }}>
+                      <i className="green"></i>
+                      <div><b>استشارة: {a.service?.name || a.service_name || 'استشارة ضريبية'}</b><small>{a.scheduled_at ? new Date(a.scheduled_at).toLocaleDateString('ar-EG') : 'مكتملة'}</small></div>
+                      <em>{a.price ? `${a.price} د.أ` : 'مكتملة'}</em>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -1356,58 +1371,74 @@ export default function ConsultantDashboard({ navigate }) {
             <div className="consultantModalHeader">
               <div>
                 <span className="consultantModalEyebrow">جلسة اليوم</span>
-                <h2>{selectedSessionData?.serviceName || 'استشارة ضريبة دخل'}</h2>
+                <h2>{selectedSessionData?.serviceName || (selectedSessionData?.service?.name) || 'جلسات اليوم'}</h2>
                 <p>
-                  {selectedSessionData?.clientName || 'محمد الخطيب'} · {selectedSessionData?.timeDisplay || '09:30 ص'} · فيديو · 45 دقيقة
+                  {selectedSessionData ? (
+                    `${selectedSessionData.clientName || selectedSessionData.user?.full_name || 'عميل'} · ${selectedSessionData.timeDisplay || ''} · ${selectedSessionData.channel || 'فيديو'}`
+                  ) : (
+                    'لا توجد جلسات مجدولة حالياً'
+                  )}
                 </p>
               </div>
               <button className="consultantModalClose" onClick={() => setConsultantModal(null)}>×</button>
             </div>
             <div className="consultantModalBody">
-              <div className="sessionDetailGrid">
-                <div className="sessionInfoCard">
-                  <h3>معلومات الجلسة</h3>
-                  <div className="sessionMetaTable">
-                    <div><span>العميل</span><b>{selectedSessionData?.clientName || 'محمد الخطيب'}</b></div>
-                    <div><span>نوع الخدمة</span><b>{selectedSessionData?.serviceName || 'استشارة ضريبة دخل'}</b></div>
-                    <div><span>القناة</span><b>فيديو</b></div>
-                    <div><span>المدة</span><b>45 دقيقة</b></div>
-                    <div><span>الحالة</span><b>{selectedSessionData?.statusLabel || 'مؤكدة'}</b></div>
-                    <div><span>الأتعاب</span><b>45 د.أ</b></div>
+              {selectedSessionData ? (
+                <div className="sessionDetailGrid">
+                  <div className="sessionInfoCard">
+                    <h3>معلومات الجلسة</h3>
+                    <div className="sessionMetaTable">
+                      <div><span>العميل</span><b>{selectedSessionData.clientName || selectedSessionData.user?.full_name || 'عميل'}</b></div>
+                      <div><span>نوع الخدمة</span><b>{selectedSessionData.serviceName || selectedSessionData.service?.name || 'استشارة ضريبية'}</b></div>
+                      <div><span>القناة</span><b>{selectedSessionData.channel || 'فيديو'}</b></div>
+                      <div><span>الحالة</span><b>{selectedSessionData.statusLabel || (selectedSessionData.status === 'confirmed' ? 'مؤكدة' : 'بانتظار الموافقة')}</b></div>
+                      <div><span>الأتعاب</span><b>{selectedSessionData.price ? `${selectedSessionData.price} د.أ` : '—'}</b></div>
+                    </div>
+                    {selectedSessionData.notes && (
+                      <>
+                        <div className="modalSectionTitle"><h3>موضوع الجلسة</h3></div>
+                        <p style={{ fontSize: '11px', color: '#607987', lineHeight: '1.8', margin: '6px 0 0' }}>
+                          {selectedSessionData.notes}
+                        </p>
+                      </>
+                    )}
                   </div>
-                  <div className="modalSectionTitle"><h3>موضوع الجلسة</h3></div>
-                  <p style={{ fontSize: '11px', color: '#607987', lineHeight: '1.8', margin: '6px 0 0' }}>
-                    {selectedSessionData?.notes || 'مراجعة أثر تعديل تشريعي على المعالجة الضريبية للمعاملة، وتحديد المرجع القانوني المناسب قبل اتخاذ القرار.'}
+                  <div className="sessionSideCard">
+                    <h3>جاهزية الجلسة</h3>
+                    <div className="sessionChecklist">
+                      <div><i></i>ملف العميل جاهز</div>
+                      <div><i></i>رابط الجلسة مفعل</div>
+                    </div>
+                    <button
+                      onClick={() => { setConsultantModal(null); handleNavigate('/chat'); }}
+                      style={{
+                        width: '100%',
+                        height: '38px',
+                        marginTop: '18px',
+                        border: 0,
+                        borderRadius: '99px',
+                        background: '#153f59',
+                        color: '#fff',
+                        fontFamily: 'inherit',
+                        fontWeight: '700',
+                        fontSize: '12px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      بدء الجلسة
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748B' }}>
+                  <p style={{ margin: '0 0 6px', fontSize: '14px', fontWeight: 700, color: '#0D3C5C' }}>
+                    لا توجد جلسات مجدولة لليوم
                   </p>
+                  <span style={{ fontSize: '12px', color: '#94A3B8' }}>
+                    عند حجز موعد جديد أو تأكيد جلسة ستظهر كافة بياناتها وخيارات بدئها هنا مباشرة.
+                  </span>
                 </div>
-                <div className="sessionSideCard">
-                  <h3>جاهزية الجلسة</h3>
-                  <div className="sessionChecklist">
-                    <div><i></i>ملف العميل جاهز</div>
-                    <div><i></i>3 مستندات مرفقة</div>
-                    <div><i></i>ملاحظة تحضيرية واحدة</div>
-                    <div><i></i>رابط الجلسة مفعل</div>
-                  </div>
-                  <button
-                    onClick={() => { setConsultantModal(null); handleNavigate('/chat'); }}
-                    style={{
-                      width: '100%',
-                      height: '38px',
-                      marginTop: '18px',
-                      border: 0,
-                      borderRadius: '99px',
-                      background: '#153f59',
-                      color: '#fff',
-                      fontFamily: 'inherit',
-                      fontWeight: '700',
-                      fontSize: '12px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    بدء الجلسة
-                  </button>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -1482,6 +1513,22 @@ export default function ConsultantDashboard({ navigate }) {
           </div>
         </div>
       )}
+      {/* Sleek Shared NotificationDetailsModal */}
+      <NotificationDetailsModal
+        isOpen={Boolean(selectedNotifForModal)}
+        notification={selectedNotifForModal}
+        onClose={() => setSelectedNotifForModal(null)}
+        onNavigate={handleNavigate}
+        onMarkAsRead={async (id) => {
+          try {
+            await notificationService.markAsRead(id, token, true);
+            setSystemNotifs(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+          } catch (e) {
+            console.warn("Could not mark notification as read:", e);
+          }
+        }}
+        role="consultant"
+      />
     </div>
   );
 }
