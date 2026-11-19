@@ -37,27 +37,6 @@ export default function AdminHeader({ navigate, onOpenAiModal, isSidebarCollapse
         }
         const notifList = Array.isArray(notifData) ? notifData : (notifData?.items || notifData?.data || []);
         setNotifications(notifList);
-
-        // Check for unread law announcement to show as popup on login
-        if (!hasCheckedOnLoginPopup.current && notifList.length > 0) {
-          hasCheckedOnLoginPopup.current = true;
-          const unreadLawNotif = notifList.find(n => {
-            if (n.is_read) return false;
-            const meta = n.extra_metadata || n.metadata || {};
-            const isLaw = meta.target_type === 'law' ||
-                          meta.is_law_announcement ||
-                          n.related_entity_type === 'legal_source' ||
-                          (n.title && (n.title.includes('قانون') || n.title.includes('تشريع') || n.title.includes('تعديل في')));
-            if (!isLaw) return false;
-            const shownKey = `shown_law_popup_${n.id}`;
-            return !localStorage.getItem(shownKey);
-          });
-
-          if (unreadLawNotif) {
-            setSelectedNotifForModal(unreadLawNotif);
-            localStorage.setItem(`shown_law_popup_${unreadLawNotif.id}`, 'true');
-          }
-        }
       } catch (e) {}
     };
 
@@ -193,7 +172,6 @@ export default function AdminHeader({ navigate, onOpenAiModal, isSidebarCollapse
         onClose={async () => {
           if (selectedNotifForModal?.id) {
             const notifId = selectedNotifForModal.id;
-            localStorage.setItem(`shown_law_popup_${notifId}`, 'true');
             setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, is_read: true } : n));
             setUnreadCount(prev => Math.max(0, prev - 1));
             if (token) {
@@ -205,13 +183,9 @@ export default function AdminHeader({ navigate, onOpenAiModal, isSidebarCollapse
           setSelectedNotifForModal(null);
         }}
         onNavigate={(url) => {
-          if (selectedNotifForModal?.id) {
-            localStorage.setItem(`shown_law_popup_${selectedNotifForModal.id}`, 'true');
-          }
           navigate(url);
         }}
         onMarkAsRead={async (id) => {
-          localStorage.setItem(`shown_law_popup_${id}`, 'true');
           setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
           setUnreadCount(prev => Math.max(0, prev - 1));
           if (token) {

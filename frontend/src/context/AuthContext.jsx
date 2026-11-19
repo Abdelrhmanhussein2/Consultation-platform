@@ -16,45 +16,24 @@ const getCookie = (name) => {
     const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
     if (match) return decodeURIComponent(match[2]);
   } catch {}
-  // Non-token keys: allow localStorage fallback
-  if (!TOKEN_KEYS.includes(name)) {
-    try { return localStorage.getItem(name) || sessionStorage.getItem(name) || null; } catch {}
-  }
   return null;
 };
 
 const setCookie = (name, value, days = null) => {
   try {
     let expires = '';
-    // Only allow persistent cookie for non-token keys
     if (days && !TOKEN_KEYS.includes(name)) {
       const date = new Date();
       date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
       expires = '; expires=' + date.toUTCString();
     }
-    // Tokens: no 'expires' → Session Cookie (deleted when browser closes)
     document.cookie = `${name}=${encodeURIComponent(value || '')}${expires}; path=/; SameSite=Lax`;
   } catch {}
-  // Non-token keys only: persist to localStorage
-  if (!TOKEN_KEYS.includes(name)) {
-    try {
-      if (value) {
-        localStorage.setItem(name, value);
-      } else {
-        localStorage.removeItem(name);
-      }
-    } catch {}
-  }
 };
 
 const removeCookie = (name) => {
   try {
     document.cookie = `${name}=; Max-Age=-99999999; path=/; SameSite=Lax`;
-  } catch {}
-  // Always clean up localStorage for this key (migration cleanup)
-  try {
-    localStorage.removeItem(name);
-    sessionStorage.removeItem(name);
   } catch {}
 };
 

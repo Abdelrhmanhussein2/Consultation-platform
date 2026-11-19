@@ -209,7 +209,7 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
               ? liveProfile.id
               : '93413316-ef5a-42aa-9177-dd057a588b2e')));
 
-      const localKey = `cp_inquiry_wait_${user.id || user.email}_${profileId}`;
+      
       const myAppts = await appointmentService.getMyAppointments(token).catch(() => []);
       const matchAppt = (myAppts || []).find(a =>
         (String(a.consultant_id) === String(resolvedConsultantId) ||
@@ -228,21 +228,15 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
         if (Array.isArray(res) && res.length > 0) {
           const lastMsg = res[res.length - 1];
           const isLastFromUser = String(lastMsg.sender_id) === String(user.id);
-          if (isLastFromUser) {
-            setPendingWaiting(true);
-            localStorage.setItem(localKey, JSON.stringify({ apptId: matchAppt.id, time: lastMsg.created_at }));
-          } else {
-            setPendingWaiting(false);
-            localStorage.removeItem(localKey);
-          }
+          setPendingWaiting(isLastFromUser);
         } else {
           setPendingWaiting(false);
-          localStorage.removeItem(localKey);
+          
         }
       } else {
         setPendingWaiting(false);
         setLinkedApptId(null);
-        localStorage.removeItem(localKey);
+        
       }
     } catch (err) {
       console.warn('Error checking pending inquiry status:', err);
@@ -569,19 +563,10 @@ export default function ConsultantFullProfile({ consultant, onClose, onBook, onO
         throw new Error(errData.detail || 'تعذر إرسال الرسالة للمستشار');
       }
 
-      // Ensure this chat is not hidden in localStorage
-      try {
-        const hidden = JSON.parse(localStorage.getItem('cp_hidden_chats') || '[]');
-        if (hidden.includes(String(targetApptId))) {
-          const updated = hidden.filter(id => id !== String(targetApptId));
-          localStorage.setItem('cp_hidden_chats', JSON.stringify(updated));
-        }
-      } catch {}
+      
 
       setPendingWaiting(true);
       setQuestionText('');
-      const localKey = `cp_inquiry_wait_${user.id || user.email}_${profileId}`;
-      localStorage.setItem(localKey, JSON.stringify({ apptId: targetApptId, time: new Date().toISOString() }));
       showToast('تم إرسال رسالتك إلى صندوق محادثات المستشار بنجاح ✓', 'success');
     } catch (err) {
       console.error('Error sending question:', err);

@@ -135,12 +135,7 @@ export default function LawDetailPage({ lawId, navigate, currentPath }) {
     setArticleError(null);
     const targetNum = targetArticle.number || targetArticle.num;
 
-    let storedHl = '';
-    try {
-      storedHl = sessionStorage.getItem('last_legal_highlight') || '';
-    } catch (_) {}
-
-    const targetHighlightParam = params.get('highlight') || params.get('q') || storedHl;
+    const targetHighlightParam = params.get('highlight') || params.get('q') || '';
 
     const highlightTargetClause = (articleEl, rawHighlight) => {
       if (!articleEl || !rawHighlight) return;

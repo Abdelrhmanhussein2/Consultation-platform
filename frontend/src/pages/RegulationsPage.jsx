@@ -157,31 +157,18 @@ export default function RegulationsPage({ navigate, currentPath }) {
     const lawTypeParam = params.get('lawType') || params.get('type') || '';
     const isStrictParam = params.get('strict') === 'true';
 
-    // 2. Read stored law object from sessionStorage if matching or fallback
-    let storedLaw = null;
-    try {
-      const raw = sessionStorage.getItem('selected_semantic_law');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (!lawIdParam || parsed.law_id === lawIdParam || parsed.id === lawIdParam) {
-          storedLaw = parsed;
-        }
-      }
-    } catch (e) {
-      console.warn("Error reading selected_semantic_law:", e);
-    }
-
-    const effectiveTargetId = lawIdParam || storedLaw?.law_id || storedLaw?.id || null;
-    const effectiveTargetTitle = lawTitleParam || storedLaw?.title || null;
-    const effectiveTargetType = lawTypeParam || storedLaw?.type || null;
+    // 2. Extract effective target parameters strictly from URL query
+    const effectiveTargetId = lawIdParam || null;
+    const effectiveTargetTitle = lawTitleParam || null;
+    const effectiveTargetType = lawTypeParam || null;
 
     setHighlightedLawId(effectiveTargetId);
 
     if (qParam) {
       setSearchQuery(qParam);
-      handleSearch(qParam, filters, effectiveTargetId, effectiveTargetTitle, effectiveTargetType, storedLaw, isStrictParam);
+      handleSearch(qParam, filters, effectiveTargetId, effectiveTargetTitle, effectiveTargetType, null, isStrictParam);
     } else {
-      handleSearch('', filters, effectiveTargetId, effectiveTargetTitle, effectiveTargetType, storedLaw, isStrictParam);
+      handleSearch('', filters, effectiveTargetId, effectiveTargetTitle, effectiveTargetType, null, isStrictParam);
     }
   }, [token, currentPath]);
 

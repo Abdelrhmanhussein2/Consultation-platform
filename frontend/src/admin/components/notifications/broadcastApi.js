@@ -8,7 +8,10 @@ const getAuthHeaders = () => {
     } catch {}
     if (!token) {
       try {
-        token = localStorage.getItem('token') || localStorage.getItem('admin_token') || '';
+        try {
+          const match = document.cookie.match(/(^| )(?:token|admin_token)=([^;]+)/);
+          if (match) token = decodeURIComponent(match[2]);
+        } catch {}
       } catch {}
     }
   }

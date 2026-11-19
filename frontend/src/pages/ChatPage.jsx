@@ -66,17 +66,13 @@ export default function ChatPage({ navigate }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [inputText, setInputText] = useState('');
-  const [pinnedApptIds, setPinnedApptIds] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('cp_pinned_chats') || '[]'); } catch { return []; }
-  });
+  const [pinnedApptIds, setPinnedApptIds] = useState([]);
   // Track unread count per appointment id
   const [unreadCounts, setUnreadCounts] = useState({});
   // Track last message time per appointment for sorting
   const [lastMsgTime, setLastMsgTime] = useState({});
   // Persist hidden (deleted) chat IDs across page refreshes
-  const [hiddenChatIds, setHiddenChatIds] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('cp_hidden_chats') || '[]'); } catch { return []; }
-  });
+  const [hiddenChatIds, setHiddenChatIds] = useState([]);
   // Custom confirmation modal (replaces window.confirm)
   const [confirmModal, setConfirmModal] = useState({ open: false, apptId: null });
 
@@ -100,7 +96,8 @@ export default function ChatPage({ navigate }) {
     { value: 'all', label: 'كل الاستشارات' },
     { value: 'active', label: 'استشارات نشطة' },
     { value: 'follow_up', label: 'متابعة ما بعد الجلسة' },
-    { value: 'completed', label: 'استشارات مكتملة' }
+    { value: 'completed', label: 'استشارات مكتملة' },
+    { value: 'hidden', label: 'المحادثات المخفية' }
   ];
   const currentFilterObj = filterOptions.find(o => o.value === consultationFilter) || filterOptions[0];
 
@@ -179,15 +176,8 @@ export default function ChatPage({ navigate }) {
         });
         const uniqueAppts = Array.from(apptById.values());
 
-        // Show all appointments as separate chat threads (each appointment = one conversation)
-        // Also exclude any appointments the user has permanently hidden
-        const currentHidden = (() => {
-          try { return JSON.parse(localStorage.getItem('cp_hidden_chats') || '[]'); } catch { return []; }
-        })();
-        let validChats = uniqueAppts.filter(appt =>
-          appt.status !== 'cancelled' && !currentHidden.includes(String(appt.id))
-        );
-
+        // Retain appointments in state without deleting; hidden status is handled via UI state
+        let validChats = uniqueAppts.filter(appt => appt.status !== 'cancelled');
         setAppointments(validChats);
 
         // Initialize last message time from scheduled_at as fallback
@@ -203,12 +193,7 @@ export default function ChatPage({ navigate }) {
         if (paramApptId && paramApptId !== 'admin_support') {
           // If paramApptId is in hidden list, remove it
           setHiddenChatIds(prev => prev.filter(id => id !== String(paramApptId)));
-          try {
-            const hidden = JSON.parse(localStorage.getItem('cp_hidden_chats') || '[]');
-            if (hidden.includes(String(paramApptId))) {
-              localStorage.setItem('cp_hidden_chats', JSON.stringify(hidden.filter(id => id !== String(paramApptId))));
-            }
-          } catch { }
+          
 
           targetChat = validChats.find(a => String(a.id) === String(paramApptId));
           if (!targetChat) {
@@ -472,61 +457,33 @@ export default function ChatPage({ navigate }) {
         showToast('تم تثبيت المحادثة في الأعلى', 'success');
         updated = [...prev, apptId];
       }
-      try { localStorage.setItem('cp_pinned_chats', JSON.stringify(updated)); } catch { }
+      
       return updated;
     });
   };
 
-  const handleDeleteChat = async (apptId, e) => {
+  const handleHideChat = (apptId, e) => {
     if (e) e.stopPropagation();
     setConfirmModal({ open: true, apptId });
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmHide = () => {
     const apptId = confirmModal.apptId;
     setConfirmModal({ open: false, apptId: null });
     if (!apptId) return;
 
-    if (apptId === 'admin_support') {
-      try {
-        const notifs = await notificationService.getMyNotifications(token).catch(() => []);
-        const rawNotifs = Array.isArray(notifs) ? notifs : (notifs?.notifications || notifs?.data || []);
-        for (const n of rawNotifs) {
-          await notificationService.deleteNotification(n.id, token).catch(() => { });
-        }
-        setMessages([]);
-        showToast('تم مسح سجل المحادثة بنجاح', 'success');
-      } catch {
-        setMessages([]);
-        showToast('تم تفريغ المحادثة', 'success');
-      }
-      return;
+    // Pure archive/hide action in state: Zero deletion of actual messages in backend
+    setHiddenChatIds(prev => [...prev.filter(id => id !== String(apptId)), String(apptId)]);
+    if (activeAppt && String(activeAppt.id) === String(apptId)) {
+      handleCloseChat();
     }
+    showToast('تم إخفاء المحادثة بنجاح (يمكنك مراجعتها واستعادتها من فلتر المحادثات المخفية)', 'info');
+  };
 
-    try {
-      const res = await fetch(`/api/chat/${apptId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        showToast('تم حذف المحادثة وإزالتها بنجاح', 'success');
-        const newHidden = [...hiddenChatIds, String(apptId)];
-        setHiddenChatIds(newHidden);
-        localStorage.setItem('cp_hidden_chats', JSON.stringify(newHidden));
-        setAppointments(prev => {
-          const updated = prev.filter(a => String(a.id) !== String(apptId));
-          if (activeAppt && String(activeAppt.id) === String(apptId)) {
-            handleCloseChat();
-          }
-          return updated;
-        });
-      } else {
-        const errData = await res.json().catch(() => ({}));
-        showToast(errData.detail || 'فشل حذف المحادثة من الخادم.', 'error');
-      }
-    } catch {
-      showToast('فشل حذف المحادثة.', 'error');
-    }
+  const handleRestoreChat = (apptId, e) => {
+    if (e) e.stopPropagation();
+    setHiddenChatIds(prev => prev.filter(id => id !== String(apptId)));
+    showToast('تمت استعادة المحادثة إلى قائمتك بنجاح', 'success');
   };
 
   // Selection-based Formatting Helper (Bold, Italic, Underline)
@@ -750,10 +707,13 @@ export default function ChatPage({ navigate }) {
     .filter(a => {
       const urlParams = new URLSearchParams(window.location.search);
       const paramApptId = urlParams.get('apptId') || urlParams.get('appointment_id');
+      const isHidden = hiddenChatIds.includes(String(a.id));
 
-      // Hidden chats are filtered out before entering state in fetchChatRooms.
-      // As a second safety net, still filter here using current state.
-      if (hiddenChatIds.includes(String(a.id)) && !(paramApptId && String(a.id) === String(paramApptId))) return false;
+      if (consultationFilter === 'hidden') {
+        if (!isHidden) return false;
+      } else {
+        if (isHidden && !(paramApptId && String(a.id) === String(paramApptId))) return false;
+      }
 
       const pName = (getPartnerName(a) || '').toLowerCase();
       const matchesSearch = !chatSearch || pName.includes(chatSearch.toLowerCase());
@@ -882,7 +842,7 @@ export default function ChatPage({ navigate }) {
     <div className="chat-page-root">
       <Toast {...toast} />
 
-      {/* Custom Delete Confirmation Modal */}
+      {/* Custom Hide Confirmation Modal */}
       {confirmModal.open && (
         <div onClick={() => setConfirmModal({ open: false, apptId: null })} style={{
           position: 'fixed', inset: 0, zIndex: 9999,
@@ -901,21 +861,20 @@ export default function ChatPage({ navigate }) {
             textAlign: 'center',
             direction: 'rtl'
           }}>
-            {/* Icon */}
             <div style={{
               width: '56px', height: '56px', borderRadius: '50%',
-              background: '#FEE2E2', margin: '0 auto 16px',
+              background: '#F1F5F9', margin: '0 auto 16px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '24px'
             }}>
-              🗑️
+              👁️‍🗨️
             </div>
             <h3 style={{ fontSize: '17px', fontWeight: '800', color: '#0D3C5C', margin: '0 0 8px' }}>
-              حذف المحادثة
+              إخفاء المحادثة
             </h3>
             <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 24px', lineHeight: 1.6 }}>
-              هل أنت متأكد من حذف هذه المحادثة وإزالتها نهائياً من السجل؟<br />
-              <strong style={{ color: '#EF4444' }}>لا يمكن التراجع عن هذا الإجراء.</strong>
+              هل تريد إخفاء هذه المحادثة من قائمة المحادثات؟<br />
+              <span style={{ color: '#005D9C', fontWeight: 600 }}>لن يتم حذف الرسائل، ويمكنك استعادتها في أي وقت من قسم «المحادثات المخفية».</span>
             </p>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
               <button
@@ -929,17 +888,17 @@ export default function ChatPage({ navigate }) {
                 إلغاء
               </button>
               <button
-                onClick={handleConfirmDelete}
+                onClick={handleConfirmHide}
                 style={{
                   flex: 1, padding: '10px 0', borderRadius: '10px',
-                  border: 'none', background: '#EF4444',
+                  border: 'none', background: '#0D3C5C',
                   color: '#FFFFFF', fontWeight: '700', fontSize: '13px', cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
+                  boxShadow: '0 4px 12px rgba(13, 60, 92, 0.25)'
                 }}
-                onMouseOver={e => e.currentTarget.style.background = '#DC2626'}
-                onMouseOut={e => e.currentTarget.style.background = '#EF4444'}
+                onMouseOver={e => e.currentTarget.style.background = '#09253B'}
+                onMouseOut={e => e.currentTarget.style.background = '#0D3C5C'}
               >
-                حذف نهائياً
+                إخفاء المحادثة
               </button>
             </div>
           </div>
@@ -1048,23 +1007,33 @@ export default function ChatPage({ navigate }) {
                       </div>
                     </div>
 
-                    {/* Quick Item Actions: Pin & Delete */}
+                    {/* Quick Item Actions: Pin & Hide / Restore */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', alignSelf: 'flex-start' }}>
                       <button
                         onClick={(e) => togglePinChat(appt.id, e)}
-                        title={isPinned ? 'إلغاء التثبيت' : 'تثبيت المحادثة'}
+                        title={isPinned ? 'إلغاء التثبيت' : 'تثبيت المحادثة في الأعلى'}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}
                       >
                         <PinIcon isPinned={isPinned} />
                       </button>
 
-                      <button
-                        onClick={(e) => handleDeleteChat(appt.id, e)}
-                        title="حذف المحادثة نهائياً"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}
-                      >
-                        <TrashIcon />
-                      </button>
+                      {hiddenChatIds.includes(String(appt.id)) ? (
+                        <button
+                          onClick={(e) => handleRestoreChat(appt.id, e)}
+                          title="استعادة المحادثة وإلغاء الإخفاء"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}
+                        >
+                          <RestoreIcon />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => handleHideChat(appt.id, e)}
+                          title="إخفاء المحادثة"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}
+                        >
+                          <EyeOffIcon />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

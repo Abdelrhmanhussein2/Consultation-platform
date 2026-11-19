@@ -127,11 +127,6 @@ export default function UserDashboard({ navigate }) {
     const lawId = law.law_id || law.id || '';
     const lawTitle = law.title || '';
     const lawType = law.type || '';
-    try {
-      sessionStorage.setItem('selected_semantic_law', JSON.stringify(law));
-    } catch (e) {
-      console.warn("Could not save law to sessionStorage:", e);
-    }
     const params = new URLSearchParams();
     if (lawId) params.set('lawId', lawId);
     if (lawTitle) params.set('lawTitle', lawTitle);

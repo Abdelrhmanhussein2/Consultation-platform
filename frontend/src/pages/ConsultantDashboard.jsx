@@ -91,11 +91,6 @@ export default function ConsultantDashboard({ navigate }) {
     const lawId = law.law_id || law.id || '';
     const lawTitle = law.title || '';
     const lawType = law.type || '';
-    try {
-      sessionStorage.setItem('selected_semantic_law', JSON.stringify(law));
-    } catch (e) {
-      console.warn("Could not save law to sessionStorage:", e);
-    }
     const params = new URLSearchParams();
     if (lawId) params.set('lawId', lawId);
     if (lawTitle) params.set('lawTitle', lawTitle);
@@ -143,6 +138,7 @@ export default function ConsultantDashboard({ navigate }) {
       return;
     }
     setLoading(true);
+    setDashboardError(null);
     const safetyTimer = setTimeout(() => {
       setLoading(false);
     }, 6000);
@@ -150,7 +146,7 @@ export default function ConsultantDashboard({ navigate }) {
     try {
       const [walletData, apptsData, profileData, servicesData, lawsRes, notifsRes] = await Promise.all([
         consultantService.getWallet(token).catch(() => null),
-        consultantService.getIncomingAppointments(token).catch(() => []),
+        consultantService.getIncomingAppointments(token),
         consultantService.getMyProfile(token).catch(() => null),
         consultantService.getMyServices(token).catch(() => []),
         apiFetch('/api/legal/laws', {}, token).catch(() => []),
@@ -165,6 +161,7 @@ export default function ConsultantDashboard({ navigate }) {
       setSystemNotifs(Array.isArray(notifsRes) ? notifsRes : (Array.isArray(notifsRes?.items) ? notifsRes.items : []));
     } catch (err) {
       console.error("Error fetching consultant dashboard data:", err);
+      setDashboardError('تعذر تحميل بعض بيانات لوحة التحكم من الخادم.');
     } finally {
       clearTimeout(safetyTimer);
       setLoading(false);
@@ -408,32 +405,7 @@ export default function ConsultantDashboard({ navigate }) {
         badgeClass: s.is_active !== false ? 'green' : 'amber'
       }));
     }
-    return [
-      {
-        id: 1,
-        name: 'استشارة ضريبة الدخل والمبيعات',
-        desc: 'جلسة مرئية 45 دقيقة · أتعاب 45 د.أ · الإشغال 90%',
-        status: 'available',
-        statusLabel: 'متاح',
-        badgeClass: 'green'
-      },
-      {
-        id: 2,
-        name: 'تدقيق ومراجعة الإقرارات الضريبية',
-        desc: 'فحص مستندات وإقرارات · أتعاب 75 د.أ · الإشغال 75%',
-        status: 'available',
-        statusLabel: 'متاح',
-        badgeClass: 'green'
-      },
-      {
-        id: 3,
-        name: 'استشارة الفوترة الإلكترونية الوطنية',
-        desc: 'ربط تقني وإعداد أنظمة · أتعاب 60 د.أ · الإشغال 60%',
-        status: 'limited',
-        statusLabel: 'شبه مكتمل',
-        badgeClass: 'amber'
-      }
-    ];
+    return [];
   }, [services]);
 
   const filteredServiceItems = useMemo(() => {
@@ -1014,20 +986,26 @@ export default function ConsultantDashboard({ navigate }) {
           </div>
 
           <div className="refServiceRows">
-            {serviceItemsData.map((item, idx) => (
-              <button key={item.id || idx} onClick={() => setConsultantModal('services')}>
-                <div>
-                  <b>{item.name}</b>
-                  <small>{item.desc}</small>
-                </div>
-                <div className="refOcc">
-                  <span>{monthCount > 0 ? `${Math.round(monthCount / serviceItemsData.length)} حجزًا` : '0 حجز'}</span>
-                  <div><i style={{ width: monthCount > 0 ? `${Math.min(100, (idx + 1) * 30)}%` : '0%' }}></i></div>
-                </div>
-                <span className="refNext">متاح</span>
-                <em className={item.badgeClass}>{item.statusLabel}</em>
-              </button>
-            ))}
+            {serviceItemsData.length === 0 ? (
+              <div style={{ padding: '24px 12px', textAlign: 'center', color: '#64748B', fontSize: '12px' }}>
+                لا توجد باقات أو خدمات مسجلة حالياً
+              </div>
+            ) : (
+              serviceItemsData.map((item, idx) => (
+                <button key={item.id || idx} onClick={() => setConsultantModal('services')}>
+                  <div>
+                    <b>{item.name}</b>
+                    <small>{item.desc}</small>
+                  </div>
+                  <div className="refOcc">
+                    <span>{monthCount > 0 ? `${Math.round(monthCount / serviceItemsData.length)} حجزًا` : '0 حجز'}</span>
+                    <div><i style={{ width: monthCount > 0 ? `${Math.min(100, (idx + 1) * 30)}%` : '0%' }}></i></div>
+                  </div>
+                  <span className="refNext">متاح</span>
+                  <em className={item.badgeClass}>{item.statusLabel}</em>
+                </button>
+              ))
+            )}
           </div>
         </div>
 
@@ -1299,13 +1277,19 @@ export default function ConsultantDashboard({ navigate }) {
               </div>
 
               <div className="modalList">
-                {filteredServiceItems.map(item => (
-                  <div key={item.id} className="modalListRow" onClick={() => { setConsultantModal(null); handleNavigate('/consultant/services'); }}>
-                    <i className={item.badgeClass}></i>
-                    <div><b>{item.name}</b><small>{item.desc}</small></div>
-                    <em>تعديل السعر ←</em>
+                {filteredServiceItems.length === 0 ? (
+                  <div style={{ padding: '30px 20px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
+                    لا توجد خدمات مسجلة تطابق هذا الفلتر حالياً.
                   </div>
-                ))}
+                ) : (
+                  filteredServiceItems.map(item => (
+                    <div key={item.id} className="modalListRow" onClick={() => { setConsultantModal(null); handleNavigate('/consultant/services'); }}>
+                      <i className={item.badgeClass}></i>
+                      <div><b>{item.name}</b><small>{item.desc}</small></div>
+                      <em>تعديل السعر ←</em>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

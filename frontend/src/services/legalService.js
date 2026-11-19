@@ -98,7 +98,7 @@ const MOCK_LAWS = [
 export async function searchLegal(query, limit = 20, token = null, filters = null) {
   try {
     const headers = {};
-    const authToken = token || (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
+    const authToken = token || (typeof document !== 'undefined' ? (document.cookie.match(/(^| )token=([^;]+)/)?.[2] ? decodeURIComponent(document.cookie.match(/(^| )token=([^;]+)/)[2]) : null) : null);
     if (authToken) {
       headers['Authorization'] = `Bearer ${authToken}`;
     }
@@ -220,7 +220,7 @@ export async function getLawTree(lawId, token = null) {
 
   try {
     const headers = {};
-    const authToken = token || (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
+    const authToken = token || (typeof document !== 'undefined' ? (document.cookie.match(/(^| )token=([^;]+)/)?.[2] ? decodeURIComponent(document.cookie.match(/(^| )token=([^;]+)/)[2]) : null) : null);
     if (authToken) {
       headers['Authorization'] = `Bearer ${authToken}`;
     }
@@ -774,7 +774,7 @@ function normalizeLawTree(data, lawId) {
 export async function getArticleHistory(lawId, articleNum) {
   try {
     const headers = {};
-    const authToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const authToken = typeof document !== 'undefined' ? (document.cookie.match(/(^| )token=([^;]+)/)?.[2] ? decodeURIComponent(document.cookie.match(/(^| )token=([^;]+)/)[2]) : null) : null;
     if (authToken) {
       headers['Authorization'] = `Bearer ${authToken}`;
     }
@@ -791,7 +791,7 @@ export async function getArticleHistory(lawId, articleNum) {
 export async function getCitations(targetId) {
   try {
     const headers = {};
-    const authToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const authToken = typeof document !== 'undefined' ? (document.cookie.match(/(^| )token=([^;]+)/)?.[2] ? decodeURIComponent(document.cookie.match(/(^| )token=([^;]+)/)[2]) : null) : null;
     if (authToken) {
       headers['Authorization'] = `Bearer ${authToken}`;
     }
@@ -809,7 +809,7 @@ export async function getCitations(targetId) {
 export async function getRelatedFiles(lawId, token = null) {
   try {
     const headers = {};
-    const authToken = token || (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
+    const authToken = token || (typeof document !== 'undefined' ? (document.cookie.match(/(^| )token=([^;]+)/)?.[2] ? decodeURIComponent(document.cookie.match(/(^| )token=([^;]+)/)[2]) : null) : null);
     if (authToken) {
       headers['Authorization'] = `Bearer ${authToken}`;
     }
@@ -826,7 +826,7 @@ export async function getRelatedFiles(lawId, token = null) {
 export async function getLawStages(lawId, token = null) {
   try {
     const headers = {};
-    const authToken = token || (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
+    const authToken = token || (typeof document !== 'undefined' ? (document.cookie.match(/(^| )token=([^;]+)/)?.[2] ? decodeURIComponent(document.cookie.match(/(^| )token=([^;]+)/)[2]) : null) : null);
     if (authToken) {
       headers['Authorization'] = `Bearer ${authToken}`;
     }

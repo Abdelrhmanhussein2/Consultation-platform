@@ -223,11 +223,7 @@ export default function RegulationsSearch({
       setSuggestionData(null);
       let targetUrl = openUrl;
       const hlText = opt?.literal_text || opt?.title || searchQuery;
-      if (hlText) {
-        try {
-          sessionStorage.setItem('last_legal_highlight', hlText);
-        } catch (_) {}
-      }
+
       if (hlText && !targetUrl.includes('highlight=')) {
         targetUrl += `&highlight=${encodeURIComponent(hlText.slice(0, 100))}`;
       }

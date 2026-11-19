@@ -1,18 +1,15 @@
 // Token keys that must NEVER be written to localStorage
 const TOKEN_KEYS = ['token', 'refresh_token', 'admin_token'];
 
-const getCookie = (name) => {
+export const getCookie = (name) => {
   try {
     const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
     if (match) return decodeURIComponent(match[2]);
   } catch {}
-  if (!TOKEN_KEYS.includes(name)) {
-    try { return localStorage.getItem(name) || sessionStorage.getItem(name) || null; } catch {}
-  }
   return null;
 };
 
-const setCookie = (name, value, days = null) => {
+export const setCookie = (name, value, days = null) => {
   try {
     let expires = '';
     if (days && !TOKEN_KEYS.includes(name)) {
@@ -20,18 +17,8 @@ const setCookie = (name, value, days = null) => {
       date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
       expires = '; expires=' + date.toUTCString();
     }
-    // Token cookies: Session Cookie only (no expires → deleted on browser close)
     document.cookie = `${name}=${encodeURIComponent(value || '')}${expires}; path=/; SameSite=Lax`;
   } catch {}
-  if (!TOKEN_KEYS.includes(name)) {
-    try {
-      if (value) {
-        localStorage.setItem(name, value);
-      } else {
-        localStorage.removeItem(name);
-      }
-    } catch {}
-  }
 };
 
 const isTokenExpiringSoon = (tokenStr) => {
@@ -118,7 +105,7 @@ export const refreshAccessTokenSilently = () => {
 };
 
 export const apiFetch = async (url, options = {}, token = null) => {
-  let currentToken = token || getCookie('token') || getCookie('admin_token') || (typeof window !== 'undefined' ? (localStorage.getItem('token') || localStorage.getItem('admin_token')) : null);
+  let currentToken = token || getCookie('token') || getCookie('admin_token');
 
   // Proactive Refresh: If token expires within 2 minutes, refresh BEFORE sending request
   if (currentToken && isTokenExpiringSoon(currentToken) && !url.includes('/api/auth/')) {

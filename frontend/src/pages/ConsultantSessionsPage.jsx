@@ -255,313 +255,6 @@ const getSessionTypeInfo = (type_kind, typeText) => {
   };
 };
 
-// ── Demo Sessions matching exactly the reference screenshot ─────
-const DEMO_SESSIONS = [
-  // ── Column 1 (Far Right in RTL): ملغاة (4) ──────────────────────
-  {
-    id: 's-101',
-    ref_id: '#202600210',
-    status: 'cancelled',
-    title: 'مراجعة الإقرار الضريبي السنوي',
-    client_name: 'أحمد الشريدة',
-    client_type: 'أفراد',
-    type: 'جلسة فيديو',
-    type_kind: 'video',
-    date: '20-08-2026',
-    time: '09:30 ص',
-    duration_and_price: '60 دقيقة • 85 دينار',
-    payment_status: 'غير مدفوعة'
-  },
-  {
-    id: 's-102',
-    ref_id: '#2026203',
-    status: 'cancelled',
-    title: 'مراجعة مطالبة ضريبية',
-    client_name: 'رائد حداد',
-    client_type: 'شركة مساهمة عامة',
-    type: 'جلسة فيديو',
-    type_kind: 'video',
-    date: '21-08-2026',
-    time: '10:30 ص',
-    duration_and_price: '30 دقيقة • 65 دينار',
-    payment_status: 'غير مدفوعة'
-  },
-  {
-    id: 's-103',
-    ref_id: '#2026204',
-    status: 'cancelled',
-    title: 'تقرير في تسوية الأرباح',
-    client_name: 'سمير قاسم',
-    client_type: 'أفراد',
-    type: 'تقرير مكتوب',
-    type_kind: 'report',
-    date: '22-08-2026',
-    time: '02:00 م',
-    duration_and_price: '45 دقيقة • 50 دينار',
-    payment_status: 'غير مدفوعة'
-  },
-  {
-    id: 's-104',
-    ref_id: '#2026205',
-    status: 'cancelled',
-    title: 'استشارة ضريبة المبيعات',
-    client_name: 'شركة الأفق',
-    client_type: 'شركة ذات مسؤولية محدودة',
-    type: 'جلسة محادثة',
-    type_kind: 'chat',
-    date: '23-08-2026',
-    time: '04:00 م',
-    duration_and_price: '60 دقيقة • 70 دينار',
-    payment_status: 'غير مدفوعة'
-  },
-
-  // ── Column 2 (2nd from Right): معلقه (4) ────────────────────────
-  {
-    id: 's-201',
-    ref_id: '#202600210',
-    status: 'pending',
-    title: 'مراجعة الإقرار الضريبي السنوي',
-    client_name: 'أحمد الشريدة',
-    client_type: 'أفراد',
-    type: 'جلسة فيديو',
-    type_kind: 'video',
-    date: '20-08-2026',
-    time: '09:30 ص',
-    duration_and_price: '60 دقيقة • 85 دينار',
-    payment_status: 'غير مدفوعة'
-  },
-  {
-    id: 's-202',
-    ref_id: '#2026207',
-    status: 'pending',
-    title: 'اعتراض ضريبي – مراجعة وتحليل',
-    client_name: 'ديما الشوابكة',
-    client_type: 'مستشار',
-    type: 'جلسة محادثة',
-    type_kind: 'chat',
-    date: '21-08-2026',
-    time: '10:30 ص',
-    duration_and_price: '30 دقيقة • 65 دينار',
-    payment_status: 'غير مدفوعة'
-  },
-  {
-    id: 's-203',
-    ref_id: '#2026208',
-    status: 'pending',
-    title: 'استشارة ضريبة الدخل للموظفين',
-    client_name: 'خالد النجار',
-    client_type: 'أفراد',
-    type: 'جلسة فيديو',
-    type_kind: 'video',
-    date: '22-08-2026',
-    time: '11:00 ص',
-    duration_and_price: '60 دقيقة • 55 دينار',
-    payment_status: 'غير مدفوعة'
-  },
-  {
-    id: 's-204',
-    ref_id: '#2026209',
-    status: 'pending',
-    title: 'تحليل الغرامات والفوائد القانونية',
-    client_name: 'مؤسسة الرواد',
-    client_type: 'شركة توصية بسيطة',
-    type: 'تقرير مكتوب',
-    type_kind: 'report',
-    date: '23-08-2026',
-    time: '01:30 م',
-    duration_and_price: '45 دقيقة • 60 دينار',
-    payment_status: 'غير مدفوعة'
-  },
-
-  // ── Column 3 (Center): مؤكدة (5) ───────────────────────────────
-  {
-    id: 's-301',
-    ref_id: '#202600210',
-    status: 'confirmed',
-    title: 'تسوية المستحقات الضريبية',
-    client_name: 'أحمد الشريدة',
-    client_type: 'أفراد',
-    type: 'جلسة فيديو',
-    type_kind: 'video',
-    date: '20-08-2026',
-    time: '09:30 ص',
-    duration_and_price: '60 دقيقة • 85 دينار',
-    payment_status: 'مدفوعة'
-  },
-  {
-    id: 's-302',
-    ref_id: '#2026211',
-    status: 'confirmed',
-    title: 'مراجعة مطالبة ضريبية',
-    client_name: 'منذر زيادات',
-    client_type: 'مستخدم تجريبي',
-    type: 'تقرير مكتوب',
-    type_kind: 'report',
-    date: '21-08-2026',
-    time: '10:30 ص',
-    duration_and_price: '45 دقيقة • 65 دينار',
-    payment_status: 'مدفوعة'
-  },
-  {
-    id: 's-303',
-    ref_id: '#2026212',
-    status: 'confirmed',
-    title: 'تخطيط وتوزيع الأرباح السنوية',
-    client_name: 'سامي عوض',
-    client_type: 'شركة مساهمة خاصة',
-    type: 'جلسة فيديو',
-    type_kind: 'video',
-    date: '22-08-2026',
-    time: '12:00 م',
-    duration_and_price: '45 دقيقة • 50 دينار',
-    payment_status: 'مدفوعة'
-  },
-  {
-    id: 's-304',
-    ref_id: '#2026213',
-    status: 'confirmed',
-    title: 'استشارة الإعفاء الجمركي',
-    client_name: 'طارق عبد ربه',
-    client_type: 'أفراد',
-    type: 'جلسة محادثة',
-    type_kind: 'chat',
-    date: '23-08-2026',
-    time: '03:00 م',
-    duration_and_price: '30 دقيقة • 40 دينار',
-    payment_status: 'بانتظار الدفع'
-  },
-  {
-    id: 's-305',
-    ref_id: '#2026214',
-    status: 'confirmed',
-    title: 'تدقيق القيود المحاسبية الختامية',
-    client_name: 'الشركة المتحدة',
-    client_type: 'شركة مساهمة عامة',
-    type: 'تقرير مكتوب',
-    type_kind: 'report',
-    date: '24-08-2026',
-    time: '04:30 م',
-    duration_and_price: '60 دقيقة • 80 دينار',
-    payment_status: 'مدفوعة'
-  },
-
-  // ── Column 4 (2nd from Left): قيد التنفيذ (15) ──────────────────
-  {
-    id: 's-401',
-    ref_id: '#202600210',
-    status: 'in_progress',
-    title: 'مراجعة الإقرار الضريبي السنوي',
-    client_name: 'أحمد الشريدة',
-    client_type: 'أفراد',
-    type: 'جلسة فيديو',
-    type_kind: 'video',
-    date: '20-08-2026',
-    time: '09:30 ص',
-    duration_and_price: '60 دقيقة • 85 دينار',
-    payment_status: 'مدفوعة'
-  },
-  {
-    id: 's-402',
-    ref_id: '#2026216',
-    status: 'in_progress',
-    title: 'تسوية المستحقات الضريبية',
-    client_name: 'محمد سالم',
-    client_type: 'شركة توصية بسيطة',
-    type: 'جلسة محادثة',
-    type_kind: 'chat',
-    date: '21-08-2026',
-    time: '10:30 ص',
-    duration_and_price: '30 دقيقة • 65 دينار',
-    payment_status: 'مدفوعة'
-  },
-  {
-    id: 's-403',
-    ref_id: '#2026217',
-    status: 'in_progress',
-    title: 'استشارة هيكلة الشركات والضريبة',
-    client_name: 'فادي المصري',
-    client_type: 'شركة ذات مسؤولية محدودة',
-    type: 'جلسة فيديو',
-    type_kind: 'video',
-    date: '21-08-2026',
-    time: '02:00 م',
-    duration_and_price: '60 دقيقة • 75 دينار',
-    payment_status: 'مدفوعة'
-  },
-  {
-    id: 's-404',
-    ref_id: '#2026218',
-    status: 'in_progress',
-    title: 'إعداد الرد على استيضاحات الدائرة',
-    client_name: 'مؤسسة الشروق',
-    client_type: 'شركة مساهمة خاصة',
-    type: 'تقرير مكتوب',
-    type_kind: 'report',
-    date: '22-08-2026',
-    time: '11:30 ص',
-    duration_and_price: '45 دقيقة • 60 دينار',
-    payment_status: 'مدفوعة'
-  },
-
-  // ── Column 5 (Far Left): مكتمله (15) ───────────────────────────
-  {
-    id: 's-501',
-    ref_id: '#202600210',
-    status: 'completed',
-    title: 'مراجعة الإقرار الضريبي السنوي',
-    client_name: 'أحمد الشريدة',
-    client_type: 'أفراد',
-    type: 'جلسة محادثة',
-    type_kind: 'chat',
-    date: '20-08-2026',
-    time: '09:30 ص',
-    duration_and_price: '60 دقيقة • 85 دينار',
-    payment_status: 'مدفوعة'
-  },
-  {
-    id: 's-502',
-    ref_id: '#2026231',
-    status: 'completed',
-    title: 'مراجعة الإقرار الضريبي السنوي',
-    client_name: 'محمد سالم',
-    client_type: 'شركة توصية بسيطة',
-    type: 'جلسة محادثة',
-    type_kind: 'chat',
-    date: '21-08-2026',
-    time: '10:30 ص',
-    duration_and_price: '30 دقيقة • 65 دينار',
-    payment_status: 'مدفوعة'
-  },
-  {
-    id: 's-503',
-    ref_id: '#2026232',
-    status: 'completed',
-    title: 'استشارة في التسجيل بضريبة القيمة المضافة',
-    client_name: 'هاني قاسم',
-    client_type: 'أفراد',
-    type: 'جلسة فيديو',
-    type_kind: 'video',
-    date: '22-08-2026',
-    time: '01:00 م',
-    duration_and_price: '60 دقيقة • 50 دينار',
-    payment_status: 'مدفوعة'
-  },
-  {
-    id: 's-504',
-    ref_id: '#2026233',
-    status: 'completed',
-    title: 'استشارة ضريبة الأرباح الرأسمالية',
-    client_name: 'لبنى حدادين',
-    client_type: 'أفراد',
-    type: 'تقرير مكتوب',
-    type_kind: 'report',
-    date: '23-08-2026',
-    time: '03:30 م',
-    duration_and_price: '45 دقيقة • 55 دينار',
-    payment_status: 'مدفوعة'
-  }
-];
-
 // Columns configuration from Right to Left (RTL order)
 const COLUMNS_CONFIG = [
   {
@@ -576,8 +269,7 @@ const COLUMNS_CONFIG = [
     statusPillText: 'ملغاة/مرفوضة',
     statusPillBg: '#FEE2E2',
     statusPillBorder: '#F05C3B',
-    statusPillColor: '#DC2626',
-    displayCount: 4
+    statusPillColor: '#DC2626'
   },
   {
     id: 'pending',
@@ -591,8 +283,7 @@ const COLUMNS_CONFIG = [
     statusPillText: 'معلقة',
     statusPillBg: '#FEF3C7',
     statusPillBorder: '#FAAE48',
-    statusPillColor: '#D97706',
-    displayCount: 4
+    statusPillColor: '#D97706'
   },
   {
     id: 'confirmed',
@@ -606,8 +297,7 @@ const COLUMNS_CONFIG = [
     statusPillText: 'مؤكدة',
     statusPillBg: '#E0F7FE',
     statusPillBorder: '#49BFED',
-    statusPillColor: '#0284C7',
-    displayCount: 5
+    statusPillColor: '#0284C7'
   },
   {
     id: 'in_progress',
@@ -621,8 +311,7 @@ const COLUMNS_CONFIG = [
     statusPillText: 'قيد التنفيذ',
     statusPillBg: '#E0F2FE',
     statusPillBorder: '#358CB1',
-    statusPillColor: '#005D9C',
-    displayCount: 15
+    statusPillColor: '#005D9C'
   },
   {
     id: 'completed',
@@ -636,8 +325,7 @@ const COLUMNS_CONFIG = [
     statusPillText: 'مكتملة',
     statusPillBg: '#E8F8EE',
     statusPillBorder: '#44B85B',
-    statusPillColor: '#16A34A',
-    displayCount: 15
+    statusPillColor: '#16A34A'
   }
 ];
 
@@ -646,18 +334,8 @@ export default function ConsultantSessionsPage({ navigate }) {
   const { toast, showToast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [sessions, setSessions] = useState(() => {
-    try {
-      const saved = localStorage.getItem('consultant_kanban_sessions_exact_v6');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= 15) {
-          return parsed;
-        }
-      }
-    } catch { }
-    return DEMO_SESSIONS;
-  });
+  const [sessions, setSessions] = useState([]);
+  const [fetchError, setFetchError] = useState(null);
 
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'list'
   const [searchQuery, setSearchQuery] = useState('');
@@ -675,8 +353,8 @@ export default function ConsultantSessionsPage({ navigate }) {
 
   // Edit Modal Specific State
   const [editType, setEditType] = useState(''); // '' | 'reschedule' | 'payment'
-  const [newDate, setNewDate] = useState('08/20/2026');
-  const [newTime, setNewTime] = useState('09:00 AM');
+  const [newDate, setNewDate] = useState('');
+  const [newTime, setNewTime] = useState('');
   const [rescheduleReason, setRescheduleReason] = useState('');
   const [newPaymentStatus, setNewPaymentStatus] = useState('غير مدفوعة');
 
@@ -694,23 +372,19 @@ export default function ConsultantSessionsPage({ navigate }) {
   const handleOpenEdit = (session) => {
     setEditingSession(session);
     setEditType('');
-    setNewDate(session.date ? session.date.split('-').reverse().join('/') : '08/20/2026');
-    setNewTime(session.time ? `${session.time} AM` : '09:00 AM');
+    setNewDate(session.date ? session.date.split('-').reverse().join('/') : '');
+    setNewTime(session.time || '');
     setRescheduleReason('');
     setNewPaymentStatus(session.payment_status || 'غير مدفوعة');
   };
 
-  // Sync to local storage
-  useEffect(() => {
-    try {
-      localStorage.setItem('consultant_kanban_sessions_exact_v6', JSON.stringify(sessions));
-    } catch { }
-  }, [sessions]);
+  // Sync to local storage removed
 
   // Helper to parse date string & time to ISO
   const parseDateTimeToISO = (dStr, tStr) => {
     try {
-      let day = 20, month = 8, year = 2026;
+      const today = new Date();
+      let day = today.getDate(), month = today.getMonth() + 1, year = today.getFullYear();
       if (dStr && dStr.includes('-')) {
         const parts = dStr.split('-');
         day = parseInt(parts[0], 10);
@@ -741,80 +415,73 @@ export default function ConsultantSessionsPage({ navigate }) {
   const fetchBackendAppointments = async () => {
     if (!token) return;
     setIsLoading(true);
+    setFetchError(null);
     try {
       // 1. Try incoming appointments endpoint
-      let data = await consultantService.getIncomingAppointments(token, 1, 100).catch(() => null);
-      if (!data || !Array.isArray(data)) {
-        const myAppts = await fetch('/api/appointments/incoming?limit=100', {
-          headers: { Authorization: `Bearer ${token}` }
-        }).then(r => r.ok ? r.json() : null).catch(() => null);
-        if (Array.isArray(myAppts)) {
-          data = myAppts;
-        }
-      }
+      let data = await consultantService.getIncomingAppointments(token, 1, 100);
 
       if (data && Array.isArray(data)) {
-        if (data.length > 0) {
-          const backendMapped = data.map((item, idx) => {
-            let col = 'pending';
-            const st = String(item.status || '').toLowerCase();
-            if (st === 'confirmed' || st === 'scheduled' || st === 'rescheduled') col = 'confirmed';
-            else if (st === 'in_progress') col = 'in_progress';
-            else if (st === 'completed') col = 'completed';
-            else if (st.includes('cancel') || st === 'rejected' || st === 'no_show') col = 'cancelled';
-            else col = 'pending';
+        const backendMapped = data.map((item, idx) => {
+          let col = 'pending';
+          const st = String(item.status || '').toLowerCase();
+          if (st === 'confirmed' || st === 'scheduled' || st === 'rescheduled') col = 'confirmed';
+          else if (st === 'in_progress') col = 'in_progress';
+          else if (st === 'completed') col = 'completed';
+          else if (st.includes('cancel') || st === 'rejected' || st === 'no_show') col = 'cancelled';
+          else col = 'pending';
 
-            const isVideo = item.session_type === 'video_call' || item.session_type === 'video';
-            const isChat = item.session_type === 'text_chat' || item.session_type === 'chat';
+          const isVideo = item.session_type === 'video_call' || item.session_type === 'video';
+          const isChat = item.session_type === 'text_chat' || item.session_type === 'chat';
 
-            let cleanTitle = item.service_name || '';
-            if (!cleanTitle || cleanTitle.includes('جلسة') || cleanTitle.includes('دقيقة') || cleanTitle.includes('سبتمبر') || cleanTitle.includes('الساعة') || cleanTitle.length > 35) {
-              if (col === 'confirmed') cleanTitle = 'تسوية المستحقات الضريبية';
-              else if (col === 'in_progress') cleanTitle = 'مراجعة الإقرار الضريبي السنوي';
-              else if (col === 'cancelled') cleanTitle = 'استشارة ضريبة الدخل';
-              else cleanTitle = 'مراجعة الإقرار الضريبي السنوي';
+          const cleanTitle = item.service_name || item.service?.name || 'جلسة استشارية';
+          const cleanClient = item.client_name || item.user?.full_name || 'عميل';
+
+          let dateStr = '—';
+          let timeStr = '—';
+          if (item.scheduled_at) {
+            try {
+              const d = new Date(item.scheduled_at);
+              dateStr = d.toLocaleDateString('ar-EG', { year: 'numeric', month: '2-digit', day: '2-digit' });
+              timeStr = d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+            } catch {
+              dateStr = item.scheduled_at;
             }
+          }
 
-            let cleanClient = item.client_name;
-            if (!cleanClient || cleanClient === 'User' || cleanClient === 'عميل' || cleanClient.includes('Test')) {
-              cleanClient = idx === 0 ? 'أحمد الشريدة' : idx === 1 ? 'محمد سالم' : 'هاني قاسم';
-            }
+          const duration = item.duration_minutes || 60;
+          const price = item.price !== undefined && item.price !== null ? Number(item.price) : 0;
 
-            return {
-              id: item.id || `backend-item-${idx}`,
-              ref_id: idx === 0 ? '#202600210' : `#2026${210 + idx}`,
-              status: col,
-              title: cleanTitle,
-              client_name: cleanClient,
-              client_type: item.client_entity_type || (item.user?.entity_type === 'company' ? 'شركة ذات مسؤولية محدودة' : 'أفراد'),
-              type: isVideo ? 'جلسة فيديو' : isChat ? 'جلسة محادثة' : 'تقرير مكتوب',
-              type_kind: isVideo ? 'video' : isChat ? 'chat' : 'report',
-              date: '20-08-2026',
-              time: '09:30 ص',
-              duration_and_price: '60 دقيقة • 85 دينار',
-              payment_status: (col === 'completed' || col === 'in_progress' || col === 'confirmed' || item.is_paid) ? 'مدفوعة' : 'غير مدفوعة',
-              room_opened_at: item.room_opened_at,
-              consultant_joined_at: item.consultant_joined_at,
-              user_joined_at: item.user_joined_at,
-              attendance_status: item.attendance_status,
-              no_show_party: item.no_show_party,
-              no_show_detected_at: item.no_show_detected_at,
-              rawBackend: item
-            };
-          });
+          return {
+            id: item.id || `backend-item-${idx}`,
+            ref_id: item.id ? `#${String(item.id).slice(0, 8)}` : `#APP-${idx + 1}`,
+            status: col,
+            title: cleanTitle,
+            client_name: cleanClient,
+            client_type: item.client_entity_type || (item.user?.entity_type === 'company' ? 'شركة' : 'أفراد'),
+            type: isVideo ? 'جلسة فيديو' : isChat ? 'جلسة محادثة' : 'تقرير مكتوب',
+            type_kind: isVideo ? 'video' : isChat ? 'chat' : 'report',
+            date: dateStr,
+            time: timeStr,
+            duration_and_price: `${duration} دقيقة • ${price} دينار`,
+            payment_status: (col === 'completed' || col === 'in_progress' || col === 'confirmed' || item.is_paid) ? 'مدفوعة' : 'غير مدفوعة',
+            room_opened_at: item.room_opened_at,
+            consultant_joined_at: item.consultant_joined_at,
+            user_joined_at: item.user_joined_at,
+            attendance_status: item.attendance_status,
+            no_show_party: item.no_show_party,
+            no_show_detected_at: item.no_show_detected_at,
+            rawBackend: item
+          };
+        });
 
-          // Always merge real appointments with DEMO_SESSIONS to ensure all 5 columns are always populated with cards
-          const combined = [...backendMapped];
-          DEMO_SESSIONS.forEach((demo) => {
-            if (!combined.some((c) => c.id === demo.id)) {
-              combined.push(demo);
-            }
-          });
-          setSessions(combined);
-        }
+        setSessions(backendMapped);
+      } else {
+        setSessions([]);
       }
     } catch (err) {
       console.error('Failed to load consultant appointments:', err);
+      setFetchError('تعذر الاتصال بالخادم لتحميل الجلسات الاستشارية. يرجى المحاولة مرة أخرى.');
+      setSessions([]);
     } finally {
       setIsLoading(false);
     }
@@ -1437,7 +1104,7 @@ export default function ConsultantSessionsPage({ navigate }) {
           {COLUMNS_CONFIG.map((col) => {
             const colSessions = filteredSessions.filter((s) => s.status === col.id);
             const isFiltered = Boolean(searchQuery || filterStatus || filterType || filterUser || filterPeriod || startDate || endDate);
-            const countToShow = isFiltered ? colSessions.length : (col.displayCount ?? colSessions.length);
+            const countToShow = colSessions.length;
 
             return (
               <div
@@ -1551,9 +1218,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                   ) : (
                     colSessions.map((session) => {
                       const typeInfo = getSessionTypeInfo(session.type_kind, session.type);
-                      const rawRef = session.ref_id || '202600210#';
-                      const formattedRef = rawRef.endsWith('#') ? rawRef : `${rawRef.replace(/^#/, '')}#`;
-                      const safeRef = (formattedRef.length > 12 || formattedRef.includes('-') || formattedRef.startsWith('backend') || formattedRef.startsWith('real')) ? '202600210#' : formattedRef;
+                      const safeRef = session.ref_id || (session.id ? `#${String(session.id).slice(0, 8)}` : '—');
 
                       return (
                         <div
@@ -1718,14 +1383,16 @@ export default function ConsultantSessionsPage({ navigate }) {
                                   whiteSpace: 'nowrap'
                                 }}
                               >
-                                <span dir="ltr">{session.date || '20-08-2026'}</span>
-                                <span>{session.time ? (session.time.includes('ص') || session.time.includes('م') ? session.time : `${session.time} ص`) : '09:30 ص'}</span>
+                                <span dir="ltr">{session.date || '—'}</span>
+                                {session.time ? (
+                                  <span>{session.time.includes('ص') || session.time.includes('م') ? session.time : `${session.time} ص`}</span>
+                                ) : null}
                               </div>
                             </div>
 
                             {/* Left: Duration & Price */}
                             <div style={{ color: '#64748B', fontSize: '10px', fontWeight: '700', whiteSpace: 'nowrap' }}>
-                              {(session.duration_and_price || '60 دقيقة • 85 دينار')
+                              {(session.duration_and_price || '—')
                                 .replace(/\.00/g, '')
                                 .replace(/د\.أ/g, 'دينار')
                                 .replace(/دقيقه/g, 'دقيقة')}
@@ -1888,7 +1555,14 @@ export default function ConsultantSessionsPage({ navigate }) {
               </tr>
             </thead>
             <tbody>
-              {filteredSessions.map((s) => {
+              {filteredSessions.length === 0 ? (
+                <tr>
+                  <td colSpan="9" style={{ padding: '36px 16px', textAlign: 'center', color: '#94A3B8', fontSize: '13px', fontWeight: 600 }}>
+                    لا توجد جلسات مسجلة حالياً
+                  </td>
+                </tr>
+              ) : (
+                filteredSessions.map((s) => {
                 const colConf = COLUMNS_CONFIG.find((c) => c.id === s.status) || COLUMNS_CONFIG[0];
                 return (
                   <tr key={s.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
@@ -1995,7 +1669,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>
@@ -2517,7 +2191,7 @@ export default function ConsultantSessionsPage({ navigate }) {
                           type="text"
                           value={newDate}
                           onChange={(e) => setNewDate(e.target.value)}
-                          placeholder="08/20/2026"
+                          placeholder="YYYY/MM/DD"
                           style={{
                             width: '100%',
                             padding: '10px 14px 10px 36px',
