@@ -96,7 +96,6 @@ const LegalArticle = React.memo(function LegalArticle({
   article,
   lawTitle = "قانون ضريبة الدخل رقم 34 لسنة 2014",
   onCompareVersion,
-  onShare,
   onCopy,
   highlights = [],
   onSelectRelatedFile
@@ -143,15 +142,6 @@ const LegalArticle = React.memo(function LegalArticle({
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     if (onCopy) onCopy(article);
-  };
-
-  const handleShare = () => {
-    if (navigator.clipboard) {
-      const url = `${window.location.origin}${window.location.pathname}#art${article.num}`;
-      navigator.clipboard.writeText(url);
-    }
-    if (onShare) onShare(article);
-    else alert(`تم نسخ رابط المادة ${article.num}`);
   };
 
   return (
@@ -249,9 +239,6 @@ const LegalArticle = React.memo(function LegalArticle({
       <div className="article-actions">
         <button type="button" onClick={handleCopy}>
           ▣ {copied ? 'تم النسخ!' : 'نسخ المحتوى'}
-        </button>
-        <button type="button" onClick={handleShare}>
-          ↗ مشاركة المحتوى
         </button>
         <button
           type="button"

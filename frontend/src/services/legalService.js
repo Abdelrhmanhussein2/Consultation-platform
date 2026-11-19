@@ -408,8 +408,8 @@ export function parsePrefix(text) {
     return { type: 'letter', val: ARABIC_LETTERS[l] || 0, raw: letterMatch[0] };
   }
 
-  // 3. الأرقام: 1- أو (1) أو 1. أو 1) أو 1:
-  const numMatch = t.match(/^(?:(\d+|[٠-٩]+)\s*[-–—\.\:]|\((\d+|[٠-٩]+)\)|(\d+|[٠-٩]+)\))/);
+  // 3. الأرقام: 1- أو (1) أو 1. أو 1) أو 1: (بحد أقصى خانتين حتى لا تتطابق مع السنوات مثل 2014)
+  const numMatch = t.match(/^(?:(\d{1,2}|[٠-٩]{1,2})\s*[-–—\.\:]|\((\d{1,2}|[٠-٩]{1,2})\)|(\d{1,2}|[٠-٩]{1,2})\))/);
   if (numMatch) {
     const n = numMatch[1] || numMatch[2] || numMatch[3];
     const western = n.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
@@ -495,7 +495,8 @@ export function parseArticleClauses(a) {
   let hasDefinitions = Boolean(a.has_definitions || a.hasDefinitions || definitions.length > 0);
 
   // Markers for numbered list items or letters: (أ- , ب- , 1- , 2- , أولاً: , etc.)
-  const splitMarkerRegex = /(?<=\S)\s+(?=(?:(?:[أ-ي]|هـ)\s*[-–—\.:\)]\s+|\((?:[أ-ي]|هـ)\)\s*|(?:\d+|[٠-٩]+)\s*[-–—\.:\)]\s+|\((?:\d+|[٠-٩]+)\)\s*|(?:أولاً|اولا|أولا|ثانياً|ثانيا|ثالثاً|ثالثا|رابعاً|رابعا|خامساً|خامسا|سادساً|سادسا|سابعاً|سابعا|ثامناً|ثامنا|تاسعاً|تاسعا|عاشراً|عاشرا)\s*[:\-–—\.]))/g;
+  // شرط أن تكون مسبوقة بعلامة ترقيم نهاية جملة (. أو : أو ؛ أو !) حتى لا تقطع في منتصف الجمل مثل "في البندين (1) و (2)" أو السنوات مثل "لسنة 2014)"
+  const splitMarkerRegex = /(?<=[.؛:!\u06D4][\-–—]?)\s+(?=(?:(?:[أ-ي]|هـ)\s*[-–—\.:]\s+|(?:\d{1,2}|[٠-٩]{1,2})\s*[-–—\.:]\s+|\((?:\d{1,2}|[٠-٩]{1,2})\)\s+|(?:أولاً|اولا|أولا|ثانياً|ثانيا|ثالثاً|ثالثا|رابعاً|رابعا|خامساً|خامسا|سادساً|سادسا|سابعاً|سابعا|ثامناً|ثامنا|تاسعاً|تاسعا|عاشراً|عاشرا)\s*[:\-–—\.]))/g;
 
   function pushSegments(textBlock, forceNumbered = false) {
     if (!textBlock) return;
@@ -505,7 +506,7 @@ export function parseArticleClauses(a) {
     for (const line of lines) {
       const parts = line.split(splitMarkerRegex).map(cleanZW).filter(Boolean);
       for (const pt of parts) {
-        const isNum = forceNumbered || /^(?:(?:[أ-ي]|هـ)\s*[-–—\.:\)]|\((?:[أ-ي]|هـ)\)|(?:\d+|[٠-٩]+)\s*[-–—\.:\)]|\((?:\d+|[٠-٩]+)\)|(?:أولاً|ثانياً|ثالثاً|رابعاً|خامساً|سادساً|سابعاً|ثامناً|تاسعاً|عاشراً)\s*[:\-])/.test(pt);
+        const isNum = forceNumbered || /^(?:(?:[أ-ي]|هـ)\s*[-–—\.:\)]|\((?:[أ-ي]|هـ)\)|(?:\d{1,2}|[٠-٩]{1,2})\s*[-–—\.:\)]|\((?:\d{1,2}|[٠-٩]{1,2})\)|(?:أولاً|ثانياً|ثالثاً|رابعاً|خامساً|سادساً|سابعاً|ثامناً|تاسعاً|عاشراً)\s*[:\-])/.test(pt);
         clauses.push({ text: pt, isNumbered: isNum });
       }
     }

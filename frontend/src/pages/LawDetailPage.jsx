@@ -367,11 +367,6 @@ export default function LawDetailPage({ lawId, navigate, currentPath }) {
     alert('تم نسخ النص الكامل إلى الحافظة');
   };
 
-  const handleShare = () => {
-    if (navigator.share) navigator.share({ title: lawTree?.title, url: window.location.href });
-    else { navigator.clipboard.writeText(window.location.href); alert('تم نسخ رابط الصفحة'); }
-  };
-
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -442,7 +437,6 @@ export default function LawDetailPage({ lawId, navigate, currentPath }) {
           onPrint={handlePrint}
           onDownload={handleDownload}
           onCopy={handleCopy}
-          onShare={handleShare}
         />
 
         {articleError && (
