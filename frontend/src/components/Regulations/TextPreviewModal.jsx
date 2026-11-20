@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { getLawTree } from '../../services/legalService';
 import PreviewArticleCard from './PreviewArticleCard';
+import { formatLawAmendedDate, formatOriginalLawTitle } from '../../utils/legalFormatters';
 
 function formatDisplayDate(val) {
   if (!val || val === '—' || val === '-') return '';
@@ -72,8 +73,8 @@ export default function TextPreviewModal({ isOpen, onClose, law, onOpenFullReade
     number: lawMeta?.number || law.number || `${law.year_short || '2014'}`,
     issue_date: formatDisplayDate(lawMeta?.issue_date || law.issue_date) || (law.year ? `${law.year}` : '—'),
     effective_date: formatDisplayDate(lawMeta?.effective_date || law.effective_date) || '—',
-    amended_date: formatDisplayDate(lawMeta?.amended_date || law.amended_date) || (isOriginal ? 'لا ينطبق (نص أصلي)' : '—'),
-    title: lawMeta?.title || law.title || 'القانون',
+    amended_date: formatDisplayDate(lawMeta?.amended_date || law.amended_date) || formatLawAmendedDate(lawMeta?.amended_date || law.amended_date, lawMeta || law) || (isOriginal ? 'لا ينطبق (نص أصلي)' : '—'),
+    title: formatOriginalLawTitle(lawMeta?.title || law.title || 'القانون'),
   };
 
   const handleSave = () => setIsSaved(prev => !prev);

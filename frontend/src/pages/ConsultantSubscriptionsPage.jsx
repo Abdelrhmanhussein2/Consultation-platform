@@ -260,7 +260,7 @@ export default function ConsultantSubscriptionsPage({ navigate }) {
                 {/* 1. Consultations */}
                 <div className="quota-card">
                   <div className="quota-head">
-                    <span>الاستشارات المجانية المباشرة</span>
+                    <span>استشارة سريعة</span>
                     <strong>{activeSub.consultations_used} / {activeSub.consultations_total}</strong>
                   </div>
                   <div className="quota-bar-bg">

@@ -35,6 +35,16 @@ class AIChatService:
         if not clean_text:
             raise ValueError("نص الرسالة فارغ")
 
+        # Quota enforcement: check subscription points before processing
+        from controllers.subscription_controller import SubscriptionController
+        sub = SubscriptionController.get_or_create_free_subscription(db, user_id)
+        pts_tot = getattr(sub, 'points_total', 20)
+        pts_usd = getattr(sub, 'points_used', 0)
+        if pts_usd >= pts_tot:
+            raise ValueError(
+                f"لقد استنفدت رصيدك من نقاط المساعد الذكي ({pts_usd}/{pts_tot}). يرجى ترقية باقتك لمواصلة استخدام المساعد الذكي ديوان AI."
+            )
+
         if not session.title:
             session.title = clean_text[:50] + ("..." if len(clean_text) > 50 else "")
 
@@ -178,6 +188,20 @@ class AIChatService:
         session.updated_at = datetime.now(timezone.utc)
         db.commit()
         db.refresh(user_msg); db.refresh(ai_msg)
+
+        # Deduct 1 AI point from subscription quota
+        try:
+            SubscriptionController.consume_resource(
+                db=db,
+                user_id=user_id,
+                resource_type="points",
+                amount=1,
+                title="استفسار ديوان AI",
+                description=clean_text[:60]
+            )
+        except Exception:
+            pass
+
         return cls._build_response(user_msg, ai_msg, session, clean_text, reply)
 
     @classmethod
@@ -192,6 +216,21 @@ class AIChatService:
         session.updated_at = datetime.now(timezone.utc)
         db.commit()
         db.refresh(user_msg); db.refresh(ai_msg)
+
+        # Deduct 1 AI point from subscription quota (cached reply)
+        try:
+            from controllers.subscription_controller import SubscriptionController
+            SubscriptionController.consume_resource(
+                db=db,
+                user_id=session.user_id,
+                resource_type="points",
+                amount=1,
+                title="استفسار ديوان AI (ذاكرة سريعة)",
+                description=question[:60]
+            )
+        except Exception:
+            pass
+
         return cls._build_response(user_msg, ai_msg, session, question, reply)
 
     @staticmethod

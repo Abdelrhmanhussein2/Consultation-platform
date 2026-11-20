@@ -327,7 +327,15 @@ class AppointmentService:
                     title="عملية دفع وسداد جديدة",
                     message=f"قام العميل {c_name} بسداد مبلغ {float(total):.2f} د.أ مقابل جلسة استشارة ({appointment.topic or 'استشارة ضريبية'}).",
                     related_entity_type="invoice",
-                    related_entity_id=invoice.id
+                    related_entity_id=invoice.id,
+                    extra_metadata={
+                        "target_type": "payment",
+                        "target_id": str(invoice.id),
+                        "user_id": str(user_id),
+                        "user_name": c_name,
+                        "invoice_number": invoice.invoice_number,
+                        "target_url": f"/admin/payments?search={c_name}&invoiceId={invoice.id}"
+                    }
                 )
         except Exception:
             pass

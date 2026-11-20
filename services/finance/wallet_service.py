@@ -309,7 +309,14 @@ class WalletService:
                     title="طلب سحب أرباح جديد",
                     message=f"قام المستشار {c_name} بتقديم طلب سحب أرباح بقيمة {float(amount):.2f} {bank_acc['currency']}.",
                     related_entity_type="payout_request",
-                    related_entity_id=payout.id
+                    related_entity_id=payout.id,
+                    extra_metadata={
+                        "target_type": "payout_request",
+                        "target_id": str(payout.id),
+                        "consultant_id": str(consultant_id),
+                        "user_name": c_name,
+                        "target_url": f"/admin/payments?search={c_name}&payoutId={payout.id}"
+                    }
                 )
         except Exception:
             pass

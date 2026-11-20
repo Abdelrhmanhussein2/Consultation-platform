@@ -5,7 +5,7 @@ from fastapi import HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from helpers.config import settings
-from helpers.enums import UserRole, VerificationStatus
+from helpers.enums import UserRole, VerificationStatus, NotificationType
 from schemes import UserCreate, ConsultantRegister, UserLogin
 from services import UserService, EmailService
 from services.auth.auth_utils import (
@@ -13,6 +13,7 @@ from services.auth.auth_utils import (
     verify_refresh_token
 )
 from services.auth.token_service import TokenService
+from models.consultations.consultant_credential import ConsultantCredential
 
 class AuthController:
     @staticmethod
@@ -42,6 +43,35 @@ class AuthController:
         # User is created with UserRole.user explicitly
         try:
             db_user = UserService.create_user(db, user_in, role=UserRole.user)
+            try:
+                from controllers.subscription_controller import SubscriptionController
+                SubscriptionController.get_or_create_free_subscription(db, db_user.id)
+            except Exception:
+                pass
+
+            # Notify Admins of new user registration
+            try:
+                from services.communication.notification_service import NotificationService
+                from models.users.user import User
+                admins = db.query(User).filter(User.role.in_([UserRole.admin, UserRole.super_admin])).all()
+                for adm in admins:
+                    NotificationService.send(
+                        db=db,
+                        user_id=adm.id,
+                        notification_type=NotificationType.general,
+                        title="تسجيل مستخدم جديد",
+                        message=f"قام المستخدم ({db_user.full_name}) بإنشاء حساب جديد في المنصة بنجاح.",
+                        related_entity_type="user",
+                        related_entity_id=db_user.id,
+                        extra_metadata={
+                            "target_type": "new_user_registration",
+                            "user_id": str(db_user.id),
+                            "user_name": db_user.full_name,
+                            "email": db_user.email
+                        }
+                    )
+            except Exception as ex:
+                print("Error notifying admins on user registration:", ex)
         except ValueError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -228,31 +258,89 @@ class AuthController:
         if profile:
             if consultant_in.bio:
                 profile.bio = consultant_in.bio
-            if consultant_in.main_specialization_id is not None:
+            if consultant_in.specialization_ids and len(consultant_in.specialization_ids) > 0:
+                profile.main_specialization_id = consultant_in.specialization_ids[0]
+                for extra_spec_id in consultant_in.specialization_ids[1:]:
+                    cred = ConsultantCredential(
+                        consultant_id=profile.id,
+                        specialization_id=extra_spec_id,
+                        document_url=consultant_in.professional_licenses_url or "uploaded_with_registration",
+                        status=VerificationStatus.pending
+                    )
+                    db.add(cred)
+            elif consultant_in.main_specialization_id is not None:
                 profile.main_specialization_id = consultant_in.main_specialization_id
+
             if consultant_in.activity_type:
                 profile.activity_type = consultant_in.activity_type
             if consultant_in.years_of_experience is not None:
                 profile.years_of_experience = consultant_in.years_of_experience
-            if consultant_in.certificates_licenses:
-                profile.certificates_licenses = consultant_in.certificates_licenses
+            
+            # JCPA license handling
+            cert_lic = consultant_in.certificates_licenses or ""
+            if consultant_in.jcpa_number:
+                cert_lic = f"رقم إجازة JCPA: {consultant_in.jcpa_number} | " + cert_lic if cert_lic else f"رقم إجازة JCPA: {consultant_in.jcpa_number}"
+            profile.certificates_licenses = cert_lic or None
+
+            # File URLs
+            if consultant_in.id_proof_url:
+                profile.id_proof_url = consultant_in.id_proof_url
+            if consultant_in.academic_certificates_url:
+                profile.academic_certificates_url = consultant_in.academic_certificates_url
+            if consultant_in.professional_licenses_url:
+                profile.professional_licenses_url = consultant_in.professional_licenses_url
+            if consultant_in.jcpa_cert_url:
+                profile.jcpa_cert_url = consultant_in.jcpa_cert_url
+            if consultant_in.experts_society_cert_url:
+                profile.experts_society_cert_url = consultant_in.experts_society_cert_url
+            if consultant_in.price_per_hour:
+                profile.price_per_hour = consultant_in.price_per_hour
+
             db.commit()
             db.refresh(profile)
 
         # ── Notify Admins in Database ─────────────────────────────────
         try:
             from services.communication.notification_service import NotificationService
+            from models.users.user import User
+            from models.communication.notification import Notification
+
             admins = db.query(User).filter(User.role.in_([UserRole.admin, UserRole.super_admin])).all()
             for adm in admins:
-                NotificationService.send(
-                    db=db,
-                    user_id=adm.id,
-                    notification_type=NotificationType.general,
-                    title="طلب تسجيل مستشار جديد",
-                    message=f"سجّل المستشار ({db_user.full_name}) طلباً جديداً بالمنصة وهو بانتظار المراجعة والاعتماد.",
-                    related_entity_type="consultant_profile",
-                    related_entity_id=profile.id if profile else None
-                )
+                # Prevent duplicate notification for the same consultant registration
+                already_notified = None
+                if profile and profile.id:
+                    already_notified = db.query(Notification).filter(
+                        Notification.user_id == adm.id,
+                        Notification.related_entity_type == "consultant_profile",
+                        Notification.related_entity_id == profile.id
+                    ).first()
+
+                if not already_notified:
+                    already_notified = db.query(Notification).filter(
+                        Notification.user_id == adm.id,
+                        Notification.title.ilike("%مستشار جديد%"),
+                        Notification.message.ilike(f"%{db_user.full_name}%")
+                    ).first()
+
+                if not already_notified:
+                    NotificationService.send(
+                        db=db,
+                        user_id=adm.id,
+                        notification_type=NotificationType.general,
+                        title="طلب تسجيل مستشار جديد",
+                        message=f"سجّل المستشار ({db_user.full_name}) طلباً جديداً بالمنصة وهو بانتظار المراجعة والاعتماد.",
+                        related_entity_type="consultant_profile",
+                        related_entity_id=profile.id if profile else None,
+                        extra_metadata={
+                            "target_type": "consultant_application",
+                            "target_id": str(db_user.id),
+                            "applicant_id": str(db_user.id),
+                            "user_name": db_user.full_name,
+                            "email": db_user.email,
+                            "target_url": f"/admin/consultant-applications?applicantId={db_user.id}&search={db_user.full_name}"
+                        }
+                    )
         except Exception as ex:
             print("Error notifying admins on consultant registration:", ex)
             
@@ -274,7 +362,8 @@ class AuthController:
         Verifies login credentials and generates access/refresh tokens.
         Checks if consultant is approved.
         """
-        db_user = UserService.get_user_by_email(db, login_in.email)
+        email_clean = str(login_in.email).strip().lower()
+        db_user = UserService.get_user_by_email(db, email_clean)
         if not db_user or not verify_password(login_in.password, db_user.password_hash):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -283,8 +372,8 @@ class AuthController:
         
         if not db_user.is_active:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User account is inactive"
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="تم إيقاف / حظر حسابك من قبل إدارة المنصة. يرجى التواصل مع الدعم الفني لحل المشكلة."
             )
             
         # Consultants and Platform Consultants must be approved to login

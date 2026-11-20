@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getPendingConsultants, handleConsultantAction, getPendingExpansions, reviewExpansionRequest, getAdminToken } from '../services/adminApi';
 import FilterResetButton from '../../components/FilterResetButton';
 import { formatApplicationDate, formatConsultationPrice, formatExperienceYears } from '../utils/consultantApplicationFormatters';
@@ -16,8 +16,18 @@ export default function AdminConsultantApplicationsPage({ navigate }) {
   const [applications, setApplications] = useState([]);
   const [specializationRequests, setSpecializationRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const initialUrlSearch = typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('search') || '') : '';
+  const [searchTerm, setSearchTerm] = useState(initialUrlSearch);
   const [actionLoadingId, setActionLoadingId] = useState(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const s = params.get('search');
+    if (s && s !== searchTerm) {
+      setSearchTerm(s);
+    }
+  }, [typeof window !== 'undefined' ? window.location.search : '']);
   
   // Modals state
   const [selectedApp, setSelectedApp] = useState(null);
@@ -118,20 +128,40 @@ export default function AdminConsultantApplicationsPage({ navigate }) {
   };
 
   // Search filter
-  const filteredApplications = applications.filter((app) => {
-    const name = app.user?.full_name || app.full_name || '';
-    const email = app.user?.email || app.email || '';
-    const phone = app.user?.phone || app.phone || '';
-    const spec = app.specialization?.name || app.activity_type || '';
+  const filteredApplications = useMemo(() => {
     const term = searchTerm.toLowerCase();
+    const list = applications.filter((app) => {
+      const name = app.user?.full_name || app.full_name || '';
+      const email = app.user?.email || app.email || '';
+      const phone = app.user?.phone || app.phone || '';
+      const spec = app.specialization?.name || app.activity_type || '';
 
-    return (
-      name.toLowerCase().includes(term) ||
-      email.toLowerCase().includes(term) ||
-      phone.toLowerCase().includes(term) ||
-      spec.toLowerCase().includes(term)
-    );
-  });
+      return (
+        !term ||
+        name.toLowerCase().includes(term) ||
+        email.toLowerCase().includes(term) ||
+        phone.toLowerCase().includes(term) ||
+        spec.toLowerCase().includes(term)
+      );
+    });
+
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const targetId = urlParams ? (urlParams.get('applicantId') || urlParams.get('id') || urlParams.get('search')) : null;
+    if (targetId && list.length > 1) {
+      const targetStr = String(targetId).toLowerCase();
+      const matchIdx = list.findIndex(app => {
+        const uId = String(app.user_id || app.user?.id || app.id || '').toLowerCase();
+        const pId = String(app.profile_id || app.profile?.id || '').toLowerCase();
+        const aName = String(app.user?.full_name || app.full_name || '').toLowerCase();
+        return uId === targetStr || pId === targetStr || aName.includes(targetStr);
+      });
+      if (matchIdx > 0) {
+        const item = list.splice(matchIdx, 1)[0];
+        list.unshift(item);
+      }
+    }
+    return list;
+  }, [applications, searchTerm]);
 
   const filteredSpecializationRequests = specializationRequests.filter((req) => {
     const name = req.consultant_name || '';
@@ -261,7 +291,7 @@ export default function AdminConsultantApplicationsPage({ navigate }) {
             transition: 'all 0.15s ease'
           }}
         >
-          <span>طلبات إضافة وتعديل التخصصات</span>
+          <span>طلبات تعديل البيانات</span>
           <span style={{
             background: activeTab === 'specializations' ? 'rgba(255,255,255,0.22)' : '#CBD5E1',
             color: activeTab === 'specializations' ? '#FFFFFF' : '#0F172A',
@@ -353,6 +383,23 @@ export default function AdminConsultantApplicationsPage({ navigate }) {
               const formattedDate = formatApplicationDate(app.created_at || user.created_at);
               const adminToken = getAdminToken();
 
+              // Compute all selected specializations (main + extra credentials)
+              const allSpecs = [];
+              if (Array.isArray(app.specialties) && app.specialties.length > 0) {
+                allSpecs.push(...app.specialties);
+              } else {
+                if (app.specialization?.name) allSpecs.push(app.specialization.name);
+                if (Array.isArray(app.credentials)) {
+                  app.credentials.forEach(c => {
+                    const cName = c.specialization?.name;
+                    if (cName && !allSpecs.includes(cName)) allSpecs.push(cName);
+                  });
+                }
+              }
+              if (allSpecs.length === 0) {
+                allSpecs.push(specName);
+              }
+
               return (
                 <div
                   key={app.id || app.user_id}
@@ -439,6 +486,43 @@ export default function AdminConsultantApplicationsPage({ navigate }) {
                         <b style={{ color: app.price_per_hour != null ? '#0A3C64' : '#64748B' }}>{priceText}</b>
                       </div>
                     </div>
+
+                    {/* All Selected Specializations Chips */}
+                    {allSpecs.length > 0 && (
+                      <div style={{
+                        background: '#FFFFFF',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: '8px',
+                        padding: '10px 12px',
+                        marginBottom: '14px'
+                      }}>
+                        <div style={{ fontSize: '11.5px', fontWeight: '800', color: '#0A3C64', marginBottom: '6px' }}>
+                          التخصصات المحددة للمستشار ({allSpecs.length}):
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {allSpecs.map((s, sIdx) => (
+                            <span
+                              key={sIdx}
+                              style={{
+                                background: sIdx === 0 ? '#EBF3FA' : '#F8FAFC',
+                                color: sIdx === 0 ? '#0A3C64' : '#334155',
+                                border: sIdx === 0 ? '1px solid #BAE6FD' : '1px solid #CBD5E1',
+                                padding: '3px 8px',
+                                borderRadius: '6px',
+                                fontSize: '11.5px',
+                                fontWeight: '700',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                            >
+                              <span>{s}</span>
+                              {sIdx === 0 && <span style={{ fontSize: '9.5px', color: '#0284C7', fontWeight: '800' }}>• رئيسي</span>}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Bio Preview */}
                     <div style={{ fontSize: '12.5px', color: '#475569', lineHeight: '1.5', marginBottom: '14px', background: '#FFFFFF', border: '1px solid #F1F5F9', borderRadius: '8px', padding: '10px 12px' }}>

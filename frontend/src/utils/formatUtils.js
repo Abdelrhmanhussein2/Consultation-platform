@@ -1,31 +1,41 @@
 /**
  * DIWAN TAX PLATFORM - FORMATTING UTILITIES
- * Dynamic Currency, Date & Time formatting according to user preferences
+ * Dynamic Currency, Date & Time formatting according to user preferences (In-Memory / React State)
  */
 
 export const JOD_TO_USD_RATE = 1.4104; // Official Central Bank of Jordan Peg: 1 JOD ≈ 1.41 USD
+
+// In-memory preferences state (zero client-side persistent browser storage)
+let appCurrency = 'JOD';
+let appTimezone = 'Asia/Amman';
+let appDateFormat = 'DD/MM/YYYY';
+
+export function setAppPreferences({ currency, timezone, dateFormat } = {}) {
+  if (currency) appCurrency = currency;
+  if (timezone) appTimezone = timezone;
+  if (dateFormat) appDateFormat = dateFormat;
+}
 
 /**
  * Get current stored currency code ('JOD' | 'USD')
  */
 export function getAppCurrency() {
-  return localStorage.getItem('app_currency') || 'JOD';
+  return appCurrency;
 }
 
 /**
  * Get current stored timezone
  */
 export function getAppTimezone() {
-  return localStorage.getItem('app_timezone') || 'Asia/Amman';
+  return appTimezone;
 }
 
 /**
  * Get current stored date format ('DD/MM/YYYY' | 'YYYY-MM-DD' | 'DD MMMM YYYY')
  */
 export function getAppDateFormat() {
-  return localStorage.getItem('app_date_format') || 'DD/MM/YYYY';
+  return appDateFormat;
 }
-
 /**
  * Format monetary price dynamically based on active currency or override
  * @param {number|string} amountInJod - Price in Jordanian Dinars

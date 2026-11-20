@@ -88,7 +88,7 @@ export default function LegalArticleCompare({ articleNum, lawId, onClose }) {
               >
                 <div className="version">
                   <span className="badge good">
-                    {history?.[0]?.version_name || 'النسخة الأصلية المعتمدة — كما صدر'}
+                    {history?.[0]?.version_name || 'النسخة الأصلية المعتمدة'}
                   </span>
                   <h3>المادة {articleNum}</h3>
                   <pre

@@ -1170,9 +1170,43 @@
   font-family: 'Cairo', sans-serif;
 }
 
-.regulations-page-wrap .badge.good {
-  background: #E8F8F1;
-  color: #149B6D;
+.regulations-page-wrap .badge.good,
+.badge.good {
+  background: #ECFDF5;
+  color: #047857;
+  border: 1px solid #A7F3D0;
+  font-weight: 800;
+}
+
+.regulations-page-wrap .badge.status-repealed,
+.badge.status-repealed {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #F87171;
+  font-weight: 800;
+}
+
+.regulations-page-wrap .badge.status-previous,
+.badge.status-previous {
+  background: #F0F7FD;
+  color: #005D9C;
+  border-color: rgba(0, 93, 156, 0.2);
+}
+
+.regulations-page-wrap .badge.status-amended,
+.badge.status-amended {
+  background: #FFF7ED;
+  color: #EA580C;
+  border: 1px solid #FDBA74;
+  font-weight: 800;
+}
+
+.regulations-page-wrap .badge.year-badge,
+.badge.year-badge {
+  background: #F8FAFC;
+  color: #475569;
+  border-color: #E2E8F0;
+  font-weight: 700;
 }
 
 /* Result Law Meta - 4-column grid matching HTML .result-law-meta */

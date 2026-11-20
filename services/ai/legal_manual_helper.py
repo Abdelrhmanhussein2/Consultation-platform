@@ -11,6 +11,7 @@ def create_manual_law(payload: Dict[str, Any]) -> Dict[str, Any]:
     title = payload.get("title", "تشريع جديد")
     year = int(payload.get("year") or 2026)
     body = payload.get("body", "")
+    doc_type = payload.get("sub_category") or payload.get("category") or payload.get("document_type") or "قانون"
     meta = extract_law_metadata(body)
     preamble = extract_law_preamble(body)
     version_id, art_id = f"{law_id}_v1", f"{law_id}_v1_art1"
@@ -25,7 +26,8 @@ def create_manual_law(payload: Dict[str, Any]) -> Dict[str, Any]:
             MERGE (l:Law {law_id: $lid})
             SET l.title = $title, l.year = $year, l.body = $body, l.full_text = $body, l.is_active = true, l.created_at = datetime(),
                 l.gazette = $gazette, l.replaced_law = $replaced_law, l.issue_date = $issue_date, l.effective_date = $effective_date, l.subject = $subject,
-                l.preamble = $preamble, l.description = $preamble, l.`الديباجة` = $preamble, l.`الوصف` = $preamble
+                l.preamble = $preamble, l.description = $preamble, l.`الديباجة` = $preamble, l.`الوصف` = $preamble,
+                l.type = $doc_type, l.`النوع` = $doc_type, l.sub_category = $doc_type, l.document_type = $doc_type
             MERGE (lv:LawVersion {version_id: $vid}) SET lv.version_name = 'الأصلية', lv.effective_from = '2026-01-01', lv.law_id = $lid
             MERGE (l)-[:HAS_VERSION]->(lv)
             MERGE (av:ArticleVersion {version_id: $aid}) SET av.title = $title, av.text = $body, av.number = 1, av.is_active = true
@@ -33,7 +35,7 @@ def create_manual_law(payload: Dict[str, Any]) -> Dict[str, Any]:
         """, lid=law_id, title=title, year=year, vid=version_id, aid=art_id, body=body,
             gazette=meta.get("gazette", ""), replaced_law=meta.get("replaced_law", ""),
             issue_date=meta.get("issue_date", str(year)), effective_date=meta.get("effective_date", ""), subject=meta.get("subject", ""),
-            preamble=preamble)
+            preamble=preamble, doc_type=doc_type)
     try:
         VectorIndexService.index_law(
             law_id=law_id, title=title, version_id=version_id,

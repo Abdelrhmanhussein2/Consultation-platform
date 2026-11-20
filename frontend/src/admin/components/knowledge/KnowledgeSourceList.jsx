@@ -64,7 +64,7 @@ export default function KnowledgeSourceList({
                     </h3>
 
                     <span className="source-badge">
-                      {KIND_OPTIONS[item.kind] || item.kind}
+                      {item.doc_type || KIND_OPTIONS[item.kind] || item.kind}
                     </span>
 
                     {item.status === 'ملغي' ? (
@@ -95,7 +95,7 @@ export default function KnowledgeSourceList({
                   </div>
 
                   <p style={{ margin: '0.2rem 0', fontSize: '0.775rem', color: '#64748B' }}>
-                    {item.code || 'بدون رمز'} · {item.year || 'غير محدد'} · {(item.tags || []).join('، ')}
+                    {item.code || 'بدون رمز'} · {item.year || 'غير محدد'} · {item.doc_type || (item.tags || []).join('، ') || (item.kind === 'precedent' ? 'حكم قضائي' : 'قانون')}
                   </p>
 
                   <p

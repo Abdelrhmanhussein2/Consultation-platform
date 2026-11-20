@@ -13,7 +13,6 @@ const getAuthHeaders = () => {
     const m = document.cookie.match(/(?:^|;\s*)token=([^;]+)/);
     if (m) token = decodeURIComponent(m[1]);
   } catch {}
-  if (!token) { try { token = localStorage.getItem('token'); } catch {} }
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 

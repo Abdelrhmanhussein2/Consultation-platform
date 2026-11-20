@@ -20,10 +20,30 @@ class AdminUsersService:
     def get_pending_consultants(db: Session) -> List[ConsultantProfile]:
         """
         Retrieves all consultant profiles with pending verification status.
+        Includes all chosen specializations (main + credentials).
         """
-        return db.query(ConsultantProfile).filter(
+        from sqlalchemy.orm import joinedload
+        profiles = db.query(ConsultantProfile).options(
+            joinedload(ConsultantProfile.user),
+            joinedload(ConsultantProfile.specialization),
+            joinedload(ConsultantProfile.credentials).joinedload(ConsultantCredential.specialization)
+        ).filter(
             ConsultantProfile.verification_status == VerificationStatus.pending
         ).all()
+
+        for p in profiles:
+            specs = []
+            if p.specialization and p.specialization.name:
+                specs.append(p.specialization.name)
+            if p.credentials:
+                for cred in p.credentials:
+                    if cred.specialization and cred.specialization.name and cred.specialization.name not in specs:
+                        specs.append(cred.specialization.name)
+            if not specs and p.activity_type:
+                specs.append(p.activity_type)
+            p.specialties = specs
+
+        return profiles
 
     @staticmethod
     def approve_consultant(db: Session, user_id: uuid.UUID, super_admin_id: uuid.UUID) -> ConsultantProfile:
@@ -274,6 +294,7 @@ class AdminUsersService:
             User.created_at,
             User.address,
             User.title,
+            User.avatar_url,
             ConsultantProfile.id.label("consultant_profile_id"),
             ConsultantProfile.bio,
             ConsultantProfile.years_of_experience,
@@ -331,6 +352,18 @@ class AdminUsersService:
         offset = (page - 1) * limit
         results = query.order_by(User.created_at.desc()).offset(offset).limit(limit).all()
 
+        consultant_profile_ids = [r.consultant_profile_id for r in results if r.consultant_profile_id]
+        cred_specs_map = {}
+        if consultant_profile_ids:
+            creds = db.query(
+                ConsultantCredential.consultant_id,
+                Specialization.name
+            ).join(Specialization, ConsultantCredential.specialization_id == Specialization.id)\
+             .filter(ConsultantCredential.consultant_id.in_(consultant_profile_ids))\
+             .all()
+            for cid, sname in creds:
+                cred_specs_map.setdefault(cid, []).append(sname)
+
         users_list = []
         for r in results:
             role_str = r.role.value if hasattr(r.role, 'value') else str(r.role or '')
@@ -372,8 +405,10 @@ class AdminUsersService:
             specs = []
             if r.specialization_name:
                 specs.append(r.specialization_name)
-            if r.title and r.title not in specs:
-                specs.append(r.title)
+            if r.consultant_profile_id and r.consultant_profile_id in cred_specs_map:
+                for sname in cred_specs_map[r.consultant_profile_id]:
+                    if sname not in specs:
+                        specs.append(sname)
             if not specs:
                 specs = ["استشارات ضريبية"]
 
@@ -402,8 +437,16 @@ class AdminUsersService:
                 "verification_status": r.verification_status if r.verification_status else None,
                 "price_per_hour": float(r.price_per_hour) if r.price_per_hour is not None else None,
                 "hourly_rate": float(r.price_per_hour) if r.price_per_hour is not None else None,
+                "avatar_url": r.avatar_url,
+                "avatar": r.avatar_url,
                 "address": r.address,
                 "title": r.title,
+                "activity_type": r.activity_type,
+                "jcpa_number": (
+                    r.certificates_licenses.split("JCPA:")[1].split("|")[0].strip()
+                    if (r.certificates_licenses and "JCPA:" in r.certificates_licenses)
+                    else None
+                ),
                 "degree": r.title or r.activity_type or ("مستشار معتمد" if "consultant" in role_str.lower() else "مستخدم"),
                 "years_of_experience": int(r.years_of_experience) if r.years_of_experience is not None else 0,
                 "years": int(r.years_of_experience) if r.years_of_experience is not None else 0,
@@ -645,6 +688,28 @@ class AdminUsersService:
                 user.sector = sec_map[sec_val]
             elif sec_val in [e.value for e in BusinessSector]:
                 user.sector = BusinessSector(sec_val)
+
+        # Update ConsultantProfile if user is a consultant
+        profile = db.query(ConsultantProfile).filter(ConsultantProfile.user_id == user.id).first()
+        if profile:
+            if "price_per_hour" in update_data and update_data["price_per_hour"] is not None:
+                try:
+                    profile.price_per_hour = float(update_data["price_per_hour"])
+                except Exception:
+                    pass
+            if "bio" in update_data and update_data["bio"] is not None:
+                profile.bio = str(update_data["bio"]).strip()
+            if "activity_type" in update_data and update_data["activity_type"]:
+                profile.activity_type = str(update_data["activity_type"]).strip()
+            if "jcpa_number" in update_data:
+                jcpa_val = str(update_data["jcpa_number"] or "").strip()
+                if jcpa_val:
+                    profile.certificates_licenses = f"رقم إجازة JCPA: {jcpa_val}"
+            if "main_specialization_id" in update_data and update_data["main_specialization_id"]:
+                try:
+                    profile.main_specialization_id = int(update_data["main_specialization_id"])
+                except Exception:
+                    pass
 
         try:
             log_entry = AdminActionLog(

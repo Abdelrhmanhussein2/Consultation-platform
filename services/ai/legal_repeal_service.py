@@ -176,19 +176,23 @@ class LegalRepealService:
         if not meta:
             meta = LegalDocumentMetadata(document_id=doc_id, document_type=info["document_type"])
             db.add(meta)
-        meta.status = "ساري"
-        meta.repealed_at = None
-        meta.repeal_reason = None
-        meta.repealed_by_document_id = None
-        meta.sync_status = "pending"
-
         audit = LegalRepealAudit(document_id=doc_id, action="restore", performed_by=current_user_id)
         db.add(audit)
         db.commit()
 
         neo_synced = LegalRepealHelper.sync_restore_to_neo4j(doc_id)
+        # Recalculate status: if a newer version exists, status is 'نسخة سابقة'
+        if isinstance(neo_synced, str):
+            meta.status = neo_synced
+        else:
+            meta.status = "ساري"
+        meta.repealed_at = None
+        meta.repeal_reason = None
+        meta.repealed_by_document_id = None
         meta.sync_status = "synced" if neo_synced else "failed"
         meta.synced_at = now if neo_synced else None
+        if not neo_synced:
+            meta.last_sync_error = "Failed to synchronize status with Neo4j"
         db.commit()
 
         return {"status": "success", "message": "تمت إعادة تفعيل القانون بنجاح", "document_id": doc_id}

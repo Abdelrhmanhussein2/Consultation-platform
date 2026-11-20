@@ -5,7 +5,8 @@ import {
   RELATION_TYPE_OPTIONS,
   SUB_CATEGORY_LEGAL_OPTIONS,
   COURT_JUDICIAL_OPTIONS,
-  DOCUMENT_STATUS_OPTIONS
+  DOCUMENT_STATUS_OPTIONS,
+  NORMALIZE_LEGAL_TYPE
 } from './knowledgeData';
 
 export default function KnowledgeRelationSection({
@@ -84,25 +85,54 @@ export default function KnowledgeRelationSection({
       </div>
 
       {isLinked && (
-        <div className="knowledge-form-grid-2">
-          <div>
-            <label style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginBottom: '4px' }}>التصنيف التشريعي الفرعي:</label>
-            <ModernSelect
-              options={SUB_CATEGORY_LEGAL_OPTIONS}
-              value={formData.sub_category || 'الأنظمة'}
-              onChange={(v) => setFormData({ ...formData, sub_category: v })}
-              placeholder="التصنيف الفرعي..."
-            />
+        <>
+          <div className="knowledge-form-grid-2">
+            <div>
+              <label style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginBottom: '4px' }}>التصنيف التشريعي الفرعي:</label>
+              <ModernSelect
+                options={SUB_CATEGORY_LEGAL_OPTIONS}
+                value={NORMALIZE_LEGAL_TYPE(formData.sub_category || 'نظام')}
+                onChange={(v) => setFormData({ ...formData, sub_category: v })}
+                placeholder="التصنيف الفرعي..."
+              />
+            </div>
+            {formData.relation_type === 'amends' ? (
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginBottom: '4px' }}>
+                  القانون السابق (نسخة منه):
+                </label>
+                <ParentLawSelect
+                  value={formData.previous_law_id ? [formData.previous_law_id] : (formData.related_laws?.[0] ? [formData.related_laws[0]] : [])}
+                  onChange={(v) => {
+                    const singlePid = v[0] || null;
+                    const nextRelated = singlePid
+                      ? Array.from(new Set([singlePid, ...(formData.related_laws || [])]))
+                      : formData.related_laws;
+                    setFormData({
+                      ...formData,
+                      previous_law_id: singlePid,
+                      related_laws: nextRelated
+                    });
+                  }}
+                  placeholder="اختر القانون السابق..."
+                  multiple={false}
+                />
+              </div>
+            ) : null}
           </div>
+
           <div>
-            <label style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginBottom: '4px' }}>القوانين الأصلية المرتبطة:</label>
+            <label style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginBottom: '4px' }}>
+              القوانين الأصلية المرتبطة (ارتباط متعدد):
+            </label>
             <ParentLawSelect
               value={formData.related_laws || []}
               onChange={(v) => setFormData({ ...formData, related_laws: v })}
-              placeholder="ابحث واختر القوانين المرتبطة..."
+              placeholder="ابحث واختر القوانين الأصلية المرتبطة..."
+              multiple={true}
             />
           </div>
-        </div>
+        </>
       )}
     </div>
   );

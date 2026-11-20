@@ -14,8 +14,16 @@ const MergeIcon = ({ size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 6 4-4 4 4" /><path d="M12 2v10.3a4 4 0 0 1-1.172 2.872L4 22" /><path d="m20 22-5-5" /></svg>
 );
 
+const getCookieVal = (name) => {
+  try {
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    if (match) return decodeURIComponent(match[2]);
+  } catch {}
+  return null;
+};
+
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
+  const token = getCookieVal('token') || getCookieVal('admin_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 

@@ -57,7 +57,8 @@ export default function AdminSidebar({ currentPath, navigate, userRole = 'super_
     setLoggingOut(true);
     try {
       if (logout) { await logout(); } else {
-        localStorage.clear();
+        document.cookie = 'token=; Max-Age=-99999999; path=/;';
+        document.cookie = 'admin_token=; Max-Age=-99999999; path=/;';
         window.location.href = '/login';
       }
     } catch {} finally {

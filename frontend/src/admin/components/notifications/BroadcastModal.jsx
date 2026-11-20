@@ -5,8 +5,8 @@ import ConsultantTargetFilters from './ConsultantTargetFilters';
 import { PRIORITY_OPTIONS } from './broadcastConstants';
 import { previewBroadcastAudienceApi, sendBroadcastNotificationApi } from './broadcastApi';
 
-const DEFAULT_USER_FILTERS = { legal_form: 'all', sector: 'all' };
-const DEFAULT_CONSULTANT_FILTERS = { activity: 'all', specialization: 'all' };
+const DEFAULT_USER_FILTERS = { legal_form: [], sector: [] };
+const DEFAULT_CONSULTANT_FILTERS = { activity: [], specialization: [] };
 
 export default function BroadcastModal({ isOpen, onClose, onBroadcastSent, initialData = null }) {
   const [title, setTitle] = useState('');
@@ -90,7 +90,7 @@ export default function BroadcastModal({ isOpen, onClose, onBroadcastSent, initi
   ];
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', zIndex: 9999, direction: 'rtl' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.25)', backdropFilter: 'blur(1.5px)', WebkitBackdropFilter: 'blur(1.5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', zIndex: 9999, direction: 'rtl' }}>
       <div style={{ width: '620px', maxWidth: '96vw', maxHeight: '92vh', overflowY: 'auto', background: '#FFFFFF', borderRadius: '18px', padding: '24px', boxShadow: '0 20px 45px rgba(0,0,0,0.22)', border: '1px solid #E2E8F0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #F1F5F9', paddingBottom: '12px' }}>
           <div>

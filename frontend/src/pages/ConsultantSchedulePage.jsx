@@ -167,8 +167,6 @@ export default function ConsultantSchedulePage() {
   const [showLastMonthBanner, setShowLastMonthBanner] = useState(false);
   const [lastMonthSchedule, setLastMonthSchedule] = useState(null);
   const [isCopyingSaving, setIsCopyingSaving] = useState(false);
-  const LAST_SCHEDULE_KEY = 'consultant_last_month_schedule';
-  const LAST_SCHEDULE_MONTH_KEY = 'consultant_last_schedule_saved_month';
 
   const isoDate = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 
@@ -212,24 +210,6 @@ export default function ConsultantSchedulePage() {
           });
           setDateSchedule(dateMap);
           setWeeklyFallback(weeklyMap);
-
-          const currentMonthKey = `${today.getFullYear()}-${today.getMonth()}`;
-          const lastSavedMonthKey = localStorage.getItem(LAST_SCHEDULE_MONTH_KEY);
-          const savedScheduleRaw = localStorage.getItem(LAST_SCHEDULE_KEY);
-          const isStartOfMonth = today.getDate() <= 7;
-          const isNewMonth = lastSavedMonthKey && lastSavedMonthKey !== currentMonthKey;
-          if (isStartOfMonth && isNewMonth && savedScheduleRaw) {
-            try {
-              const saved = JSON.parse(savedScheduleRaw);
-              const hasSavedSlots = Object.values(saved).some((s) => Array.isArray(s) && s.length > 0);
-              if (hasSavedSlots) {
-                setLastMonthSchedule(saved);
-                setShowLastMonthBanner(true);
-              }
-            } catch (e) {
-              /* ignore */
-            }
-          }
         }
       })
       .catch(() => {})
@@ -348,9 +328,6 @@ export default function ConsultantSchedulePage() {
       });
       await consultantService.setAvailability(payload, token);
       setDateSchedule(updatedDateSchedule);
-      const currentMonthKey = `${selectedYear}-${selectedMonth}`;
-      localStorage.setItem(LAST_SCHEDULE_KEY, JSON.stringify(updatedDateSchedule));
-      localStorage.setItem(LAST_SCHEDULE_MONTH_KEY, currentMonthKey);
       showToast('تم حفظ التغييرات بنجاح ✓', 'success');
     } catch (err) {
       showToast(err?.detail ? `خطأ: ${err.detail}` : 'حدث خطأ أثناء الحفظ، حاول مرة أخرى', 'error');
@@ -404,9 +381,6 @@ export default function ConsultantSchedulePage() {
         });
       });
       await consultantService.setAvailability(payload, token);
-      const currentMonthKey = `${today.getFullYear()}-${today.getMonth()}`;
-      localStorage.setItem(LAST_SCHEDULE_KEY, JSON.stringify(lastMonthSchedule));
-      localStorage.setItem(LAST_SCHEDULE_MONTH_KEY, currentMonthKey);
       setShowLastMonthBanner(false);
       showToast('تم تطبيق مواعيد الشهر الماضي بنجاح ✓', 'success');
     } catch (err) {

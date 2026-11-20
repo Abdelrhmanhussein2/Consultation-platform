@@ -1,18 +1,28 @@
 import React, { useState } from 'react';
 
-const FILE_CONFIGS = [
+const BASE_FILE_CONFIGS = [
   { key: 'idProof', urlKey: 'idProofUrl', nameKey: 'idProofName', title: 'صورة إثبات الشخصية', required: true, subtitle: 'بطاقة الأحوال أو جواز السفر (PDF أو صورة)' },
   { key: 'academicCert', urlKey: 'academicCertUrl', nameKey: 'academicCertName', title: 'الشهادات الأكاديمية', required: true, subtitle: 'شهادة البكالوريوس أو الدراسات العليا' },
   { key: 'professionalLicense', urlKey: 'professionalLicenseUrl', nameKey: 'professionalLicenseName', title: 'التراخيص المهنية والاعتمادات', required: true, subtitle: 'مزاولة المهنة أو الاعتماد المهني الرسمي' },
-  { key: 'jcpaCert', urlKey: 'jcpaCertUrl', nameKey: 'jcpaCertName', title: 'شهادة JCPA', required: false, subtitle: 'المحاسب القانوني الأردني (اختياري)' },
+  { key: 'jcpaCert', urlKey: 'jcpaCertUrl', nameKey: 'jcpaCertName', title: 'إجازة المحاسب القانوني JCPA', required: true, subtitle: 'شهادة ترخيص وإجازة مدقق الحسابات القانوني JCPA' },
   { key: 'expertsSocietyCert', urlKey: 'expertsSocietyCertUrl', nameKey: 'expertsSocietyCertName', title: 'شهادة العضوية في جمعية الخبراء', required: false, subtitle: 'شهادة العضوية السارية (اختياري)' },
 ];
 
 const ALLOWED_EXTS = ['.pdf', '.jpg', '.jpeg', '.png'];
 
-export default function ConsultantFilesStep({ files, onFileUploaded, onNext, onBack }) {
+export default function ConsultantFilesStep({ files, onFileUploaded, onNext, onBack, activityType = 'مستشار ضريبي' }) {
   const [uploadingKey, setUploadingKey] = useState(null);
   const [error, setError] = useState('');
+
+  const isAuditor = activityType === 'مدقق حسابات';
+
+  // Filter file configs: Only show JCPA certificate requirement if activity is مدقق حسابات
+  const activeConfigs = BASE_FILE_CONFIGS.filter((cfg) => {
+    if (cfg.key === 'jcpaCert') {
+      return isAuditor;
+    }
+    return true;
+  });
 
   const handleUpload = async (key, file) => {
     if (!file) return;
@@ -66,6 +76,10 @@ export default function ConsultantFilesStep({ files, onFileUploaded, onNext, onB
       setError('يرجى رفع التراخيص المهنية والاعتمادات للمتابعة');
       return;
     }
+    if (isAuditor && !files.jcpaCertUrl) {
+      setError('يرجى رفع شهادة إجازة المحاسب القانوني JCPA للمتابعة');
+      return;
+    }
     onNext();
   };
 
@@ -82,7 +96,7 @@ export default function ConsultantFilesStep({ files, onFileUploaded, onNext, onB
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px', minWidth: 0 }}>
-        {FILE_CONFIGS.map((cfg) => {
+        {activeConfigs.map((cfg) => {
           const fileUrl = files[cfg.urlKey];
           const fileName = files[cfg.nameKey];
           const isUploading = uploadingKey === cfg.key;
@@ -96,7 +110,7 @@ export default function ConsultantFilesStep({ files, onFileUploaded, onNext, onB
                 justifyContent: 'space-between',
                 padding: '12px 14px',
                 background: fileUrl ? '#F8FAFC' : '#FFFFFF',
-                border: fileUrl ? '1px solid #16A34A' : '1px solid #E2E8F0',
+                border: fileUrl ? '1px solid #CBD5E1' : '1px solid #E2E8F0',
                 borderRadius: '10px',
                 gap: '12px',
                 minWidth: 0,
@@ -109,7 +123,7 @@ export default function ConsultantFilesStep({ files, onFileUploaded, onNext, onB
                   height="22"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke={fileUrl ? '#16A34A' : '#0D3C5C'}
+                  stroke={fileUrl ? '#0D3C5C' : '#64748B'}
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -136,7 +150,7 @@ export default function ConsultantFilesStep({ files, onFileUploaded, onNext, onB
                     title={fileName || cfg.subtitle}
                     style={{
                       fontSize: '12px',
-                      color: fileUrl ? '#16A34A' : '#64748B',
+                      color: fileUrl ? '#475569' : '#64748B',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -148,24 +162,35 @@ export default function ConsultantFilesStep({ files, onFileUploaded, onNext, onB
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                 {isUploading ? (
                   <span style={{ fontSize: '12px', color: '#0D3C5C', fontWeight: '600' }}>جاري الرفع...</span>
                 ) : fileUrl ? (
                   <>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11.5px', fontWeight: '700', color: '#16A34A', background: '#DCFCE7', padding: '4px 8px', borderRadius: '6px' }}>
-                      تم الرفع
-                    </span>
-                    <label style={{ cursor: 'pointer', fontSize: '11.5px', fontWeight: '600', color: '#0D3C5C', background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '4px 8px', borderRadius: '6px', margin: 0 }}>
+                    <label style={{ cursor: 'pointer', fontSize: '11.5px', fontWeight: '700', color: '#0D3C5C', background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '5px 12px', borderRadius: '6px', margin: 0, transition: 'all 0.15s ease' }}>
                       <input type="file" accept=".pdf,.png,.jpg,.jpeg" onChange={(e) => handleUpload(cfg.key, e.target.files?.[0])} hidden />
                       استبدال
                     </label>
                     <button
                       type="button"
                       onClick={() => handleRemove(cfg.key)}
-                      style={{ cursor: 'pointer', fontSize: '11.5px', fontWeight: '600', color: '#DC2626', background: '#FEE2E2', border: '1px solid #FECACA', padding: '4px 8px', borderRadius: '6px' }}
+                      title="حذف الملف"
+                      style={{
+                        cursor: 'pointer',
+                        color: '#DC2626',
+                        background: '#FEF2F2',
+                        border: '1px solid #FECACA',
+                        padding: '5px 8px',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.15s ease'
+                      }}
                     >
-                      حذف
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                      </svg>
                     </button>
                   </>
                 ) : (

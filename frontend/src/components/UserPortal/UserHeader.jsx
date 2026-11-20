@@ -4,6 +4,7 @@ import { apiFetch } from '../../services/api';
 import { notificationService } from '../../services/notificationService';
 import NotificationDropdown from './NotificationDropdown';
 import UserProfileDropdown from './UserProfileDropdown';
+import NotificationDetailsModal from '../Notifications/NotificationDetailsModal';
 import { getNotificationTarget } from '../../utils/notificationRouter';
 import { BellIcon, SidebarToggleIcon } from './Icons';
 import './UserHeader.css';
@@ -14,11 +15,13 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [selectedNotifForModal, setSelectedNotifForModal] = useState(null);
 
   const [activeSub, setActiveSub] = useState(null);
 
   const notifRef = useRef(null);
   const userMenuRef = useRef(null);
+  const hasCheckedOnLoginPopup = useRef(false);
 
   // Fetch unread count, notifications & subscription status
   useEffect(() => {
@@ -32,10 +35,29 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
           apiFetch('/api/subscriptions/my-subscription', {}, token).catch(() => null)
         ]);
 
+        const notifList = Array.isArray(notifData) ? notifData : (notifData?.items || notifData?.data || []);
         setUnreadCount(cntData?.unread_count || 0);
-        setNotifications(notifData || []);
+        setNotifications(notifList);
         if (subData && subData.has_subscription) {
           setActiveSub(subData);
+        }
+
+        // Check for any unread law announcement to show as a popup modal on login (in-memory per session)
+        if (!hasCheckedOnLoginPopup.current && notifList.length > 0) {
+          hasCheckedOnLoginPopup.current = true;
+          const unreadLawNotif = notifList.find(n => {
+            if (n.is_read) return false;
+            const meta = n.extra_metadata || n.metadata || {};
+            const isLaw = meta.target_type === 'law' ||
+                          meta.is_law_announcement ||
+                          n.related_entity_type === 'legal_source' ||
+                          (n.title && (n.title.includes('قانون') || n.title.includes('تشريع') || n.title.includes('تعديل في')));
+            return isLaw;
+          });
+
+          if (unreadLawNotif) {
+            setSelectedNotifForModal(unreadLawNotif);
+          }
         }
       } catch (err) {
         // Silently handle errors
@@ -76,29 +98,10 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
     }
   };
 
-  const handleNotificationClick = async (notif) => {
+  const handleNotificationClick = (notif) => {
     if (!notif) return;
-
-    // Optimistically mark as read
-    if (!notif.is_read) {
-      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
-      setUnreadCount(prev => Math.max(0, prev - 1));
-      if (token) {
-        try {
-          await notificationService.markAsRead(notif.id, token);
-        } catch (err) {
-          console.warn('Failed to mark notification as read:', err);
-        }
-      }
-    }
-
     setShowNotifications(false);
-
-    // Resolve target page & tab dynamically
-    const target = getNotificationTarget(notif, user?.role);
-    if (target && target.url && navigate) {
-      navigate(target.url);
-    }
+    setSelectedNotifForModal(notif);
   };
 
 
@@ -198,6 +201,41 @@ export default function UserHeader({ navigate, isSidebarCollapsed, toggleSidebar
           </div>
         </div>
       )}
+      {/* Shared NotificationDetailsModal */}
+      <NotificationDetailsModal
+        isOpen={Boolean(selectedNotifForModal)}
+        notification={selectedNotifForModal}
+        onClose={async () => {
+          if (selectedNotifForModal?.id) {
+            const notifId = selectedNotifForModal.id;
+            setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, is_read: true } : n));
+            setUnreadCount(prev => Math.max(0, prev - 1));
+            if (token) {
+              try {
+                await notificationService.markAsRead(notifId, token);
+              } catch (err) {
+                console.warn('Failed to mark notification as read:', err);
+              }
+            }
+          }
+          setSelectedNotifForModal(null);
+        }}
+        onNavigate={(url) => {
+          navigate(url);
+        }}
+        onMarkAsRead={async (id) => {
+          setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+          setUnreadCount(prev => Math.max(0, prev - 1));
+          if (token) {
+            try {
+              await notificationService.markAsRead(id, token);
+            } catch (err) {
+              console.warn('Failed to mark notification as read:', err);
+            }
+          }
+        }}
+        role={user?.role || 'user'}
+      />
     </header>
   );
 }

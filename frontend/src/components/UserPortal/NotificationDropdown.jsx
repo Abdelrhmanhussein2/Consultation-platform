@@ -1,5 +1,16 @@
 import React from 'react';
 
+function formatEnglishDateTime(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return String(dateStr);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const timePart = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  return `${year}-${month}-${day} • ${timePart}`;
+}
+
 export default function NotificationDropdown({ notifications, unreadCount, onMarkAllRead, onItemClick, onViewAll, onClose }) {
   return (
     <div className="notif-dropdown">
@@ -40,11 +51,8 @@ export default function NotificationDropdown({ notifications, unreadCount, onMar
                 )}
               </div>
               <div className="notif-item-msg">{item.message}</div>
-              <div className="notif-item-time">
-                {new Date(item.created_at || Date.now()).toLocaleString('ar-EG', {
-                  dateStyle: 'short',
-                  timeStyle: 'short'
-                })}
+              <div className="notif-item-time" style={{ direction: 'ltr', textAlign: 'right', fontFamily: 'monospace', fontSize: '11px', color: '#64748B' }}>
+                {formatEnglishDateTime(item.created_at || Date.now())}
               </div>
             </div>
           ))

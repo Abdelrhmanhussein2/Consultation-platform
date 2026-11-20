@@ -33,7 +33,8 @@ class LegalSourcesService:
                        coalesce(l.number, l.law_number, l.`رقم_القانون`, '-') as number, coalesce(l.year, l.law_year, l.`السنة`, '-') as year,
                        null as court, arts as articles_count, 0 as citations_count, coalesce(l.is_active, true) as is_active,
                        coalesce(l.body, l.full_text, '') as body, coalesce(l.created_at, l.date, '2026-01-01') as date_sort,
-                       coalesce(l.status, 'ساري') as status
+                       coalesce(l.status, 'ساري') as status,
+                       coalesce(l.type, l.`النوع`, l.doc_type, l.document_type, l.sub_category, 'قانون') as doc_type
             """)
 
         if source_type in ("all", "judgment"):
@@ -52,13 +53,14 @@ class LegalSourcesService:
                        coalesce(j.ruling_year, j.`السنة`, '-') as year, coalesce(j.court, j.`المحكمة`, 'محكمة التمييز') as court,
                        0 as articles_count, cites as citations_count, coalesce(j.is_active, true) as is_active,
                        coalesce(j.full_text, j.`نص_الحكم`, j.`مقتطف_الحكم`, '') as body, coalesce(j.date, j.`تاريخ_الفصل`, '2026-01-01') as date_sort,
-                       coalesce(j.status, 'ساري') as status
+                       coalesce(j.status, 'ساري') as status,
+                       coalesce(j.type, j.`النوع`, j.court, j.`المحكمة`, 'تمييز حقوق') as doc_type
             """)
 
         if not query_parts: return {"items": [], "total": 0, "page": page, "page_size": page_size}
 
         union_cypher = " UNION ALL ".join(query_parts)
-        full_cypher = f"CALL {{ {union_cypher} }} RETURN source_type, id, title, number, year, court, articles_count, citations_count, is_active, body, date_sort, status ORDER BY date_sort DESC SKIP $skip LIMIT $limit"
+        full_cypher = f"CALL {{ {union_cypher} }} RETURN source_type, id, title, number, year, court, articles_count, citations_count, is_active, body, date_sort, status, doc_type ORDER BY date_sort DESC SKIP $skip LIMIT $limit"
         count_cypher = f"CALL {{ {union_cypher} }} RETURN count(*) as total"
 
         try:
@@ -66,20 +68,43 @@ class LegalSourcesService:
                 count_res = session.run(count_cypher, **params)
                 total = count_res.single()["total"] if count_res else 0
                 records_res = session.run(full_cypher, **params)
-                items = [{ "id": r["id"], "source_type": r["source_type"], "title": r["title"] or "بدون عنوان", "number": str(r["number"]).split(" لسنة")[0].split("/")[0].strip() if r["number"] and r["number"] != '-' else (r["number"] or "-"), "year": r["year"] or "-", "court": r["court"], "articles_count": r["articles_count"], "citations_count": r["citations_count"], "is_active": r["is_active"], "body": r.get("body") or "", "status": r.get("status") or "ساري" } for r in records_res]
+                items = [{
+                    "id": r["id"],
+                    "source_type": r["source_type"],
+                    "title": r["title"] or "بدون عنوان",
+                    "number": str(r["number"]).split(" لسنة")[0].split("/")[0].strip() if r["number"] and r["number"] != '-' else (r["number"] or "-"),
+                    "year": r["year"] or "-",
+                    "court": r["court"],
+                    "articles_count": r["articles_count"],
+                    "citations_count": r["citations_count"],
+                    "is_active": r["is_active"],
+                    "body": r.get("body") or "",
+                    "status": r.get("status") or "ساري",
+                    "doc_type": r.get("doc_type") or ("حكم قضائي" if r["source_type"] == "judgment" else "قانون")
+                } for r in records_res]
                 
-                # Enrich with PostgreSQL legal_document_metadata as single source of truth
+                # Enrich with PostgreSQL legal_document_metadata & legal_relations as single source of truth
                 if items:
                     try:
                         from helpers.database import SessionLocal
                         from models.ai.legal_document_metadata import LegalDocumentMetadata
+                        from models.ai.legal_relation import LegalRelation
                         with SessionLocal() as db:
                             ids = [it["id"] for it in items]
                             metas = db.query(LegalDocumentMetadata).filter(LegalDocumentMetadata.document_id.in_(ids)).all()
                             meta_map = {m.document_id: m.status for m in metas}
+
+                            rels = db.query(LegalRelation).filter(
+                                LegalRelation.target_document_id.in_(ids),
+                                LegalRelation.is_active == True
+                            ).all()
+                            rel_type_map = {r.target_document_id: (r.sub_category or r.document_type) for r in rels if (r.sub_category or r.document_type)}
+
                             for it in items:
                                 if it["id"] in meta_map:
                                     it["status"] = meta_map[it["id"]]
+                                if it["id"] in rel_type_map and rel_type_map[it["id"]]:
+                                    it["doc_type"] = rel_type_map[it["id"]]
                     except Exception as me:
                         pass
                 return {"items": items, "total": total, "page": page, "page_size": page_size}
@@ -127,11 +152,21 @@ class LegalSourcesService:
 
     @classmethod
     def update_source(cls, source_id: str, source_type: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """Updates title, year, number, status, court, and body for a law or judgment."""
+        """Updates title, year, number, status, court, type, and body for a law or judgment."""
         title, year = payload.get("title", ""), payload.get("year")
         raw_active = payload.get("is_active")
         is_active = True if raw_active is None else bool(raw_active)
         court, number, body = payload.get("court"), payload.get("number"), payload.get("body", "")
+        raw_doc_type = payload.get("sub_category") or payload.get("doc_type") or payload.get("type") or payload.get("court_category")
+        doc_type = str(raw_doc_type).strip() if raw_doc_type else None
+        if doc_type:
+            type_norm = {
+                "الأنظمة": "نظام", "أنظمة": "نظام", "القرارات": "قرار", "قرارات": "قرار",
+                "التعليمات": "تعليمات", "القوانين": "قانون", "قوانين": "قانون",
+                "أحكام ملزمة": "حكم ملزم", "جداول": "جدول", "ملاحق": "ملحق"
+            }
+            doc_type = type_norm.get(doc_type, doc_type)
+
         try:
             with neo4j_db.get_session() as session:
                 if source_type == "law":
@@ -140,17 +175,24 @@ class LegalSourcesService:
                         SET l.title = $title, l.`العنوان` = $title, l.`name` = $title,
                             l.year = $year, l.`السنة` = $year, l.number = $number, l.`رقم_القانون` = $number,
                             l.body = $body, l.full_text = $body, l.is_active = $is_active
+                        FOREACH (_ IN CASE WHEN $doc_type IS NOT NULL AND $doc_type <> '' THEN [1] ELSE [] END |
+                            SET l.type = $doc_type, l.`النوع` = $doc_type, l.document_type = $doc_type, l.sub_category = $doc_type
+                        )
                         WITH l
                         OPTIONAL MATCH (l)-[:HAS_VERSION|`يتضمن_مادة`|HAS_ARTICLE*0..2]->(sub)
                         SET sub.is_active = $is_active
-                    """, sid=source_id, title=title, year=year, number=number, body=body, is_active=is_active)
+                    """, sid=source_id, title=title, year=year, number=number, body=body, is_active=is_active, doc_type=doc_type)
                 else:
+                    court_type = doc_type or court
                     session.run("""
                         MATCH (j) WHERE (j:Judgment OR j:JudicialRuling OR j:`حكم_قضائي`) AND (j.ruling_id = $sid OR j.`معرف` = $sid)
                         SET j.title = $title, j.`العنوان` = $title, j.court = $court, j.`المحكمة` = $court,
                             j.ruling_year = $year, j.`السنة` = $year, j.ruling_number = $number, j.`رقم_الحكم` = $number,
                             j.full_text = $body, j.`نص_الحكم` = $body, j.is_active = $is_active
-                    """, sid=source_id, title=title, court=court, year=year, number=number, body=body, is_active=is_active)
+                        FOREACH (_ IN CASE WHEN $court_type IS NOT NULL AND $court_type <> '' THEN [1] ELSE [] END |
+                            SET j.type = $court_type, j.`النوع` = $court_type, j.document_type = 'حكم قضائي', j.court = $court_type
+                        )
+                    """, sid=source_id, title=title, court=court, year=year, number=number, body=body, is_active=is_active, court_type=court_type)
         except Exception:
             pass
         try: VectorIndexService.set_source_active(source_type, source_id, is_active)

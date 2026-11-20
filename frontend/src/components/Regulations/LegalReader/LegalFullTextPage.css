@@ -489,20 +489,15 @@ mark.lft-search-hit.current {
 
 /* ─── @media print ───────────────────────────────── */
 @media print {
-  /* ── 1. Hide the entire web app background outside the modal ── */
-  #root,
-  body > *:not(.lft-overlay),
-  .portal-container,
-  .portal-wrapper,
-  .portal-content-body,
-  .app-container,
-  .main-content,
-  .regulations-page-wrap,
-  .reg-content-container,
-  nav, header, footer, aside, .sidebar,
-  .portal-sidebar, .portal-header,
-  .admin-sidebar, .admin-header,
-  .reg-hero-banner, .reg-result-card-item {
+  /* ── 1. Hide unwanted screen UI without hiding root container ── */
+  .portal-sidebar,
+  .portal-header,
+  .portal-topbar,
+  .admin-sidebar,
+  .admin-header,
+  .reg-hero-banner,
+  .reg-result-card-item,
+  nav, header, footer, aside, .sidebar {
     display: none !important;
     visibility: hidden !important;
     width: 0 !important;

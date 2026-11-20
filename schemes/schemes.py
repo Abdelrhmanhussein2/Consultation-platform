@@ -29,6 +29,16 @@ class UserCreate(BaseModel):
     commercial_register_url: Optional[str] = Field(None, max_length=500)
     accepted_privacy_policy: bool = Field(..., description="Must accept privacy policy")
 
+    @field_validator('phone')
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        if v:
+            clean = str(v).strip().replace(" ", "")
+            if len(clean) > 20:
+                raise ValueError("رقم الهاتف طويل جداً ويجب ألا يتجاوز 20 حرفاً مع رمز الدولة")
+            return clean
+        return v
+
     @field_validator('email')
     @classmethod
     def validate_email_ascii(cls, v: EmailStr) -> EmailStr:
@@ -70,6 +80,8 @@ class ConsultantRegister(BaseModel):
     bio: Optional[str] = None
     main_specialization_id: Optional[int] = None
     activity_type: Optional[str] = Field(None, max_length=100)
+    specialization_ids: Optional[List[int]] = None
+    jcpa_number: Optional[str] = None
     years_of_experience: Optional[int] = None
     certificates_licenses: Optional[str] = None
     price_per_hour: Optional[Decimal] = None
@@ -80,6 +92,16 @@ class ConsultantRegister(BaseModel):
     jcpa_cert_url: Optional[str] = Field(None, max_length=500)
     experts_society_cert_url: Optional[str] = Field(None, max_length=500)
     accepted_privacy_policy: bool = Field(..., description="Must accept privacy policy")
+
+    @field_validator('phone')
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        if v:
+            clean = str(v).strip().replace(" ", "")
+            if len(clean) > 20:
+                raise ValueError("رقم الهاتف طويل جداً ويجب ألا يتجاوز 20 حرفاً مع رمز الدولة")
+            return clean
+        return v
 
     @field_validator('email')
     @classmethod
@@ -188,6 +210,20 @@ class RequestRegisterOtpRequest(BaseModel):
     email: str = Field(..., max_length=150)
     phone: Optional[str] = None
     full_name: Optional[str] = None
+
+    @field_validator('phone')
+    @classmethod
+    def validate_phone(cls, v: Optional[str]) -> Optional[str]:
+        if v:
+            clean = str(v).strip().replace(" ", "")
+            if not clean or clean.lower() in ("none", "null", "undefined"):
+                return None
+            if "@" in clean:
+                return None
+            if len(clean) > 20:
+                raise ValueError("رقم الهاتف طويل جداً ويجب ألا يتجاوز 20 حرفاً مع رمز الدولة")
+            return clean
+        return v
 
     @field_validator('email')
     @classmethod
@@ -421,6 +457,8 @@ class ConsultantProfileOut(BaseModel):
     user_id: uuid.UUID
     user: Optional[UserOut] = None
     specialization: Optional[SpecializationOut] = None
+    specialties: Optional[List[str]] = None
+    credentials: Optional[List[Any]] = None
     bio: Optional[str] = None
     main_specialization_id: Optional[int] = None
     verification_status: VerificationStatus
@@ -718,8 +756,9 @@ class NotificationOut(BaseModel):
     type: NotificationType
     title: str
     message: str
-    related_entity_type: Optional[str]
-    related_entity_id: Optional[uuid.UUID]
+    related_entity_type: Optional[str] = None
+    related_entity_id: Optional[uuid.UUID] = None
+    extra_metadata: Optional[Dict[str, Any]] = None
     is_read: bool
     created_at: datetime
 
@@ -880,8 +919,11 @@ class AdminUserListOut(BaseModel):
     bio: Optional[str] = None
     verification_status: Optional[VerificationStatus] = None
     price_per_hour: Optional[Decimal] = None
+    hourly_rate: Optional[float] = None
     address: Optional[str] = None
     title: Optional[str] = None
+    avatar_url: Optional[str] = None
+    specialties: Optional[List[str]] = None
     sessions_count: Optional[int] = 0
     consultations_count: Optional[int] = 0
     tickets_count: Optional[int] = 0

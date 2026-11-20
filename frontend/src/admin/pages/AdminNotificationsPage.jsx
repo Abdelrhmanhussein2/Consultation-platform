@@ -6,6 +6,7 @@ import { notificationService } from '../../services/notificationService';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import { getNotificationTarget } from '../../utils/notificationRouter';
 import BroadcastModal from '../components/notifications/BroadcastModal';
+import NotificationDetailsModal from '../../components/Notifications/NotificationDetailsModal';
 import {
   fetchBroadcastsApi,
   resendBroadcastApi,
@@ -119,6 +120,9 @@ function cleanNotificationTitle(title) {
 function getNotificationTypeBadge(type, title = '', message = '') {
   const t = (type || '').toLowerCase();
   const full = `${title} ${message}`.toLowerCase();
+  if (full.includes('تسجيل') || full.includes('انضمام') || full.includes('مستشار جديد')) {
+    return { label: 'طلبات الانضمام', bg: '#F0F7FC', color: '#0A3C64', border: '#BAE6FD' };
+  }
   if (t === 'appointment_booked' || full.includes('حجز') || full.includes('جلسة')) {
     return { label: 'استشارات وجلسات', bg: '#EFF6FF', color: '#0284C7', border: '#BAE6FD' };
   }
@@ -132,12 +136,40 @@ function getNotificationTypeBadge(type, title = '', message = '') {
     return { label: 'اشتراكات وباقات', bg: '#EBF3FA', color: '#0A3C64', border: '#D0E2F2' };
   }
   if (t === 'service_request_status_update' || full.includes('خدمة') || full.includes('طلب')) {
-    return { label: 'طلبات النظام', bg: '#F5F3FF', color: '#7C3AED', border: '#DDD6FE' };
+    return { label: 'طلبات النظام', bg: '#F0F7FC', color: '#0A3C64', border: '#BAE6FD' };
   }
   if (t === 'credential_status_update' || full.includes('توثيق')) {
     return { label: 'توثيق مهني', bg: '#F8FAFC', color: '#475569', border: '#CBD5E1' };
   }
   return { label: 'إشعار عام', bg: '#EBF3FA', color: '#0A3C64', border: '#D0E2F2' };
+}
+
+const INCOMING_NOTIFICATION_TYPE_OPTIONS = [
+  { value: 'all', label: 'كل أنواع الإشعارات' },
+  { value: 'join_request', label: 'طلبات الانضمام' },
+  { value: 'appointments', label: 'استشارات وجلسات' },
+  { value: 'subscriptions', label: 'اشتراكات وباقات' },
+  { value: 'payments', label: 'مدفوعات وفواتير' },
+  { value: 'system_requests', label: 'طلبات النظام' },
+  { value: 'credentials', label: 'توثيق مهني' },
+  { value: 'general', label: 'إشعارات عامة' }
+];
+
+function matchNotificationCategory(n, selectedFilters) {
+  if (!selectedFilters || selectedFilters.length === 0 || selectedFilters.includes('all')) return true;
+  const badge = getNotificationTypeBadge(n.type, n.title, n.message);
+  const catMap = {
+    'طلبات الانضمام': 'join_request',
+    'استشارات وجلسات': 'appointments',
+    'تأكيد موعد': 'appointments',
+    'اشتراكات وباقات': 'subscriptions',
+    'مدفوعات وفواتير': 'payments',
+    'طلبات النظام': 'system_requests',
+    'توثيق مهني': 'credentials',
+    'إشعار عام': 'general'
+  };
+  const cat = catMap[badge.label] || 'general';
+  return selectedFilters.includes(cat);
 }
 
 export default function AdminNotificationsPage({ navigate }) {
@@ -155,14 +187,14 @@ export default function AdminNotificationsPage({ navigate }) {
 
   // Filter States for Incoming & Broadcasts
   const [incomingSearch, setIncomingSearch] = useState('');
-  const [incomingTypeFilter, setIncomingTypeFilter] = useState('all');
+  const [incomingTypeFilter, setIncomingTypeFilter] = useState([]);
 
   const [broadcastSearch, setBroadcastSearch] = useState('');
   const [filterAudience, setFilterAudience] = useState('all');
-  const [filterLegalForm, setFilterLegalForm] = useState('all');
-  const [filterSector, setFilterSector] = useState('all');
-  const [filterActivity, setFilterActivity] = useState('all');
-  const [filterSpecialization, setFilterSpecialization] = useState('all');
+  const [filterLegalForm, setFilterLegalForm] = useState([]);
+  const [filterSector, setFilterSector] = useState([]);
+  const [filterActivity, setFilterActivity] = useState([]);
+  const [filterSpecialization, setFilterSpecialization] = useState([]);
 
   const [templatePreset, setTemplatePreset] = useState(null);
 
@@ -336,8 +368,7 @@ export default function AdminNotificationsPage({ navigate }) {
       if (q && !n.title.toLowerCase().includes(q) && !n.message.toLowerCase().includes(q)) {
         return false;
       }
-      if (incomingTypeFilter !== 'all' && (n.type || '').toLowerCase() !== incomingTypeFilter.toLowerCase()) return false;
-      return true;
+      return matchNotificationCategory(n, incomingTypeFilter);
     });
   }, [liveNotifications, incomingSearch, incomingTypeFilter]);
 
@@ -359,13 +390,25 @@ export default function AdminNotificationsPage({ navigate }) {
       }
       if (filterAudience === 'users') {
         const uf = b.user_filters || {};
-        if (filterLegalForm !== 'all' && uf.legal_form && uf.legal_form !== filterLegalForm) return false;
-        if (filterSector !== 'all' && uf.sector && uf.sector !== filterSector) return false;
+        if (filterLegalForm.length > 0 && !filterLegalForm.includes('all')) {
+          const bLf = Array.isArray(uf.legal_form) ? uf.legal_form : (uf.legal_form ? [uf.legal_form] : []);
+          if (bLf.length > 0 && !bLf.some(l => filterLegalForm.includes(l))) return false;
+        }
+        if (filterSector.length > 0 && !filterSector.includes('all')) {
+          const bSec = Array.isArray(uf.sector) ? uf.sector : (uf.sector ? [uf.sector] : []);
+          if (bSec.length > 0 && !bSec.some(s => filterSector.includes(s))) return false;
+        }
       }
       if (filterAudience === 'consultants') {
         const cf = b.consultant_filters || {};
-        if (filterActivity !== 'all' && cf.activity && cf.activity !== filterActivity) return false;
-        if (filterSpecialization !== 'all' && cf.specialization && cf.specialization !== filterSpecialization) return false;
+        if (filterActivity.length > 0 && !filterActivity.includes('all')) {
+          const bAct = Array.isArray(cf.activity) ? cf.activity : (cf.activity ? [cf.activity] : []);
+          if (bAct.length > 0 && !bAct.some(a => filterActivity.includes(a))) return false;
+        }
+        if (filterSpecialization.length > 0 && !filterSpecialization.includes('all')) {
+          const bSpec = Array.isArray(cf.specialization) ? cf.specialization : (cf.specialization ? [cf.specialization] : []);
+          if (bSpec.length > 0 && !bSpec.some(sp => filterSpecialization.includes(sp))) return false;
+        }
       }
       return true;
     });
@@ -534,18 +577,16 @@ export default function AdminNotificationsPage({ navigate }) {
               <ModernSelect
                 value={incomingTypeFilter}
                 onChange={(val) => setIncomingTypeFilter(val)}
-                options={[
-                  { value: 'all', label: 'كل أنواع الإشعارات' },
-                  { value: 'general', label: 'عام / اشتراكات' },
-                  { value: 'appointment', label: 'حجوزات واستشارات' },
-                  { value: 'system', label: 'نظام' }
-                ]}
+                options={INCOMING_NOTIFICATION_TYPE_OPTIONS}
+                placeholder="كل أنواع الإشعارات"
+                multiple={true}
+                multiLabelFormat={(cnt) => `تم تحديد (${cnt}) أنواع`}
               />
 
               <FilterResetButton
                 onClick={() => {
                   setIncomingSearch('');
-                  setIncomingTypeFilter('all');
+                  setIncomingTypeFilter([]);
                 }}
                 title="إعادة تعيين فلاتر الإشعارات الواردة"
                 size={38}
@@ -770,10 +811,10 @@ export default function AdminNotificationsPage({ navigate }) {
                 value={filterAudience}
                 onChange={(val) => {
                   setFilterAudience(val);
-                  setFilterLegalForm('all');
-                  setFilterSector('all');
-                  setFilterActivity('all');
-                  setFilterSpecialization('all');
+                  setFilterLegalForm([]);
+                  setFilterSector([]);
+                  setFilterActivity([]);
+                  setFilterSpecialization([]);
                 }}
                 options={[
                   { value: 'all', label: 'كل الشرائح' },
@@ -788,13 +829,17 @@ export default function AdminNotificationsPage({ navigate }) {
                     value={filterLegalForm}
                     onChange={setFilterLegalForm}
                     options={LEGAL_FORM_OPTIONS}
-                    placeholder="الشكل القانوني"
+                    placeholder="الكل"
+                    multiple={true}
+                    multiLabelFormat={(cnt) => `تم تحديد (${cnt})`}
                   />
                   <ModernSelect
                     value={filterSector}
                     onChange={setFilterSector}
                     options={SECTOR_OPTIONS}
-                    placeholder="نشاط المنشأة"
+                    placeholder="الكل"
+                    multiple={true}
+                    multiLabelFormat={(cnt) => `تم تحديد (${cnt})`}
                   />
                 </>
               )}
@@ -805,13 +850,17 @@ export default function AdminNotificationsPage({ navigate }) {
                     value={filterActivity}
                     onChange={setFilterActivity}
                     options={CONSULTANT_ACTIVITY_OPTIONS}
-                    placeholder="نوع النشاط المهني"
+                    placeholder="الكل"
+                    multiple={true}
+                    multiLabelFormat={(cnt) => `تم تحديد (${cnt})`}
                   />
                   <ModernSelect
                     value={filterSpecialization}
                     onChange={setFilterSpecialization}
                     options={CONSULTANT_SPECIALIZATION_OPTIONS}
-                    placeholder="التخصص الرئيسي"
+                    placeholder="الكل"
+                    multiple={true}
+                    multiLabelFormat={(cnt) => `تم تحديد (${cnt})`}
                   />
                 </>
               )}
@@ -820,10 +869,10 @@ export default function AdminNotificationsPage({ navigate }) {
                 onClick={() => {
                   setBroadcastSearch('');
                   setFilterAudience('all');
-                  setFilterLegalForm('all');
-                  setFilterSector('all');
-                  setFilterActivity('all');
-                  setFilterSpecialization('all');
+                  setFilterLegalForm([]);
+                  setFilterSector([]);
+                  setFilterActivity([]);
+                  setFilterSpecialization([]);
                 }}
                 title="إعادة تعيين فلاتر الإذاعات"
                 size={38}
@@ -976,54 +1025,15 @@ export default function AdminNotificationsPage({ navigate }) {
         initialData={templatePreset}
       />
 
-      {/* Preview Modal */}
-      {previewModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 9999 }}>
-          <div style={{ width: '460px', maxWidth: '95vw', background: '#FFFFFF', borderRadius: '16px', overflow: 'hidden', padding: '24px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0e3b5e', margin: '0 0 14px 0' }}>
-              تفاصيل الإشعار
-            </h3>
-            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
-              <div style={{ fontWeight: '900', color: '#0e3b5e', fontSize: '14px', marginBottom: '6px' }}>
-                {cleanNotificationTitle(previewModalOpen.title)}
-              </div>
-              <div style={{ color: '#475569', fontSize: '12.5px', lineHeight: '1.6' }}>
-                {previewModalOpen.message}
-              </div>
-              <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'monospace' }}>
-                <span>{formatEnglishDateTime(previewModalOpen.created_at || previewModalOpen.sentAt).date}</span>
-                <span>•</span>
-                <span>{formatEnglishDateTime(previewModalOpen.created_at || previewModalOpen.sentAt).time}</span>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              {(() => {
-                const target = getNotificationTarget(previewModalOpen, 'admin');
-                if (!target || !target.url) return null;
-                return (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPreviewModalOpen(null);
-                      navigate(target.url);
-                    }}
-                    style={{ flex: 1.5, background: '#005D9C', color: '#FFFFFF', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                  >
-                    <span>{target.label} ↵</span>
-                  </button>
-                );
-              })()}
-              <button
-                type="button"
-                onClick={() => setPreviewModalOpen(null)}
-                style={{ flex: 1, background: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1', padding: '10px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer' }}
-              >
-                إغلاق
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Sleek NotificationDetailsModal */}
+      <NotificationDetailsModal
+        isOpen={Boolean(previewModalOpen)}
+        notification={previewModalOpen}
+        onClose={() => setPreviewModalOpen(null)}
+        onNavigate={(url) => navigate(url)}
+        onMarkAsRead={(id) => handleMarkAsRead(id)}
+        role="admin"
+      />
 
       {/* Sleek ConfirmModal */}
       <ConfirmModal

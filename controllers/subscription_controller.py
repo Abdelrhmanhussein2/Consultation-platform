@@ -12,7 +12,35 @@ from models.users.user import User
 from models.communication.notification import Notification
 from helpers.enums import NotificationType, UserRole
 
+# ══════════════════════════════════════════════════════════════════
+# UNIFIED PLAN QUOTAS (Single Source of Truth)
+# ══════════════════════════════════════════════════════════════════
+PLAN_QUOTAS = {
+    "مجانية": {
+        "monthly": {"points": 20, "downloads": 3, "prints": 5, "consultations": 0, "price": 0.0},
+        "yearly":  {"points": 240, "downloads": 36, "prints": 60, "consultations": 0, "price": 0.0},
+    },
+    "أساسية": {
+        "monthly": {"points": 800, "downloads": 25, "prints": 25, "consultations": 1, "price": 29.99},
+        "yearly":  {"points": 12000, "downloads": 350, "prints": 350, "consultations": 15, "price": 284.30},
+    },
+    "احترافية": {
+        "monthly": {"points": 3000, "downloads": 100, "prints": 100, "consultations": 3, "price": 79.99},
+        "yearly":  {"points": 42000, "downloads": 1400, "prints": 1400, "consultations": 40, "price": 758.30},
+    }
+}
+
 class SubscriptionController:
+
+    @staticmethod
+    def get_plan_quotas(plan_name: str, is_yearly: bool = False) -> Dict[str, Any]:
+        cycle = "yearly" if is_yearly else "monthly"
+        norm_name = "مجانية"
+        if "احتراف" in str(plan_name):
+            norm_name = "احترافية"
+        elif "أساس" in str(plan_name):
+            norm_name = "أساسية"
+        return PLAN_QUOTAS.get(norm_name, {}).get(cycle, PLAN_QUOTAS["مجانية"][cycle])
 
     # ══════════════════════════════════════════════════════════════════
     # 1. DASHBOARD & ANALYTICS
@@ -113,6 +141,89 @@ class SubscriptionController:
         plans = db.query(SubscriptionPlan).options(
             joinedload(SubscriptionPlan.cycles)
         ).order_by(SubscriptionPlan.created_at.asc()).all()
+
+        # Guarantee all 3 standard plans (مجانية, أساسية, احترافية) exist in the database
+        existing_names = {p.name for p in plans}
+        standard_plans = [
+            {
+                "name": "مجانية",
+                "desc": "للبدء واستكشاف الخدمات الأساسية في المنصة.",
+                "team": 1,
+                "support": "خلال 48 ساعة",
+                "ai": True,
+                "default": True,
+                "recommended": False,
+                "cycles": {
+                    "monthly": {"price": 0.0, "cases": 5, "points": 20, "downloads": 3, "prints": 5, "consultations": 0},
+                    "yearly": {"price": 0.0, "cases": 60, "points": 240, "downloads": 36, "prints": 60, "consultations": 0}
+                }
+            },
+            {
+                "name": "أساسية",
+                "desc": "مناسبة للأفراد والمنشآت الصغيرة التي تحتاج أدوات ضريبية أوسع واستشارات سريعة.",
+                "team": 5,
+                "support": "خلال 24 ساعة",
+                "ai": True,
+                "default": False,
+                "recommended": False,
+                "cycles": {
+                    "monthly": {"price": 29.99, "cases": 25, "points": 800, "downloads": 25, "prints": 25, "consultations": 1},
+                    "yearly": {"price": 284.30, "cases": 350, "points": 12000, "downloads": 350, "prints": 350, "consultations": 15}
+                }
+            },
+            {
+                "name": "احترافية",
+                "desc": "للفرق والمنشآت التي تحتاج استخدامًا مكثفًا وأولوية قصوى واستشارات متعددة.",
+                "team": 10,
+                "support": "أولوية قصوى — 24/7",
+                "ai": True,
+                "default": False,
+                "recommended": True,
+                "cycles": {
+                    "monthly": {"price": 79.99, "cases": 100, "points": 3000, "downloads": 100, "prints": 100, "consultations": 3},
+                    "yearly": {"price": 758.30, "cases": 1400, "points": 42000, "downloads": 1400, "prints": 1400, "consultations": 40}
+                }
+            }
+        ]
+
+        seeded_any = False
+        for sp in standard_plans:
+            if sp["name"] not in existing_names:
+                new_plan = SubscriptionPlan(
+                    name=sp["name"],
+                    desc=sp["desc"],
+                    team_members=sp["team"],
+                    support_level=sp["support"],
+                    ai_enabled=sp["ai"],
+                    is_active=True,
+                    is_default=sp["default"],
+                    is_recommended=sp["recommended"]
+                )
+                db.add(new_plan)
+                db.flush()
+                for c_period, c_vals in sp["cycles"].items():
+                    cycle_obj = SubscriptionPlanCycle(
+                        plan_id=new_plan.id,
+                        period=c_period,
+                        price=c_vals["price"],
+                        cases_limit=c_vals["cases"],
+                        points_limit=c_vals["points"],
+                        downloads_limit=c_vals["downloads"],
+                        prints_limit=c_vals["prints"],
+                        free_consultations_limit=c_vals["consultations"],
+                        is_enabled=True
+                    )
+                    db.add(cycle_obj)
+                seeded_any = True
+
+        if seeded_any:
+            try:
+                db.commit()
+                plans = db.query(SubscriptionPlan).options(
+                    joinedload(SubscriptionPlan.cycles)
+                ).order_by(SubscriptionPlan.created_at.asc()).all()
+            except Exception:
+                db.rollback()
 
         results = []
         for p in plans:
@@ -388,9 +499,11 @@ class SubscriptionController:
         is_yearly = (s.cycle == "سنوي") if (s and s.cycle) else False
         end_d = now + timedelta(days=365 if is_yearly else 30)
 
-        points = (42000 if is_yearly else 3000) if target_plan_name == "احترافية" else (12000 if is_yearly else 800) if target_plan_name == "أساسية" else 20
-        downloads = (1400 if is_yearly else 100) if target_plan_name == "احترافية" else (350 if is_yearly else 25) if target_plan_name == "أساسية" else 5
-        consultations = (40 if is_yearly else 3) if target_plan_name == "احترافية" else (15 if is_yearly else 1) if target_plan_name == "أساسية" else 0
+        quotas = SubscriptionController.get_plan_quotas(target_plan_name, is_yearly)
+        points = quotas["points"]
+        downloads = quotas["downloads"]
+        prints = quotas["prints"]
+        consultations = quotas["consultations"]
 
         if not s:
             try:
@@ -409,6 +522,8 @@ class SubscriptionController:
                         points_used=0,
                         downloads_total=downloads,
                         downloads_used=0,
+                        prints_total=prints,
+                        prints_used=0,
                         consultations_total=consultations,
                         consultations_used=0
                     )
@@ -430,6 +545,8 @@ class SubscriptionController:
             s.points_used = 0
             s.downloads_total = downloads
             s.downloads_used = 0
+            s.prints_total = prints
+            s.prints_used = 0
             s.consultations_total = consultations
             s.consultations_used = 0
             tl = SubscriptionTimeline(
@@ -522,9 +639,11 @@ class SubscriptionController:
         end_d = now + timedelta(days=365 if is_yearly else 30)
         
         plan_name = r.plan.name if r.plan else "المعتمدة"
-        points = (42000 if is_yearly else 3000) if plan_name == "احترافية" else (12000 if is_yearly else 800) if plan_name == "أساسية" else 0
-        downloads = (1400 if is_yearly else 100) if plan_name == "احترافية" else (350 if is_yearly else 25) if plan_name == "أساسية" else 5
-        consultations = (40 if is_yearly else 3) if plan_name == "احترافية" else (15 if is_yearly else 1) if plan_name == "أساسية" else 0
+        quotas = SubscriptionController.get_plan_quotas(plan_name, is_yearly)
+        points = quotas["points"]
+        downloads = quotas["downloads"]
+        prints = quotas["prints"]
+        consultations = quotas["consultations"]
 
         if not existing_sub:
             new_sub = UserSubscription(
@@ -539,6 +658,8 @@ class SubscriptionController:
                 points_used=0,
                 downloads_total=downloads,
                 downloads_used=0,
+                prints_total=prints,
+                prints_used=0,
                 consultations_total=consultations,
                 consultations_used=0
             )
@@ -561,6 +682,8 @@ class SubscriptionController:
             existing_sub.points_used = 0
             existing_sub.downloads_total = downloads
             existing_sub.downloads_used = 0
+            existing_sub.prints_total = prints
+            existing_sub.prints_used = 0
             existing_sub.consultations_total = consultations
             existing_sub.consultations_used = 0
 
@@ -657,12 +780,188 @@ class SubscriptionController:
     # 6. USER & CONSULTANT PORTAL LIFECYCLE (Active Sub, Remaining Days, Renew)
     # ══════════════════════════════════════════════════════════════════
     @staticmethod
-    def get_my_subscription(db: Session, user_id: uuid.UUID) -> Dict[str, Any]:
+    def get_or_create_free_subscription(db: Session, user_id: uuid.UUID) -> UserSubscription:
+        """
+        Finds existing user subscription or creates a persistent Free Tier record
+        with official initial quotas (20 AI points, 3 Downloads, 5 Prints, 0 Consultations).
+        """
         sub = db.query(UserSubscription).options(
             joinedload(UserSubscription.plan)
         ).filter(
             UserSubscription.user_id == user_id
         ).order_by(UserSubscription.created_at.desc()).first()
+
+        if sub:
+            return sub
+
+        free_plan = db.query(SubscriptionPlan).filter(
+            or_(
+                SubscriptionPlan.name == "مجانية",
+                SubscriptionPlan.name == "الباقة المجانية",
+                SubscriptionPlan.is_default == True
+            )
+        ).first()
+
+        now = datetime.utcnow()
+        end_d = now + timedelta(days=3650)  # Unlimited duration for free tier
+
+        if not free_plan:
+            free_plan = SubscriptionPlan(
+                name="مجانية",
+                desc="للبدء واستكشاف الخدمات الأساسية في المنصة.",
+                team_members=1,
+                support_level="خلال 48 ساعة",
+                ai_enabled=True,
+                trial_enabled=False,
+                refund_policy=False,
+                is_active=True,
+                is_default=True,
+                is_recommended=False
+            )
+            db.add(free_plan)
+            db.flush()
+
+        quotas = PLAN_QUOTAS["مجانية"]["monthly"]
+        sub = UserSubscription(
+            user_id=user_id,
+            plan_id=free_plan.id,
+            cycle="شهري",
+            status="active",
+            start_date=now,
+            end_date=end_d,
+            renewal_date=end_d,
+            points_total=quotas["points"],
+            points_used=0,
+            downloads_total=quotas["downloads"],
+            downloads_used=0,
+            prints_total=quotas["prints"],
+            prints_used=0,
+            consultations_total=quotas["consultations"],
+            consultations_used=0,
+            is_trial=False
+        )
+        db.add(sub)
+        try:
+            db.commit()
+            db.refresh(sub)
+        except Exception:
+            db.rollback()
+            sub = db.query(UserSubscription).filter(UserSubscription.user_id == user_id).first()
+
+        return sub
+
+    @staticmethod
+    def consume_resource(
+        db: Session,
+        user_id: uuid.UUID,
+        resource_type: str,
+        amount: int = 1,
+        title: str = "",
+        description: str = ""
+    ) -> Dict[str, Any]:
+        """
+        Consumes quota for a resource (points, download, print, consultation)
+        with strict quota enforcement.
+        """
+        sub = SubscriptionController.get_or_create_free_subscription(db, user_id)
+        if not sub:
+            raise HTTPException(status_code=404, detail="تعذر العثور على اشتراك للمستخدم")
+
+        if sub.status != "active":
+            raise HTTPException(status_code=403, detail="اشتراكك غير نشط حالياً، يرجى التجديد للمتابعة")
+
+        res_clean = str(resource_type).strip().lower()
+
+        if res_clean in ["point", "points", "ai", "ai_point", "ai_points"]:
+            pts_tot = getattr(sub, 'points_total', 20)
+            pts_usd = getattr(sub, 'points_used', 0)
+            if pts_usd + amount > pts_tot:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"لقد استنفدت رصيدك من نقاط المساعد الذكي ({pts_usd}/{pts_tot}). يرجى ترقية باقتك للمتابعة."
+                )
+            sub.points_used = pts_usd + amount
+            rem = max(0, pts_tot - sub.points_used)
+            used = sub.points_used
+            total = pts_tot
+            log_res = "points"
+
+        elif res_clean in ["download", "downloads", "tax_forms"]:
+            dl_tot = getattr(sub, 'downloads_total', 3)
+            dl_usd = getattr(sub, 'downloads_used', 0)
+            if dl_usd + amount > dl_tot:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"لقد استنفدت حصتك الشهرية من تحميل القوانين ({dl_usd}/{dl_tot}). يرجى ترقية باقتك للتحميل غير المحدود."
+                )
+            sub.downloads_used = dl_usd + amount
+            rem = max(0, dl_tot - sub.downloads_used)
+            used = sub.downloads_used
+            total = dl_tot
+            log_res = "downloads"
+
+        elif res_clean in ["print", "prints"]:
+            pr_tot = getattr(sub, 'prints_total', 5)
+            pr_usd = getattr(sub, 'prints_used', 0)
+            if pr_usd + amount > pr_tot:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"لقد استنفدت حصتك الشهرية من طباعة القوانين ({pr_usd}/{pr_tot}). يرجى ترقية باقتك لطباعة مستمرة."
+                )
+            sub.prints_used = pr_usd + amount
+            rem = max(0, pr_tot - sub.prints_used)
+            used = sub.prints_used
+            total = pr_tot
+            log_res = "prints"
+
+        elif res_clean in ["consultation", "consultations", "quick_consultation"]:
+            plan_name = sub.plan.name if sub.plan else "مجانية"
+            if "مجاني" in plan_name or getattr(sub, 'consultations_total', 0) <= 0:
+                raise HTTPException(
+                    status_code=403,
+                    detail="خدمة الاستشارة السريعة متاحة حصرياً للمشتركين في باقات ديوان. يرجى الاشتراك في إحدى الباقات للوصول إلى الخدمة وحجز مستشارك."
+                )
+            co_tot = getattr(sub, 'consultations_total', 0)
+            co_usd = getattr(sub, 'consultations_used', 0)
+            if co_usd + amount > co_tot:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"لقد استنفدت رصيد الاستشارات السريعة في باقتك ({co_usd}/{co_tot}). يمكنك حجز استشارة إضافية أو ترقية باقتك."
+                )
+            sub.consultations_used = co_usd + amount
+            rem = max(0, co_tot - sub.consultations_used)
+            used = sub.consultations_used
+            total = co_tot
+            log_res = "consultations"
+        else:
+            raise HTTPException(status_code=400, detail=f"نوع المورد المطلوب غير معروف: {resource_type}")
+
+        # Add usage log
+        try:
+            usage_log = SubscriptionUsageLog(
+                subscription_id=sub.id,
+                resource_type=log_res,
+                title=title or f"استهلاك {resource_type}",
+                description=description or f"تم استهلاك {amount} من رصيد {resource_type}",
+                category_badge="استهلاك رصيد"
+            )
+            db.add(usage_log)
+        except Exception:
+            pass
+
+        db.commit()
+        return {
+            "success": True,
+            "resource_type": resource_type,
+            "consumed": amount,
+            "used": used,
+            "total": total,
+            "remaining": rem
+        }
+
+    @staticmethod
+    def get_my_subscription(db: Session, user_id: uuid.UUID) -> Dict[str, Any]:
+        sub = SubscriptionController.get_or_create_free_subscription(db, user_id)
 
         now = datetime.utcnow()
 
@@ -673,32 +972,6 @@ class SubscriptionController:
         ).all()
         pending_plan_ids = [str(r.plan_id) for r in pending_reqs if r.plan_id]
         pending_plan_names = [r.plan.name for r in pending_reqs if r.plan]
-
-        if not sub:
-            # Default Free Tier
-            return {
-                "has_subscription": False,
-                "plan_name": "الباقة المجانية",
-                "badge": "مجاني",
-                "badge_color": "gray",
-                "status": "active",
-                "cycle": "غير محدود",
-                "start_date": "—",
-                "end_date": "—",
-                "renewal_date": "—",
-                "remaining_days": 0,
-                "is_expiring_soon": False,
-                "expiring_reminder": None,
-                "consultations_total": 0,
-                "consultations_used": 0,
-                "ai_points_total": 20,
-                "ai_points_used": 0,
-                "tax_forms_total": 1,
-                "tax_forms_used": 0,
-                "auto_renew": False,
-                "pending_plan_ids": pending_plan_ids,
-                "pending_plan_names": pending_plan_names
-            }
 
         # Calculate remaining days
         remaining_days = 0
@@ -715,12 +988,25 @@ class SubscriptionController:
         )
 
         plan_obj = sub.plan
-        plan_name = plan_obj.name if plan_obj else "الباقة الأساسية"
-        badge_text = "نشط" if sub.status == "active" else "معلّق"
-        badge_col = "green" if sub.status == "active" else "amber"
+        plan_name = plan_obj.name if plan_obj else "الباقة المجانية"
+        is_free_plan = bool("مجاني" in plan_name)
+        badge_text = "مجاني" if is_free_plan else ("نشط" if sub.status == "active" else "معلّق")
+        badge_col = "gray" if is_free_plan else ("green" if sub.status == "active" else "amber")
+
+        # Quick consultation access rule: only active subscribers with paid plans
+        can_access_quick = bool(sub.status == "active" and not is_free_plan)
+
+        dl_tot = getattr(sub, 'downloads_total', 3)
+        dl_usd = getattr(sub, 'downloads_used', 0)
+        pr_tot = getattr(sub, 'prints_total', 5)
+        pr_usd = getattr(sub, 'prints_used', 0)
+        ai_tot = getattr(sub, 'points_total', 20)
+        ai_usd = getattr(sub, 'points_used', 0)
+        co_tot = getattr(sub, 'consultations_total', 0)
+        co_usd = getattr(sub, 'consultations_used', 0)
 
         return {
-            "has_subscription": True,
+            "has_subscription": not is_free_plan,
             "subscription_id": str(sub.id),
             "plan_id": str(sub.plan_id) if sub.plan_id else None,
             "plan_name": plan_name,
@@ -728,19 +1014,25 @@ class SubscriptionController:
             "badge_color": badge_col,
             "status": sub.status,
             "cycle": sub.cycle or "شهري",
-            "start_date": sub.start_date.strftime("%Y-%m-%d") if sub.start_date else "2026-08-01",
-            "end_date": sub.end_date.strftime("%Y-%m-%d") if sub.end_date else "2026-09-01",
-            "renewal_date": sub.renewal_date.strftime("%Y-%m-%d") if sub.renewal_date else "2026-09-01",
-            "remaining_days": remaining_days,
-            "is_expiring_soon": is_expiring_soon,
-            "expiring_reminder": expiring_reminder,
-            "consultations_total": getattr(sub, 'consultations_total', 0),
-            "consultations_used": getattr(sub, 'consultations_used', 0),
-            "ai_points_total": getattr(sub, 'points_total', 0),
-            "ai_points_used": getattr(sub, 'points_used', 0),
-            "tax_forms_total": getattr(sub, 'downloads_total', 0),
-            "tax_forms_used": getattr(sub, 'downloads_used', 0),
-            "auto_renew": getattr(sub, 'auto_renew', True),
+            "start_date": sub.start_date.strftime("%Y-%m-%d") if sub.start_date else "—",
+            "end_date": sub.end_date.strftime("%Y-%m-%d") if not is_free_plan and sub.end_date else "—",
+            "renewal_date": sub.renewal_date.strftime("%Y-%m-%d") if not is_free_plan and sub.renewal_date else "—",
+            "remaining_days": 0 if is_free_plan else remaining_days,
+            "is_expiring_soon": False if is_free_plan else is_expiring_soon,
+            "expiring_reminder": None if is_free_plan else expiring_reminder,
+            "consultations_total": co_tot,
+            "consultations_used": co_usd,
+            "ai_points_total": ai_tot,
+            "ai_points_used": ai_usd,
+            "tax_forms_total": dl_tot,
+            "tax_forms_used": dl_usd,
+            "downloads_total": dl_tot,
+            "downloads_used": dl_usd,
+            "prints_total": pr_tot,
+            "prints_used": pr_usd,
+            "can_access_quick_consultation": can_access_quick,
+            "is_free": is_free_plan,
+            "auto_renew": getattr(sub, 'auto_renew', False if is_free_plan else True),
             "pending_plan_ids": pending_plan_ids,
             "pending_plan_names": pending_plan_names
         }
@@ -810,7 +1102,17 @@ class SubscriptionController:
                 user_id=adm.id,
                 type=NotificationType.general,
                 title="طلب اشتراك جديد بانتظار الموافقة",
-                message=f"قام [{user_name}] بتقديم طلب اشتراك في باقة [{plan.name}] ({cycle}). يرجى مراجعة الطلب واعتماده."
+                message=f"قام [{user_name}] بتقديم طلب اشتراك في باقة [{plan.name}] ({cycle}). يرجى مراجعة الطلب واعتماده.",
+                related_entity_type="subscription_request",
+                related_entity_id=req.id,
+                extra_metadata={
+                    "target_type": "subscription_request",
+                    "target_id": str(req.id),
+                    "user_id": str(user_id),
+                    "user_name": user_name,
+                    "request_no": req.request_no,
+                    "target_url": f"/admin/subscriptions?tab=requests&search={user_name}&reqId={req.id}"
+                }
             )
             db.add(adm_notif)
 

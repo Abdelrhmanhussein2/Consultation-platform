@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { consultantService } from '../services/consultantService';
 import { appointmentService } from '../services/appointmentService';
+import { apiFetch } from '../services/api';
 import { OFFICIAL_15_SPECIALIZATIONS } from '../utils/specializations';
 import ModernSelect from '../components/ModernSelect';
 import '../components/QuickConsultation/QuickConsultationWizard.css';
@@ -32,6 +33,18 @@ const ChatIcon = () => (
 export default function QuickConsultationPage({ navigate }) {
   const { token } = useAuth();
   
+  // Subscription gate state
+  const [subscription, setSubscription] = useState(null);
+  const [checkingSub, setCheckingSub] = useState(true);
+
+  useEffect(() => {
+    if (!token) return;
+    apiFetch('/api/subscriptions/my-subscription', {}, token)
+      .then(res => setSubscription(res))
+      .catch(() => {})
+      .finally(() => setCheckingSub(false));
+  }, [token]);
+
   // Wizard flow states
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -270,6 +283,81 @@ export default function QuickConsultationPage({ navigate }) {
       return prev + 1;
     });
   };
+
+  // ── Subscriber Access Gate (Free tier users cannot access Quick Consultation) ──
+  if (!checkingSub && subscription && (subscription.is_free || !subscription.has_subscription)) {
+    return (
+      <div className="quick-consultation-container" style={{ direction: 'rtl', textAlign: 'right' }}>
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '18px',
+          border: '1px solid #e2e8f0',
+          padding: '48px 24px',
+          textAlign: 'center',
+          maxWidth: '560px',
+          margin: '40px auto',
+          boxShadow: '0 10px 30px rgba(18, 58, 84, 0.05)'
+        }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '60px',
+            height: '60px',
+            borderRadius: '18px',
+            background: '#FEF3C7',
+            color: '#D97706',
+            marginBottom: '18px'
+          }}>
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </div>
+          <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#1E293B', marginBottom: '10px' }}>
+            الاستشارة السريعة متاحة للمشتركين فقط
+          </h2>
+          <p style={{ color: '#64748B', fontSize: '14px', lineHeight: '1.7', margin: '0 auto 24px auto', maxWidth: '420px' }}>
+            خدمة الاستشارة السريعة المباشرة مع نخبة المستشارين الضريبيين والمعتمدين متاحة حصرياً لمشتركي باقات ديوان. يمكنك ترقية باقتك للوصول الفوري للخدمة.
+          </p>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <button
+              type="button"
+              onClick={() => navigate('/subscriptions')}
+              style={{
+                background: '#123a54',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '10px',
+                padding: '12px 24px',
+                fontSize: '14px',
+                fontWeight: '700',
+                cursor: 'pointer'
+              }}
+            >
+              استعراض وترقية الباقات
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard')}
+              style={{
+                background: '#f1f5f9',
+                color: '#475569',
+                border: '1px solid #cbd5e1',
+                borderRadius: '10px',
+                padding: '12px 20px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              العودة للرئيسية
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="quick-consultation-container">

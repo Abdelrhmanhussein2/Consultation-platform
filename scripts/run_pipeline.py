@@ -81,9 +81,14 @@ def parse_law_file(filepath: str) -> dict:
     is_base = "النسخة" in filename or "الأصلية" in filename
     suffix = "الأصلية" if is_base else "وتعديلاته"
 
+    cleaned_title = filename.replace(".docx", "").replace("_", " ")
+    cleaned_title = re.sub(r'\s*—\s*كما صدر', '', cleaned_title)
+    cleaned_title = re.sub(r'\s*-\s*كما صدر', '', cleaned_title)
+    cleaned_title = re.sub(r'\s+كما صدر', '', cleaned_title).strip()
+
     law_data = {
         "اسم_الملف": filename,
-        "العنوان": filename.replace(".docx", "").replace("_", " "),
+        "العنوان": cleaned_title,
         "رقم_القانون": "",
         "السنة": "",
         "النوع": "نسخة أصلية" if is_base else "نسخة معدلة",
@@ -103,7 +108,8 @@ def parse_law_file(filepath: str) -> dict:
         law_data["السنة"] = name_match.group(2)
 
     law_data["معرف"] = f"قانون_{law_data['رقم_القانون']}_{law_data['السنة']}_{suffix}"
-    law_data["اسم_العرض"] = f"قانون رقم {law_data['رقم_القانون']} لسنة {law_data['السنة']} ({suffix})"
+    display_suffix = "النسخة الأصلية" if is_base else "وتعديلاته"
+    law_data["اسم_العرض"] = f"قانون رقم {law_data['رقم_القانون']} لسنة {law_data['السنة']} ({display_suffix})"
 
     current_article = None
     current_clause = None

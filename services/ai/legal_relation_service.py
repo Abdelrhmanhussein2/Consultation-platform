@@ -118,7 +118,12 @@ class LegalRelationService:
         try:
             with neo4j_db.get_session() as session:
                 if relation_domain == "legislative":
-                    edge_type = "ISSUED_UNDER" if relation_type == "issued_under" else "REPEALED_BY"
+                    if relation_type == "amends":
+                        edge_type = "`تعديل_على`"
+                    elif relation_type == "issued_under":
+                        edge_type = "ISSUED_UNDER"
+                    else:
+                        edge_type = "REPEALED_BY"
                     cql = f"""
                     MATCH (parent) WHERE (parent:Law OR parent:`قانون`) AND (parent.law_id = $pid OR parent.`معرف` = $pid OR parent.title = $pid)
                     MATCH (child) WHERE (child.law_id = $cid OR child.`معرف` = $cid OR child.title = $cid)

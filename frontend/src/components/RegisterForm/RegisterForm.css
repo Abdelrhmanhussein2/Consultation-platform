@@ -273,16 +273,21 @@
   box-shadow: 0 0 0 3px rgba(0, 93, 156, 0.12);
 }
 
-.auth-phone-input {
+.auth-phone-container .auth-phone-input,
+.auth-phone-container input.auth-phone-input,
+.auth-phone-container input.auth-phone-input:focus,
+.auth-phone-container input.auth-phone-input:focus-visible,
+.auth-phone-container input.auth-phone-input:active {
   flex: 1;
   min-width: 0;
-  border: none;
-  outline: none;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
   padding: 0 14px;
   font-size: 13.5px;
   text-align: left;
   color: #1E293B;
-  background: transparent;
+  background: transparent !important;
 }
 
 .auth-phone-input::placeholder {
@@ -885,4 +890,300 @@
     grid-template-columns: 1fr;
     gap: 12px;
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   NAME & TITLE COMBINED ROW (STEP 1 FOR CONSULTANT)
+   ══════════════════════════════════════════════════════════════════ */
+.auth-name-title-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.auth-title-col {
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.auth-name-col {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SPECIALIZATIONS MULTI-SELECT DROPDOWN & TAGS
+   ══════════════════════════════════════════════════════════════════ */
+.spec-multiselect-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.spec-multiselect-trigger {
+  width: 100%;
+  height: 48px;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.spec-multiselect-trigger:hover {
+  border-color: #94A3B8;
+  background-color: #F8FAFC;
+}
+
+.spec-multiselect-trigger.is-open {
+  border-color: var(--brand-blue, #005D9C);
+  box-shadow: 0 0 0 3px rgba(0, 93, 156, 0.12);
+  background-color: #FFFFFF;
+}
+
+.spec-multiselect-trigger-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+}
+
+.spec-multiselect-icon {
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.spec-multiselect-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1E293B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spec-multiselect-label.placeholder {
+  color: #94A3B8;
+  font-weight: 500;
+}
+
+.spec-multiselect-count-badge {
+  background: #E0F2FE;
+  color: #0369A1;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.spec-multiselect-chevron {
+  color: #64748B;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  margin-right: 6px;
+}
+
+.spec-multiselect-chevron.open {
+  transform: rotate(180deg);
+  color: var(--brand-blue, #005D9C);
+}
+
+.spec-multiselect-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 100%;
+  max-height: 290px;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  box-shadow: 0 14px 30px -6px rgba(13, 60, 92, 0.18), 0 4px 10px -2px rgba(0, 0, 0, 0.05);
+  z-index: 100;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: specDropdownFadeIn 0.15s ease-out;
+}
+
+@keyframes specDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.spec-multiselect-header {
+  padding: 8px 12px;
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+}
+
+.spec-multiselect-header-title {
+  color: #475569;
+  font-weight: 700;
+}
+
+.spec-multiselect-reset-btn {
+  background: transparent;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  color: #64748B;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.spec-multiselect-reset-btn:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+  border-color: #94A3B8;
+}
+
+.spec-multiselect-list {
+  padding: 6px 0;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.spec-multiselect-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+
+.spec-multiselect-item:hover {
+  background-color: #F1F5F9;
+}
+
+.spec-multiselect-item.is-selected {
+  background-color: #F8FAFC;
+}
+
+.spec-multiselect-checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1.5px solid #CBD5E1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #FFFFFF;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.spec-multiselect-item.is-selected .spec-multiselect-checkbox {
+  border-color: #0D3C5C;
+  background: #0D3C5C;
+  color: #FFFFFF;
+}
+
+.spec-multiselect-item-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  flex: 1;
+  text-align: right;
+}
+
+.spec-multiselect-item.is-selected .spec-multiselect-item-text {
+  color: #0D3C5C;
+  font-weight: 700;
+}
+
+.spec-multiselect-footer {
+  padding: 8px 12px;
+  background: #F8FAFC;
+  border-top: 1px solid #E2E8F0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.spec-multiselect-confirm-btn {
+  background: #0D3C5C;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.spec-multiselect-confirm-btn:hover {
+  background: #092B42;
+}
+
+/* Selected Badges Section below the Dropdown (Plain / سادة) */
+.spec-selected-tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.spec-selected-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  transition: all 0.15s ease;
+}
+
+.spec-selected-tag:hover {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+}
+
+.spec-tag-remove-btn {
+  background: transparent;
+  border: none;
+  color: #64748B;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  transition: all 0.1s ease;
+}
+
+.spec-tag-remove-btn:hover {
+  background: rgba(100, 116, 139, 0.15);
+  color: #DC2626;
 }

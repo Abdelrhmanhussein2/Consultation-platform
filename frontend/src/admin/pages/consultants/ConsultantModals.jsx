@@ -1,4 +1,5 @@
 import React from 'react';
+import { CONSULTANT_TITLE_OPTIONS, CONSULTANT_REGISTRATION_ACTIVITIES } from '../../components/notifications/broadcastConstants';
 
 // Password validation helper
 export const isPasswordValid = (pwd) => {
@@ -128,6 +129,59 @@ export function AddConsultantModal({
               />
             </div>
 
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '4px' }}>
+                اللقب المهني / الأكاديمي *
+              </label>
+              <select
+                value={newConsultant.title || 'أ.'}
+                onChange={(e) => setNewConsultant({ ...newConsultant, title: e.target.value })}
+                className="admin-select-input"
+                style={{ width: '100%' }}
+              >
+                {CONSULTANT_TITLE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '4px' }}>
+                المسمى المهني *
+              </label>
+              <select
+                value={newConsultant.activityType || 'مستشار ضريبي'}
+                onChange={(e) => setNewConsultant({ ...newConsultant, activityType: e.target.value })}
+                className="admin-select-input"
+                style={{ width: '100%' }}
+              >
+                {CONSULTANT_REGISTRATION_ACTIVITIES.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {newConsultant.activityType === 'مدقق حسابات' && (
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '4px' }}>
+                  رقم إجازة مدقق حسابات قانوني JCPA *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="أدخل رقم إجازة JCPA"
+                  value={newConsultant.jcpaNumber || ''}
+                  onChange={(e) => setNewConsultant({ ...newConsultant, jcpaNumber: e.target.value })}
+                  className="admin-search-input"
+                  style={{ width: '100%' }}
+                />
+              </div>
+            )}
+
             <div style={{ gridColumn: 'span 2' }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '4px' }}>
                 التخصص الرئيسي المعتمد
@@ -145,22 +199,9 @@ export function AddConsultantModal({
                     </option>
                   ))
                 ) : (
-                  <option value="1">استشارات ضريبة الدخل والمبيعات</option>
+                  <option value="9">ضريبة الدخل والمبيعات</option>
                 )}
               </select>
-            </div>
-
-            <div style={{ gridColumn: 'span 2' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', marginBottom: '4px' }}>
-                اللقب المهني ورقم ترخيص JCPA
-              </label>
-              <input
-                type="text"
-                value={newConsultant.title}
-                onChange={(e) => setNewConsultant({ ...newConsultant, title: e.target.value })}
-                className="admin-search-input"
-                style={{ width: '100%' }}
-              />
             </div>
 
             <div style={{ gridColumn: 'span 2' }}>
@@ -207,6 +248,7 @@ export function AddConsultantModal({
 export function EditConsultantModal({
   editModal,
   setEditModal,
+  specializations = [],
   savingEdit,
   handleSaveEdit
 }) {
@@ -214,26 +256,96 @@ export function EditConsultantModal({
 
   return (
     <div className="admin-modal-overlay" onClick={() => setEditModal(null)}>
-      <div className="admin-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px', padding: '24px' }}>
-        <h3 style={{ margin: '0 0 14px 0', fontSize: '18px', fontWeight: '800' }}>تعديل بيانات وتسعير المستشار</h3>
+      <div className="admin-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '540px', padding: '24px' }}>
+        <h3 style={{ margin: '0 0 14px 0', fontSize: '18px', fontWeight: '800', color: '#0e3b5e' }}>
+          تعديل بيانات وحساب المستشار
+        </h3>
 
-        <div style={{ marginBottom: '12px' }}>
-          <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '700', marginBottom: '4px' }}>الاسم:</label>
-          <input
-            type="text"
-            className="admin-search-input"
-            value={editModal.name}
-            onChange={(e) => setEditModal({ ...editModal, name: e.target.value })}
-          />
+        <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '10px', marginBottom: '12px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '4px' }}>اللقب:</label>
+            <select
+              value={editModal.title || 'أ.'}
+              onChange={(e) => setEditModal({ ...editModal, title: e.target.value })}
+              className="admin-select-input"
+              style={{ width: '100%' }}
+            >
+              {CONSULTANT_TITLE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '4px' }}>الاسم الكامل:</label>
+            <input
+              type="text"
+              className="admin-search-input"
+              value={editModal.name}
+              onChange={(e) => setEditModal({ ...editModal, name: e.target.value })}
+              style={{ width: '100%' }}
+            />
+          </div>
         </div>
 
         <div style={{ marginBottom: '12px' }}>
-          <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '700', marginBottom: '4px' }}>سعر الساعة (JOD):</label>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '4px' }}>المسار المهني:</label>
+          <select
+            value={editModal.activityType || 'مستشار ضريبي'}
+            onChange={(e) => setEditModal({ ...editModal, activityType: e.target.value })}
+            className="admin-select-input"
+            style={{ width: '100%' }}
+          >
+            {CONSULTANT_REGISTRATION_ACTIVITIES.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {editModal.activityType === 'مدقق حسابات' && (
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '4px' }}>
+              رقم إجازة مدقق حسابات قانوني JCPA:
+            </label>
+            <input
+              type="text"
+              placeholder="مثال: JCPA-2024-1234"
+              className="admin-search-input"
+              value={editModal.jcpaNumber || ''}
+              onChange={(e) => setEditModal({ ...editModal, jcpaNumber: e.target.value })}
+              style={{ width: '100%' }}
+            />
+          </div>
+        )}
+
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '4px' }}>التخصص الرئيسي:</label>
+          <select
+            value={editModal.specializationId || (specializations[0]?.id?.toString() || '1')}
+            onChange={(e) => setEditModal({ ...editModal, specializationId: e.target.value })}
+            className="admin-select-input"
+            style={{ width: '100%' }}
+          >
+            {specializations.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '4px' }}>سعر الساعة (JOD):</label>
           <input
             type="text"
             className="admin-search-input"
             value={editModal.hourlyRate}
             onChange={(e) => setEditModal({ ...editModal, hourlyRate: e.target.value })}
+            style={{ width: '100%' }}
           />
         </div>
 

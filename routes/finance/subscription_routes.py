@@ -24,6 +24,30 @@ def get_my_subscription(
     """
     return SubscriptionController.get_my_subscription(db, current_user.id)
 
+@router.post("/consume")
+def consume_subscription_resource(
+    payload: Dict[str, Any] = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Consumes subscription resource quota (download, print, points, consultation).
+    """
+    resource_type = payload.get("resource_type")
+    if not resource_type:
+        raise HTTPException(status_code=400, detail="حقل resource_type مطلوب")
+    amount = int(payload.get("amount", 1))
+    title = payload.get("title", "")
+    description = payload.get("description", "")
+    return SubscriptionController.consume_resource(
+        db=db,
+        user_id=current_user.id,
+        resource_type=resource_type,
+        amount=amount,
+        title=title,
+        description=description
+    )
+
 @router.post("/request-subscription")
 async def submit_subscription_request(
     request: Request,

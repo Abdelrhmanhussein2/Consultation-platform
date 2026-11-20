@@ -13,6 +13,7 @@ import LegalReadingProgressBar from './LegalReadingProgressBar';
 import { useReadingProgress }  from './useReadingProgress';
 import { useDocumentSearch }   from './useDocumentSearch';
 import { getLawTree }      from '../../../services/legalService';
+import { printLawDocument } from '../../../utils/printLawHelper';
 
 export default function LegalFullTextPage({ lawId, onClose }) {
   // ── Data ──────────────────────────────────────────────────────────────────
@@ -100,12 +101,12 @@ export default function LegalFullTextPage({ lawId, onClose }) {
   // ── Actions ───────────────────────────────────────────────────────────────
   const handlePrint = () => {
     setPrintCount(prev => prev + 1);
-    window.print();
+    printLawDocument(lawTree);
   };
 
   const handleDownload = () => {
     setDownloadCount(prev => prev + 1);
-    window.print();
+    printLawDocument(lawTree);
   };
 
   const handleCopy = () => {
@@ -116,15 +117,6 @@ export default function LegalFullTextPage({ lawId, onClose }) {
       .join('\n\n') || '';
     navigator.clipboard.writeText(text);
     alert('تم نسخ النص الكامل إلى الحافظة');
-  };
-
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({ title: lawTree?.title, url: window.location.href });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      alert('تم نسخ رابط الصفحة');
-    }
   };
 
   // ── Loading ───────────────────────────────────────────────────────────────
@@ -169,7 +161,6 @@ export default function LegalFullTextPage({ lawId, onClose }) {
           onPrint={handlePrint}
           onDownload={handleDownload}
           onCopy={handleCopy}
-          onShare={handleShare}
         />
 
         <LegalFullTextBody

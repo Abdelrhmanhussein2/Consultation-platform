@@ -229,8 +229,30 @@ class LegalController:
             )
 
     @staticmethod
-    def get_laws(q: str = None, year_from: int = None, year_to: int = None, include_inactive: bool = False):
-        return LegalGraphService.get_laws(q=q, year_from=year_from, year_to=year_to, include_inactive=include_inactive)
+    def get_laws(
+        q: str = None,
+        type: str = None,
+        status: str = None,
+        year_from: int = None,
+        year_to: int = None,
+        date_from: str = None,
+        date_to: str = None,
+        include_inactive: bool = False
+    ):
+        return LegalGraphService.get_laws(
+            q=q,
+            type=type,
+            status=status,
+            year_from=year_from,
+            year_to=year_to,
+            date_from=date_from,
+            date_to=date_to,
+            include_inactive=include_inactive
+        )
+
+    @staticmethod
+    def get_law_doc_types():
+        return LegalGraphService.get_law_doc_types()
 
     @staticmethod
     def get_law_tree(law_id: str, version_name: str = None, include_inactive: bool = False):
@@ -285,9 +307,21 @@ class LegalController:
         return LegalGraphService.get_judgments_citing_target(target_id)
 
     @staticmethod
-    def search(query: str, limit: int = 5, year_from: int = None, year_to: int = None):
+    def search(
+        query: str,
+        limit: int = 5,
+        year_from: int = None,
+        year_to: int = None,
+        date_from: str = None,
+        date_to: str = None
+    ):
         clean_q = (query or "").strip()
-        all_laws = LegalGraphService.get_laws(year_from=year_from, year_to=year_to)
+        all_laws = LegalGraphService.get_laws(
+            year_from=year_from,
+            year_to=year_to,
+            date_from=date_from,
+            date_to=date_to
+        )
         if not all_laws:
             return []
 

@@ -17,6 +17,14 @@ export async function fetchKnowledgeStats() {
   };
 }
 
+const COURT_DISPLAY_MAP = {
+  tax_first_instance: 'بداية حقوق',
+  cassation_rights: 'تمييز حقوق',
+  cassation_penal: 'تمييز جزاء',
+  administrative_high: 'قضاء إداري',
+  constitutional: 'قضاء دستوري'
+};
+
 export async function fetchKnowledgeSources({ kindFilter, statusFilter, yearFilter, search }) {
   const typeParam = kindFilter === 'precedent' ? 'judgment' : kindFilter === 'law' ? 'law' : 'all';
   const params = new URLSearchParams({ source_type: typeParam, page: '1', page_size: '50' });
@@ -29,22 +37,27 @@ export async function fetchKnowledgeSources({ kindFilter, statusFilter, yearFilt
   if (!res.ok) return null;
   const data = await res.json();
   if (!Array.isArray(data.items)) return [];
-  return data.items.map((s) => ({
-    id: s.id,
-    source_type: s.source_type,
-    title: s.title,
-    kind: s.source_type === 'judgment' ? 'precedent' : 'law',
-    code: s.number ? `رقم ${s.number}` : s.id,
-    number: s.number,
-    year: s.year,
-    court: s.court,
-    is_active: s.is_active,
-    status: s.status || (s.is_active ? 'ساري' : 'ملغي'),
-    body: s.body || '',
-    articles_count: s.articles_count,
-    citations_count: s.citations_count,
-    tags: s.source_type === 'judgment' ? [s.court || 'حكم قضائي'] : ['تشريع']
-  }));
+  return data.items.map((s) => {
+    const rawType = s.doc_type || (s.source_type === 'judgment' ? s.court || 'حكم قضائي' : 'قانون');
+    const cleanDocType = COURT_DISPLAY_MAP[rawType] || rawType;
+    return {
+      id: s.id,
+      source_type: s.source_type,
+      title: s.title,
+      kind: s.source_type === 'judgment' ? 'precedent' : 'law',
+      code: s.number ? `رقم ${s.number}` : s.id,
+      number: s.number,
+      year: s.year,
+      court: COURT_DISPLAY_MAP[s.court] || s.court,
+      is_active: s.is_active,
+      status: s.status || (s.is_active ? 'ساري' : 'ملغي'),
+      body: s.body || '',
+      articles_count: s.articles_count,
+      citations_count: s.citations_count,
+      doc_type: cleanDocType,
+      tags: [cleanDocType]
+    };
+  });
 }
 
 export async function fetchKnowledgeSourceDetail(sourceId, sourceType) {

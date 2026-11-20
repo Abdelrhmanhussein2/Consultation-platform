@@ -2,24 +2,25 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { getLegalSuggestionAsync, searchLocalDictionary } from '../../services/legalDictionary';
 import { searchLegal } from '../../services/legalService';
+import { getLawDisplayYear } from '../../utils/legalFormatters';
 
 const KNOWN_LAWS = [
   {
     type: 'law',
     title: 'قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته',
-    subtitle: 'نسخة معدلة — ساري (2014)',
+    subtitle: 'نسخة معدلة — ساري (2019)',
     badge: 'تشريع قانوني'
   },
   {
     type: 'law',
-    title: 'قانون ضريبة الدخل رقم 34 لسنة 2014 (النسخة الأصلية — كما صدر)',
+    title: 'قانون ضريبة الدخل رقم 34 لسنة 2014 (النسخة الأصلية)',
     subtitle: 'نسخة أصلية — معدل لاحقاً (2014)',
     badge: 'تشريع قانوني'
   },
   {
     type: 'law',
     title: 'قانون الضريبة العامة على المبيعات رقم 6 لسنة 1994 وتعديلاته',
-    subtitle: 'نسخة معدلة — ساري (1994)',
+    subtitle: 'نسخة معدلة — ساري (2023)',
     badge: 'تشريع قانوني'
   },
   {
@@ -143,7 +144,7 @@ export default function RegulationsSearch({
           const dynamicLawItems = backendLaws.map(l => ({
             type: 'law',
             title: l.title,
-            subtitle: `${l.type || 'تشريع'} — ${l.status || 'ساري'} (${l.year_short || l.year || ''})`,
+            subtitle: `${l.type || 'تشريع'} — ${l.status || 'ساري'} (${getLawDisplayYear(l) || l.year_short || l.year || ''})`,
             badge: l.type && l.type.includes('تعليمات') ? 'تعليمات تنفيذية' : (l.type && l.type.includes('نظام') ? 'نظام تنفيذي' : 'تشريع قانوني'),
             lawObj: l
           }));
@@ -223,11 +224,7 @@ export default function RegulationsSearch({
       setSuggestionData(null);
       let targetUrl = openUrl;
       const hlText = opt?.literal_text || opt?.title || searchQuery;
-      if (hlText) {
-        try {
-          sessionStorage.setItem('last_legal_highlight', hlText);
-        } catch (_) {}
-      }
+
       if (hlText && !targetUrl.includes('highlight=')) {
         targetUrl += `&highlight=${encodeURIComponent(hlText.slice(0, 100))}`;
       }

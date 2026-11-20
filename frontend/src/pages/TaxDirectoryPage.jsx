@@ -12,8 +12,10 @@ import ConfirmModal from '../components/ConfirmModal';
 
 const PAGE_SIZE = 15;
 
+import { getCookie } from '../services/api';
+
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
+  const token = getCookie('token') || getCookie('admin_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 

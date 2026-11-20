@@ -184,13 +184,23 @@ export default function AdminSubscriptionsPage({ navigate }) {
   const [editingPlan, setEditingPlan] = useState(null);
 
   // Search & Filter inputs
+  const initialUrlSearch = typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('search') || '') : '';
   const [subSearch, setSubSearch] = useState('');
   const [subPlanFilter, setSubPlanFilter] = useState('all');
   const [subLifecycleFilter, setSubLifecycleFilter] = useState('all');
 
-  const [reqSearch, setReqSearch] = useState('');
+  const [reqSearch, setReqSearch] = useState(initialUrlSearch);
   const [reqStatusFilter, setReqStatusFilter] = useState('all');
   const [reqPlanFilter, setReqPlanFilter] = useState('all');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const s = params.get('search');
+    if (s && s !== reqSearch) {
+      setReqSearch(s);
+    }
+  }, [typeof window !== 'undefined' ? window.location.search : '']);
 
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
@@ -313,12 +323,32 @@ export default function AdminSubscriptionsPage({ navigate }) {
 
   // Filtered requests
   const filteredRequests = useMemo(() => {
-    return requests.filter((r) => {
-      const matchQ = !reqSearch || r.name.includes(reqSearch) || r.requestNo.includes(reqSearch);
+    const q = (reqSearch || '').trim().toLowerCase();
+    const list = requests.filter((r) => {
+      const matchQ = !q ||
+        (r.name && r.name.toLowerCase().includes(q)) ||
+        (r.requestNo && r.requestNo.toLowerCase().includes(q)) ||
+        (r.id && String(r.id).toLowerCase() === q);
       const matchS = reqStatusFilter === 'all' || r.status === reqStatusFilter;
       const matchP = reqPlanFilter === 'all' || r.plan === reqPlanFilter;
       return matchQ && matchS && matchP;
     });
+
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const targetId = urlParams ? (urlParams.get('reqId') || urlParams.get('id') || urlParams.get('search')) : null;
+    if (targetId && list.length > 1) {
+      const targetStr = String(targetId).toLowerCase();
+      const matchIdx = list.findIndex(r =>
+        (r.id && String(r.id).toLowerCase() === targetStr) ||
+        (r.requestNo && String(r.requestNo).toLowerCase() === targetStr) ||
+        (r.name && String(r.name).toLowerCase().includes(targetStr))
+      );
+      if (matchIdx > 0) {
+        const item = list.splice(matchIdx, 1)[0];
+        list.unshift(item);
+      }
+    }
+    return list;
   }, [requests, reqSearch, reqStatusFilter, reqPlanFilter]);
 
   // Filtered orders

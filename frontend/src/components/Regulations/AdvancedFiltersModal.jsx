@@ -1,14 +1,58 @@
 // frontend/src/components/Regulations/AdvancedFiltersModal.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import ModernDatePicker from '../ModernDatePicker/ModernDatePicker';
 import ModernSelect from '../ModernSelect';
 import FilterResetButton from '../FilterResetButton';
+import { getLawDocTypes } from '../../services/legalService';
 
-const STATUSES = ["الكل", "ساري", "معدل", "ملغى"];
-const TYPES = ["الكل", "قانون", "نظام", "تعليمات", "قرارات", "أحكام قضائية", "أحكام تفسيرية", "نماذج"];
+const STATUSES = ["الكل", "ساري", "معدل", "ملغي"];
+const DEFAULT_TYPES = [
+  "الكل",
+  "نظام",
+  "قرار",
+  "تعليمات",
+  "قانون",
+  "حكم ملزم",
+  "جدول",
+  "ملحق",
+  "تمييز حقوق",
+  "تمييز جزاء",
+  "قضاء دستوري",
+  "قضاء إداري",
+  "درجة أولى",
+  "بداية حقوق"
+];
+
+const TYPE_NORM_MAP = {
+  "الأنظمة": "نظام",
+  "أنظمة": "نظام",
+  "قرارات": "قرار",
+  "أحكام ملزمة": "حكم ملزم",
+  "جداول": "جدول",
+  "ملاحق": "ملحق"
+};
 
 export default function AdvancedFiltersModal({ isOpen, onClose, filters, setFilters, onApply }) {
+  const [types, setTypes] = useState(DEFAULT_TYPES);
+
+  useEffect(() => {
+    let isMounted = true;
+    getLawDocTypes().then((res) => {
+      if (isMounted && Array.isArray(res) && res.length > 0) {
+        const normalized = res.map(t => TYPE_NORM_MAP[t] || t);
+        const uniqueSet = new Set(["الكل", ...normalized]);
+        // Preserve canonical order where possible
+        const ordered = DEFAULT_TYPES.filter(t => uniqueSet.has(t));
+        uniqueSet.forEach(t => {
+          if (!ordered.includes(t)) ordered.push(t);
+        });
+        setTypes(ordered);
+      }
+    }).catch(() => {});
+    return () => { isMounted = false; };
+  }, []);
+
   if (!isOpen) return null;
 
   const handleStatusChange = (val) => {
@@ -92,7 +136,7 @@ export default function AdvancedFiltersModal({ isOpen, onClose, filters, setFilt
               <label className="filter-group-label" style={{ margin: 0 }}>نوع التشريع</label>
               <div style={{ width: '180px' }}>
                 <ModernSelect
-                  options={TYPES.map(t => ({ value: t, label: t === 'الكل' ? 'كافة الأنواع' : t }))}
+                  options={types.map(t => ({ value: t, label: t === 'الكل' ? 'كافة الأنواع' : t }))}
                   value={filters.type || 'الكل'}
                   onChange={handleTypeChange}
                   placeholder="نوع التشريع"
@@ -101,7 +145,7 @@ export default function AdvancedFiltersModal({ isOpen, onClose, filters, setFilt
               </div>
             </div>
             <div className="filter-pills">
-              {TYPES.map((t) => (
+              {types.map((t) => (
                 <button
                   key={t}
                   type="button"

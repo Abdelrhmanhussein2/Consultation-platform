@@ -88,15 +88,13 @@
   background: #FEE2E2;
   border: 1px solid #FECACA;
   color: #DC2626;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 10px;
-  font-weight: 800;
   padding: 0;
   transition: all 0.15s ease;
 }
@@ -154,9 +152,36 @@
 }
 
 .cascade-popup-inner {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* Corner Close Button */
+.cascade-corner-close-btn {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+  background: #F8FAFC;
+  color: #64748B;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+  z-index: 20;
+}
+
+.cascade-corner-close-btn:hover {
+  background: #EF4444;
+  border-color: #EF4444;
+  color: #FFFFFF;
 }
 
 /* Cascading Blocks */
@@ -200,6 +225,19 @@
 .cascade-selector-box.has-value {
   background: #F0F7FF;
   border-color: #93C5FD;
+}
+
+.cascade-selector-box.disabled-selector {
+  background: #F8FAFC;
+  border-color: #E2E8F0;
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.cascade-selector-box.disabled-selector:hover {
+  background: #F8FAFC;
+  border-color: #E2E8F0;
+  box-shadow: none;
 }
 
 .cascade-box-title {
@@ -406,40 +444,35 @@
 }
 
 .cascade-action-btn.today {
-  background: #F0FDF4;
-  border-color: #BBF7D0;
-  color: #15803D;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  color: #D97706; /* Platform Gold */
   font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .cascade-action-btn.today:hover {
-  background: #15803D;
+  background: #F59E0B;
   color: #ffffff;
-  border-color: #15803D;
+  border-color: #F59E0B;
 }
 
 .cascade-action-btn.clear {
   color: #DC2626;
-  border-color: #FEE2E2;
+  border: 1px solid #FEE2E2;
   background: #FEF2F2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
 }
 
 .cascade-action-btn.clear:hover {
   background: #DC2626;
   color: #ffffff;
   border-color: #DC2626;
-}
-
-.cascade-action-btn.close {
-  margin-right: auto;
-  border-color: transparent;
-  background: transparent;
-  color: #94A3B8;
-}
-
-.cascade-action-btn.close:hover {
-  background: #F1F5F9;
-  color: #475569;
 }
 
 /* Animation */

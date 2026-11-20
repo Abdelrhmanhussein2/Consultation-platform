@@ -16,7 +16,7 @@ class LegalRelationGraphSync:
                 MATCH (child)-[r]->(parent)
                 WHERE (parent.law_id = $pid OR parent.`معرف` = $pid OR parent.title = $pid)
                   AND (child.law_id = $cid OR child.`معرف` = $cid OR child.title = $cid OR child.ruling_id = $cid)
-                  AND type(r) IN ['ISSUED_UNDER', 'REPEALED_BY', 'CITES_LAW', 'AMENDS']
+                  AND type(r) IN ['ISSUED_UNDER', 'REPEALED_BY', 'CITES_LAW', 'AMENDS', 'تعديل_على']
                 DELETE r
             """, pid=pid, cid=cid)
 
@@ -25,11 +25,16 @@ class LegalRelationGraphSync:
         """Merges relationship edge and attributes into Neo4j graph."""
         with neo4j_db.get_session() as session:
             if row.relation_domain == "legislative":
-                edge_type = "ISSUED_UNDER" if row.relation_type == "issued_under" else "REPEALED_BY"
+                if row.relation_type == "amends":
+                    edge_type = "`تعديل_على`"
+                elif row.relation_type == "issued_under":
+                    edge_type = "ISSUED_UNDER"
+                else:
+                    edge_type = "REPEALED_BY"
                 session.run(f"""
                     MATCH (parent) WHERE (parent:Law OR parent:`قانون`) AND (parent.law_id = $pid OR parent.`معرف` = $pid OR parent.title = $pid)
                     MATCH (child) WHERE (child.law_id = $cid OR child.`معرف` = $cid OR child.title = $cid)
-                    SET child.document_type = $doc_type
+                    SET child.document_type = $doc_type, child.type = $doc_type, child.`النوع` = $doc_type, child.sub_category = $sub_cat
                     MERGE (child)-[r:{edge_type}]->(parent)
                     SET r.sub_type = $sub_cat, r.status = $status, r.domain = 'legislative',
                         r.article_ref = $art_ref, r.effective_date = $eff_date, r.updated_at = datetime()

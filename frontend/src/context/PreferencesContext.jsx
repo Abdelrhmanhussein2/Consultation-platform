@@ -3,6 +3,7 @@ import {
   getAppCurrency,
   getAppTimezone,
   getAppDateFormat,
+  setAppPreferences,
   formatPrice as utilFormatPrice,
   formatDate as utilFormatDate,
   formatTime as utilFormatTime,
@@ -19,19 +20,16 @@ export function PreferencesProvider({ children }) {
 
   const updatePreferences = (newPrefs = {}) => {
     if (newPrefs.currency) {
-      localStorage.setItem('app_currency', newPrefs.currency);
       setCurrencyState(newPrefs.currency);
     }
     if (newPrefs.timezone) {
-      localStorage.setItem('app_timezone', newPrefs.timezone);
       setTimezoneState(newPrefs.timezone);
     }
     if (newPrefs.dateFormat) {
-      localStorage.setItem('app_date_format', newPrefs.dateFormat);
       setDateFormatState(newPrefs.dateFormat);
     }
 
-    // Broadcast change to other windows / tabs
+    setAppPreferences(newPrefs);
     window.dispatchEvent(new Event('app_preferences_changed'));
   };
 
@@ -42,11 +40,9 @@ export function PreferencesProvider({ children }) {
       setDateFormatState(getAppDateFormat());
     };
 
-    window.addEventListener('storage', handleStorageChange);
     window.addEventListener('app_preferences_changed', handleStorageChange);
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('app_preferences_changed', handleStorageChange);
     };
   }, []);

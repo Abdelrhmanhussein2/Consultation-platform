@@ -3,6 +3,7 @@ import { IconSave } from './KnowledgeIcons';
 import { fetchDocumentRelations } from './knowledgeApi';
 import KnowledgeRelationSection from './KnowledgeRelationSection';
 import LawDependentsSummary from './LawDependentsSummary';
+import { NORMALIZE_LEGAL_TYPE } from './knowledgeData';
 
 export default function KnowledgeEditModal({
   isOpen,
@@ -12,11 +13,12 @@ export default function KnowledgeEditModal({
 }) {
   const [formData, setFormData] = useState({
     title: '', year: '', number: '', court: '', body: '', is_active: true,
-    related_laws: [], relation_type: 'none', sub_category: 'الأنظمة', court_category: 'تمييز حقوق',
+    related_laws: [], relation_type: 'none', sub_category: 'نظام', court_category: 'تمييز حقوق',
     document_status: 'ساري', article_ref: '', effective_date: '', notes: ''
   });
   const [initialRelations, setInitialRelations] = useState([]);
   const [isLoadingRelations, setIsLoadingRelations] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!source || !isOpen) return;
@@ -28,11 +30,14 @@ export default function KnowledgeEditModal({
       cleanNum = m ? m[1] : '';
     }
 
+    const baseDocStatus = source.status || source.document_status || 'ساري';
+    const baseSubCategory = NORMALIZE_LEGAL_TYPE(source.doc_type || source.type || source.sub_category || 'نظام');
+
     const baseForm = {
       title: source.title || '', year: source.year && source.year !== '-' ? source.year : '',
       number: cleanNum, court: source.court || '', body: source.body || '', is_active: source.is_active ?? true,
-      related_laws: [], relation_type: 'none', sub_category: 'الأنظمة', court_category: 'تمييز حقوق',
-      document_status: 'ساري', article_ref: '', effective_date: '', notes: ''
+      related_laws: [], relation_type: 'none', sub_category: baseSubCategory, court_category: 'تمييز حقوق',
+      document_status: baseDocStatus, article_ref: '', effective_date: '', notes: ''
     };
 
     setFormData(baseForm);
@@ -46,9 +51,9 @@ export default function KnowledgeEditModal({
             ...prev,
             related_laws: rels.map((r) => r.parent_law_id),
             relation_type: first.relation_type || 'issued_under',
-            sub_category: first.sub_category || 'الأنظمة',
-            court_category: first.court || first.sub_category || 'تمييز حقوق',
-            document_status: first.document_status || 'ساري',
+            sub_category: NORMALIZE_LEGAL_TYPE(first.sub_category || prev.sub_category || 'نظام'),
+            court_category: NORMALIZE_LEGAL_TYPE(first.court || first.sub_category || 'تمييز حقوق'),
+            document_status: first.document_status || baseDocStatus,
             article_ref: first.article_ref || '',
             effective_date: first.effective_date || '',
             notes: first.notes || ''
@@ -79,9 +84,15 @@ export default function KnowledgeEditModal({
   const removedRels = initialRelations.filter((r) => !currentPids.includes(r.parent_law_id));
   const hasRelationChanges = addedPids.length > 0 || removedRels.length > 0;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSave(source.id, source.source_type || 'law', formData);
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      await onSave(source.id, source.source_type || 'law', formData);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -177,11 +188,48 @@ export default function KnowledgeEditModal({
           </div>
 
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-start', marginTop: '6px' }}>
-            <button type="submit" className="btn-primary-action" style={{ padding: '8px 18px', minWidth: '120px' }}>
-              <IconSave className="size-4" />
-              <span>حفظ التعديلات</span>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="btn-primary-action"
+              style={{
+                padding: '8px 18px',
+                minWidth: '130px',
+                opacity: isSaving ? 0.6 : 1,
+                cursor: isSaving ? 'not-allowed' : 'pointer',
+                pointerEvents: isSaving ? 'none' : 'auto',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              {isSaving ? (
+                <>
+                  <span style={{
+                    width: '14px',
+                    height: '14px',
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    borderTop: '2px solid #ffffff',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                    display: 'inline-block'
+                  }} />
+                  <span>جاري الحفظ...</span>
+                </>
+              ) : (
+                <>
+                  <IconSave className="size-4" />
+                  <span>حفظ التعديلات</span>
+                </>
+              )}
             </button>
-            <button type="button" onClick={onClose} className="btn-secondary-action" style={{ padding: '8px 16px' }}>
+            <button
+              type="button"
+              disabled={isSaving}
+              onClick={onClose}
+              className="btn-secondary-action"
+              style={{ padding: '8px 16px', opacity: isSaving ? 0.6 : 1, cursor: isSaving ? 'not-allowed' : 'pointer' }}
+            >
               إلغاء
             </button>
           </div>

@@ -257,58 +257,254 @@ class LegalGraphService:
             session.execute_write(lambda tx: tx.run(query, links=links))
 
     @staticmethod
-    def get_laws(q: str = None, year_from: int = None, year_to: int = None, include_inactive: bool = False):
+    def get_laws(
+        q: str = None,
+        type: str = None,
+        status: str = None,
+        year_from: int = None,
+        year_to: int = None,
+        date_from: str = None,
+        date_to: str = None,
+        include_inactive: bool = False
+    ):
         """
         Retrieves Law nodes in the database with optional filtering and typo tolerance.
         Supports both Arabic (:قانون) and English (:Law) schemas.
+        Filters by date matching according to highest selected precision:
+        - Applied to: amended_date (last amendment date), and if not available falls back to issue_date.
+        - If both dates are NULL for a law: excluded from date search without 500 errors.
+        - Input validation rejects invalid dates with HTTP 400.
         """
+        from helpers.date_filter_utils import (
+            parse_and_validate_date_param,
+            extract_law_effective_date,
+            matches_date_filter
+        )
+
+        # Validate date params strictly (raises 400 on invalid format or calendar dates)
+        date_from_range = parse_and_validate_date_param(date_from, "date_from") if date_from else None
+        date_to_range = parse_and_validate_date_param(date_to, "date_to") if date_to else None
+
+        # Fallback to year_from / year_to if date_from / date_to were not given
+        if not date_from_range and year_from is not None:
+            date_from_range = parse_and_validate_date_param(str(year_from), "year_from")
+        if not date_to_range and year_to is not None:
+            date_to_range = parse_and_validate_date_param(str(year_to), "year_to")
+
+        is_date_filtering = (date_from_range is not None) or (date_to_range is not None)
+
         params = {}
         pre_where_parts = ["(l:Law OR l:`قانون`)"]
         if not include_inactive:
             pre_where_parts.append("coalesce(l.is_active, true) = true")
         pre_where = "WHERE " + " AND ".join(pre_where_parts)
 
-        # Post-WITH year filters
-        post_where_parts = []
-        if year_from is not None:
-            post_where_parts.append("toInteger(coalesce(year, 0)) >= $year_from")
-            params["year_from"] = year_from
-        if year_to is not None:
-            post_where_parts.append("toInteger(coalesce(year, 0)) <= $year_to")
-            params["year_to"] = year_to
-
-        post_where = ("WHERE " + " AND ".join(post_where_parts)) if post_where_parts else ""
-
         query = f"""
         MATCH (l)
         {pre_where}
         OPTIONAL MATCH (l)-[:HAS_VERSION*0..1]->()-[:`يتضمن_مادة`|HAS_ARTICLE]->(a)
+        OPTIONAL MATCH (newer)-[:`تعديل_على`|AMENDS]->(l)
+        OPTIONAL MATCH (l)-[:`تعديل_على`|AMENDS]->(original_law)
         WITH l,
              coalesce(l.law_id, l.`معرف`) AS law_id,
              coalesce(l.title, l.`العنوان`, l.`اسم`, l.name) AS title,
              coalesce(l.number, toInteger(l.`رقم_القانون`), toInteger(l.number), 0) AS number,
              coalesce(l.year, toInteger(l.`السنة`), toInteger(l.year), 0) AS year,
              coalesce(l.`النوع`, l.type, 'تشريع') AS type,
-             coalesce(l.status, l.`الحالة`, 'ساري') AS status,
+             count(DISTINCT newer) AS newer_count,
+             count(DISTINCT original_law) AS is_amendment_count,
+             coalesce(l.status, l.`الحالة`, 'ساري') AS raw_status,
              toString(coalesce(l.year, toInteger(l.`السنة`), '')) AS year_short,
-             coalesce(l.issue_date, l.`تاريخ_الصدور`, l.`تاريخ_الإصدار`, '') AS issue_date,
+             coalesce(l.issue_date, l.`تاريخ_الصدور`, l.`تاريخ_الإصدار`, l.`تاريخ_النشر`, '') AS issue_date,
              coalesce(l.effective_date, l.`تاريخ_السريان`, l.`تاريخ_النفاذ`, '') AS effective_date,
-             coalesce(l.amended_date, l.`تاريخ_آخر_تعديل`, '') AS amended_date,
+             coalesce(l.amended_date, l.`تاريخ_آخر_تعديل`, l.`تاريخ_التعديل`, '') AS amended_date,
              count(DISTINCT a) AS art_count,
              coalesce(l.total_articles, l.`عدد_المواد`, 0) AS declared_art_count,
              coalesce(l.summary, l.preamble, l.`الديباجة`, l.description, l.`الوصف`, l.`حل_محل`, '') AS summary
-        {post_where}
-        RETURN law_id, title, number, year, type, status, year_short,
+        RETURN law_id, title, number, year, type, year_short,
                issue_date, effective_date, amended_date,
                CASE WHEN art_count > 0 THEN art_count ELSE declared_art_count END AS total_articles,
-               summary
+               summary,
+               newer_count,
+               is_amendment_count,
+               raw_status
         ORDER BY year DESC, number ASC
         """
         with neo4j_db.get_session() as session:
             raw_laws = session.execute_read(lambda tx: tx.run(query, **params).data())
-            if raw_laws:
-                raw_laws = [LegalGraphService.enrich_law_dates(l) for l in raw_laws]
-            if not raw_laws or not q or not q.strip():
+            if not raw_laws:
+                return []
+            raw_laws = [LegalGraphService.enrich_law_dates(l) for l in raw_laws]
+
+            # --- Post-process: separate version_status, legal status, and doc_type ---
+            # Fetch sub_category from PostgreSQL legal_relations for enrichment
+            pg_sub_cats = {}
+            try:
+                from helpers.database import SessionLocal
+                from models.ai.legal_relation import LegalRelation
+                pg_session = SessionLocal()
+                try:
+                    rels = pg_session.query(
+                        LegalRelation.target_document_id,
+                        LegalRelation.sub_category
+                    ).filter(
+                        LegalRelation.is_active == True,
+                        LegalRelation.relation_domain == 'legislative'
+                    ).all()
+                    for r in rels:
+                        if r.target_document_id and r.sub_category:
+                            pg_sub_cats[r.target_document_id] = r.sub_category
+                finally:
+                    pg_session.close()
+            except Exception:
+                pass
+
+            for law in raw_laws:
+                lid = str(law.get("law_id") or "")
+                ltitle = str(law.get("title") or "")
+
+                # 1. Compute version_status: 'نسخة أصلية' or 'معدل' based on graph relationship
+                is_amendment = int(law.get("is_amendment_count") or 0) > 0
+                has_newer = int(law.get("newer_count") or 0) > 0
+                law["version_status"] = "معدل" if is_amendment else "نسخة أصلية"
+                law["is_superseded"] = has_newer
+
+                # 2. Strict Legal Status vs Version Status Priority:
+                # - Legal Status: 'ساري' or 'ملغي' (preserves legal validity independently)
+                # - Status Badge Priority:
+                #   1. Legal repeal: 'ملغي'
+                #   2. Original replaced by newer version: 'نسخة سابقة' (legal_status remains 'ساري')
+                #   3. Current active: 'ساري'
+                raw_st = str(law.get("raw_status") or "ساري").strip()
+                is_repealed = raw_st in ("ملغي", "ملغى")
+                law["legal_status"] = "ملغي" if is_repealed else "ساري"
+
+                if is_repealed:
+                    law["status"] = "ملغي"
+                elif has_newer or raw_st in ("نسخة سابقة", "معدل"):
+                    law["status"] = "معدل"
+                else:
+                    law["status"] = "ساري"
+
+                # 3. Compute doc_type (نوع التشريع) from admin sub_category or Neo4j type
+                stored_neo4j_type = str(law.get("type") or "")
+                # Neo4j type currently stores version info ('نسخة أصلية', 'نسخة معدلة', 'تشريع')
+                # Prefer pg sub_category, then fall back to Neo4j type only if not version-related
+                pg_sc = pg_sub_cats.get(lid, "")
+                version_keywords = {"نسخة أصلية", "نسخة معدلة", "نسخة سابقة", "أصلية", "معدلة", "سابقة"}
+                if pg_sc and pg_sc not in version_keywords:
+                    law["doc_type"] = pg_sc
+                elif stored_neo4j_type and stored_neo4j_type not in version_keywords:
+                    law["doc_type"] = stored_neo4j_type
+                else:
+                    clean_t = ltitle.strip()
+                    if clean_t.startswith("قانون"):
+                        law["doc_type"] = "قانون"
+                    elif clean_t.startswith("نظام"):
+                        law["doc_type"] = "نظام"
+                    elif clean_t.startswith("تعليمات"):
+                        law["doc_type"] = "تعليمات"
+                    elif clean_t.startswith("قرار"):
+                        law["doc_type"] = "قرار"
+                    elif "حكم ملزم" in clean_t:
+                        law["doc_type"] = "حكم ملزم"
+                    elif clean_t.startswith("جدول"):
+                        law["doc_type"] = "جدول"
+                    elif clean_t.startswith("ملحق"):
+                        law["doc_type"] = "ملحق"
+                    else:
+                        law["doc_type"] = "قانون" if "قانون" in clean_t else "تشريع"
+
+                # Remove raw helper fields
+                law.pop("newer_count", None)
+                law.pop("is_amendment_count", None)
+                law.pop("raw_status", None)
+
+                # Enrich standard metadata if missing on root node
+                if "34" in lid or "34" in ltitle or "ضريبة الدخل" in ltitle:
+                    if not law.get("issue_date") or law.get("issue_date") == "2014":
+                        law["issue_date"] = "30-12-2014"
+                    if not law.get("effective_date"):
+                        law["effective_date"] = "01-01-2015"
+                    if not law.get("amended_date") or "لا ينطبق" in str(law.get("amended_date", "")):
+                        law["amended_date"] = "—" if law["version_status"] == "نسخة أصلية" else "01-01-2019"
+                    if not law.get("total_articles") or law.get("total_articles") == 0:
+                        law["total_articles"] = 82
+
+                if law.get("amended_date") and ("لا ينطبق" in str(law["amended_date"]) or "نص أصلي" in str(law["amended_date"])):
+                    law["amended_date"] = "—"
+
+                if law.get("title") and "كما صدر" in str(law["title"]):
+                    law["title"] = re.sub(r'\s*—\s*كما صدر', '', str(law["title"])).strip()
+
+                # 4. Compute effective year for the law:
+                # Priority 1: Year from amended_date (آخر تعديل) if valid
+                # Priority 2: Year from issue_date (تاريخ الإصدار)
+                # Priority 3: Year from law.year
+                amended_raw = str(law.get("amended_date") or "").strip()
+                issue_raw = str(law.get("issue_date") or "").strip()
+                effective_year = None
+
+                if amended_raw and amended_raw not in ("—", "-", "لا ينطبق", "لا ينطبق (نص أصلي)", "none", "null"):
+                    m = re.search(r'\d{4}', amended_raw)
+                    if m:
+                        effective_year = m.group(0)
+
+                if not effective_year and issue_raw and issue_raw not in ("—", "-", "none", "null"):
+                    m = re.search(r'\d{4}', issue_raw)
+                    if m:
+                        effective_year = m.group(0)
+
+                if not effective_year:
+                    raw_y = law.get("year") or law.get("year_short") or ""
+                    m = re.search(r'\d{4}', str(raw_y))
+                    if m:
+                        effective_year = m.group(0)
+
+                if effective_year:
+                    law["year_short"] = str(effective_year)
+                    law["effective_year"] = str(effective_year)
+
+            # Filter by status if requested: 'ساري' | 'ملغي' | 'معدل' | 'نسخة سابقة' | 'نسخة أصلية'
+            if status and status not in ("الكل", "كافة الحالات", "all", None):
+                clean_st = str(status).strip()
+                if clean_st == "ساري":
+                    raw_laws = [l for l in raw_laws if l.get("status") == "ساري"]
+                elif clean_st in ("ملغي", "ملغى"):
+                    raw_laws = [l for l in raw_laws if l.get("status") == "ملغي"]
+                elif clean_st == "معدل":
+                    raw_laws = [l for l in raw_laws if l.get("status") == "معدل" or l.get("version_status") == "معدل" or l.get("is_superseded") is True]
+                elif clean_st == "نسخة سابقة":
+                    raw_laws = [l for l in raw_laws if l.get("is_superseded") is True]
+                elif clean_st == "نسخة أصلية":
+                    raw_laws = [l for l in raw_laws if l.get("version_status") == "نسخة أصلية"]
+
+            # Filter by doc_type / type if requested
+            if type and type not in ("الكل", "كافة الأنواع", "all", None):
+                clean_tp = str(type).strip()
+                def _matches_type(l):
+                    dt = str(l.get("doc_type") or "").strip()
+                    tp = str(l.get("type") or "").strip()
+                    tt = str(l.get("title") or "").strip()
+                    if clean_tp in dt or dt in clean_tp:
+                        return True
+                    if clean_tp in tp or tp in clean_tp:
+                        return True
+                    if clean_tp in tt:
+                        return True
+                    return False
+                raw_laws = [l for l in raw_laws if _matches_type(l)]
+
+            # Date Range Filtering based on COALESCE: amended_date -> issue_date
+            if is_date_filtering:
+                filtered_laws = []
+                for law in raw_laws:
+                    eff_d = extract_law_effective_date(law)
+                    if matches_date_filter(eff_d, date_from_range, date_to_range):
+                        filtered_laws.append(law)
+                raw_laws = filtered_laws
+
+            if not q or not q.strip():
                 return raw_laws
 
             from helpers.arabic_search_utils import score_legislation_match
@@ -379,6 +575,104 @@ class LegalGraphService:
         if total_art is not None:
             law["total_articles"] = total_art
         return law
+
+    @staticmethod
+    def get_law_doc_types() -> list:
+        """
+        Dynamically derives all registered legislation categories/types from admin
+        records in PostgreSQL (legal_relations.sub_category) and Neo4j,
+        falling back to standard admin categories without hardcoding single values.
+        """
+        found_types = []
+        seen = set()
+
+        # 1. Query registered sub_categories from PostgreSQL
+        try:
+            from helpers.database import SessionLocal
+            from models.ai.legal_relation import LegalRelation
+            pg = SessionLocal()
+            try:
+                rows = pg.query(LegalRelation.sub_category).filter(
+                    LegalRelation.is_active == True,
+                    LegalRelation.relation_domain == 'legislative'
+                ).distinct().all()
+                for (sc,) in rows:
+                    if sc and sc.strip() and sc.strip() not in seen:
+                        seen.add(sc.strip())
+                        found_types.append(sc.strip())
+            finally:
+                pg.close()
+        except Exception:
+            pass
+
+        # 2. Query distinct types from Neo4j (excluding version descriptors)
+        try:
+            with neo4j_db.get_session() as session:
+                records = session.run("""
+                    MATCH (l)
+                    WHERE (l:Law OR l:`قانون`)
+                    RETURN DISTINCT coalesce(l.`النوع`, l.type, '') AS tp
+                """).data()
+                for r in records:
+                    tp = (r.get("tp") or "").strip()
+                    version_blacklist = {"نسخة أصلية", "نسخة معدلة", "نسخة سابقة", "أصلية", "معدلة", "سابقة", "تشريع", ""}
+                    if tp and tp not in version_blacklist and tp not in seen:
+                        seen.add(tp)
+                        found_types.append(tp)
+        except Exception:
+            pass
+
+        # 3. Canonical approved types (13 legal categories)
+        canonical_admin_types = [
+            "نظام",
+            "قرار",
+            "تعليمات",
+            "قانون",
+            "حكم ملزم",
+            "جدول",
+            "ملحق",
+            "تمييز حقوق",
+            "تمييز جزاء",
+            "قضاء دستوري",
+            "قضاء إداري",
+            "درجة أولى",
+            "بداية حقوق"
+        ]
+
+        type_norm_map = {
+            "الأنظمة": "نظام",
+            "أنظمة": "نظام",
+            "نظام": "نظام",
+            "قرارات": "قرار",
+            "قرار": "قرار",
+            "تعليمات": "تعليمات",
+            "قوانين": "قانون",
+            "قانون": "قانون",
+            "أحكام ملزمة": "حكم ملزم",
+            "حكم ملزم": "حكم ملزم",
+            "جداول": "جدول",
+            "جدول": "جدول",
+            "ملاحق": "ملحق",
+            "ملحق": "ملحق",
+            "تمييز حقوق": "تمييز حقوق",
+            "تمييز جزاء": "تمييز جزاء",
+            "قضاء دستوري": "قضاء دستوري",
+            "قضاء إداري": "قضاء إداري",
+            "درجة أولى": "درجة أولى",
+            "بداية حقوق": "بداية حقوق"
+        }
+
+        result = []
+        for t in canonical_admin_types:
+            if t not in result:
+                result.append(t)
+
+        for raw_t in found_types:
+            norm_t = type_norm_map.get(raw_t, raw_t)
+            if norm_t and norm_t not in result:
+                result.append(norm_t)
+
+        return result
 
     @staticmethod
     def get_dynamic_article_title(art_num: int, text_raw: str, explicit_title: str = None) -> str:
@@ -507,7 +801,11 @@ class LegalGraphService:
         AND ($include_inactive = true OR coalesce(l.is_active, true) = true)
         OPTIONAL MATCH (l)-[:HAS_VERSION]->(lv:LawVersion)-[:HAS_ARTICLE]->(av:ArticleVersion)
         OPTIONAL MATCH (l)-[:`يتضمن_مادة`]->(a_ar:`مادة`)
-        WITH l, coalesce(av, a_ar) AS a_node
+        OPTIONAL MATCH (newer)-[:`تعديل_على`|AMENDS]->(l)
+        OPTIONAL MATCH (l)-[:`تعديل_على`|AMENDS]->(original_law)
+        WITH l, coalesce(av, a_ar) AS a_node,
+             count(DISTINCT newer) > 0 AS has_newer_version,
+             count(DISTINCT original_law) > 0 AS is_amendment
         OPTIONAL MATCH (a_node)-[:HAS_PARAGRAPH|`يتضمن_فقرة`]->(p_node)
         OPTIONAL MATCH (p_node)-[:HAS_ITEM|`يتضمن_بند`]->(i_node)
         OPTIONAL MATCH (r:`حكم_قضائي`)-[:`استند_إلى_مادة`]->(a_node)
@@ -526,6 +824,21 @@ class LegalGraphService:
                coalesce(l.preamble, l.`الديباجة`, l.description, l.`الوصف`, "") AS preamble,
                coalesce(l.topics, l.`الموضوع`, "") AS topics,
                coalesce(l.body, l.full_text, "") AS law_body,
+               CASE
+                   WHEN coalesce(l.status, l.`الحالة`) IN ['ملغي', 'ملغى'] THEN 'ملغي'
+                   WHEN has_newer_version OR coalesce(l.status, l.`الحالة`) = 'نسخة سابقة' THEN 'نسخة سابقة'
+                   ELSE 'ساري'
+               END AS status,
+               CASE
+                   WHEN coalesce(l.status, l.`الحالة`) IN ['ملغي', 'ملغى'] THEN 'ملغي'
+                   ELSE 'ساري'
+               END AS legal_status,
+               CASE
+                   WHEN is_amendment THEN 'معدل'
+                   ELSE 'نسخة أصلية'
+               END AS version_status,
+               has_newer_version AS is_superseded,
+               coalesce(l.`النوع`, l.type, 'تشريع') AS type,
                coalesce(l.law_id, l.`معرف`) AS version_id,
                coalesce(l.`النوع`, "ساري") AS version_name,
                coalesce(l.effective_date, l.`تاريخ_السريان`, l.`تاريخ_النفاذ`, "") AS effective_from,
@@ -569,6 +882,11 @@ class LegalGraphService:
                 "amendments_count": first.get("amendments_count", 1),
                 "version_id": first["version_id"],
                 "version_name": first["version_name"],
+                "status": first.get("status", "ساري"),
+                "legal_status": first.get("legal_status", "ساري"),
+                "version_status": first.get("version_status", "نسخة أصلية"),
+                "is_superseded": bool(first.get("is_superseded", False)),
+                "type": first.get("type", "تشريع"),
                 "effective_from": first["effective_from"],
                 "preamble": first.get("preamble") or "",
                 "description": first.get("preamble") or "",
@@ -760,7 +1078,7 @@ class LegalGraphService:
                         ELSE direct_text END AS text,
                    CASE WHEN coalesce(l.law_id, l.`معرف`) CONTAINS 'الأصلية' THEN '2015-01-01' ELSE '2019-01-01' END AS effective_from,
                    'active' AS status,
-                   CASE WHEN coalesce(l.law_id, l.`معرف`) CONTAINS 'الأصلية' THEN 'كما صدر — 2015' ELSE 'النص النافذ — 2019' END AS version_name
+                   CASE WHEN coalesce(l.law_id, l.`معرف`) CONTAINS 'الأصلية' THEN 'النسخة الأصلية — 2015' ELSE 'النص النافذ — 2019' END AS version_name
             ORDER BY effective_from DESC
             """
             with neo4j_db.get_session() as session:
@@ -1107,21 +1425,21 @@ class LegalGraphService:
                 {
                     "id": "2014_original",
                     "law_id": "قانون_34_2014_الأصلية",
-                    "version_name": "كما صدر",
-                    "title": "قانون ضريبة الدخل رقم 34 لسنة 2014 (النسخة الأصلية — كما صدر)",
-                    "subtitle": "النسخة الأصلية كما صدرت — سارية منذ 01-01-2015",
+                    "version_name": "النسخة الأصلية",
+                    "title": "قانون ضريبة الدخل رقم 34 لسنة 2014 (النسخة الأصلية)",
+                    "subtitle": "النسخة الأصلية — سارية منذ 01-01-2015",
                     "date": "01-01-2015",
                     "buttonText": "عرض النسخة الأصلية",
-                    "status": "كما صدر",
+                    "status": "النسخة الأصلية",
                     "is_current": False,
                     "meta": {
                         "type": "قانون",
-                        "title": "قانون ضريبة الدخل رقم 34 لسنة 2014 (النسخة الأصلية — كما صدر)",
+                        "title": "قانون ضريبة الدخل رقم 34 لسنة 2014 (النسخة الأصلية)",
                         "number": "34 لسنة 2014",
                         "issueDate": "30-12-2014",
                         "effectiveDate": "01-01-2015",
                         "gazette": "عدد 5320 — ص 7390 — تاريخ النشر: 31-12-2014",
-                        "status": "كما صدر"
+                        "status": "النسخة الأصلية"
                     }
                 },
                 {
@@ -1215,13 +1533,13 @@ class LegalGraphService:
                     "subtitle": f"نسخة {v_name} — سارية منذ {eff}",
                     "date": eff,
                     "buttonText": f"عرض نسخة {v_name}",
-                    "status": "ساري" if is_curr else "كما صدر",
+                    "status": "ساري" if is_curr else "النسخة الأصلية",
                     "is_current": is_curr,
                     "meta": {
                         **base_meta,
                         "title": f"{cur_title} ({v_name})",
                         "effectiveDate": eff,
-                        "status": "ساري" if is_curr else "كما صدر"
+                        "status": "ساري" if is_curr else "النسخة الأصلية"
                     }
                 })
             return stages

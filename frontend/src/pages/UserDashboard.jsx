@@ -4,6 +4,8 @@ import { appointmentService } from '../services/appointmentService';
 import { notificationService } from '../services/notificationService';
 import { apiFetch } from '../services/api';
 import { getNotificationTarget } from '../utils/notificationRouter';
+import ModernSelect from '../components/ModernSelect';
+import NotificationDetailsModal from '../components/Notifications/NotificationDetailsModal';
 import './UserDashboard.css';
 
 export default function UserDashboard({ navigate }) {
@@ -25,27 +27,15 @@ export default function UserDashboard({ navigate }) {
   const [yearFrom, setYearFrom] = useState(1930);
   const [yearTo, setYearTo] = useState(2026);
 
-  // Custom Dropdown States
-  const [showActivityDropdown, setShowActivityDropdown] = useState(false);
-  const activityDropdownRef = useRef(null);
+  // Activity filter state
+  const [activityFilter, setActivityFilter] = useState('alerts');
 
   // Modal States
   const [selectedUpdate, setSelectedUpdate] = useState(null);
   const [showAllUpdates, setShowAllUpdates] = useState(false);
   const [showAllActivity, setShowAllActivity] = useState(false);
   const [showUsageModal, setShowUsageModal] = useState(false);
-  const [activityFilter, setActivityFilter] = useState('alerts');
-
-  // Click outside for custom activity dropdown
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (activityDropdownRef.current && !activityDropdownRef.current.contains(e.target)) {
-        setShowActivityDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const [selectedNotifForModal, setSelectedNotifForModal] = useState(null);
 
   // Fetch Dashboard Data
   useEffect(() => {
@@ -60,7 +50,7 @@ export default function UserDashboard({ navigate }) {
           apiFetch('/api/tickets/my?page=1&limit=20', {}, token).catch(() => [])
         ]);
 
-        if (subRes && subRes.has_subscription) {
+        if (subRes) {
           setActiveSub(subRes);
         }
         setLaws(Array.isArray(lawsRes) ? lawsRes : []);
@@ -137,11 +127,6 @@ export default function UserDashboard({ navigate }) {
     const lawId = law.law_id || law.id || '';
     const lawTitle = law.title || '';
     const lawType = law.type || '';
-    try {
-      sessionStorage.setItem('selected_semantic_law', JSON.stringify(law));
-    } catch (e) {
-      console.warn("Could not save law to sessionStorage:", e);
-    }
     const params = new URLSearchParams();
     if (lawId) params.set('lawId', lawId);
     if (lawTitle) params.set('lawTitle', lawTitle);
@@ -158,24 +143,34 @@ export default function UserDashboard({ navigate }) {
     }
   };
 
-  // Calculate Quotas & Usage Percentages
-  const coUsed = activeSub?.consultations_used ?? (appointments.length > 0 ? appointments.length : 12);
-  const coTotal = activeSub?.consultations_total || 20;
-  const coPct = Math.min(100, Math.round((coUsed / coTotal) * 100));
+  // Calculate Quotas & Usage Percentages (Accurate real user data, 0 for new users)
+  const planName = activeSub?.plan_name || 'الباقة المجانية';
 
-  const aiUsed = 248;
-  const aiTotal = 400;
-  const aiPct = Math.min(100, Math.round((aiUsed / aiTotal) * 100));
+  const coUsed = Number(activeSub?.consultations_used ?? appointments.length ?? 0);
+  const coTotal = Number(activeSub?.consultations_total ?? 0);
+  const coPct = coTotal > 0 ? Math.min(100, Math.round((coUsed / coTotal) * 100)) : 0;
 
-  const dlUsed = 18;
-  const dlTotal = 25;
-  const dlPct = Math.min(100, Math.round((dlUsed / dlTotal) * 100));
+  const aiUsed = Number(activeSub?.ai_points_used ?? 0);
+  const aiTotal = Number(activeSub?.ai_points_total ?? 20);
+  const aiPct = aiTotal > 0 ? Math.min(100, Math.round((aiUsed / aiTotal) * 100)) : 0;
 
-  const totalUsedPct = Math.round((aiPct + dlPct + coPct) / 3);
+  const dlUsed = Number(activeSub?.downloads_used ?? activeSub?.tax_forms_used ?? 0);
+  const dlTotal = Number(activeSub?.downloads_total ?? activeSub?.tax_forms_total ?? 3);
+  const dlPct = dlTotal > 0 ? Math.min(100, Math.round((dlUsed / dlTotal) * 100)) : 0;
 
-  // Conic Gradient for Ring Chart matching design
-  const ringStyle = {
+  const prUsed = Number(activeSub?.prints_used ?? 0);
+  const prTotal = Number(activeSub?.prints_total ?? 5);
+  const prPct = prTotal > 0 ? Math.min(100, Math.round((prUsed / prTotal) * 100)) : 0;
+
+  const totalUsedPct = (aiTotal + dlTotal + prTotal + coTotal) > 0
+    ? Math.round(((aiUsed + dlUsed + prUsed + coUsed) / (aiTotal + dlTotal + prTotal + coTotal)) * 100)
+    : 0;
+
+  // Conic Gradient for Ring Chart
+  const ringStyle = totalUsedPct > 0 ? {
     background: `conic-gradient(#123a54 0% ${aiPct}%, #d99a27 ${aiPct}% ${Math.min(100, aiPct + dlPct)}%, #27865F ${Math.min(100, aiPct + dlPct)}% 100%)`
+  } : {
+    background: '#E2E8F0'
   };
 
   // Status Arabic translation helper
@@ -201,6 +196,18 @@ export default function UserDashboard({ navigate }) {
                           (act.title || '').includes('محادثة') ||
                           act.type === 'message' ||
                           act.category === 'chat';
+
+    if (act.type === 'notif') {
+      setShowAllActivity(false);
+      setSelectedNotifForModal(act.rawNotif || {
+        id: act.rawId,
+        title: act.title,
+        message: act.sub || act.title,
+        created_at: act.date,
+        extra_metadata: act.extra_metadata || act.metadata || {}
+      });
+      return;
+    }
 
     if (isChatMessage) {
       if (act.appointment_id) {
@@ -251,6 +258,7 @@ export default function UserDashboard({ navigate }) {
       return {
         id: `notif-${n.id}`,
         rawId: n.id,
+        rawNotif: n,
         type: 'notif',
         title: n.title || n.message || 'تنبيه جديد',
         date: n.created_at ? new Date(n.created_at).toLocaleDateString('ar-EG') : 'اليوم',
@@ -283,27 +291,14 @@ export default function UserDashboard({ navigate }) {
     }))
   ];
 
-  const defaultActivities = [
-    { id: 1, title: 'صدر قانون معدل لقانون ضريبة الدخل', date: 'منذ ساعتين', category: 'alerts', sub: 'تمت إضافة النص والتعديلات والارتباطات التشريعية', link: '/regulations' },
-    { id: 2, title: 'تحديث على تعليمات ضريبة المبيعات', date: 'منذ 5 ساعات', category: 'alerts', sub: 'أصبح النص المحدث متاحاً للبحث والمقارنة', link: '/regulations' },
-    { id: 3, title: 'استشارة ضريبية — ضريبة الدخل', date: '12 سبتمبر · 10:00 ص', category: 'events', sub: 'جلسة فيديو مع المستشار رائد الحداد', link: '/my-appointments' },
-    { id: 4, title: 'المعالجة الضريبية لعقود الخدمات', date: '12 أغسطس', category: 'consults', sub: 'استشارة مكتملة — الملخص والتوصيات متاحة', link: '/my-appointments' }
-  ];
-
-  // Correct Filtering:
-  // - alerts: notifications/alerts
-  // - events: upcoming appointments
-  // - consults: ALL user appointments (pending, confirmed, completed)
-  // - tickets: support tickets
-  const filteredActivities = rawActivities.length > 0 
-    ? rawActivities.filter(a => {
-        if (activityFilter === 'alerts') return a.category === 'alerts';
-        if (activityFilter === 'events') return a.category === 'consults' || a.category === 'events';
-        if (activityFilter === 'consults') return a.category === 'consults';
-        if (activityFilter === 'tickets') return a.category === 'tickets';
-        return true;
-      })
-    : defaultActivities.filter(a => activityFilter === 'all' || a.category === activityFilter);
+  // Filter activities strictly from real user data (no fake mock entries)
+  const filteredActivities = rawActivities.filter((a) => {
+    if (activityFilter === 'alerts') return a.category === 'alerts';
+    if (activityFilter === 'events') return a.category === 'consults' || a.category === 'events';
+    if (activityFilter === 'consults') return a.category === 'consults';
+    if (activityFilter === 'tickets') return a.category === 'tickets';
+    return true;
+  });
 
   if (loading) {
     return (
@@ -338,7 +333,7 @@ export default function UserDashboard({ navigate }) {
       {/* 1. Welcome Banner Header */}
       <div className="dash-welcome">
         <div>
-          <h1 className="dash-welcome-title">مرحباً بك، {userName} 👋</h1>
+          <h1 className="dash-welcome-title">مرحباً بك، {userName}</h1>
           <p className="dash-welcome-sub">أهلاً بك في منصتك الضريبية الموحدة — المستجدات والخدمات والرصيد في مكان واحد.</p>
         </div>
       </div>
@@ -346,7 +341,12 @@ export default function UserDashboard({ navigate }) {
       {/* 2. Attached Search Bar & Advanced Dropdown (Exact HTML Design) */}
       <div className="searchSectionContainer">
         <div className="searchWrap">
-          <button type="button" className="searchIcon" onClick={handleSearchSubmit}>⌕</button>
+          <button type="button" className="searchIcon" onClick={handleSearchSubmit} title="بحث">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </button>
           <input
             id="q"
             placeholder="ابحث في التشريعات الضريبية، القوانين، القرارات، التعليمات والتفسيرات…"
@@ -530,27 +530,69 @@ export default function UserDashboard({ navigate }) {
           </div>
 
           <button className="quickStackItem" onClick={() => navigate('/consultants')}>
-            <span className="stackIcon">◴</span>
+            <span className="stackIcon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#123a54" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+            </span>
             <span className="stackText"><b>حجز استشارة</b><small>اختيار الموعد والمستشار</small></span>
-            <span className="stackArrow">←</span>
+            <span className="stackArrow">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+            </span>
           </button>
 
           <button className="quickStackItem" onClick={() => navigate('/ai-assistant')}>
-            <span className="stackIcon">✦</span>
+            <span className="stackIcon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d99a27" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+              </svg>
+            </span>
             <span className="stackText"><b>البحث الذكي</b><small>اسأل داخل المعرفة الضريبية</small></span>
-            <span className="stackArrow">←</span>
+            <span className="stackArrow">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+            </span>
           </button>
 
           <button className="quickStackItem" onClick={() => navigate('/quick-consultation')}>
-            <span className="stackIcon">⚡</span>
+            <span className="stackIcon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#123a54" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+              </svg>
+            </span>
             <span className="stackText"><b>استشارة سريعة</b><small>إجابة عاجلة ومباشرة على سؤالك</small></span>
-            <span className="stackArrow">←</span>
+            <span className="stackArrow">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+            </span>
           </button>
 
           <button className="quickStackItem" onClick={() => navigate('/regulations')}>
-            <span className="stackIcon">▤</span>
+            <span className="stackIcon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#123a54" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
+            </span>
             <span className="stackText"><b>النماذج والتشريعات</b><small>الوصول إلى النماذج المعتمدة</small></span>
-            <span className="stackArrow">←</span>
+            <span className="stackArrow">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+            </span>
           </button>
         </div>
 
@@ -558,7 +600,12 @@ export default function UserDashboard({ navigate }) {
         <div className="panel activity activityRefined">
           <div className="activityTop">
             <div className="activityTitle">
-              <span className="sectionIcon">◫</span>
+              <span className="sectionIcon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#123a54" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+              </span>
               <div>
                 <h2>سجل النشاطات</h2>
                 <small>آخر التحديثات التي تتطلب انتباهك</small>
@@ -566,38 +613,13 @@ export default function UserDashboard({ navigate }) {
             </div>
 
             <div className="activityControls">
-              {/* Custom Modern Dropdown Component */}
-              <div className="customSelectWrap" ref={activityDropdownRef}>
-                <button
-                  type="button"
-                  className={`customSelectTrigger ${showActivityDropdown ? 'active' : ''}`}
-                  onClick={() => setShowActivityDropdown(!showActivityDropdown)}
-                >
-                  <span>
-                    {activityOptions.find(o => o.value === activityFilter)?.label || 'التنبيهات'}
-                  </span>
-                  <span className="chevIcon">▼</span>
-                </button>
-
-                {showActivityDropdown && (
-                  <div className="customSelectMenu">
-                    {activityOptions.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        className={`customOptionItem ${activityFilter === opt.value ? 'selected' : ''}`}
-                        onClick={() => {
-                          setActivityFilter(opt.value);
-                          setShowActivityDropdown(false);
-                        }}
-                      >
-                        <span>{opt.label}</span>
-                        {activityFilter === opt.value && <span style={{ fontSize: '11px', color: '#0f4a6b' }}>✓</span>}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <ModernSelect
+                options={activityOptions}
+                value={activityFilter}
+                onChange={(val) => setActivityFilter(val)}
+                dropdownWidth="160px"
+                style={{ minWidth: '135px' }}
+              />
 
               <button className="viewAllBtn" onClick={() => setShowAllActivity(true)}>
                 عرض الكل ←
@@ -618,8 +640,31 @@ export default function UserDashboard({ navigate }) {
                 </div>
               ))
             ) : (
-              <div style={{ textAlign: 'center', padding: '24px 0', color: '#8799a4', fontSize: '12px' }}>
-                لا توجد عناصر في هذا الفلتر حالياً.
+              <div style={{ textAlign: 'center', padding: '36px 16px', color: '#64748B', fontSize: '12.5px' }}>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '12px',
+                  background: '#F1F5F9',
+                  color: '#64748B',
+                  marginBottom: '10px'
+                }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                    <line x1="9" y1="12" x2="15" y2="12" />
+                    <line x1="9" y1="16" x2="13" y2="16" />
+                  </svg>
+                </div>
+                <strong style={{ display: 'block', color: '#1E293B', marginBottom: '4px' }}>
+                  لا توجد نشاطات في هذا القسم حالياً
+                </strong>
+                <small style={{ color: '#94A3B8' }}>
+                  ستظهر هنا التنبيهات، الاستشارات، والتحديثات الخاصة بحسابك فور حدوثها.
+                </small>
               </div>
             )}
           </div>
@@ -632,7 +677,12 @@ export default function UserDashboard({ navigate }) {
               <h2>استهلاك الباقة</h2>
               <p>ملخص الاستخدام الحالي</p>
             </div>
-            <span className="usageOpen">↗</span>
+            <span className="usageOpen" title="عرض التفاصيل">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="7" y1="17" x2="17" y2="7" />
+                <polyline points="7 7 17 7 17 17" />
+              </svg>
+            </span>
           </div>
 
           <div className="usageCoreVertical">
@@ -668,7 +718,17 @@ export default function UserDashboard({ navigate }) {
 
               <div className="uitem">
                 <div className="uline">
-                  <span><i className="legend consults"></i>الاستشارات</span>
+                  <span><i className="legend downloads" style={{ background: '#d99a27' }}></i>طباعة القوانين</span>
+                  <b>{prUsed} / {prTotal}</b>
+                </div>
+                <div className="bar">
+                  <div className="fill" style={{ width: `${prPct}%`, background: '#d99a27' }}></div>
+                </div>
+              </div>
+
+              <div className="uitem">
+                <div className="uline">
+                  <span><i className="legend consults"></i>استشارة سريعة</span>
                   <b>{coUsed} / {coTotal}</b>
                 </div>
                 <div className="bar">
@@ -691,7 +751,12 @@ export default function UserDashboard({ navigate }) {
           <div className="dash-modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="dash-modal-head">
               <h3 className="dash-modal-title">{selectedUpdate.title}</h3>
-              <button className="dash-modal-close" onClick={() => setSelectedUpdate(null)}>×</button>
+              <button className="dash-modal-close" onClick={() => setSelectedUpdate(null)} title="إغلاق">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
             </div>
             <div className="dash-modal-body">
               <div className="badges" style={{ marginBottom: '12px' }}>
@@ -729,7 +794,12 @@ export default function UserDashboard({ navigate }) {
           <div className="dash-modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="dash-modal-head">
               <h3 className="dash-modal-title">آخر مستجدات التشريعات الضريبية الأردنية ({displayLaws.length})</h3>
-              <button className="dash-modal-close" onClick={() => setShowAllUpdates(false)}>×</button>
+              <button className="dash-modal-close" onClick={() => setShowAllUpdates(false)} title="إغلاق">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
             </div>
             <div className="dash-modal-body">
               {displayLaws.map((law, idx) => (
@@ -786,7 +856,12 @@ export default function UserDashboard({ navigate }) {
                   عدد العناصر: {filteredActivities.length}
                 </span>
               </div>
-              <button className="dash-modal-close" onClick={() => setShowAllActivity(false)}>✕</button>
+              <button className="dash-modal-close" onClick={() => setShowAllActivity(false)} title="إغلاق">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
             </div>
 
             {/* Filter Tabs Bar inside Modal */}
@@ -861,19 +936,28 @@ export default function UserDashboard({ navigate }) {
             <div className="dash-modal-head">
               <div>
                 <h3 className="dash-modal-title">تفاصيل استهلاك الباقة</h3>
-                <span style={{ fontSize: '11px', color: '#718797' }}>الباقة الاحترافية · دورة الاستخدام الحالية</span>
+                <span style={{ fontSize: '11px', color: '#718797' }}>
+                  {planName} · {activeSub?.cycle || 'دورة الاستخدام الحالية'}
+                </span>
               </div>
-              <button className="dash-modal-close" onClick={() => setShowUsageModal(false)}>×</button>
+              <button className="dash-modal-close" onClick={() => setShowUsageModal(false)} title="إغلاق">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
             </div>
             <div className="dash-modal-body">
               <div style={{ background: '#fbfcfd', padding: '16px', borderRadius: '14px', border: '1px solid #dce5ea', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <span style={{ fontSize: '10px', color: '#718797' }}>الخطة الحالية</span>
                   <h4 style={{ margin: '2px 0', fontSize: '18px', color: '#123a54' }}>
-                    {activeSub?.plan_name || 'الاحترافية'}
+                    {planName}
                   </h4>
                   <p style={{ margin: 0, fontSize: '11px', color: '#718797' }}>
-                    تجدد في {activeSub?.renewal_date || '28 سبتمبر 2026'}
+                    {activeSub?.renewal_date && activeSub.renewal_date !== '—'
+                      ? `تجدد في ${activeSub.renewal_date}`
+                      : 'باقة مجانية بدون تاريخ انتهاء'}
                   </p>
                 </div>
                 <div style={{ textAlign: 'center' }}>
@@ -882,7 +966,7 @@ export default function UserDashboard({ navigate }) {
                 </div>
               </div>
 
-              <div className="dash-quota-grid">
+              <div className="dash-quota-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                 <div className="dash-quota-card">
                   <div className="dash-quota-val">{aiUsed} / {aiTotal}</div>
                   <div className="dash-quota-sub">أسئلة AI</div>
@@ -892,8 +976,12 @@ export default function UserDashboard({ navigate }) {
                   <div className="dash-quota-sub">تحميل القوانين</div>
                 </div>
                 <div className="dash-quota-card">
+                  <div className="dash-quota-val">{prUsed} / {prTotal}</div>
+                  <div className="dash-quota-sub">طباعة القوانين</div>
+                </div>
+                <div className="dash-quota-card">
                   <div className="dash-quota-val">{coUsed} / {coTotal}</div>
-                  <div className="dash-quota-sub">الاستشارات</div>
+                  <div className="dash-quota-sub">استشارة سريعة</div>
                 </div>
               </div>
 
@@ -912,6 +1000,24 @@ export default function UserDashboard({ navigate }) {
         </div>
       )}
 
+      {/* Shared Sleek NotificationDetailsModal */}
+      <NotificationDetailsModal
+        isOpen={Boolean(selectedNotifForModal)}
+        notification={selectedNotifForModal}
+        onClose={() => setSelectedNotifForModal(null)}
+        onNavigate={navigate}
+        onMarkAsRead={async (id) => {
+          setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+          if (token) {
+            try {
+              await notificationService.markAsRead(id, token);
+            } catch (err) {
+              console.warn('Failed to mark notification as read:', err);
+            }
+          }
+        }}
+        role="user"
+      />
     </div>
   );
 }
