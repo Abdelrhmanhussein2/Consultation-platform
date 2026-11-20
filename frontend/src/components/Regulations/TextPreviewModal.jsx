@@ -4,6 +4,20 @@ import ReactDOM from 'react-dom';
 import { getLawTree } from '../../services/legalService';
 import PreviewArticleCard from './PreviewArticleCard';
 
+function formatDisplayDate(val) {
+  if (!val || val === '—' || val === '-') return '';
+  if (typeof val !== 'string') return String(val);
+  const trimmed = val.trim();
+  if (trimmed === 'لا ينطبق (نص أصلي)') return trimmed;
+  const m = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (m) {
+    const dd = m[3].padStart(2, '0');
+    const mm = m[2].padStart(2, '0');
+    return `${dd}-${mm}-${m[1]}`;
+  }
+  return trimmed;
+}
+
 export default function TextPreviewModal({ isOpen, onClose, law, onOpenFullReader }) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -48,11 +62,17 @@ export default function TextPreviewModal({ isOpen, onClose, law, onOpenFullReade
 
   if (!isOpen || !law) return null;
 
+  const isOriginal = (law.type || '').includes('أصلية') ||
+    (law.title || '').includes('النسخة الأصلية') ||
+    (law.title || '').includes('النسخة') ||
+    String(law.law_id || '').includes('النسخة') ||
+    String(law.law_id || '').includes('الأصلية');
+
   const meta = {
     number: lawMeta?.number || law.number || `${law.year_short || '2014'}`,
-    issue_date: lawMeta?.issue_date || law.issue_date || '—',
-    effective_date: lawMeta?.effective_date || law.effective_date || '—',
-    amended_date: lawMeta?.amended_date || law.amended_date || '—',
+    issue_date: formatDisplayDate(lawMeta?.issue_date || law.issue_date) || (law.year ? `${law.year}` : '—'),
+    effective_date: formatDisplayDate(lawMeta?.effective_date || law.effective_date) || '—',
+    amended_date: formatDisplayDate(lawMeta?.amended_date || law.amended_date) || (isOriginal ? 'لا ينطبق (نص أصلي)' : '—'),
     title: lawMeta?.title || law.title || 'القانون',
   };
 

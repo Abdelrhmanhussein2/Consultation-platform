@@ -85,9 +85,12 @@ const DocumentCenterContent = React.memo(function DocumentCenterContent({ lawTre
       </div>
 
       {/* Preamble */}
-      <div className="lft-preamble">
-        {lawTree?.preamble ||
-          `نشر القانون في العدد 5320 من الجريدة الرسمية على الصفحة 7390 بتاريخ ${lawTree?.issue_date || '31-12-2014'}، وسرى اعتبارًا من ${lawTree?.effective_date || '01-01-2015'}.`}
+      <div className="lft-preamble" style={{ whiteSpace: 'pre-line', lineHeight: '1.85' }}>
+        {(lawTree?.preamble || lawTree?.description)
+          ? (String(lawTree.preamble || lawTree.description).includes('يقصد ب')
+              ? String(lawTree.preamble || lawTree.description).split(/\n+\s*يقصد\s+ب/)[0].trim()
+              : (lawTree.preamble || lawTree.description))
+          : `نشر القانون في العدد 5320 من الجريدة الرسمية على الصفحة 7390 بتاريخ ${lawTree?.issue_date || '31-12-2014'}، وسرى اعتبارًا من ${lawTree?.effective_date || '01-01-2015'}.`}
       </div>
 
       {/* Sections & Articles */}

@@ -41,8 +41,9 @@ def iter_document_blocks(doc):
         if isinstance(child, CT_P):
             p = Paragraph(child, doc)
             text = normalize_text(p.text)
+            has_hl = any(r.font.highlight_color is not None for r in p.runs)
             if text:
-                yield {"type": "paragraph", "content": text}
+                yield {"type": "paragraph", "content": text, "is_highlighted": has_hl}
         elif isinstance(child, CT_Tbl):
             t = Table(child, doc)
             table_rows = []
@@ -51,7 +52,7 @@ def iter_document_blocks(doc):
                 if any(cells):
                     table_rows.append(cells)
             if table_rows:
-                yield {"type": "table", "content": table_rows}
+                yield {"type": "table", "content": table_rows, "is_highlighted": False}
 
 
 def parse_line_type(text: str):
@@ -88,8 +89,12 @@ def parse_law_file(filepath: str) -> dict:
         "النوع": "نسخة أصلية" if is_base else "نسخة معدلة",
         "الجريدة": "",
         "حل_محل": "",
+        "تاريخ_الصدور": "",
+        "تاريخ_السريان": "",
+        "تاريخ_آخر_تعديل": "",
+        "عدد_المواد": "",
         "المواد": [],
-        "الديباجة": []
+        "الديباجة": ""
     }
 
     name_match = re.search(r'رقم[_\s]*(\d+)[_\s]*لسنة[_\s]*(\d{4})', filename)
@@ -102,6 +107,11 @@ def parse_law_file(filepath: str) -> dict:
 
     current_article = None
     current_clause = None
+    seen_topic_header = False
+    in_topic_bullets = False
+    preamble_lines = []
+    highlighted_lines = []
+    topics = []
 
     for block in iter_document_blocks(doc):
         if block["type"] == "table":
@@ -112,24 +122,61 @@ def parse_law_file(filepath: str) -> dict:
             elif current_article:
                 current_article["نص_المادة"] += "\n" + table_text
             else:
-                law_data["الديباجة"].append(table_text)
+                preamble_lines.append(table_text)
             continue
 
         line = block["content"]
 
         if not current_article:
-            if "الجريدة:" in line:
-                law_data["الجريدة"] = line.replace("الجريدة:", "").strip()
+            clean_line = line.replace('\u200b', '').strip()
+            if not clean_line or clean_line == "المعلومات" or clean_line.startswith("عدد التعديلات:"):
                 continue
-            if "الرقم:" in line:
-                law_data["رقم_القانون"] = re.sub(r'[^\d]', '', line)
+            if "الجريدة:" in clean_line:
+                law_data["الجريدة"] = clean_line.replace("الجريدة:", "").strip()
                 continue
-            if "السنة:" in line:
-                law_data["السنة"] = re.sub(r'[^\d]', '', line)
+            if "الرقم:" in clean_line:
+                law_data["رقم_القانون"] = re.sub(r'[^\d]', '', clean_line)
                 continue
-            if "حل محل:" in line or "يحل محل:" in line:
-                law_data["حل_محل"] = line.split(":", 1)[1].strip()
+            if "السنة:" in clean_line:
+                law_data["السنة"] = re.sub(r'[^\d]', '', clean_line)
                 continue
+            if "حل محل:" in clean_line or "يحل محل:" in clean_line:
+                law_data["حل_محل"] = clean_line.split(":", 1)[1].strip()
+                continue
+            if "تاريخ الصدور:" in clean_line or "تاريخ الإصدار:" in clean_line:
+                law_data["تاريخ_الصدور"] = clean_line.split(":", 1)[1].strip()
+                continue
+            if "تاريخ السريان:" in clean_line or "تاريخ النفاذ:" in clean_line:
+                law_data["تاريخ_السريان"] = clean_line.split(":", 1)[1].strip()
+                continue
+            if "تاريخ آخر تعديل:" in clean_line or "آخر تعديل:" in clean_line:
+                law_data["تاريخ_آخر_تعديل"] = clean_line.split(":", 1)[1].strip()
+                continue
+            if "عدد المواد:" in clean_line:
+                law_data["عدد_المواد"] = re.sub(r'[^\d]', '', clean_line)
+                continue
+            if clean_line in ["الموضوع:", "الموضوع"]:
+                seen_topic_header = True
+                in_topic_bullets = True
+                continue
+            if in_topic_bullets:
+                if len(clean_line) < 45 and not clean_line.startswith(('قانون', 'يقصد', 'المشار', 'نحن', 'بمقتضى')):
+                    topics.append(clean_line)
+                    continue
+                else:
+                    in_topic_bullets = False
+            if block.get("is_highlighted") and clean_line:
+                highlighted_lines.append(clean_line)
+
+            if seen_topic_header and not in_topic_bullets:
+                if clean_line.startswith(('يقصد ب', 'يقصد بالقانون', 'يقصد بهذا')):
+                    continue
+                if not re.match(r'^المادة\s*\(?\d+\)?', clean_line):
+                    preamble_lines.append(clean_line)
+                    if 'بالاسم المختصر' in clean_line:
+                        # End of official preamble
+                        pass
+                    continue
 
         line_type, key, extra, rest = parse_line_type(line)
 
@@ -147,7 +194,7 @@ def parse_law_file(filepath: str) -> dict:
                     current_article["الفقرات"].append(current_clause)
                 current_clause = {"حرف_الفقرة": key, "نص_الفقرة": rest, "البنود": []}
             else:
-                law_data["الديباجة"].append(line)
+                preamble_lines.append(line)
 
         elif line_type == "ITEM":
             if current_clause:
@@ -157,7 +204,7 @@ def parse_law_file(filepath: str) -> dict:
                     current_article["البنود"] = []
                 current_article["البنود"].append({"رقم_البند": key, "نص_البند": rest})
             else:
-                law_data["الديباجة"].append(line)
+                preamble_lines.append(line)
 
         else:
             if current_clause and current_clause["البنود"]:
@@ -167,12 +214,19 @@ def parse_law_file(filepath: str) -> dict:
             elif current_article:
                 current_article["نص_المادة"] += "\n" + line
             else:
-                law_data["الديباجة"].append(line)
+                if not re.match(r'^المادة\s*\(?\d+\)?', line):
+                    preamble_lines.append(line)
 
     if current_clause and current_article:
         current_article["الفقرات"].append(current_clause)
     if current_article:
         law_data["المواد"].append(current_article)
+
+    if highlighted_lines:
+        law_data["الديباجة"] = "\n\n".join(highlighted_lines).strip()
+    else:
+        law_data["الديباجة"] = "\n\n".join(preamble_lines).strip()
+    law_data["الموضوع"] = "، ".join(topics).strip()
 
     return law_data
 
@@ -275,15 +329,42 @@ class Neo4jPipeline:
     def save_law(self, law: dict):
         with self.driver.session() as session:
             # 1. إنشاء عقدة القانون
+            def _to_ddmmyyyy(val, fallback=""):
+                if not val:
+                    return fallback
+                s = str(val).strip()
+                m = re.match(r"^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$", s)
+                if m:
+                    return f"{m.group(3).zfill(2)}-{m.group(2).zfill(2)}-{m.group(1)}"
+                return s
+
+            is_orig = "أصلية" in law.get("النوع", "") or "الأصلية" in law.get("معرف", "") or "النسخة" in law.get("العنوان", "")
+            iss_d = _to_ddmmyyyy(law.get("تاريخ_الصدور"), "30-12-2014")
+            eff_d = _to_ddmmyyyy(law.get("تاريخ_السريان"), "01-01-2015")
+            raw_amend = _to_ddmmyyyy(law.get("تاريخ_آخر_تعديل"), "")
+            amend_d = "لا ينطبق (نص أصلي)" if is_orig else (raw_amend or "01-01-2019")
+            arts_count = int(law.get("عدد_المواد") or len(law.get("المواد", [])) or 82)
+            preamble_text = law.get("الديباجة") or ""
+            topics_text = law.get("الموضوع") or ""
+
             session.run("""
                 MERGE (l:`قانون` {`معرف`: $id})
                 SET l.`name` = $dn, l.`اسم` = $dn, l.`العنوان` = $title,
                     l.`رقم_القانون` = $num, l.`السنة` = $year,
                     l.`النوع` = $typ, l.`الجريدة` = $gaz,
-                    l.`اسم_الملف` = $fn, l.`حل_محل` = $rep
+                    l.`اسم_الملف` = $fn, l.`حل_محل` = $rep,
+                    l.`تاريخ_الصدور` = $iss, l.issue_date = $iss,
+                    l.`تاريخ_السريان` = $eff, l.effective_date = $eff,
+                    l.`تاريخ_آخر_تعديل` = $amend, l.amended_date = $amend,
+                    l.`عدد_المواد` = $arts_count, l.total_articles = $arts_count,
+                    l.`الديباجة` = $preamble, l.preamble = $preamble,
+                    l.`الوصف` = $preamble, l.description = $preamble,
+                    l.`الموضوع` = $topics, l.topics = $topics
             """, id=law["معرف"], dn=law["اسم_العرض"], title=law["العنوان"],
                  num=law["رقم_القانون"], year=law["السنة"],
-                 typ=law["النوع"], gaz=law["الجريدة"], fn=law["اسم_الملف"], rep=law["حل_محل"])
+                 typ=law["النوع"], gaz=law["الجريدة"], fn=law["اسم_الملف"], rep=law["حل_محل"],
+                 iss=iss_d, eff=eff_d, amend=amend_d, arts_count=arts_count,
+                 preamble=preamble_text, topics=topics_text)
 
             # 2. إنشاء المواد والفقرات والبنود
             for art in law["المواد"]:

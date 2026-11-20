@@ -42,6 +42,14 @@ const SORT_OPTIONS = [
 
 
 
+const sanitizeDescription = (text) => {
+  if (!text || typeof text !== 'string') return '';
+  if (text.includes('يقصد ب')) {
+    return text.split(/\n+\s*يقصد\s+ب/)[0].trim();
+  }
+  return text.trim();
+};
+
 export default function LegalReader({ lawId, onClose }) {
   const { token } = useAuth();
   const is34 = !lawId || String(lawId).includes('34');
@@ -687,11 +695,19 @@ export default function LegalReader({ lawId, onClose }) {
   };
 
   const jumpTo = (targetId, artNum = null) => {
-    if (artNum !== null) setActiveArticleId(artNum);
-    const el = document.getElementById(targetId);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (fileTab === 'description') {
+      setFileTab('info');
     }
+    if (targetId === 'preamble-box') {
+      setShowPreamble(true);
+    }
+    if (artNum !== null) setActiveArticleId(artNum);
+    setTimeout(() => {
+      const el = document.getElementById(targetId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
   };
 
   // Inline Search Handlers
@@ -1046,23 +1062,10 @@ export default function LegalReader({ lawId, onClose }) {
                       </div>
                     )}
                     {fileTab === 'description' && (
-                      <div className="document-description-text" style={{ whiteSpace: 'pre-line', lineHeight: 2 }}>
-                        {(() => {
-                          const allArticles = lawTree.sections?.flatMap(s => s.articles || []) || [];
-                          const lines = [];
-                          if (lawTree.preamble) lines.push(lawTree.preamble);
-                          for (const art of allArticles) {
-                            const artText = art.content || art.intro_text || (art.clauses?.map(c => typeof c === 'object' ? c.text : c).join(' ')) || '';
-                            if (artText) {
-                              lines.push(`المادة ${art.num}: ${artText}`);
-                            }
-                            if (lines.length >= 18) break;
-                          }
-                          if (lines.length > 0) {
-                            return lines.slice(0, 18).join('\n\n');
-                          }
-                          return `${lawTree.title} ${lawTree.gazette ? `المنشور في الجريدة الرسمية (${lawTree.gazette})` : ''} ${lawTree.effective_date ? `والساري بتاريخ ${lawTree.effective_date}` : ''}.`;
-                        })()}
+                      <div className="document-description-text" style={{ whiteSpace: 'pre-line', lineHeight: 2.2, padding: '24px 20px', minHeight: '260px' }}>
+                        <div style={{ fontSize: '15.5px', color: '#1E293B', lineHeight: '2.2' }}>
+                          {sanitizeDescription(lawTree.description || lawTree.preamble) || `${lawTree.title} ${lawTree.gazette ? `المنشور في الجريدة الرسمية (${lawTree.gazette})` : ''} ${lawTree.effective_date ? `والساري بتاريخ ${lawTree.effective_date}` : ''}.`}
+                        </div>
                       </div>
                     )}
                     {fileTab === 'related' && (
@@ -1113,58 +1116,63 @@ export default function LegalReader({ lawId, onClose }) {
                 </>
               )}
 
-              {/* Document Title Header */}
-              <div className="law-name">
-                <h2>{lawTree.title}</h2>
-              </div>
+              {/* Document Content & Articles (Hidden when on description tab) */}
+              {fileTab !== 'description' && (
+                <>
+                  {/* Document Title Header */}
+                  <div className="law-name">
+                    <h2>{lawTree.title}</h2>
+                  </div>
 
-              {/* Preamble Box */}
-              <div className="preamble" id="preamble-box">
-                <button onClick={() => setShowPreamble(!showPreamble)}>
-                  إظهار معلومات وديباجة القانون {showPreamble ? '˄' : '˅'}
-                </button>
-                {showPreamble && (
-                  <div className="preamble-body">
-                    {lawTree.preamble || (
-                      [
-                        lawTree.gazette ? `الجريدة الرسمية: ${lawTree.gazette}` : null,
-                        lawTree.effective_date ? `تاريخ السريان: ${lawTree.effective_date}` : null,
-                        lawTree.amended_date ? `آخر تعديل نافذ: ${lawTree.amended_date}` : null,
-                        lawTree.issue_date ? `تاريخ الصدور: ${lawTree.issue_date}` : null
-                      ].filter(Boolean).join('، ') || 'نُشر هذا التشريع وسرى وفقاً للبيانات المعتمدة في الجريدة الرسمية.'
+                  {/* Preamble Box */}
+                  <div className="preamble" id="preamble-box">
+                    <button onClick={() => setShowPreamble(!showPreamble)}>
+                      إظهار معلومات وديباجة القانون {showPreamble ? '˄' : '˅'}
+                    </button>
+                    {showPreamble && (
+                      <div className="preamble-body" style={{ whiteSpace: 'pre-line', lineHeight: '1.85' }}>
+                        {sanitizeDescription(lawTree.preamble || lawTree.description) || (
+                          [
+                            lawTree.gazette ? `الجريدة الرسمية: ${lawTree.gazette}` : null,
+                            lawTree.effective_date ? `تاريخ السريان: ${lawTree.effective_date}` : null,
+                            lawTree.amended_date ? `آخر تعديل نافذ: ${lawTree.amended_date}` : null,
+                            lawTree.issue_date ? `تاريخ الصدور: ${lawTree.issue_date}` : null
+                          ].filter(Boolean).join('، ') || 'نُشر هذا التشريع وسرى وفقاً للبيانات المعتمدة في الجريدة الرسمية.'
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
 
-              {/* Sections and Articles List using LegalArticle Component */}
-              {lawTree.sections?.map((section) => (
-                <div key={section.section_id}>
-                  <div className="law-section-header">
-                    <div className="path">الفصل التشريعي</div>
-                    <h2>{section.title}</h2>
-                  </div>
+                  {/* Sections and Articles List using LegalArticle Component */}
+                  {lawTree.sections?.map((section) => (
+                    <div key={section.section_id}>
+                      <div className="law-section-header">
+                        <div className="path">الفصل التشريعي</div>
+                        <h2>{section.title}</h2>
+                      </div>
 
-                  {section.articles?.map((article) => (
-                    <LegalArticle
-                      key={article.num}
-                      article={article}
-                      lawTitle={lawTree.title}
-                      onCompareVersion={handleCompareVersion}
-                      highlights={highlights}
-                      onSelectRelatedFile={(file) => {
-                        const matched = RELATED_FILES.find(f =>
-                          String(f.id) === String(file.id) ||
-                          f.title === file.title ||
-                          (file.case_number && (f.case_number === file.case_number || f.meta?.number?.includes(file.case_number)))
-                        ) || file;
-                        setSelectedRelatedFile(matched);
-                        setShowRelatedDrawer(true);
-                      }}
-                    />
+                      {section.articles?.map((article) => (
+                        <LegalArticle
+                          key={article.num}
+                          article={article}
+                          lawTitle={lawTree.title}
+                          onCompareVersion={handleCompareVersion}
+                          highlights={highlights}
+                          onSelectRelatedFile={(file) => {
+                            const matched = RELATED_FILES.find(f =>
+                              String(f.id) === String(file.id) ||
+                              f.title === file.title ||
+                              (file.case_number && (f.case_number === file.case_number || f.meta?.number?.includes(file.case_number)))
+                            ) || file;
+                            setSelectedRelatedFile(matched);
+                            setShowRelatedDrawer(true);
+                          }}
+                        />
+                      ))}
+                    </div>
                   ))}
-                </div>
-              ))}
+                </>
+              )}
             </div>
           </main>
         </div>
@@ -1614,26 +1622,11 @@ export default function LegalReader({ lawId, onClose }) {
               {modalFileTab === 'description' && (
                 <div className="file-info-modal-pane">
                   <div className="document-description-text" style={{ padding: '20px 22px', lineHeight: 2.1, whiteSpace: 'pre-line' }}>
-                    <div style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#1F303B' }}>
-                      {(() => {
-                        const allArticles = lawTree.sections?.flatMap(s => s.articles || []) || [];
-                        const lines = [];
-                        if (lawTree.preamble) lines.push(lawTree.preamble);
-                        for (const art of allArticles) {
-                          const artText = art.content || art.intro_text || (art.clauses?.map(c => typeof c === 'object' ? c.text : c).join(' ')) || '';
-                          if (artText) {
-                            lines.push(`المادة ${art.num}: ${artText}`);
-                          }
-                          if (lines.length >= 18) break;
-                        }
-                        if (lines.length > 0) {
-                          return lines.slice(0, 18).join('\n\n');
-                        }
-                        return `${lawTree.title} ${lawTree.gazette ? `المنشور في الجريدة الرسمية (${lawTree.gazette})` : ''} ${lawTree.effective_date ? `والساري بتاريخ ${lawTree.effective_date}` : ''}.`;
-                      })()}
+                    <div style={{ margin: '0 0 16px 0', fontSize: '15px', color: '#1F303B', lineHeight: '2' }}>
+                      {sanitizeDescription(lawTree.description || lawTree.preamble) || `${lawTree.title} ${lawTree.gazette ? `المنشور في الجريدة الرسمية (${lawTree.gazette})` : ''} ${lawTree.effective_date ? `والساري بتاريخ ${lawTree.effective_date}` : ''}.`}
                     </div>
-                    <p style={{ margin: 0, fontSize: '14px', color: '#1F303B' }}>
-                      الاسم المعتمد: <strong>{lawTree.title}</strong>
+                    <p style={{ margin: 0, fontSize: '14px', color: '#64748B' }}>
+                      الاسم المعتمد: <strong style={{ color: '#1F303B' }}>{lawTree.title}</strong>
                     </p>
                   </div>
                 </div>

@@ -25,15 +25,74 @@ def extract_law_metadata(full_text: str) -> Dict[str, Any]:
     return metadata
 
 
+def extract_law_preamble(full_text: str) -> str:
+    """
+    Dynamically extracts the document description/preamble from any legal text:
+    The narrative text / short title citation located after 'الموضوع' up to definition notes or Article 1.
+    """
+    if not full_text:
+        return ""
+
+    art1_match = re.search(r'(?:(?:\r?\n)+\s*المادة\s*\(?0?1\)?|\bالمادة\s+الأولى\b)', full_text)
+    if not art1_match:
+        art1_match = re.search(r'(?:(?:\r?\n)+\s*المادة\s*\(?\d+\)?)', full_text)
+
+    pre_article_text = full_text[:art1_match.start()] if art1_match else full_text[:3500]
+
+    m_subj = re.search(r'(?:الموضوع\s*[:\-]?)(.*)', pre_article_text, flags=re.DOTALL)
+    candidate_section = m_subj.group(1) if m_subj else pre_article_text
+
+    lines = [line.strip() for line in candidate_section.splitlines() if line.strip()]
+    preamble_lines = []
+    in_bullets = bool(m_subj)
+
+    metadata_prefixes = (
+        'الجريدة:', 'الرقم:', 'السنة:', 'حل محل:', 'يحل محل:', 'تاريخ الصدور:',
+        'تاريخ الإصدار:', 'تاريخ السريان:', 'تاريخ النفاذ:', 'تاريخ آخر تعديل:',
+        'آخر تعديل:', 'عدد المواد:', 'عدد التعديلات:', 'المعلومات', 'الموضوع:'
+    )
+
+    for line in lines:
+        clean = re.sub(r'^[•\-\*\.]\s*', '', line).strip()
+        if any(clean.startswith(p) for p in metadata_prefixes):
+            continue
+        if in_bullets:
+            if len(clean) < 45 and not clean.startswith(('قانون', 'يقصد', 'المشار', 'نحن', 'بمقتضى', 'صدر', 'بناء', 'قرر', 'مرسوم', 'إعلان')):
+                continue
+            in_bullets = False
+
+        # Stop before explanatory definition notes (e.g. يقصد بقانون / يقصد بهذا القانون)
+        if clean.startswith(('يقصد ب', 'يقصد بالقانون', 'يقصد بهذا')):
+            break
+
+        preamble_lines.append(clean)
+
+        # The short-title clause marks the end of the official publication preamble
+        if 'بالاسم المختصر' in clean:
+            break
+
+    return "\n\n".join(preamble_lines).strip()
+
+
 def extract_file_preview(file_bytes: bytes, filename: str, source_type: str = "law") -> Dict[str, Any]:
     """Extracts metadata and full text preview from DOCX or TXT legal files."""
     ext = filename.split('.')[-1].lower() if '.' in filename else ''
     full_text = ""
+    highlighted_paragraphs = []
     if ext in ('docx', 'doc'):
         try:
             import docx
             d = docx.Document(io.BytesIO(file_bytes))
-            parts = [p.text for p in d.paragraphs if p.text.strip()]
+            parts = []
+            seen_first_article = False
+            for p in d.paragraphs:
+                txt = p.text.strip()
+                if txt:
+                    parts.append(txt)
+                    if not seen_first_article and any(txt.startswith(x) for x in ('المادة 1', 'المادة (1)', 'المادة 01', 'المادة الأولى')):
+                        seen_first_article = True
+                    if not seen_first_article and any(r.font.highlight_color is not None for r in p.runs):
+                        highlighted_paragraphs.append(txt)
             for t in d.tables:
                 for row in t.rows:
                     parts.extend([c.text.strip() for c in row.cells if c.text.strip()])
@@ -43,8 +102,17 @@ def extract_file_preview(file_bytes: bytes, filename: str, source_type: str = "l
                 with zipfile.ZipFile(io.BytesIO(file_bytes)) as z:
                     tree = ET.fromstring(z.read('word/document.xml'))
                     ns = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
-                    p_list = [''.join([n.text or '' for n in p.iter(f'{ns}t')]).strip() for p in tree.iter(f'{ns}p')]
-                    full_text = "\n".join([x for x in p_list if x])
+                    parts = []
+                    seen_first_article = False
+                    for p in tree.iter(f'{ns}p'):
+                        txt = ''.join([n.text or '' for n in p.iter(f'{ns}t')]).strip()
+                        if txt:
+                            parts.append(txt)
+                            if not seen_first_article and any(txt.startswith(x) for x in ('المادة 1', 'المادة (1)', 'المادة 01', 'المادة الأولى')):
+                                seen_first_article = True
+                            if not seen_first_article and p.find(f'.//{ns}highlight') is not None:
+                                highlighted_paragraphs.append(txt)
+                    full_text = "\n".join(parts)
             except Exception as e:
                 full_text = f"تعذر قراءة DOCX: {e}"
     else:
@@ -85,6 +153,11 @@ def extract_file_preview(file_bytes: bytes, filename: str, source_type: str = "l
         data["body"] = full_text
         meta = extract_law_metadata(full_text)
         data.update(meta)
+        if highlighted_paragraphs:
+            data["preamble"] = "\n\n".join(highlighted_paragraphs).strip()
+        else:
+            data["preamble"] = extract_law_preamble(full_text)
+        data["description"] = data["preamble"]
         law_num = meta.get("number")
         if not law_num:
             c_code = re.search(r'رقم[_\s]*(\d+)', filename)

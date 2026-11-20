@@ -1,6 +1,20 @@
 // frontend/src/components/Regulations/SearchResultCard.jsx
 import React from 'react';
 
+function formatDisplayDate(val) {
+  if (!val || val === '—' || val === '-') return '';
+  if (typeof val !== 'string') return String(val);
+  const trimmed = val.trim();
+  if (trimmed === 'لا ينطبق (نص أصلي)') return trimmed;
+  const m = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (m) {
+    const dd = m[3].padStart(2, '0');
+    const mm = m[2].padStart(2, '0');
+    return `${dd}-${mm}-${m[1]}`;
+  }
+  return trimmed;
+}
+
 export default function SearchResultCard({ law, onOpenReader, onOpenPreview, onOpenRelated, onOpenFullPage, isTargeted = false }) {
   // زر "نص القانون" → يفتح Modal المعاينة أولاً (حسب الاختيار)
   // زر "فتح النص الكامل" في الـ Modal → ينقل لصفحة مستقلة
@@ -9,6 +23,16 @@ export default function SearchResultCard({ law, onOpenReader, onOpenPreview, onO
     // يفتح الـ Preview Modal الذي يعرض البيانات الحقيقية وأول 3 مواد
     if (onOpenPreview) onOpenPreview(law);
   };
+
+  const isOriginal = (law.type || '').includes('أصلية') ||
+    (law.title || '').includes('النسخة الأصلية') ||
+    (law.title || '').includes('النسخة') ||
+    String(law.law_id || '').includes('النسخة') ||
+    String(law.law_id || '').includes('الأصلية');
+
+  const issueDateDisplay = formatDisplayDate(law.issue_date) || (law.year ? `${law.year}` : '—');
+  const effectiveDateDisplay = formatDisplayDate(law.effective_date) || '—';
+  const amendedDateDisplay = formatDisplayDate(law.amended_date) || (isOriginal ? 'لا ينطبق (نص أصلي)' : '—');
 
   return (
     <article className={`reg-result-card-item ${isTargeted ? 'reg-card-fade-highlight' : ''}`}>
@@ -31,15 +55,15 @@ export default function SearchResultCard({ law, onOpenReader, onOpenPreview, onO
       <div className="result-law-meta">
         <div>
           <span>تاريخ الإصدار</span>
-          <strong>{law.issue_date || (law.year ? `${law.year}` : '—')}</strong>
+          <strong>{issueDateDisplay}</strong>
         </div>
         <div>
           <span>تاريخ السريان</span>
-          <strong>{law.effective_date || '—'}</strong>
+          <strong>{effectiveDateDisplay}</strong>
         </div>
         <div>
           <span>آخر تعديل</span>
-          <strong>{law.amended_date || (law.type?.includes('أصلية') ? 'لا ينطبق (نص أصلي)' : '—')}</strong>
+          <strong>{amendedDateDisplay}</strong>
         </div>
         <div>
           <span>عدد المواد</span>

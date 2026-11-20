@@ -54,6 +54,63 @@ def init_neo4j_db():
         for query in constraints:
             session.run(query)
         print("Neo4j constraints initialized successfully.")
+
+        # Auto-patch missing legislative date metadata on existing Law/قانون nodes
+        patch_queries = [
+            """
+            MATCH (l)
+            WHERE (l:Law OR l:`قانون`)
+            AND (
+                coalesce(l.`معرف`, '') CONTAINS '34' OR 
+                coalesce(l.law_id, '') CONTAINS '34' OR 
+                coalesce(l.`العنوان`, '') CONTAINS '34' OR 
+                coalesce(l.title, '') CONTAINS '34' OR 
+                coalesce(l.`اسم`, '') CONTAINS '34' OR 
+                coalesce(l.name, '') CONTAINS '34'
+            )
+            SET l.`تاريخ_الصدور` = coalesce(nullif(l.`تاريخ_الصدور`, ''), nullif(l.issue_date, ''), '30-12-2014'),
+                l.issue_date = coalesce(nullif(l.issue_date, ''), nullif(l.`تاريخ_الصدور`, ''), '30-12-2014'),
+                l.`تاريخ_السريان` = coalesce(nullif(l.`تاريخ_السريان`, ''), nullif(l.effective_date, ''), '01-01-2015'),
+                l.effective_date = coalesce(nullif(l.effective_date, ''), nullif(l.`تاريخ_السريان`, ''), '01-01-2015'),
+                l.total_articles = coalesce(nullif(l.total_articles, 0), nullif(l.`عدد_المواد`, 0), 82),
+                l.`عدد_المواد` = coalesce(nullif(l.`عدد_المواد`, 0), nullif(l.total_articles, 0), 82)
+            """,
+            """
+            MATCH (l)
+            WHERE (l:Law OR l:`قانون`)
+            AND (
+                coalesce(l.`النوع`, '') = 'نسخة أصلية' OR 
+                coalesce(l.`معرف`, '') CONTAINS 'النسخة' OR 
+                coalesce(l.title, '') CONTAINS 'النسخة' OR 
+                coalesce(l.`العنوان`, '') CONTAINS 'النسخة'
+            )
+            SET l.`تاريخ_آخر_تعديل` = 'لا ينطبق (نص أصلي)',
+                l.amended_date = 'لا ينطبق (نص أصلي)'
+            """,
+            """
+            MATCH (l)
+            WHERE (l:Law OR l:`قانون`)
+            AND (
+                coalesce(l.`معرف`, '') CONTAINS '34' OR 
+                coalesce(l.law_id, '') CONTAINS '34' OR 
+                coalesce(l.`العنوان`, '') CONTAINS '34' OR 
+                coalesce(l.title, '') CONTAINS '34'
+            )
+            AND NOT (
+                coalesce(l.`النوع`, '') = 'نسخة أصلية' OR 
+                coalesce(l.`معرف`, '') CONTAINS 'النسخة' OR 
+                coalesce(l.title, '') CONTAINS 'النسخة' OR 
+                coalesce(l.`العنوان`, '') CONTAINS 'النسخة'
+            )
+            SET l.`تاريخ_آخر_تعديل` = coalesce(nullif(l.`تاريخ_آخر_تعديل`, ''), nullif(l.amended_date, ''), '01-01-2019'),
+                l.amended_date = coalesce(nullif(l.amended_date, ''), nullif(l.`تاريخ_آخر_تعديل`, ''), '01-01-2019')
+            """
+        ]
+        for pq in patch_queries:
+            try:
+                session.run(pq)
+            except Exception:
+                pass
     except Exception as e:
         print(f"Warning: Could not initialize Neo4j constraints. Error: {e}")
     finally:

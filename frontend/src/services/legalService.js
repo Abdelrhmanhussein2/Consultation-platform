@@ -95,6 +95,63 @@ const MOCK_LAWS = [
   }
 ];
 
+export function normalizeLawDates(law) {
+  if (!law) return law;
+  const isOriginal = (law.type || '').includes('أصلية') ||
+    (law.title || '').includes('النسخة الأصلية') ||
+    (law.title || '').includes('النسخة') ||
+    String(law.law_id || '').includes('النسخة') ||
+    String(law.law_id || '').includes('الأصلية') ||
+    (law.version_name || '').includes('أصلية') ||
+    (law.version_name || '').includes('صدر');
+
+  const isLaw34 = String(law.number) === '34' ||
+    String(law.title || '').includes('34') ||
+    String(law.law_id || '').includes('34') ||
+    String(law.title || '').includes('ضريبة الدخل');
+
+  const toDDMMYYYY = (d) => {
+    if (!d || typeof d !== 'string') return '';
+    const trimmed = d.trim();
+    if (trimmed === '—' || trimmed === '-' || trimmed === 'null' || trimmed === 'undefined') return '';
+    const m = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+    if (m) {
+      const dd = m[3].padStart(2, '0');
+      const mm = m[2].padStart(2, '0');
+      return `${dd}-${mm}-${m[1]}`;
+    }
+    return trimmed;
+  };
+
+  let issueDate = toDDMMYYYY(law.issue_date || law.issueDate || law.publication_date || law.published_at || law.date);
+  let effectiveDate = toDDMMYYYY(law.effective_date || law.effectiveDate || law.enforcement_date);
+  let amendedDate = toDDMMYYYY(law.amended_date || law.amendedDate || law.last_amendment_date);
+
+  if (isLaw34) {
+    if (!issueDate || issueDate === '2014') issueDate = '30-12-2014';
+    if (!effectiveDate) effectiveDate = '01-01-2015';
+    if (!amendedDate) {
+      amendedDate = isOriginal ? 'لا ينطبق (نص أصلي)' : '01-01-2019';
+    }
+  }
+
+  if (isOriginal && !amendedDate) {
+    amendedDate = 'لا ينطبق (نص أصلي)';
+  }
+
+  const totalArticles = law.total_articles !== undefined && law.total_articles !== null && law.total_articles !== 0
+    ? law.total_articles
+    : (isLaw34 ? 82 : law.total_articles);
+
+  return {
+    ...law,
+    issue_date: issueDate || (law.year ? `${law.year}` : ''),
+    effective_date: effectiveDate,
+    amended_date: amendedDate,
+    total_articles: totalArticles
+  };
+}
+
 export async function searchLegal(query, limit = 20, token = null, filters = null) {
   try {
     const headers = {};
@@ -128,12 +185,13 @@ export async function searchLegal(query, limit = 20, token = null, filters = nul
     const res = await fetch(endpoint, { headers });
     if (!res.ok) throw new Error("Server error");
     const data = await res.json();
-    if (Array.isArray(data)) return data;
-    if (data && Array.isArray(data.laws)) return data.laws;
-    if (data && Array.isArray(data.results)) return data.results;
-    return [];
+    let rawList = [];
+    if (Array.isArray(data)) rawList = data;
+    else if (data && Array.isArray(data.laws)) rawList = data.laws;
+    else if (data && Array.isArray(data.results)) rawList = data.results;
+    return rawList.map(normalizeLawDates);
   } catch (err) {
-    if (!query || !query.trim()) return MOCK_LAWS;
+    if (!query || !query.trim()) return MOCK_LAWS.map(normalizeLawDates);
     const qClean = normAr(query);
     const qWords = qClean.split(/\s+/).map(stripPrefixAr).filter(Boolean);
 
@@ -146,7 +204,7 @@ export async function searchLegal(query, limit = 20, token = null, filters = nul
       return false;
     });
 
-    if (direct.length > 0) return direct;
+    if (direct.length > 0) return direct.map(normalizeLawDates);
 
     // 2. Semantic matching through legal terms dictionary
     const matchedTerms = SEEDED_TERMS.filter(t => {
@@ -167,7 +225,7 @@ export async function searchLegal(query, limit = 20, token = null, filters = nul
         }
         return false;
       });
-      if (semanticMatches.length > 0) return semanticMatches;
+      if (semanticMatches.length > 0) return semanticMatches.map(normalizeLawDates);
     }
 
     // 3. Fallback to laws if no strict match, or filter by individual words
@@ -176,7 +234,7 @@ export async function searchLegal(query, limit = 20, token = null, filters = nul
       return qWords.some(w => w.length >= 3 && tNorm.includes(w));
     });
 
-    return loose.length > 0 ? loose : MOCK_LAWS;
+    return (loose.length > 0 ? loose : MOCK_LAWS).map(normalizeLawDates);
   }
 }
 
@@ -692,21 +750,32 @@ export function makeArticleTitlesUnique(articles) {
   });
 }
 
+function cleanPreambleText(txt) {
+  if (!txt || typeof txt !== "string") return "";
+  if (txt.includes("يقصد ب")) {
+    return txt.split(/\n+\s*يقصد\s+ب/)[0].trim();
+  }
+  return txt.trim();
+}
+
 function normalizeLawTree(data, lawId) {
   if (!data) return getMockLawDetail(lawId);
-  const is34 = !lawId || String(lawId).includes('34') || String(data.law_id || '').includes('34');
+  const pText = cleanPreambleText(data.preamble || data.description || "");
   const commonMeta = {
     law_id: data.law_id || lawId,
-    title: data.title || data.law_title || (is34 ? "قانون ضريبة الدخل رقم 34 لسنة 2014 وتعديلاته" : (lawId ? `قانون رقم ${lawId}` : "التشريع القانوني")),
-    number: data.number || data.law_number || (is34 ? "34" : "—"),
-    year: data.year || data.law_year || (is34 ? "2014" : "—"),
-    gazette: data.gazette || data.official_gazette || (is34 ? "عدد 5320 — ص 7390 — تاريخ النشر: 31-12-2014" : "—"),
-    replaced_law: data.replaced_law || data.replaced || (is34 ? "قانون مؤقت رقم 28 لسنة 2009 (قانون ضريبة الدخل المؤقت لسنة 2009)" : "—"),
-    issue_date: data.issue_date || data.issueDate || (is34 ? "30-12-2014" : (data.year ? `${data.year}` : "—")),
-    effective_date: data.effective_date || data.effective_from || (is34 ? "01-01-2015" : "—"),
-    amended_date: data.amended_date || data.amendedDate || (is34 ? "01-01-2019" : "—"),
+    title: data.title || data.law_title || (lawId ? `قانون رقم ${lawId}` : "التشريع القانوني"),
+    number: data.number || data.law_number || "—",
+    year: data.year || data.law_year || "—",
+    gazette: data.gazette || data.official_gazette || "—",
+    replaced_law: data.replaced_law || data.replaced || "—",
+    issue_date: data.issue_date || data.issueDate || (data.year ? `${data.year}` : "—"),
+    effective_date: data.effective_date || data.effective_from || "—",
+    amended_date: data.amended_date || data.amendedDate || "—",
     amendments_count: data.amendments_count || 1,
-    summary: data.summary || data.description || ""
+    preamble: pText,
+    description: pText,
+    topics: data.topics || "",
+    summary: pText || data.summary || ""
   };
 
   if (Array.isArray(data.sections) && data.sections.length > 0) {
@@ -865,6 +934,9 @@ export function getMockLawDetail(lawId) {
     amended_date: "01-01-2019",
     amendments_count: 1,
     status: "ساري",
+    preamble: "قانون رقم 34 لسنة 2014 (قانون ضريبة الدخل لسنة 2014) وتعديلاته المنشور في العدد 5320 على الصفحة 7390 بتاريخ 31-12-2014 والساري بتاريخ 01-01-2015 المعدل بقانون معدل رقم 38 لسنة 2018 (قانون معدل لقانون ضريبة الدخل لسنة 2018) المنشور في العدد 5547 على الصفحة 7285 بتاريخ 02-12-2018 والساري بتاريخ 01-01-2019 ( تصحيح الخطأ فيه بموجب إعلان تصحيح خطأ المنشور في العدد 5561 على الصفحة 674 بتاريخ 17-02-2019 )\n\nوالمشار إليه هنا وفيما بعد بالاسم المختصر قانون رقم 34 لسنة 2014 (قانون ضريبة الدخل لسنة 2014) وتعديلاته .",
+    description: "قانون رقم 34 لسنة 2014 (قانون ضريبة الدخل لسنة 2014) وتعديلاته المنشور في العدد 5320 على الصفحة 7390 بتاريخ 31-12-2014 والساري بتاريخ 01-01-2015 المعدل بقانون معدل رقم 38 لسنة 2018 (قانون معدل لقانون ضريبة الدخل لسنة 2018) المنشور في العدد 5547 على الصفحة 7285 بتاريخ 02-12-2018 والساري بتاريخ 01-01-2019 ( تصحيح الخطأ فيه بموجب إعلان تصحيح خطأ المنشور في العدد 5561 على الصفحة 674 بتاريخ 17-02-2019 )\n\nوالمشار إليه هنا وفيما بعد بالاسم المختصر قانون رقم 34 لسنة 2014 (قانون ضريبة الدخل لسنة 2014) وتعديلاته .",
+    topics: "ضريبة الدخل، التشريعات الأساسية، القضاء والعدل، إنشاء وتنظيم المحاكم الخاصة",
     sections: [
       {
         section_id: "sec_1",
