@@ -14,6 +14,7 @@ import {
 import ErrorBoundary from '../components/common/ErrorBoundary';
 import { searchLegal } from '../services/legalService';
 import { useAuth } from '../context/AuthContext';
+import { getLawDisplayYear } from '../utils/legalFormatters';
 
 function parseFlexibleDate(str, isEnd = false) {
   if (!str) return null;
@@ -268,7 +269,7 @@ export default function RegulationsPage({ navigate, currentPath }) {
             title: storedLawObj.title || effectiveTitle || 'التشريع المختار',
             type: storedLawObj.type || effectiveType || 'تشريع',
             status: storedLawObj.status === 'active' ? 'ساري' : (storedLawObj.status || 'ساري'),
-            year_short: String(storedLawObj.year || '2026'),
+            year_short: getLawDisplayYear(storedLawObj) || String(storedLawObj.year || '2026'),
             issue_date: storedLawObj.pub || storedLawObj.issue_date || '2026/02/10',
             effective_date: storedLawObj.eff || storedLawObj.effective_date || '2026/03/01',
             amended_date: storedLawObj.amended_date || '—',
@@ -319,7 +320,7 @@ export default function RegulationsPage({ navigate, currentPath }) {
             title: storedLawObj.title || effectiveTitle || 'التشريع المختار',
             type: storedLawObj.type || effectiveType || 'تشريع',
             status: storedLawObj.status === 'active' ? 'ساري' : (storedLawObj.status || 'ساري'),
-            year_short: String(storedLawObj.year || '2026'),
+            year_short: getLawDisplayYear(storedLawObj) || String(storedLawObj.year || '2026'),
             issue_date: storedLawObj.pub || storedLawObj.issue_date || '2026/02/10',
             effective_date: storedLawObj.eff || storedLawObj.effective_date || '2026/03/01',
             amended_date: storedLawObj.amended_date || '—',

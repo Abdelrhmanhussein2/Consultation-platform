@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { consultantService } from '../services/consultantService';
 import { notificationService } from '../services/notificationService';
@@ -43,7 +43,7 @@ export default function ConsultantDashboard({ navigate }) {
   const { token, user } = useAuth();
   const { toast, showToast } = useToast();
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [wallet, setWallet] = useState(null);
   const [appointments, setAppointments] = useState([]);
   const [systemNotifs, setSystemNotifs] = useState([]);
@@ -137,35 +137,38 @@ export default function ConsultantDashboard({ navigate }) {
       setLoading(false);
       return;
     }
-    setLoading(true);
     setDashboardError(null);
-    const safetyTimer = setTimeout(() => {
-      setLoading(false);
-    }, 6000);
 
     try {
-      const [walletData, apptsData, profileData, servicesData, lawsRes, notifsRes] = await Promise.all([
+      // 1. Core consultant dashboard data (fast & resilient)
+      const [walletData, apptsData, profileData, servicesData, notifsRes] = await Promise.all([
         consultantService.getWallet(token).catch(() => null),
-        consultantService.getIncomingAppointments(token),
+        consultantService.getIncomingAppointments(token).catch(() => []),
         consultantService.getMyProfile(token).catch(() => null),
         consultantService.getMyServices(token).catch(() => []),
-        apiFetch('/api/legal/laws', {}, token).catch(() => []),
         notificationService.getMyNotifications(token).catch(() => [])
       ]);
 
-      setWallet(walletData);
-      setAppointments(apptsData || []);
-      setProfile(profileData);
-      setServices(servicesData || []);
-      setLaws(Array.isArray(lawsRes) && lawsRes.length > 0 ? lawsRes : []);
+      if (walletData) setWallet(walletData);
+      setAppointments(Array.isArray(apptsData) ? apptsData : (apptsData?.data || []));
+      if (profileData) setProfile(profileData);
+      setServices(Array.isArray(servicesData) ? servicesData : (servicesData?.data || []));
       setSystemNotifs(Array.isArray(notifsRes) ? notifsRes : (Array.isArray(notifsRes?.items) ? notifsRes.items : []));
     } catch (err) {
       console.error("Error fetching consultant dashboard data:", err);
       setDashboardError('تعذر تحميل بعض بيانات لوحة التحكم من الخادم.');
     } finally {
-      clearTimeout(safetyTimer);
       setLoading(false);
     }
+
+    // 2. Background non-blocking fetch for laws library
+    apiFetch('/api/legal/laws', {}, token)
+      .then((lawsRes) => {
+        if (Array.isArray(lawsRes) && lawsRes.length > 0) {
+          setLaws(lawsRes);
+        }
+      })
+      .catch(() => {});
   };
 
   useEffect(() => {
@@ -519,24 +522,6 @@ export default function ConsultantDashboard({ navigate }) {
       overallScore
     };
   }, [appointments, completedCount, ratingVal, ratingsCountVal]);
-
-  if (loading) {
-    return (
-      <div style={{ padding: '80px 40px', textAlign: 'center', color: '#005D9C', direction: 'rtl' }}>
-        <div className="spinner" style={{
-          width: '50px',
-          height: '50px',
-          border: '4px solid rgba(0, 93, 156, 0.1)',
-          borderTop: '4px solid #005D9C',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite',
-          margin: '0 auto 20px'
-        }}></div>
-        <p style={{ fontWeight: '700', fontSize: '16px' }}>جاري تحميل لوحة المستشار والبيانات...</p>
-        <style dangerouslySetInnerHTML={{ __html: `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }` }} />
-      </div>
-    );
-  }
 
   return (
     <div className="consultantDashboardRoot">

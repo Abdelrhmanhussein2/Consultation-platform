@@ -28,33 +28,55 @@ export const SECTOR_OPTIONS = [
   { value: 'agricultural', label: 'قطاع زراعي' }
 ];
 
+// Consultant Titles (Strictly 3 options)
+export const CONSULTANT_TITLE_OPTIONS = [
+  { value: 'أ.', label: 'أ.' },
+  { value: 'أ.د.', label: 'أ.د.' },
+  { value: 'د.', label: 'د.' }
+];
+
+// 7 Approved Professional Titles ("المسمى المهني")
 export const CONSULTANT_ACTIVITY_OPTIONS = [
   { value: 'all', label: 'الكل' },
   { value: 'مستشار ضريبي', label: 'مستشار ضريبي' },
-  { value: 'مدقق حسابات', label: 'مدقق حسابات' },
   { value: 'خبير ضريبي', label: 'خبير ضريبي' },
   { value: 'مستشار قانوني', label: 'مستشار قانوني' },
-  { value: 'محاسب قانوني', label: 'محاسب قانوني' }
+  { value: 'محاسب قانوني', label: 'محاسب قانوني' },
+  { value: 'مدقق حسابات', label: 'مدقق حسابات' },
+  { value: 'مدقق ضريبي', label: 'مدقق ضريبي' },
+  { value: 'مستشار جمركي', label: 'مستشار جمركي' }
 ];
 
 export const CONSULTANT_REGISTRATION_ACTIVITIES = [
   { value: 'مستشار ضريبي', label: 'مستشار ضريبي' },
-  { value: 'مدقق حسابات', label: 'مدقق حسابات' },
   { value: 'خبير ضريبي', label: 'خبير ضريبي' },
   { value: 'مستشار قانوني', label: 'مستشار قانوني' },
-  { value: 'محاسب قانوني', label: 'محاسب قانوني' }
+  { value: 'محاسب قانوني', label: 'محاسب قانوني' },
+  { value: 'مدقق حسابات', label: 'مدقق حسابات' },
+  { value: 'مدقق ضريبي', label: 'مدقق ضريبي' },
+  { value: 'مستشار جمركي', label: 'مستشار جمركي' }
 ];
 
+// 17 Approved Specializations
 export const CONSULTANT_SPECIALIZATION_OPTIONS = [
   { value: 'all', label: 'الكل' },
-  { value: 'tax', label: 'ضريبي' },
-  { value: 'sales_tax', label: 'ضريبة المبيعات' },
-  { value: 'income_tax', label: 'ضريبة الدخل' },
-  { value: 'customs', label: 'جمارك' },
-  { value: 'free_zones', label: 'مناطق حرة' },
-  { value: 'transfer_pricing', label: 'تسعير تحويلي' },
-  { value: 'legal', label: 'قانوني' },
-  { value: 'audit', label: 'تدقيق ومراجعة' }
+  { value: 'ضريبة الدخل والمبيعات', label: 'ضريبة الدخل والمبيعات' },
+  { value: 'المناطق الحرة والتنموية', label: 'المناطق الحرة والتنموية' },
+  { value: 'منطقة العقبة الاقتصادية الخاصة', label: 'منطقة العقبة الاقتصادية الخاصة' },
+  { value: 'قوانين الإستثمار', label: 'قوانين الإستثمار' },
+  { value: 'قوانين الجمارك', label: 'قوانين الجمارك' },
+  { value: 'الضرائب الدولية', label: 'الضرائب الدولية' },
+  { value: 'الإزدواج الضريبي', label: 'الإزدواج الضريبي' },
+  { value: 'الأسعار التحويلية', label: 'الأسعار التحويلية' },
+  { value: 'الضريبة الخاصة', label: 'الضريبة الخاصة' },
+  { value: 'المنازعات الضريبية', label: 'المنازعات الضريبية' },
+  { value: 'إدارة المخاطر', label: 'إدارة المخاطر' },
+  { value: 'تدقيق الحسابات', label: 'تدقيق الحسابات' },
+  { value: 'التدقيق الداخلي', label: 'التدقيق الداخلي' },
+  { value: 'الإعسار', label: 'الإعسار' },
+  { value: 'التصفية', label: 'التصفية' },
+  { value: 'التخطيط الضريبي', label: 'التخطيط الضريبي' },
+  { value: 'الإمتثال الضريبي', label: 'الإمتثال الضريبي' }
 ];
 
 export const PRIORITY_OPTIONS = [

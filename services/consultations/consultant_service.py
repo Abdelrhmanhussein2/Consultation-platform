@@ -648,10 +648,16 @@ class ConsultantService:
                         db=db,
                         user_id=adm.id,
                         notification_type=NotificationType.general,
-                        title="طلب تخصص جديد من مستشار",
-                        message=f"قدّم المستشار ({c_name}) طلباً لاعتماد تخصص ({request_in.service_name}).",
+                        title="طلب تعديل بيانات وتخصص مستشار",
+                        message=f"قدّم المستشار ({c_name}) طلباً لتعديل واعتماد تخصص ({request_in.service_name}).",
                         related_entity_type="service_expansion_request",
-                        related_entity_id=request.id
+                        related_entity_id=request.id,
+                        extra_metadata={
+                            "target_type": "consultant_modification",
+                            "target_url": "/admin/consultant-applications?tab=specializations",
+                            "consultant_name": c_name,
+                            "specialization_name": request_in.service_name
+                        }
                     )
         except Exception as ex:
             print("Error sending expansion notification:", ex)

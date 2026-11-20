@@ -22,6 +22,15 @@ const ARABIC_WEEKDAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'ا
 const CURRENT_YEAR = new Date().getFullYear();
 const ALL_YEARS = Array.from({ length: (CURRENT_YEAR + 2) - 1950 }, (_, i) => (CURRENT_YEAR + 1) - i);
 
+const TrashIcon = ({ size = 14, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    <line x1="10" y1="11" x2="10" y2="17" />
+    <line x1="14" y1="11" x2="14" y2="17" />
+  </svg>
+);
+
 export default function ModernDatePicker({
   value = '',
   onChange,
@@ -275,8 +284,9 @@ export default function ModernDatePicker({
                 setIsOpen(false);
               }}
               title="مسح التاريخ"
+              aria-label="مسح التاريخ"
             >
-              ✕
+              <TrashIcon size={12} color="#DC2626" />
             </button>
           )}
           <svg className={`calendar-dropdown-chevron ${isOpen ? 'open' : ''}`} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -472,7 +482,7 @@ export default function ModernDatePicker({
                   className="cascade-action-btn confirm"
                   onClick={() => setIsOpen(false)}
                 >
-                  تأكيد وحفظ ✓
+                  تأكيد
                 </button>
               )}
               <button
@@ -486,8 +496,10 @@ export default function ModernDatePicker({
                 type="button"
                 className="cascade-action-btn clear"
                 onClick={handleClear}
+                title="مسح التاريخ المحدد"
+                aria-label="مسح التاريخ"
               >
-                مسح
+                <TrashIcon size={14} color="#DC2626" />
               </button>
             </div>
 

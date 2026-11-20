@@ -91,19 +91,17 @@ def update_source(
     _require_admin(current_user)
 
     status_candidate = payload.get("status") or payload.get("document_status")
-    if status_candidate and status_candidate in ["ملغي", "repealed"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="لا يمكن تغيير حالة النفاذ (ساري/ملغي) من شاشة التعديل. يرجى استخدام زر الإلغاء/الاسترجاع المخصص لذلك."
-        )
-
     from models.ai.legal_document_metadata import LegalDocumentMetadata
     meta = db.query(LegalDocumentMetadata).filter(LegalDocumentMetadata.document_id == source_id).first()
-    if meta and status_candidate and status_candidate != meta.status:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="لا يمكن تغيير حالة النفاذ (ساري/ملغي) من شاشة التعديل. يرجى استخدام زر الإلغاء/الاسترجاع المخصص لذلك."
-        )
+    if status_candidate:
+        curr_status = meta.status if meta else "ساري"
+        is_curr_repealed = curr_status in ["ملغي", "repealed"]
+        is_cand_repealed = status_candidate in ["ملغي", "repealed"]
+        if is_curr_repealed != is_cand_repealed:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="لا يمكن تغيير حالة النفاذ (ساري/ملغي) من شاشة التعديل. يرجى استخدام زر الإلغاء/الاسترجاع المخصص لذلك."
+            )
 
     res = LegalSourcesService.update_source(source_id, source_type, payload)
 

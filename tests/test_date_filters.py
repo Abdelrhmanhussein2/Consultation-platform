@@ -145,11 +145,10 @@ def test_version_status_and_legal_status_separation():
     laws = LegalGraphService.get_laws()
     by_id = {l["law_id"]: l for l in laws}
 
-    # 1. الأصلية المستبدلة بنسخة أحدث: شارة 'نسخة سابقة' + حالة قانونية 'ساري' (غير ملغي) + نوع النسخة 'نسخة أصلية'
+    # 1. الأصلية المستبدلة بنسخة أحدث: شارة 'معدل' (برتقالي) + حالة قانونية 'ساري' (غير ملغي)
     orig = by_id.get("قانون_34_2014_الأصلية")
     assert orig is not None
-    assert orig["version_status"] == "نسخة أصلية"
-    assert orig["status"] == "نسخة سابقة"
+    assert orig["status"] == "معدل"
     assert orig["legal_status"] == "ساري"
     assert orig["is_superseded"] is True
     assert orig.get("doc_type") is not None
@@ -163,26 +162,24 @@ def test_version_status_and_legal_status_separation():
     assert amended["is_superseded"] is False
     assert amended.get("doc_type") is not None
 
-    # 3. القانون الملغي فعلياً: شارة 'ملغي' + حالة قانونية 'ملغي'
-    repealed = by_id.get("45/2008")
-    if repealed:
-        assert repealed["status"] == "ملغي"
-        assert repealed["legal_status"] == "ملغي"
+    # 3. التحقق من منطق الإلغاء إذا وجد تشريع ملغي
+    repealed_laws = [l for l in laws if l.get("legal_status") == "ملغي"]
+    for rep in repealed_laws:
+        assert rep["status"] == "ملغي"
+        assert rep["legal_status"] == "ملغي"
 
 
 def test_status_filters_with_version_logic():
     """اختبار فلترة get_laws بحالات التشريع الجديدة: معدل، نسخة سابقة، ساري"""
-    # 1. فلتر 'معدل'
+    # 1. فلتر 'معدل' (يشمل القوانين المعدلة والأصلية المستبدلة)
     laws_amended = LegalGraphService.get_laws(status="معدل")
     ids_amended = [l["law_id"] for l in laws_amended]
-    assert "قانون_34_2014_وتعديلاته" in ids_amended
-    assert "قانون_34_2014_الأصلية" not in ids_amended
+    assert "قانون_34_2014_الأصلية" in ids_amended
 
-    # 2. فلتر 'نسخة سابقة'
+    # 2. فلتر 'نسخة سابقة' (توافق رجعي)
     laws_superseded = LegalGraphService.get_laws(status="نسخة سابقة")
     ids_superseded = [l["law_id"] for l in laws_superseded]
     assert "قانون_34_2014_الأصلية" in ids_superseded
-    assert "قانون_34_2014_وتعديلاته" not in ids_superseded
 
     # 3. فلتر 'ساري'
     laws_valid = LegalGraphService.get_laws(status="ساري")

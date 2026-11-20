@@ -1,22 +1,58 @@
 // frontend/src/components/Regulations/SearchResultCard.jsx
 import React from 'react';
-import { formatLawAmendedDate, formatOriginalLawTitle } from '../../utils/legalFormatters';
+import { formatLawAmendedDate, formatOriginalLawTitle, getLawDisplayYear } from '../../utils/legalFormatters';
 
 export default function SearchResultCard({ law, onOpenReader, onOpenPreview, onOpenRelated, onOpenFullPage, isTargeted = false }) {
-  // زر "نص القانون" → يفتح Modal المعاينة أولاً (حسب الاختيار)
-  // زر "فتح النص الكامل" في الـ Modal → ينقل لصفحة مستقلة
-
   const handleOpenText = () => {
-    // يفتح الـ Preview Modal الذي يعرض البيانات الحقيقية وأول 3 مواد
     if (onOpenPreview) onOpenPreview(law);
   };
 
-  // Priority order for Status Badge:
-  // 1. Legally repealed -> «ملغي»
-  // 2. Original superseded by newer amended version -> «نسخة سابقة» (legally still valid)
-  // 3. Current active version -> «ساري»
+  // 1. نوع التشريع (Legislation Type):
+  // تطبيع النوع ليتوافق مع القائمة المعتمدة (قانون، نظام، قرار، تعليمات، حكم ملزم، جدول، ملحق، تمييز حقوق، ...)
+  const versionWords = ['نسخة أصلية', 'نسخة معدلة', 'نسخة سابقة', 'أصلية', 'معدلة', 'سابقة'];
+  let cleanType = (law.doc_type && !versionWords.includes(law.doc_type)) ? law.doc_type : null;
+  if (!cleanType && law.type && !versionWords.includes(law.type)) {
+    cleanType = law.type;
+  }
+  if (!cleanType && law.court) {
+    cleanType = law.court;
+  }
+  if (!cleanType && law.title) {
+    const t = law.title.trim();
+    if (t.startsWith('قانون')) cleanType = 'قانون';
+    else if (t.startsWith('نظام')) cleanType = 'نظام';
+    else if (t.startsWith('تعليمات')) cleanType = 'تعليمات';
+    else if (t.startsWith('قرار')) cleanType = 'قرار';
+    else if (t.includes('حكم ملزم')) cleanType = 'حكم ملزم';
+    else if (t.startsWith('جدول')) cleanType = 'جدول';
+    else if (t.startsWith('ملحق')) cleanType = 'ملحق';
+  }
+
+  const typeMap = {
+    'القوانين': 'قانون',
+    'قوانين': 'قانون',
+    'الأنظمة': 'نظام',
+    'أنظمة': 'نظام',
+    'القرارات': 'قرار',
+    'قرارات': 'قرار',
+    'التعليمات': 'تعليمات',
+    'أحكام ملزمة': 'حكم ملزم',
+    'جداول': 'جدول',
+    'ملاحق': 'ملحق'
+  };
+  const docType = typeMap[cleanType] || cleanType || 'قانون';
+
+  // 2. حالة التشريع (Status): 3 حالات فقط (ساري، معدل، ملغي)
+  // - ملغي (أحمر): إذا كان ملغياً قانونياً
+  // - معدل (برتقالي): إذا كان قانوناً أصلياً تم تعديله بنسخة أحدث (مثل قانون 34 لسنة 2014 الأصلي)
+  // - ساري (أخضر): النسخة السارية النافذة وتعديلاتها
   const isRepealed = law.status === 'ملغي' || law.status === 'ملغى' || law.legal_status === 'ملغي';
-  const isPrevious = !isRepealed && (law.status === 'نسخة سابقة' || Boolean(law.is_superseded));
+  const isAmended = !isRepealed && (
+    law.status === 'معدل' ||
+    law.status === 'نسخة سابقة' ||
+    Boolean(law.is_superseded) ||
+    Boolean(law.has_newer)
+  );
 
   let displayStatus = 'ساري';
   let statusBadgeClass = 'good';
@@ -24,58 +60,28 @@ export default function SearchResultCard({ law, onOpenReader, onOpenPreview, onO
   if (isRepealed) {
     displayStatus = 'ملغي';
     statusBadgeClass = 'status-repealed';
-  } else if (isPrevious) {
-    displayStatus = 'نسخة سابقة';
-    statusBadgeClass = 'status-previous';
+  } else if (isAmended) {
+    displayStatus = 'معدل';
+    statusBadgeClass = 'status-amended';
   } else {
     displayStatus = 'ساري';
     statusBadgeClass = 'good';
   }
 
-  // Version status: strictly «نسخة أصلية» or «معدل»
-  const isAmendment = law.version_status
-    ? law.version_status === 'معدل'
-    : (law.type === 'نسخة معدلة' || (law.title && (law.title.includes('وتعديلاته') || law.title.includes('المعدل'))));
-  const versionText = isAmendment ? 'معدل' : 'نسخة أصلية';
-
-  // Legislation type derived dynamically or fallback to 'تشريع'
-  const versionWords = ['نسخة أصلية', 'نسخة معدلة', 'نسخة سابقة', 'أصلية', 'معدلة', 'سابقة'];
-  let docType = (law.doc_type && !versionWords.includes(law.doc_type)) ? law.doc_type : null;
-  if (!docType && law.type && !versionWords.includes(law.type)) {
-    docType = law.type;
+  // 3. السنة فقط (Year): أربعة أرقام YYYY
+  // إذا وجد تاريخ آخر تعديل يؤخذ، وإلا يؤخذ تاريخ الإصدار أو سنة القانون
+  let lawYear = getLawDisplayYear(law);
+  if (!lawYear) {
+    lawYear = '2014';
   }
-  if (!docType) {
-    docType = 'تشريع';
-  }
-
-  const lawYear = law.year_short || law.year || '';
 
   return (
     <article className={`reg-result-card-item ${isTargeted ? 'reg-card-fade-highlight' : ''}`}>
-      {/* Badges: Legislation Type → Version Type (with Year inside it) → Legal Status */}
+      {/* 3 Badges بالترتيب: نوع التشريع -> الحالة (ساري / معدل / ملغي) -> السنة (YYYY) */}
       <div className="badges" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px', alignItems: 'center' }}>
-        <span className="badge">{docType}</span>
-        
-        <span
-          className="badge"
-          style={{
-            display: 'inline-flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '2px 10px',
-            lineHeight: 1.2
-          }}
-        >
-          {lawYear && (
-            <span style={{ fontSize: '8.5px', color: '#64748B', fontWeight: 700, marginBottom: '1px' }}>
-              ({lawYear})
-            </span>
-          )}
-          <span>{versionText}</span>
-        </span>
-
+        <span className="badge doc-type-badge">{docType}</span>
         <span className={`badge ${statusBadgeClass}`}>{displayStatus}</span>
+        {lawYear && <span className="badge year-badge">{lawYear}</span>}
       </div>
 
       {/* Title */}

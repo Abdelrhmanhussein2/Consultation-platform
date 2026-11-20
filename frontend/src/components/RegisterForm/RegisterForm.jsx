@@ -1,11 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import './RegisterForm.css';
 import ModernSelect from '../ModernSelect';
+import SpecializationsMultiSelect from './SpecializationsMultiSelect';
 import OtpVerificationStep from './OtpVerificationStep';
 import ConsultantFilesStep from './ConsultantFilesStep';
 import ConsultantPoliciesStep from './ConsultantPoliciesStep';
-import { CONSULTANT_REGISTRATION_ACTIVITIES } from '../../admin/components/notifications/broadcastConstants';
-import { OFFICIAL_8_SPECIALIZATIONS } from '../../utils/specializations';
+import { CONSULTANT_REGISTRATION_ACTIVITIES, CONSULTANT_TITLE_OPTIONS } from '../../admin/components/notifications/broadcastConstants';
+import { OFFICIAL_17_SPECIALIZATIONS } from '../../utils/specializations';
+
+const sanitizePhoneNumber = (phone, prefix = '+962') => {
+  if (!phone) return '';
+  let digits = String(phone).trim().replace(/\D/g, '').replace(/^0+/, '');
+  const prefixDigits = prefix.replace(/\D/g, '');
+  if (prefixDigits && digits.startsWith(prefixDigits)) {
+    digits = digits.slice(prefixDigits.length).replace(/^0+/, '');
+  }
+  return `${prefix}${digits}`.slice(0, 20);
+};
 
 export default function RegisterForm({ openPolicy, navigate }) {
   // Account Type ('user' or 'consultant')
@@ -14,8 +25,8 @@ export default function RegisterForm({ openPolicy, navigate }) {
   // Current Step (1 or 2)
   const [currentStep, setCurrentStep] = useState(1);
 
-  // Specializations list for consultant (initialized with the official 8)
-  const [specializations, setSpecializations] = useState(OFFICIAL_8_SPECIALIZATIONS);
+  // Specializations list for consultant (initialized with the official 17)
+  const [specializations, setSpecializations] = useState(OFFICIAL_17_SPECIALIZATIONS);
 
   // Step 1: Basic Information
   const [fullName, setFullName] = useState('');
@@ -40,7 +51,9 @@ export default function RegisterForm({ openPolicy, navigate }) {
   const [uploadingCr, setUploadingCr] = useState(false);
 
   // Step 2: Professional Details (Consultant)
-  const [mainSpecializationId, setMainSpecializationId] = useState('1');
+  const [consultantTitle, setConsultantTitle] = useState('أ.');
+  const [selectedSpecializations, setSelectedSpecializations] = useState([9]);
+  const [jcpaNumber, setJcpaNumber] = useState('');
   const [activityType, setActivityType] = useState('مستشار ضريبي');
   const [yearsOfExperience, setYearsOfExperience] = useState('');
   const [certificatesLicenses, setCertificatesLicenses] = useState('');
@@ -138,11 +151,10 @@ export default function RegisterForm({ openPolicy, navigate }) {
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
-          const validNames = new Set(OFFICIAL_8_SPECIALIZATIONS.map((s) => s.name));
-          const matching = data.filter((s) => validNames.has(s.name));
-          if (matching.length === 8) {
-            setSpecializations(matching);
-          }
+          const officialNames = new Set(OFFICIAL_17_SPECIALIZATIONS.map((s) => s.name));
+          const officialList = data.filter((s) => officialNames.has(s.name));
+          const otherList = data.filter((s) => !officialNames.has(s.name));
+          setSpecializations(officialList.length > 0 ? [...officialList, ...otherList] : data);
         }
       })
       .catch(() => {});
@@ -166,9 +178,9 @@ export default function RegisterForm({ openPolicy, navigate }) {
         setError('يرجى إدخال بريد إلكتروني صحيح باللغة الإنجليزية (تأكد من عدم وجود أحرف عربية)');
         return false;
       }
-      const cleanPhone = phoneNum.trim().replace(/\D/g, '').replace(/^0+/, '');
-      const fullPhone = `${countryCode}${cleanPhone}`;
-      if (!phoneNum.trim() || cleanPhone.length < 6) {
+      const fullPhone = sanitizePhoneNumber(phoneNum, countryCode);
+      const cleanDigits = phoneNum.trim().replace(/\D/g, '').replace(/^0+/, '');
+      if (!phoneNum.trim() || cleanDigits.length < 6) {
         setError('يرجى إدخال رقم هاتف صحيح');
         return false;
       }
@@ -216,8 +228,12 @@ export default function RegisterForm({ openPolicy, navigate }) {
           return false;
         }
       } else {
-        if (!mainSpecializationId) {
-          setError('يرجى اختيار التخصص الرئيسي');
+        if (!selectedSpecializations || selectedSpecializations.length === 0) {
+          setError('يرجى اختيار تخصص استشاري واحد على الأقل للمتابعة');
+          return false;
+        }
+        if (activityType === 'مدقق حسابات' && !jcpaNumber.trim()) {
+          setError('يرجى إدخال رقم إجازة مدقق حسابات قانوني JCPA للمتابعة');
           return false;
         }
       }
@@ -318,8 +334,7 @@ export default function RegisterForm({ openPolicy, navigate }) {
     setLoading(true);
     setError('');
 
-    const cleanPhone = phoneNum.trim().replace(/\D/g, '').replace(/^0+/, '');
-    const fullPhone = `${countryCode}${cleanPhone}`.slice(0, 20);
+    const fullPhone = sanitizePhoneNumber(phoneNum, countryCode);
 
     try {
       const res = await fetch('/api/auth/register-otp/request', {
@@ -363,8 +378,7 @@ export default function RegisterForm({ openPolicy, navigate }) {
     setLoading(true);
     setError('');
 
-    const cleanPhone = phoneNum.trim().replace(/\D/g, '').replace(/^0+/, '');
-    const fullPhone = `${countryCode}${cleanPhone}`.slice(0, 20);
+    const fullPhone = sanitizePhoneNumber(phoneNum, countryCode);
 
     try {
       let endpoint = '/api/auth/register';
@@ -398,18 +412,20 @@ export default function RegisterForm({ openPolicy, navigate }) {
           password: password,
           phone: fullPhone,
           country: 'الأردن',
-          title: null,
+          title: consultantTitle || 'أ.',
           address: address.trim() || null,
           company_name: companyName.trim() || null,
           bio: bio.trim() || null,
-          main_specialization_id: mainSpecializationId ? parseInt(mainSpecializationId) : null,
+          main_specialization_id: selectedSpecializations[0] ? parseInt(selectedSpecializations[0]) : null,
+          specialization_ids: selectedSpecializations.map((id) => parseInt(id)),
           activity_type: activityType.trim() || null,
+          jcpa_number: activityType === 'مدقق حسابات' ? jcpaNumber.trim() : null,
           years_of_experience: yearsOfExperience ? parseInt(yearsOfExperience) : null,
           certificates_licenses: professionalLicenseUrl || idProofUrl || null,
           id_proof_url: idProofUrl || null,
           academic_certificates_url: academicCertUrl || null,
           professional_licenses_url: professionalLicenseUrl || null,
-          jcpa_cert_url: jcpaCertUrl || null,
+          jcpa_cert_url: activityType === 'مدقق حسابات' ? (jcpaCertUrl || null) : null,
           experts_society_cert_url: expertsSocietyCertUrl || null,
           accepted_privacy_policy: true,
         };
@@ -641,28 +657,66 @@ export default function RegisterForm({ openPolicy, navigate }) {
               {/* STEP 1: Basic Information */}
               {currentStep === 1 && (
                 <div className="auth-step-pane fade-in">
-                  {/* Full Name */}
-                  <div className="auth-field-group">
-                    <label className="auth-label" htmlFor="user-name">
-                      الاسم الكامل <span className="required-star">*</span>
-                    </label>
-                    <div className="auth-input-wrapper">
-                      <span className="auth-input-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="8" r="5"></circle>
-                          <path d="M20 21a8 8 0 0 0-16 0"></path>
-                        </svg>
-                      </span>
-                      <input
-                        id="user-name"
-                        type="text"
-                        className="auth-input"
-                        placeholder="أدخل الاسم الكامل"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                      />
+                  {/* Full Name & Consultant Title Row */}
+                  {accountType === 'consultant' ? (
+                    <div className="auth-name-title-row">
+                      <div className="auth-title-col">
+                        <label className="auth-label">
+                          اللقب <span className="required-star">*</span>
+                        </label>
+                        <ModernSelect
+                          options={CONSULTANT_TITLE_OPTIONS}
+                          value={consultantTitle}
+                          onChange={(val) => setConsultantTitle(val)}
+                          placeholder="اللقب"
+                          style={{ width: '100%' }}
+                        />
+                      </div>
+                      <div className="auth-name-col">
+                        <label className="auth-label" htmlFor="user-name">
+                          الاسم الكامل <span className="required-star">*</span>
+                        </label>
+                        <div className="auth-input-wrapper">
+                          <span className="auth-input-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="12" cy="8" r="5"></circle>
+                              <path d="M20 21a8 8 0 0 0-16 0"></path>
+                            </svg>
+                          </span>
+                          <input
+                            id="user-name"
+                            type="text"
+                            className="auth-input"
+                            placeholder="أدخل الاسم الكامل"
+                            value={fullName}
+                            onChange={(e) => setFullName(e.target.value)}
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="auth-field-group">
+                      <label className="auth-label" htmlFor="user-name">
+                        الاسم الكامل <span className="required-star">*</span>
+                      </label>
+                      <div className="auth-input-wrapper">
+                        <span className="auth-input-icon">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="8" r="5"></circle>
+                            <path d="M20 21a8 8 0 0 0-16 0"></path>
+                          </svg>
+                        </span>
+                        <input
+                          id="user-name"
+                          type="text"
+                          className="auth-input"
+                          placeholder="أدخل الاسم الكامل"
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Email */}
                   <div className="auth-field-group">
@@ -701,6 +755,7 @@ export default function RegisterForm({ openPolicy, navigate }) {
                         placeholder="7X XXX XXXX"
                         value={phoneNum}
                         maxLength={15}
+                        style={{ border: 'none', outline: 'none', boxShadow: 'none', background: 'transparent' }}
                         onChange={(e) => setPhoneNum(e.target.value.replace(/\D/g, '').slice(0, 15))}
                       />
                       <div className="auth-phone-prefix">
@@ -1057,7 +1112,20 @@ export default function RegisterForm({ openPolicy, navigate }) {
                   ) : (
                     /* CONSULTANT STEP 2 FIELDS */
                     <>
-                      {/* Company / Office Name + Main Specialization */}
+                      {/* Field 1: Specialization Multi-Select (First / في الأول) */}
+                      <div className="auth-field-group">
+                        <label className="auth-label">
+                          التخصص <span className="required-star">*</span>
+                        </label>
+                        <SpecializationsMultiSelect
+                          specializations={specializations}
+                          selectedIds={selectedSpecializations}
+                          onChange={(newIds) => setSelectedSpecializations(newIds)}
+                          placeholder="اختر التخصص..."
+                        />
+                      </div>
+
+                      {/* Field 2: Company Name + Years of Experience */}
                       <div className="auth-row-2col">
                         <div className="auth-field-group">
                           <label className="auth-label" htmlFor="consultant-company">
@@ -1080,50 +1148,6 @@ export default function RegisterForm({ openPolicy, navigate }) {
                               onChange={(e) => setCompanyName(e.target.value)}
                             />
                           </div>
-                        </div>
-
-                        <div className="auth-field-group">
-                          <label className="auth-label">
-                            التخصص الرئيسي <span className="required-star">*</span>
-                          </label>
-                          <ModernSelect
-                            options={specializations.map((s) => ({ value: String(s.id), label: s.name }))}
-                            value={String(mainSpecializationId)}
-                            onChange={(val) => setMainSpecializationId(val)}
-                            placeholder="اختر التخصص..."
-                            prefixIcon={
-                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path>
-                                <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path>
-                                <path d="M7 21h10"></path>
-                                <path d="M12 3v18"></path>
-                                <path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"></path>
-                              </svg>
-                            }
-                            style={{ width: '100%' }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Activity Type + Years of Experience */}
-                      <div className="auth-row-2col">
-                        <div className="auth-field-group">
-                          <label className="auth-label">
-                            نوع النشاط
-                          </label>
-                          <ModernSelect
-                            options={CONSULTANT_REGISTRATION_ACTIVITIES}
-                            value={activityType}
-                            onChange={(val) => setActivityType(val)}
-                            placeholder="اختر النشاط..."
-                            prefixIcon={
-                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                              </svg>
-                            }
-                            style={{ width: '100%' }}
-                          />
                         </div>
 
                         <div className="auth-field-group">
@@ -1151,7 +1175,55 @@ export default function RegisterForm({ openPolicy, navigate }) {
                         </div>
                       </div>
 
-                      {/* Bio */}
+                      {/* Field 3: Professional Track ("المسار المهني" - تحت) */}
+                      <div className="auth-field-group">
+                        <label className="auth-label">
+                          المسار المهني <span className="required-star">*</span>
+                        </label>
+                        <ModernSelect
+                          options={CONSULTANT_REGISTRATION_ACTIVITIES}
+                          value={activityType}
+                          onChange={(val) => setActivityType(val)}
+                          placeholder="اختر المسار المهني..."
+                          prefixIcon={
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                              <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                          }
+                          style={{ width: '100%' }}
+                        />
+                      </div>
+
+                      {/* Field 4: Plain JCPA License input when activity is "مدقق حسابات" (no green background/borders) */}
+                      {activityType === 'مدقق حسابات' && (
+                        <div className="auth-field-group fade-in">
+                          <label className="auth-label" htmlFor="consultant-jcpa">
+                            رقم إجازة مدقق حسابات قانوني JCPA <span className="required-star">*</span>
+                          </label>
+                          <div className="auth-input-wrapper">
+                            <span className="auth-input-icon">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                              </svg>
+                            </span>
+                            <input
+                              id="consultant-jcpa"
+                              type="text"
+                              required
+                              className="auth-input"
+                              placeholder="أدخل رقم إجازة JCPA الرسمية"
+                              value={jcpaNumber}
+                              onChange={(e) => setJcpaNumber(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Field 5: Bio */}
                       <div className="auth-field-group">
                         <label className="auth-label" htmlFor="consultant-bio">
                           نبذة مهنية
@@ -1269,6 +1341,7 @@ export default function RegisterForm({ openPolicy, navigate }) {
                     setCurrentStep(2);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
+                  activityType={activityType}
                 />
               )}
 
@@ -1292,6 +1365,7 @@ export default function RegisterForm({ openPolicy, navigate }) {
                 <OtpVerificationStep
                   recipient={email}
                   email={email}
+                  phone={sanitizePhoneNumber(phoneNum, countryCode)}
                   fullName={fullName}
                   onVerified={handleFinalSubmit}
                   onBack={() => {

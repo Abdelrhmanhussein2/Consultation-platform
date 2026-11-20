@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-export default function OtpVerificationStep({ recipient, email, fullName, onVerified, onBack, navigate }) {
+export default function OtpVerificationStep({ recipient, email, phone, fullName, onVerified, onBack, navigate }) {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [timer, setTimer] = useState(55);
   const [canResend, setCanResend] = useState(false);
@@ -39,6 +39,11 @@ export default function OtpVerificationStep({ recipient, email, fullName, onVeri
   };
 
   const handleKeyDown = (index, e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleVerify();
+      return;
+    }
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
       inputRefs.current[index - 1].focus();
     } else if (e.key === 'ArrowLeft' && index < 5) {
@@ -81,7 +86,9 @@ export default function OtpVerificationStep({ recipient, email, fullName, onVeri
       });
       const data = await res.json();
       if (res.ok) {
-        onVerified();
+        if (onVerified) {
+          await onVerified();
+        }
       } else {
         const msg = typeof data?.detail === 'string' ? data.detail : (Array.isArray(data?.detail) ? data.detail.map(d => d.msg ? d.msg.replace(/^Value error,\s*/i, '') : '').join(' | ') : 'رمز التحقق غير صحيح أو انتهت صلاحيته');
         setError(msg);
@@ -103,7 +110,11 @@ export default function OtpVerificationStep({ recipient, email, fullName, onVeri
       const res = await fetch('/api/auth/register-otp/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), phone: recipient, full_name: fullName })
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          phone: phone ? String(phone).trim() : null,
+          full_name: fullName ? String(fullName).trim() : null
+        })
       });
       const data = await res.json();
       if (res.ok) {
@@ -126,7 +137,13 @@ export default function OtpVerificationStep({ recipient, email, fullName, onVeri
   const formatTimer = (sec) => `00:${sec < 10 ? '0' : ''}${sec}`;
 
   return (
-    <div className="auth-step-pane fade-in">
+    <form
+      className="auth-step-pane fade-in"
+      onSubmit={(e) => {
+        e.preventDefault();
+        handleVerify();
+      }}
+    >
       <div className="auth-header">
         <h2 className="auth-title">تأكيد الحساب</h2>
         <p className="auth-subtitle">أدخل رمز التحقق المكون من 6 أرقام الذي أرسلناه إلى بريدك الإلكتروني</p>
@@ -176,7 +193,7 @@ export default function OtpVerificationStep({ recipient, email, fullName, onVeri
         </div>
       </div>
 
-      <button type="button" className="auth-btn-primary" onClick={handleVerify} disabled={loading || otp.join('').length !== 6}>
+      <button type="submit" className="auth-btn-primary" disabled={loading || otp.join('').length !== 6}>
         {loading ? <span className="auth-spinner"></span> : 'تحقق الآن'}
       </button>
 
@@ -190,7 +207,7 @@ export default function OtpVerificationStep({ recipient, email, fullName, onVeri
           تسجيل الدخول
         </a>
       </div>
-    </div>
+    </form>
   );
 }
 

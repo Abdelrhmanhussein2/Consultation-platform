@@ -7,9 +7,14 @@ import {
 } from './broadcastConstants';
 
 export default function UserTargetFilters({ filters, onChange, onReset }) {
-  const isFiltered =
-    filters.legal_form !== 'all' ||
-    filters.sector !== 'all';
+  const selectedLegalForms = Array.isArray(filters.legal_form)
+    ? filters.legal_form.filter(f => f !== 'all')
+    : (filters.legal_form && filters.legal_form !== 'all' ? [filters.legal_form] : []);
+  const selectedSectors = Array.isArray(filters.sector)
+    ? filters.sector.filter(s => s !== 'all')
+    : (filters.sector && filters.sector !== 'all' ? [filters.sector] : []);
+
+  const isFiltered = selectedLegalForms.length > 0 || selectedSectors.length > 0;
 
   return (
     <div
@@ -37,18 +42,21 @@ export default function UserTargetFilters({ filters, onChange, onReset }) {
             color: '#0e3b5e'
           }}
         >
-          فلاتر تخصيص المستخدمين والشركات
+          فلاتر تخصيص المستخدمين والشركات (تحديد متعدد)
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {isFiltered && (
             <span
               style={{
                 fontSize: '11px',
-                color: '#D97706',
+                color: '#0A3C64',
+                background: '#EBF3FA',
+                padding: '2px 8px',
+                borderRadius: '6px',
                 fontWeight: '700'
               }}
             >
-              فلاتر مخصصة نشطة
+              فلاتر نشطة
             </span>
           )}
           <FilterResetButton
@@ -80,9 +88,11 @@ export default function UserTargetFilters({ filters, onChange, onReset }) {
           </label>
           <ModernSelect
             options={LEGAL_FORM_OPTIONS}
-            value={filters.legal_form}
+            value={selectedLegalForms}
             onChange={(val) => onChange('legal_form', val)}
-            placeholder="اختر الشكل القانوني..."
+            placeholder="الكل"
+            multiple={true}
+            multiLabelFormat={(cnt) => `تم تحديد (${cnt})`}
             style={{ width: '100%' }}
           />
         </div>
@@ -101,9 +111,11 @@ export default function UserTargetFilters({ filters, onChange, onReset }) {
           </label>
           <ModernSelect
             options={SECTOR_OPTIONS}
-            value={filters.sector}
+            value={selectedSectors}
             onChange={(val) => onChange('sector', val)}
-            placeholder="اختر نشاط المنشأة..."
+            placeholder="الكل"
+            multiple={true}
+            multiLabelFormat={(cnt) => `تم تحديد (${cnt})`}
             style={{ width: '100%' }}
           />
         </div>

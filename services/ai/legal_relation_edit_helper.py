@@ -62,13 +62,23 @@ class LegalRelationEditHelper:
         """Calculates relation diff, applies soft-delete & audits in 1 PG transaction, then syncs Neo4j."""
         from services.ai.legal_relation_service import LegalRelationService
 
+        TYPE_NORM = {
+            "الأنظمة": "نظام", "أنظمة": "نظام", "القرارات": "قرار", "قرارات": "قرار",
+            "التعليمات": "تعليمات", "القوانين": "قانون", "قوانين": "قانون",
+            "أحكام ملزمة": "حكم ملزم", "جداول": "جدول", "ملاحق": "ملحق"
+        }
+
         if "relations" in payload and isinstance(payload["relations"], list):
             desired_items = payload["relations"]
+            for itm in desired_items:
+                if itm.get("sub_category"):
+                    itm["sub_category"] = TYPE_NORM.get(itm["sub_category"], itm["sub_category"])
         elif "related_laws" in payload:
             pids = payload.get("related_laws") or []
             domain = payload.get("relation_domain", "legislative")
             rel_type = payload.get("relation_type", "issued_under" if domain == "legislative" else "cites_law")
-            sub_cat = payload.get("court_category" if domain == "judicial" else "sub_category", "الأنظمة" if domain == "legislative" else "تمييز حقوق")
+            raw_sub_cat = payload.get("court_category" if domain == "judicial" else "sub_category", "نظام" if domain == "legislative" else "تمييز حقوق")
+            sub_cat = raw_sub_cat
             target_title = payload.get("title", target_doc_id)
             desired_items = [{
                 "parent_law_id": str(pid),

@@ -59,8 +59,9 @@ export default function NotificationDetailsModal({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(15,23,42,0.6)',
-        backdropFilter: 'blur(3px)',
+        background: 'rgba(15, 23, 42, 0.25)',
+        backdropFilter: 'blur(1.5px)',
+        WebkitBackdropFilter: 'blur(1.5px)',
         zIndex: 99999,
         display: 'flex',
         alignItems: 'center',

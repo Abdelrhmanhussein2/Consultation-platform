@@ -1512,9 +1512,17 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
 
                 {/* Times Column - 06:00 to 22:00 */}
                 <div className="timecol">
-                  {Array.from({ length: 17 }, (_, i) => (
-                    <div key={i} className="time num">{pad(i + 6)}:00</div>
-                  ))}
+                  {Array.from({ length: 17 }, (_, i) => {
+                    const startH = pad(i + 6);
+                    const endH = pad(i + 7);
+                    return (
+                      <div key={i} className="time num" dir="ltr">
+                        <span>{startH}:00</span>
+                        <span style={{ margin: '0 4px', color: '#94A3B8' }}>—</span>
+                        <span>{endH}:00</span>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* 7 Columns for Days */}
@@ -1602,9 +1610,17 @@ export default function DiwanAppointmentsPage({ navigate: navigateProp, initialR
                 </div>
                 <div className="day-view-grid">
                   <div>
-                    {Array.from({ length: 17 }, (_, i) => (
-                      <div key={i} className="day-time num">{pad(i + 6)}:00</div>
-                    ))}
+                    {Array.from({ length: 17 }, (_, i) => {
+                      const startH = pad(i + 6);
+                      const endH = pad(i + 7);
+                      return (
+                        <div key={i} className="day-time num" dir="ltr">
+                          <span>{startH}:00</span>
+                          <span style={{ margin: '0 4px', color: '#94A3B8' }}>—</span>
+                          <span>{endH}:00</span>
+                        </div>
+                      );
+                    })}
                   </div>
                   <div className="day-lane">
                     {filteredEvents.filter(e => e.date === iso(selectedDay)).map(evt => {

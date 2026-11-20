@@ -12,6 +12,7 @@ export default function LoginForm({ openPolicy, navigate }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [blockedModal, setBlockedModal] = useState({ open: false, title: '', message: '' });
 
   // Handle simple email validation
   const validateEmail = (emailStr) => {
@@ -124,6 +125,20 @@ export default function LoginForm({ openPolicy, navigate }) {
             errorMessage = data.detail.map(err => err.msg || err.detail).join(' | ');
           }
         }
+
+        // Check if account is suspended / deactivated / blocked
+        if (
+          (response.status === 403 || response.status === 400) &&
+          (errorMessage.includes('حظر') || errorMessage.includes('إيقاف') || errorMessage.includes('inactive') || errorMessage.includes('موقوف'))
+        ) {
+          setBlockedModal({
+            open: true,
+            title: 'تم إيقاف / حظر حسابك',
+            message: errorMessage || 'تم إيقاف حسابك من قبل إدارة المنصة. يرجى التواصل مع الدعم الفني لحل المشكلة.'
+          });
+          return;
+        }
+
         setError(errorMessage);
       }
     } catch (err) {
@@ -349,6 +364,109 @@ export default function LoginForm({ openPolicy, navigate }) {
           </p>
         </div>
       </div>
+
+      {/* Centered Suspended / Blocked Account Modal */}
+      {blockedModal.open && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.45)',
+            backdropFilter: 'blur(3px)',
+            WebkitBackdropFilter: 'blur(3px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            padding: '16px',
+            direction: 'rtl'
+          }}
+          onClick={() => setBlockedModal({ open: false, title: '', message: '' })}
+        >
+          <div
+            style={{
+              background: '#FFFFFF',
+              borderRadius: '20px',
+              padding: '32px 28px',
+              maxWidth: '460px',
+              width: '100%',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.25)',
+              textAlign: 'center',
+              border: '1px solid #FEE2E2',
+              animation: 'fadeIn 0.2s ease-out'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                width: '64px',
+                height: '64px',
+                background: '#FEF2F2',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 18px',
+                border: '1.5px solid #FECACA'
+              }}
+            >
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+              </svg>
+            </div>
+
+            <h3 style={{ fontSize: '19px', fontWeight: '900', color: '#991B1B', margin: '0 0 10px 0', fontFamily: "'Cairo', sans-serif" }}>
+              {blockedModal.title}
+            </h3>
+
+            <p style={{ fontSize: '13.5px', color: '#475569', lineHeight: '1.7', margin: '0 0 24px 0', fontFamily: "'Cairo', sans-serif" }}>
+              {blockedModal.message}
+            </p>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setBlockedModal({ open: false, title: '', message: '' });
+                  if (openPolicy) openPolicy('support');
+                }}
+                style={{
+                  background: '#0e3b5e',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  padding: '11px 22px',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                  fontFamily: "'Cairo', sans-serif"
+                }}
+              >
+                التواصل مع الدعم الفني
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setBlockedModal({ open: false, title: '', message: '' })}
+                style={{
+                  background: '#F1F5F9',
+                  color: '#475569',
+                  border: '1px solid #CBD5E1',
+                  padding: '11px 20px',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  fontFamily: "'Cairo', sans-serif"
+                }}
+              >
+                إغلاق
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

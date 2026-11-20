@@ -62,9 +62,9 @@ export default function ConsultantPoliciesStep({ acceptedPolicies, onPoliciesCha
           type="button"
           onClick={handleAcceptAll}
           style={{
-            background: areAllAccepted ? '#16A34A' : 'var(--brand-blue, #005D9C)',
+            background: areAllAccepted ? '#0D3C5C' : 'var(--brand-blue, #005D9C)',
             color: '#FFFFFF',
-            border: 'none',
+            border: areAllAccepted ? '1px solid #08283E' : 'none',
             borderRadius: '16px',
             padding: '5px 12px',
             fontSize: '11px',
@@ -73,6 +73,8 @@ export default function ConsultantPoliciesStep({ acceptedPolicies, onPoliciesCha
             display: 'inline-flex',
             alignItems: 'center',
             gap: '5px',
+            boxShadow: areAllAccepted ? '0 1px 3px rgba(13,60,92,0.25)' : 'none',
+            transition: 'all 0.2s ease',
           }}
         >
           <span>✓</span>

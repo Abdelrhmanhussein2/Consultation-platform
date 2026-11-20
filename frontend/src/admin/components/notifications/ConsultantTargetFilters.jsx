@@ -7,9 +7,14 @@ import {
 } from './broadcastConstants';
 
 export default function ConsultantTargetFilters({ filters, onChange, onReset }) {
-  const isFiltered =
-    filters.activity !== 'all' ||
-    filters.specialization !== 'all';
+  const selectedActivities = Array.isArray(filters.activity)
+    ? filters.activity.filter(a => a !== 'all')
+    : (filters.activity && filters.activity !== 'all' ? [filters.activity] : []);
+  const selectedSpecs = Array.isArray(filters.specialization)
+    ? filters.specialization.filter(s => s !== 'all')
+    : (filters.specialization && filters.specialization !== 'all' ? [filters.specialization] : []);
+
+  const isFiltered = selectedActivities.length > 0 || selectedSpecs.length > 0;
 
   return (
     <div
@@ -37,14 +42,17 @@ export default function ConsultantTargetFilters({ filters, onChange, onReset }) 
             color: '#0e3b5e'
           }}
         >
-          فلاتر تخصيص المستشارين
+          فلاتر تخصيص المستشارين (تحديد متعدد)
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {isFiltered && (
             <span
               style={{
                 fontSize: '11px',
-                color: '#D97706',
+                color: '#0A3C64',
+                background: '#EBF3FA',
+                padding: '2px 8px',
+                borderRadius: '6px',
                 fontWeight: '700'
               }}
             >
@@ -76,13 +84,15 @@ export default function ConsultantTargetFilters({ filters, onChange, onReset }) 
               marginBottom: '4px'
             }}
           >
-            نوع النشاط المهني
+            المسمى المهني
           </label>
           <ModernSelect
             options={CONSULTANT_ACTIVITY_OPTIONS}
-            value={filters.activity}
+            value={selectedActivities}
             onChange={(val) => onChange('activity', val)}
-            placeholder="اختر النشاط المهني..."
+            placeholder="الكل"
+            multiple={true}
+            multiLabelFormat={(cnt) => `تم تحديد (${cnt})`}
             style={{ width: '100%' }}
           />
         </div>
@@ -97,13 +107,15 @@ export default function ConsultantTargetFilters({ filters, onChange, onReset }) 
               marginBottom: '4px'
             }}
           >
-            التخصص الرئيسي
+            التخصص ومجال الاستشارة
           </label>
           <ModernSelect
             options={CONSULTANT_SPECIALIZATION_OPTIONS}
-            value={filters.specialization}
+            value={selectedSpecs}
             onChange={(val) => onChange('specialization', val)}
-            placeholder="اختر التخصص الرئيسي..."
+            placeholder="الكل"
+            multiple={true}
+            multiLabelFormat={(cnt) => `تم تحديد (${cnt})`}
             style={{ width: '100%' }}
           />
         </div>

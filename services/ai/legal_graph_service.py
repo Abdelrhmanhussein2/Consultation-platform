@@ -303,8 +303,8 @@ class LegalGraphService:
         MATCH (l)
         {pre_where}
         OPTIONAL MATCH (l)-[:HAS_VERSION*0..1]->()-[:`يتضمن_مادة`|HAS_ARTICLE]->(a)
-        OPTIONAL MATCH (newer)-[:`تعديل_على`]->(l)
-        OPTIONAL MATCH (l)-[:`تعديل_على`]->(original_law)
+        OPTIONAL MATCH (newer)-[:`تعديل_على`|AMENDS]->(l)
+        OPTIONAL MATCH (l)-[:`تعديل_على`|AMENDS]->(original_law)
         WITH l,
              coalesce(l.law_id, l.`معرف`) AS law_id,
              coalesce(l.title, l.`العنوان`, l.`اسم`, l.name) AS title,
@@ -379,8 +379,8 @@ class LegalGraphService:
 
                 if is_repealed:
                     law["status"] = "ملغي"
-                elif has_newer or raw_st == "نسخة سابقة":
-                    law["status"] = "نسخة سابقة"
+                elif has_newer or raw_st in ("نسخة سابقة", "معدل"):
+                    law["status"] = "معدل"
                 else:
                     law["status"] = "ساري"
 
@@ -395,7 +395,23 @@ class LegalGraphService:
                 elif stored_neo4j_type and stored_neo4j_type not in version_keywords:
                     law["doc_type"] = stored_neo4j_type
                 else:
-                    law["doc_type"] = "تشريع"
+                    clean_t = ltitle.strip()
+                    if clean_t.startswith("قانون"):
+                        law["doc_type"] = "قانون"
+                    elif clean_t.startswith("نظام"):
+                        law["doc_type"] = "نظام"
+                    elif clean_t.startswith("تعليمات"):
+                        law["doc_type"] = "تعليمات"
+                    elif clean_t.startswith("قرار"):
+                        law["doc_type"] = "قرار"
+                    elif "حكم ملزم" in clean_t:
+                        law["doc_type"] = "حكم ملزم"
+                    elif clean_t.startswith("جدول"):
+                        law["doc_type"] = "جدول"
+                    elif clean_t.startswith("ملحق"):
+                        law["doc_type"] = "ملحق"
+                    else:
+                        law["doc_type"] = "قانون" if "قانون" in clean_t else "تشريع"
 
                 # Remove raw helper fields
                 law.pop("newer_count", None)
@@ -419,6 +435,34 @@ class LegalGraphService:
                 if law.get("title") and "كما صدر" in str(law["title"]):
                     law["title"] = re.sub(r'\s*—\s*كما صدر', '', str(law["title"])).strip()
 
+                # 4. Compute effective year for the law:
+                # Priority 1: Year from amended_date (آخر تعديل) if valid
+                # Priority 2: Year from issue_date (تاريخ الإصدار)
+                # Priority 3: Year from law.year
+                amended_raw = str(law.get("amended_date") or "").strip()
+                issue_raw = str(law.get("issue_date") or "").strip()
+                effective_year = None
+
+                if amended_raw and amended_raw not in ("—", "-", "لا ينطبق", "لا ينطبق (نص أصلي)", "none", "null"):
+                    m = re.search(r'\d{4}', amended_raw)
+                    if m:
+                        effective_year = m.group(0)
+
+                if not effective_year and issue_raw and issue_raw not in ("—", "-", "none", "null"):
+                    m = re.search(r'\d{4}', issue_raw)
+                    if m:
+                        effective_year = m.group(0)
+
+                if not effective_year:
+                    raw_y = law.get("year") or law.get("year_short") or ""
+                    m = re.search(r'\d{4}', str(raw_y))
+                    if m:
+                        effective_year = m.group(0)
+
+                if effective_year:
+                    law["year_short"] = str(effective_year)
+                    law["effective_year"] = str(effective_year)
+
             # Filter by status if requested: 'ساري' | 'ملغي' | 'معدل' | 'نسخة سابقة' | 'نسخة أصلية'
             if status and status not in ("الكل", "كافة الحالات", "all", None):
                 clean_st = str(status).strip()
@@ -427,7 +471,7 @@ class LegalGraphService:
                 elif clean_st in ("ملغي", "ملغى"):
                     raw_laws = [l for l in raw_laws if l.get("status") == "ملغي"]
                 elif clean_st == "معدل":
-                    raw_laws = [l for l in raw_laws if l.get("version_status") == "معدل"]
+                    raw_laws = [l for l in raw_laws if l.get("status") == "معدل" or l.get("version_status") == "معدل" or l.get("is_superseded") is True]
                 elif clean_st == "نسخة سابقة":
                     raw_laws = [l for l in raw_laws if l.get("is_superseded") is True]
                 elif clean_st == "نسخة أصلية":
@@ -531,28 +575,55 @@ class LegalGraphService:
         except Exception:
             pass
 
-        # 3. Canonical admin sub-categories from KnowledgeSourceForm
+        # 3. Canonical approved types (13 legal categories)
         canonical_admin_types = [
-            "قانون",
             "نظام",
+            "قرار",
             "تعليمات",
-            "قرارات",
-            "أحكام ملزمة",
-            "جداول",
-            "ملاحق"
+            "قانون",
+            "حكم ملزم",
+            "جدول",
+            "ملحق",
+            "تمييز حقوق",
+            "تمييز جزاء",
+            "قضاء دستوري",
+            "قضاء إداري",
+            "درجة أولى",
+            "بداية حقوق"
         ]
+
+        type_norm_map = {
+            "الأنظمة": "نظام",
+            "أنظمة": "نظام",
+            "نظام": "نظام",
+            "قرارات": "قرار",
+            "قرار": "قرار",
+            "تعليمات": "تعليمات",
+            "قوانين": "قانون",
+            "قانون": "قانون",
+            "أحكام ملزمة": "حكم ملزم",
+            "حكم ملزم": "حكم ملزم",
+            "جداول": "جدول",
+            "جدول": "جدول",
+            "ملاحق": "ملحق",
+            "ملحق": "ملحق",
+            "تمييز حقوق": "تمييز حقوق",
+            "تمييز جزاء": "تمييز جزاء",
+            "قضاء دستوري": "قضاء دستوري",
+            "قضاء إداري": "قضاء إداري",
+            "درجة أولى": "درجة أولى",
+            "بداية حقوق": "بداية حقوق"
+        }
 
         result = []
         for t in canonical_admin_types:
-            if t not in seen:
-                result.append(t)
-                seen.add(t)
-            else:
-                result.append(t)
-
-        for t in found_types:
             if t not in result:
                 result.append(t)
+
+        for raw_t in found_types:
+            norm_t = type_norm_map.get(raw_t, raw_t)
+            if norm_t and norm_t not in result:
+                result.append(norm_t)
 
         return result
 
@@ -683,8 +754,8 @@ class LegalGraphService:
         AND ($include_inactive = true OR coalesce(l.is_active, true) = true)
         OPTIONAL MATCH (l)-[:HAS_VERSION]->(lv:LawVersion)-[:HAS_ARTICLE]->(av:ArticleVersion)
         OPTIONAL MATCH (l)-[:`يتضمن_مادة`]->(a_ar:`مادة`)
-        OPTIONAL MATCH (newer)-[:`تعديل_على`]->(l)
-        OPTIONAL MATCH (l)-[:`تعديل_على`]->(original_law)
+        OPTIONAL MATCH (newer)-[:`تعديل_على`|AMENDS]->(l)
+        OPTIONAL MATCH (l)-[:`تعديل_على`|AMENDS]->(original_law)
         WITH l, coalesce(av, a_ar) AS a_node, 
              count(DISTINCT newer) > 0 AS has_newer_version,
              count(DISTINCT original_law) > 0 AS is_amendment

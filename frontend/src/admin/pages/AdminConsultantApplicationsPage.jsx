@@ -291,7 +291,7 @@ export default function AdminConsultantApplicationsPage({ navigate }) {
             transition: 'all 0.15s ease'
           }}
         >
-          <span>طلبات إضافة وتعديل التخصصات</span>
+          <span>طلبات تعديل البيانات</span>
           <span style={{
             background: activeTab === 'specializations' ? 'rgba(255,255,255,0.22)' : '#CBD5E1',
             color: activeTab === 'specializations' ? '#FFFFFF' : '#0F172A',
@@ -383,6 +383,23 @@ export default function AdminConsultantApplicationsPage({ navigate }) {
               const formattedDate = formatApplicationDate(app.created_at || user.created_at);
               const adminToken = getAdminToken();
 
+              // Compute all selected specializations (main + extra credentials)
+              const allSpecs = [];
+              if (Array.isArray(app.specialties) && app.specialties.length > 0) {
+                allSpecs.push(...app.specialties);
+              } else {
+                if (app.specialization?.name) allSpecs.push(app.specialization.name);
+                if (Array.isArray(app.credentials)) {
+                  app.credentials.forEach(c => {
+                    const cName = c.specialization?.name;
+                    if (cName && !allSpecs.includes(cName)) allSpecs.push(cName);
+                  });
+                }
+              }
+              if (allSpecs.length === 0) {
+                allSpecs.push(specName);
+              }
+
               return (
                 <div
                   key={app.id || app.user_id}
@@ -469,6 +486,43 @@ export default function AdminConsultantApplicationsPage({ navigate }) {
                         <b style={{ color: app.price_per_hour != null ? '#0A3C64' : '#64748B' }}>{priceText}</b>
                       </div>
                     </div>
+
+                    {/* All Selected Specializations Chips */}
+                    {allSpecs.length > 0 && (
+                      <div style={{
+                        background: '#FFFFFF',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: '8px',
+                        padding: '10px 12px',
+                        marginBottom: '14px'
+                      }}>
+                        <div style={{ fontSize: '11.5px', fontWeight: '800', color: '#0A3C64', marginBottom: '6px' }}>
+                          التخصصات المحددة للمستشار ({allSpecs.length}):
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {allSpecs.map((s, sIdx) => (
+                            <span
+                              key={sIdx}
+                              style={{
+                                background: sIdx === 0 ? '#EBF3FA' : '#F8FAFC',
+                                color: sIdx === 0 ? '#0A3C64' : '#334155',
+                                border: sIdx === 0 ? '1px solid #BAE6FD' : '1px solid #CBD5E1',
+                                padding: '3px 8px',
+                                borderRadius: '6px',
+                                fontSize: '11.5px',
+                                fontWeight: '700',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                            >
+                              <span>{s}</span>
+                              {sIdx === 0 && <span style={{ fontSize: '9.5px', color: '#0284C7', fontWeight: '800' }}>• رئيسي</span>}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Bio Preview */}
                     <div style={{ fontSize: '12.5px', color: '#475569', lineHeight: '1.5', marginBottom: '14px', background: '#FFFFFF', border: '1px solid #F1F5F9', borderRadius: '8px', padding: '10px 12px' }}>

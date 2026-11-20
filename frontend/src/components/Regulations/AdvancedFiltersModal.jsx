@@ -6,8 +6,32 @@ import ModernSelect from '../ModernSelect';
 import FilterResetButton from '../FilterResetButton';
 import { getLawDocTypes } from '../../services/legalService';
 
-const STATUSES = ["الكل", "ساري", "ملغي", "معدل", "نسخة سابقة"];
-const DEFAULT_TYPES = ["الكل", "قانون", "نظام", "تعليمات", "قرارات", "أحكام ملزمة", "جداول", "ملاحق"];
+const STATUSES = ["الكل", "ساري", "معدل", "ملغي"];
+const DEFAULT_TYPES = [
+  "الكل",
+  "نظام",
+  "قرار",
+  "تعليمات",
+  "قانون",
+  "حكم ملزم",
+  "جدول",
+  "ملحق",
+  "تمييز حقوق",
+  "تمييز جزاء",
+  "قضاء دستوري",
+  "قضاء إداري",
+  "درجة أولى",
+  "بداية حقوق"
+];
+
+const TYPE_NORM_MAP = {
+  "الأنظمة": "نظام",
+  "أنظمة": "نظام",
+  "قرارات": "قرار",
+  "أحكام ملزمة": "حكم ملزم",
+  "جداول": "جدول",
+  "ملاحق": "ملحق"
+};
 
 export default function AdvancedFiltersModal({ isOpen, onClose, filters, setFilters, onApply }) {
   const [types, setTypes] = useState(DEFAULT_TYPES);
@@ -16,8 +40,14 @@ export default function AdvancedFiltersModal({ isOpen, onClose, filters, setFilt
     let isMounted = true;
     getLawDocTypes().then((res) => {
       if (isMounted && Array.isArray(res) && res.length > 0) {
-        const unique = ["الكل", ...res.filter(t => t !== "الكل")];
-        setTypes(unique);
+        const normalized = res.map(t => TYPE_NORM_MAP[t] || t);
+        const uniqueSet = new Set(["الكل", ...normalized]);
+        // Preserve canonical order where possible
+        const ordered = DEFAULT_TYPES.filter(t => uniqueSet.has(t));
+        uniqueSet.forEach(t => {
+          if (!ordered.includes(t)) ordered.push(t);
+        });
+        setTypes(ordered);
       }
     }).catch(() => {});
     return () => { isMounted = false; };

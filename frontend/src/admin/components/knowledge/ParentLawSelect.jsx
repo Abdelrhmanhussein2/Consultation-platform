@@ -4,7 +4,8 @@ import { fetchParentLaws } from './knowledgeApi';
 export default function ParentLawSelect({
   value = [],
   onChange,
-  placeholder = 'ابحث عن القوانين الأصلية لربطها...'
+  placeholder = 'ابحث عن القوانين الأصلية لربطها...',
+  multiple = true
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -60,6 +61,18 @@ export default function ParentLawSelect({
   };
 
   const handleToggle = (law) => {
+    if (!multiple) {
+      const isSelected = value.includes(law.id);
+      if (isSelected) {
+        onChange?.([]);
+      } else {
+        setSelectedMap((prev) => ({ ...prev, [law.id]: law }));
+        onChange?.([law.id]);
+      }
+      setIsOpen(false);
+      return;
+    }
+
     const isSelected = value.includes(law.id);
     const next = isSelected ? value.filter((id) => id !== law.id) : [...value, law.id];
     if (!isSelected) setSelectedMap((prev) => ({ ...prev, [law.id]: law }));
@@ -68,9 +81,13 @@ export default function ParentLawSelect({
 
   const isAmended = (title) => /وتعديلاته|معدل|تعديل/.test(title || '');
 
+  const singleSelectedId = !multiple && value.length > 0 ? value[0] : null;
+  const singleItem = singleSelectedId ? (selectedMap[singleSelectedId] || laws.find((l) => l.id === singleSelectedId) || { id: singleSelectedId, title: singleSelectedId }) : null;
+
   return (
     <div className="relative text-right" dir="rtl" ref={containerRef}>
-      {value.length > 0 && (
+      {/* Chips shown only in multi-select mode */}
+      {multiple && value.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-2">
           {value.map((id) => {
             const item = selectedMap[id] || { id, title: id };
@@ -90,11 +107,46 @@ export default function ParentLawSelect({
         </div>
       )}
 
-      <button type="button" onClick={() => setIsOpen((prev) => !prev)} className="w-full flex items-center justify-between p-2.5 rounded-lg border border-slate-300 bg-white text-xs hover:border-[#005D9C] focus:outline-none transition-colors">
-        <span className={value.length ? 'text-[#0A3C64] font-medium' : 'text-slate-400'}>
-          {value.length ? `تم اختيار (${value.length}) قانون - انقر للتعديل` : placeholder}
-        </span>
-        <svg className={`w-4 h-4 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9" /></svg>
+      {/* Trigger Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="w-full flex items-center justify-between p-2.5 rounded-lg border border-slate-300 bg-white text-xs hover:border-[#005D9C] focus:outline-none transition-colors"
+      >
+        {!multiple ? (
+          singleItem ? (
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              <span className="text-[#0A3C64] font-bold text-xs truncate" title={singleItem.title}>
+                {singleItem.title}
+              </span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded font-normal shrink-0 ${isAmended(singleItem.title) ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>
+                {isAmended(singleItem.title) ? 'نسخة وتعديلاته' : 'نسخة أصلية'}
+              </span>
+            </div>
+          ) : (
+            <span className="text-slate-400">{placeholder}</span>
+          )
+        ) : (
+          <span className={value.length ? 'text-[#0A3C64] font-medium' : 'text-slate-400'}>
+            {value.length ? `تم اختيار (${value.length}) قانون - انقر للتعديل` : placeholder}
+          </span>
+        )}
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          {!multiple && singleItem && (
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange?.([]);
+              }}
+              className="text-slate-400 hover:text-red-600 p-0.5 cursor-pointer"
+              title="إلغاء التحديد"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            </span>
+          )}
+          <svg className={`w-4 h-4 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9" /></svg>
+        </div>
       </button>
 
       {isOpen && (
@@ -127,8 +179,14 @@ export default function ParentLawSelect({
                       </div>
                       <span className="text-[10px] text-slate-400 font-mono">{law.number && law.number !== '-' ? `رقم ${law.number}` : ''} {law.year && law.year !== '-' ? `لسنة ${law.year}` : ''}</span>
                     </div>
-                    <div className="shrink-0 w-4 h-4 rounded border border-slate-300 flex items-center justify-center bg-white">
-                      {selected && <svg className="w-3 h-3 text-[#005D9C]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
+                    <div className={`shrink-0 w-4 h-4 rounded ${!multiple ? 'rounded-full' : 'rounded'} border border-slate-300 flex items-center justify-center bg-white`}>
+                      {selected && (
+                        !multiple ? (
+                          <div className="w-2 h-2 rounded-full bg-[#005D9C]" />
+                        ) : (
+                          <svg className="w-3 h-3 text-[#005D9C]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                        )
+                      )}
                     </div>
                   </div>
                 );

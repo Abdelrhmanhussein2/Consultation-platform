@@ -12,7 +12,8 @@ export default function ModernSelect({
   align = 'right',
   direction = 'down',
   style = {},
-  multiple = false
+  multiple = false,
+  multiLabelFormat = null
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
@@ -36,19 +37,26 @@ export default function ModernSelect({
     return { value: opt, label: opt };
   });
 
-  const selectedValues = multiple ? (Array.isArray(value) ? value : (value ? [value] : [])) : [];
+  const selectedValues = multiple
+    ? (Array.isArray(value) ? value : (value && value !== 'all' ? [value] : []))
+    : [];
+  const activeValues = multiple ? selectedValues.filter(v => v !== 'all') : [];
   const selectedOption = !multiple ? normalizedOptions.find(opt => opt.value === value) : null;
   const isSelected = multiple
-    ? selectedValues.length > 0
-    : (value !== '' && value !== null && value !== undefined);
+    ? activeValues.length > 0
+    : (value !== '' && value !== null && value !== undefined && value !== 'all');
 
   let labelText = placeholder;
   if (multiple) {
-    if (selectedValues.length === 1) {
-      const match = normalizedOptions.find(opt => opt.value === selectedValues[0]);
-      labelText = match ? match.label : selectedValues[0];
-    } else if (selectedValues.length > 1) {
-      labelText = `تم تحديد (${selectedValues.length}) قوانين`;
+    if (activeValues.length === 0) {
+      labelText = placeholder || 'الكل';
+    } else if (activeValues.length === 1) {
+      const match = normalizedOptions.find(opt => opt.value === activeValues[0]);
+      labelText = match ? match.label : activeValues[0];
+    } else if (typeof multiLabelFormat === 'function') {
+      labelText = multiLabelFormat(activeValues.length);
+    } else {
+      labelText = `تم تحديد (${activeValues.length})`;
     }
   } else {
     labelText = selectedOption ? selectedOption.label : placeholder;
@@ -56,8 +64,13 @@ export default function ModernSelect({
 
   const handleSelect = (optValue) => {
     if (multiple) {
-      const exists = selectedValues.includes(optValue);
-      const next = exists ? selectedValues.filter(v => v !== optValue) : [...selectedValues, optValue];
+      if (optValue === 'all') {
+        onChange([]);
+        return;
+      }
+      const current = selectedValues.filter(v => v !== 'all');
+      const exists = current.includes(optValue);
+      const next = exists ? current.filter(v => v !== optValue) : [...current, optValue];
       onChange(next);
     } else {
       onChange(optValue);
@@ -99,15 +112,28 @@ export default function ModernSelect({
         <div className={`modern-select-dropdown align-${align}`} style={{ minWidth: dropdownWidth }}>
           <div className="modern-select-options">
             {normalizedOptions.map((opt, idx) => {
-              const active = multiple ? selectedValues.includes(opt.value) : opt.value === value;
+              const active = multiple
+                ? (opt.value === 'all'
+                    ? activeValues.length === 0
+                    : activeValues.includes(opt.value))
+                : opt.value === value;
               return (
                 <div
                   key={idx}
-                  className={`modern-select-option ${active ? 'selected' : ''}`}
+                  className={`modern-select-option ${multiple ? 'has-checkbox' : ''} ${active ? 'selected' : ''}`}
                   onClick={() => handleSelect(opt.value)}
                 >
+                  {multiple && (
+                    <div className={`modern-select-checkbox-box ${active ? 'checked' : ''}`}>
+                      {active && (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                    </div>
+                  )}
                   <span className="modern-select-option-text">{opt.label}</span>
-                  {active && (
+                  {!multiple && active && (
                     <svg className="modern-select-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>

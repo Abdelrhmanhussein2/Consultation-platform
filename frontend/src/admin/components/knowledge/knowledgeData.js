@@ -31,27 +31,62 @@ export const STATUS_OPTIONS = [
 
 export const RELATION_TYPE_OPTIONS = [
   { value: 'none', label: 'تشريع مستقل (بدون ارتباط مباشر)' },
+  { value: 'amends', label: 'نسخة من قانون سابق' },
   { value: 'issued_under', label: 'صدر بموجبه (تشريع تنفيذي لاحق)' },
   { value: 'repealed_by', label: 'ملغي بموجب (تشريع سابق ملغى)' }
 ];
 
 export const SUB_CATEGORY_LEGAL_OPTIONS = [
-  { value: 'الأنظمة', label: 'الأنظمة' },
-  { value: 'القرارات', label: 'القرارات' },
-  { value: 'التعليمات', label: 'التعليمات' },
-  { value: 'القوانين', label: 'القوانين' },
-  { value: 'أحكام ملزمة', label: 'أحكام ملزمة' },
-  { value: 'جداول', label: 'جداول' },
-  { value: 'ملاحق', label: 'ملاحق' }
+  { value: 'نظام', label: 'نظام' },
+  { value: 'قرار', label: 'قرار' },
+  { value: 'تعليمات', label: 'تعليمات' },
+  { value: 'قانون', label: 'قانون' },
+  { value: 'حكم ملزم', label: 'حكم ملزم' },
+  { value: 'جدول', label: 'جدول' },
+  { value: 'ملحق', label: 'ملحق' },
+  { value: 'تمييز حقوق', label: 'تمييز حقوق' },
+  { value: 'تمييز جزاء', label: 'تمييز جزاء' },
+  { value: 'قضاء دستوري', label: 'قضاء دستوري' },
+  { value: 'قضاء إداري', label: 'قضاء إداري' },
+  { value: 'درجة أولى', label: 'درجة أولى' },
+  { value: 'بداية حقوق', label: 'بداية حقوق' }
 ];
+
+export const NORMALIZE_LEGAL_TYPE = (val) => {
+  if (!val) return 'نظام';
+  const map = {
+    'الأنظمة': 'نظام',
+    'أنظمة': 'نظام',
+    'نظام': 'نظام',
+    'القرارات': 'قرار',
+    'قرارات': 'قرار',
+    'قرار': 'قرار',
+    'التعليمات': 'تعليمات',
+    'تعليمات': 'تعليمات',
+    'القوانين': 'قانون',
+    'قوانين': 'قانون',
+    'قانون': 'قانون',
+    'أحكام ملزمة': 'حكم ملزم',
+    'حكم ملزم': 'حكم ملزم',
+    'جداول': 'جدول',
+    'جدول': 'جدول',
+    'ملاحق': 'ملحق',
+    'ملحق': 'ملحق',
+    'الدرجة الأولى': 'درجة أولى',
+    'درجة أولى': 'درجة أولى',
+    'بداية حقوق ضريبية': 'بداية حقوق',
+    'بداية حقوق': 'بداية حقوق'
+  };
+  return map[val] || val;
+};
 
 export const COURT_JUDICIAL_OPTIONS = [
   { value: 'تمييز حقوق', label: 'تمييز حقوق' },
   { value: 'تمييز جزاء', label: 'تمييز جزاء' },
   { value: 'قضاء دستوري', label: 'قضاء دستوري' },
   { value: 'قضاء إداري', label: 'قضاء إداري' },
-  { value: 'الدرجة الأولى', label: 'الدرجة الأولى' },
-  { value: 'بداية حقوق ضريبية', label: 'بداية حقوق ضريبية' }
+  { value: 'درجة أولى', label: 'درجة أولى' },
+  { value: 'بداية حقوق', label: 'بداية حقوق' }
 ];
 
 export const DOCUMENT_STATUS_OPTIONS = [
@@ -75,7 +110,7 @@ export const EMPTY_FORM = {
   fileSize: null,
   related_laws: [],
   relation_type: 'none',
-  sub_category: 'الأنظمة',
+  sub_category: 'نظام',
   document_status: 'ساري',
   notes: ''
 };

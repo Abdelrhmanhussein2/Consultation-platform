@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from helpers.enums import BusinessSector, EntityType, LegalForm, NotificationType, UserRole
 from models.communication.notification import Notification
 from models.consultations.consultant_profile import ConsultantProfile
+from models.consultations.consultant_credential import ConsultantCredential
+from models.consultations.specialization import Specialization
 from models.users.user import User
 from services.communication.live_notification_service import LiveNotificationService
 
@@ -15,6 +17,8 @@ CONSULTANT_ACTIVITY_MAP = {
     "خبير ضريبي": ["خبير ضريبي", "tax_expert"],
     "مستشار قانوني": ["مستشار قانوني", "legal_consultant"],
     "محاسب قانوني": ["محاسب قانوني", "chartered_accountant"],
+    "مدقق ضريبي": ["مدقق ضريبي"],
+    "مستشار جمركي": ["مستشار جمركي"],
     "tax_consultant": ["مستشار ضريبي", "tax_consultant", "مستشار ضريبي معتمد JCPA"],
     "auditor": ["مدقق حسابات", "auditor"],
     "tax_expert": ["خبير ضريبي", "tax_expert"],
@@ -27,36 +31,64 @@ CONSULTANT_SPECIALIZATION_MAP = {
     "free_zones": 5, "transfer_pricing": 6, "legal": 7, "audit": 8,
     "ضريبي": 1, "ضريبة المبيعات": 2, "ضريبة الدخل": 3, "جمارك": 4,
     "مناطق حرة": 5, "تسعير تحويلي": 6, "قانوني": 7, "تدقيق ومراجعة": 8,
+    "ضريبة الدخل والمبيعات": 9,
+    "المناطق الحرة والتنموية": 10,
+    "منطقة العقبة الاقتصادية الخاصة": 11,
+    "قوانين الإستثمار": 12,
+    "قوانين الجمارك": 13,
+    "الضرائب الدولية": 14,
+    "الإزدواج الضريبي": 15,
+    "الأسعار التحويلية": 16,
+    "الضريبة الخاصة": 17,
+    "المنازعات الضريبية": 18,
+    "إدارة المخاطر": 19,
+    "تدقيق الحسابات": 20,
+    "التدقيق الداخلي": 21,
+    "الإعسار": 22,
+    "التصفية": 23,
+    "التخطيط الضريبي": 24,
+    "الإمتثال الضريبي": 25,
 }
 
 
-def _validate_consultant_filters(consultant_filters: dict):
+def _validate_consultant_filters(consultant_filters: dict, db: Session = None):
     activity, specialization = consultant_filters.get("activity"), consultant_filters.get("specialization")
-    candidates, spec_id = None, None
+    candidates, spec_ids = None, []
 
     if activity and activity != "all":
-        candidates = CONSULTANT_ACTIVITY_MAP.get(activity)
-        if not candidates:
-            for k, vals in CONSULTANT_ACTIVITY_MAP.items():
-                if activity in vals or activity == k:
-                    candidates = vals
-                    break
-        if not candidates:
-            raise ValueError(f"قيمة النشاط المهني '{activity}' غير صالحة")
+        act_list = activity if isinstance(activity, list) else [activity]
+        all_candidates = set()
+        for act in act_list:
+            if not act or act == "all":
+                continue
+            cands = CONSULTANT_ACTIVITY_MAP.get(act)
+            if not cands:
+                for k, vals in CONSULTANT_ACTIVITY_MAP.items():
+                    if act in vals or act == k:
+                        cands = vals
+                        break
+            if cands:
+                all_candidates.update(cands)
+            else:
+                all_candidates.add(act)
+        if all_candidates:
+            candidates = list(all_candidates)
 
     if specialization and specialization != "all":
-        if isinstance(specialization, int) or (isinstance(specialization, str) and str(specialization).isdigit()):
-            val_int = int(specialization)
-            if 1 <= val_int <= 8:
-                spec_id = val_int
-            else:
-                raise ValueError(f"معرف التخصص '{specialization}' غير صالح")
-        elif specialization in CONSULTANT_SPECIALIZATION_MAP:
-            spec_id = CONSULTANT_SPECIALIZATION_MAP[specialization]
-        else:
-            raise ValueError(f"قيمة التخصص '{specialization}' غير صالحة")
+        spec_list = specialization if isinstance(specialization, list) else [specialization]
+        for sp in spec_list:
+            if not sp or sp == "all":
+                continue
+            if isinstance(sp, int) or (isinstance(sp, str) and str(sp).isdigit()):
+                spec_ids.append(int(sp))
+            elif sp in CONSULTANT_SPECIALIZATION_MAP:
+                spec_ids.append(CONSULTANT_SPECIALIZATION_MAP[sp])
+            elif db:
+                spec_row = db.query(Specialization).filter(Specialization.name == sp).first()
+                if spec_row:
+                    spec_ids.append(spec_row.id)
 
-    return candidates, spec_id
+    return candidates, spec_ids
 
 
 def get_broadcast_target_query(
@@ -66,7 +98,7 @@ def get_broadcast_target_query(
     """Builds and validates the SQLAlchemy query for broadcast recipients."""
     user_filters = user_filters or {}
     consultant_filters = consultant_filters or {}
-    candidates, spec_id = _validate_consultant_filters(consultant_filters)
+    candidates, spec_ids = _validate_consultant_filters(consultant_filters, db=db)
 
     if audience and target_group == "all":
         aud_set = set(audience)
@@ -82,12 +114,20 @@ def get_broadcast_target_query(
                 c_q = db.query(User.id).filter(
                     User.is_active == True, User.role.in_([UserRole.consultant, UserRole.platform_consultant])
                 )
-                if candidates or spec_id:
+                if candidates or spec_ids:
                     c_q = c_q.join(ConsultantProfile, User.id == ConsultantProfile.user_id)
                     if candidates:
                         c_q = c_q.filter(ConsultantProfile.activity_type.in_(candidates))
-                    if spec_id:
-                        c_q = c_q.filter(ConsultantProfile.main_specialization_id == spec_id)
+                    if spec_ids:
+                        cred_subq = db.query(ConsultantCredential.consultant_id).filter(
+                            ConsultantCredential.specialization_id.in_(spec_ids)
+                        )
+                        c_q = c_q.filter(
+                            or_(
+                                ConsultantProfile.main_specialization_id.in_(spec_ids),
+                                ConsultantProfile.id.in_(cred_subq)
+                            )
+                        )
                 or_conditions.append(User.id.in_(c_q))
 
             if not or_conditions:
@@ -103,24 +143,34 @@ def get_broadcast_target_query(
         query = query.filter(User.role == UserRole.user)
         legal_form = user_filters.get("legal_form")
         if legal_form and legal_form != "all":
-            if legal_form not in [f.value for f in LegalForm]:
-                raise ValueError(f"قيمة الشكل القانوني '{legal_form}' غير صالحة")
-            query = query.filter(User.legal_form == legal_form)
+            lf_list = legal_form if isinstance(legal_form, list) else [legal_form]
+            lf_vals = [f for f in lf_list if f and f != "all"]
+            if lf_vals:
+                query = query.filter(User.legal_form.in_(lf_vals))
 
         sector = user_filters.get("sector")
         if sector and sector != "all":
-            if sector not in [s.value for s in BusinessSector]:
-                raise ValueError(f"قيمة القطاع '{sector}' غير صالحة")
-            query = query.filter(User.sector == sector)
+            sec_list = sector if isinstance(sector, list) else [sector]
+            sec_vals = [s for s in sec_list if s and s != "all"]
+            if sec_vals:
+                query = query.filter(User.sector.in_(sec_vals))
 
     elif target_group == "consultants":
         query = query.filter(User.role.in_([UserRole.consultant, UserRole.platform_consultant]))
-        if candidates or spec_id:
+        if candidates or spec_ids:
             query = query.join(ConsultantProfile, User.id == ConsultantProfile.user_id)
             if candidates:
                 query = query.filter(ConsultantProfile.activity_type.in_(candidates))
-            if spec_id:
-                query = query.filter(ConsultantProfile.main_specialization_id == spec_id)
+            if spec_ids:
+                cred_subq = db.query(ConsultantCredential.consultant_id).filter(
+                    ConsultantCredential.specialization_id.in_(spec_ids)
+                )
+                query = query.filter(
+                    or_(
+                        ConsultantProfile.main_specialization_id.in_(spec_ids),
+                        ConsultantProfile.id.in_(cred_subq)
+                    )
+                )
     else:
         query = query.filter(User.role.in_([UserRole.user, UserRole.consultant, UserRole.platform_consultant]))
 
